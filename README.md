@@ -56,3 +56,15 @@
 - 슬픔을 결제 유도에 이용하지 않습니다. 돈을 내지 않아도 이미 남긴 기록은 열람하고 내보낼 수 있습니다.
 - AI 생성물은 원본 기록과 구분하고, 죄책감이나 압박을 주는 문구를 쓰지 않습니다.
 - 미디어 접근 권한을 보호하고 삭제·내보내기 정책을 투명하게 공개합니다.
+
+## 실행과 확인
+
+필요한 도구: Java 21, Node.js 24
+
+| 대상 | 명령 (각 폴더에서 실행) | 하는 일 |
+| --- | --- | --- |
+| 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행 |
+| 백엔드 테스트 | `./gradlew test` | CI의 `Backend test`와 같음 |
+| 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
+| 프론트엔드 실행 | `npm run dev` | http://localhost:3000 에서 개발 서버 실행 |
+| 프론트엔드 검사 | `npm run lint`, `npm run build` | CI의 `Frontend lint·build`와 같음 |
