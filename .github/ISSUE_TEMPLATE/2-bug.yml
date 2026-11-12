@@ -1,0 +1,29 @@
+name: 버그 제보
+description: 예상과 다르게 동작하는 문제를 알립니다.
+title: "Fix: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 문제
+      description: 어떻게 돼야 하는데 실제로는 어떻게 되는지 적어 주세요.
+      placeholder: GARDEN 모드로 바꾼 뒤 기억의 정원에서 과거 일기가 보여야 하는데, 새로고침 전까지 빈 화면이 보인다.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 단계
+      placeholder: |
+        1. 반려동물 프로필 설정에서 GARDEN 모드를 선택하고 확인한다
+        2. 홈으로 돌아가 기억의 정원을 본다
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고
+      description: 발생 환경(테스트 서버·로컬), 브라우저·기기, PWA 설치 여부, 스크린샷, 에러 로그 등
+    validations:
+      required: false

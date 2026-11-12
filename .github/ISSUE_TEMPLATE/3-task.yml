@@ -1,0 +1,25 @@
+name: 작업
+description: 문서, 설정, 리팩터링, 테스트처럼 기능이나 버그가 아닌 할 일을 등록합니다.
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 배경
+      description: "왜 이 작업이 필요한지 적어 주세요. 제목은 `유형: 할 일` 형식으로 씁니다. (예 `Chore: CI 워크플로 추가`)"
+    validations:
+      required: true
+  - type: textarea
+    id: todo
+    attributes:
+      label: 할 일
+      placeholder: |
+        - [ ] 
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고
+      description: 관련 문서, 이슈·PR 링크
+    validations:
+      required: false
