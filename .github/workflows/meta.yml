@@ -1,0 +1,59 @@
+name: Issue·PR meta
+
+# 템플릿만으로는 담당자를 정할 수 없고 작업 이슈·PR에는 라벨도 없어서, 열 때 여기서 붙인다
+on:
+  issues:
+    types: [opened, reopened, edited]
+  pull_request:
+    types: [opened, reopened, edited]
+
+permissions:
+  issues: write          # 이슈와 PR의 담당자·라벨은 모두 이슈 API로 붙는다
+  pull-requests: write
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    # 본문만 고친 edited는 건너뛰고, 제목을 고쳤을 때만 라벨을 다시 본다
+    if: ${{ github.event.action != 'edited' || github.event.changes.title != null }}
+    steps:
+      - name: Assign author and label by title type
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          AUTHOR: ${{ github.event.pull_request.user.login || github.event.issue.user.login }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type || github.event.issue.user.type }}
+          # 제목은 명령에 끼워 넣지 않고 환경 변수로만 읽는다
+          TITLE: ${{ github.event.pull_request.title || github.event.issue.title }}
+        run: |
+          set -euo pipefail
+
+          # 봇이 연 이슈·PR은 담당자로 넣을 수 없다
+          if [ "$AUTHOR_TYPE" != "Bot" ]; then
+            gh api --silent -X POST "repos/$REPO/issues/$NUMBER/assignees" -f "assignees[]=$AUTHOR"
+          fi
+
+          # CONTRIBUTING.md의 커밋 유형을 라벨로 바꾼다. 유형이 아닌 제목에는 붙이지 않는다
+          case "$TITLE" in
+            Feat:*|Design:*)          label=enhancement;       color=a2eeef ;;
+            Fix:*|'!HOTFIX:'*)        label=bug;               color=d73a4a ;;
+            Docs:*)                   label=documentation;     color=0075ca ;;
+            Test:*)                   label=test;              color=fbca04 ;;
+            Refactor:*)               label=refactor;          color=c5def5 ;;
+            Chore:*|Style:*)          label=chore;             color=ededed ;;
+            '!BREAKING CHANGE:'*)     label="breaking change"; color=b60205 ;;
+            *)                        label="" ;;
+          esac
+
+          if [ -z "$label" ]; then
+            exit 0
+          fi
+
+          # 저장소에 없는 라벨이면 먼저 만든다. 이미 있으면 색·설명을 건드리지 않는다
+          if ! gh label list --repo "$REPO" --limit 200 --json name --jq '.[].name' | grep -Fxq "$label"; then
+            gh label create "$label" --repo "$REPO" --color "$color"
+          fi
+
+          # 붙이기만 하고 지우지 않는다. 사람이 직접 붙인 라벨은 그대로 둔다
+          gh api --silent -X POST "repos/$REPO/issues/$NUMBER/labels" -f "labels[]=$label"

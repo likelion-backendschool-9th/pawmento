@@ -1,0 +1,30 @@
+name: 기능 요청
+description: 새 기능이나 기존 기능 개선을 시나리오로 정리합니다.
+title: "Feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 배경
+      description: 왜 필요한지, 지금 무엇이 불편한지 적어 주세요.
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: 시나리오
+      description: 누가(보호자·운영자·시스템) 무엇을 하는지 순서대로 적어 주세요. 번호는 PR에서 `#이슈번호-S1`처럼 씁니다. 이 흐름이 모두 동작하면 이슈를 닫습니다.
+      placeholder: |
+        1. 보호자가 홈에서 오늘의 질문을 본다
+        2. 사진 1장을 첨부하고 짧은 답변을 쓴 뒤 저장한다
+        3. 달력에서 오늘 날짜를 눌러 저장한 일기 카드를 본다
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 참고
+      description: 상위 이슈, 계획 문서, 이번에 하지 않는 것, 디자인 등 필요한 것만 적어 주세요.
+    validations:
+      required: false
