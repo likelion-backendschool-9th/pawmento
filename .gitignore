@@ -1,0 +1,5 @@
+# 개인 전용 자료 (기획 원본 등)
+private/
+
+# OS
+.DS_Store
