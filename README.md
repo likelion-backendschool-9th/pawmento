@@ -59,10 +59,13 @@
 
 ## 실행과 확인
 
-필요한 도구: Java 21, Node.js 24
+필요한 도구: Java 21, Node.js 24, Docker
+
+백엔드는 PostgreSQL을 씁니다. 백엔드를 실행하거나 테스트하기 전에 저장소 루트에서 DB를 띄웁니다. 처음에는 `.env.example`을 `.env`로 복사합니다. 접속 정보에는 기본값이 없습니다. 백엔드는 `.env`의 값을 환경 변수로 받아야 실행·테스트됩니다(IDE 실행 설정이나 `set -a; . ../.env; set +a`).
 
 | 대상 | 명령 (각 폴더에서 실행) | 하는 일 |
 | --- | --- | --- |
+| 로컬 DB 실행 | `docker compose up -d` | 저장소 루트에서 PostgreSQL을 localhost:5432 에 실행. 끌 때는 `docker compose down` |
 | 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행 |
 | 백엔드 테스트 | `./gradlew test` | CI의 `Backend test`와 같음 |
 | 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
