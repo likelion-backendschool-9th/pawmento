@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: backend
+  # 로컬 실행(bootRun)에서는 compose.yaml의 DB가 자동으로 연결된다. 앱을 꺼도 DB는 켜 둔다.
+  # 배포 환경에서는 SPRING_DATASOURCE_URL·SPRING_DATASOURCE_USERNAME·SPRING_DATASOURCE_PASSWORD 환경 변수로 넘긴다.
+  docker:
+    compose:
+      lifecycle-management: start-only
