@@ -68,3 +68,17 @@
 | 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
 | 프론트엔드 실행 | `npm run dev` | http://localhost:3000 에서 개발 서버 실행 |
 | 프론트엔드 검사 | `npm run lint`, `npm run build` | CI의 `Frontend lint·build`와 같음 |
+
+### Docker Compose 파일
+
+| 파일 | 쓰는 곳 | 하는 일 |
+| --- | --- | --- |
+| `backend/compose.yaml` | 로컬 개발 | 로컬 개발용 PostgreSQL. 백엔드를 실행하면 Spring Boot가 자동으로 띄움 (#5) |
+| `compose.develop.yaml` | 개발 서버 | DB·백엔드·프론트엔드·nginx. `develop`에 머지하면 배포 워크플로가 서버에서 실행. 로컬에서는 쓰지 않음 |
+
+## 배포
+
+| 브랜치 | 서버 | 배포 |
+| --- | --- | --- |
+| `develop` | 개발 서버 (다른 팀과 함께 쓰는 공용 서버) | 머지하면 검사 → 이미지를 GHCR에 올림 → 서버에 배포 |
+| `main` | 운영 서버 (나중에 클라우드) | 아직 없음 |

@@ -1,0 +1,40 @@
+# 호스트 nginx 설정 예시 (서버 관리자에게 전달용. 이 저장소에서는 쓰지 않는다)
+#
+# 인터넷 → 호스트 nginx (팀 도메인, HTTPS) ← 이 파일
+#        → http://127.0.0.1:<TEAM_PORT> (팀 nginx, nginx/develop.conf)
+#        → /api/ 는 백엔드, 나머지는 프론트엔드
+#
+# 바꿀 값: <팀 도메인>, <TEAM_PORT>, 인증서 경로
+# 인증서는 certbot 기준 경로다. 서버에서 쓰는 방식에 맞춰 바꾼다
+
+# HTTP로 들어오면 HTTPS로 보낸다
+server {
+    listen 80;
+    server_name <팀 도메인>;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    # nginx 1.25.1 이상. 그보다 오래된 버전이면 이 줄을 지우고 위 줄을 `listen 443 ssl http2;`로 바꾼다
+    http2 on;
+    server_name <팀 도메인>;
+
+    ssl_certificate     /etc/letsencrypt/live/<팀 도메인>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<팀 도메인>/privkey.pem;
+
+    # 사진 업로드를 받을 수 있게 팀 nginx(nginx/develop.conf)와 같은 값으로 둔다. 기본값 1m이면 업로드가 막힌다
+    client_max_body_size 20m;
+
+    location / {
+        proxy_pass http://127.0.0.1:<TEAM_PORT>;
+        proxy_http_version 1.1;
+
+        # 원래 요청 정보를 팀 nginx를 거쳐 앱까지 전달한다 (리다이렉트·로그인 콜백 주소가 HTTPS로 만들어지게)
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host  $host;
+    }
+}

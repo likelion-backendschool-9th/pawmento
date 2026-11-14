@@ -3,3 +3,6 @@ private/
 
 # OS
 .DS_Store
+
+# 서버 접속 정보 (.env.develop.example을 복사해 만든다)
+.env
