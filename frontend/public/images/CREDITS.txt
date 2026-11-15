@@ -1,0 +1,20 @@
+Sample UI photos (Unsplash). These are examples, not photos of the user's pet.
+bori.jpg: https://images.unsplash.com/photo-1612536057832-2ff7ead58194
+
+afternoon.jpg: https://images.unsplash.com/photo-1543466835-00a7907e9de1
+walk.jpg: https://images.unsplash.com/photo-1517849845537-4d257902454a
+
+Font: Pretendard by Kil Hyung-jin, SIL Open Font License 1.1.
+Source: https://github.com/orioncactus/pretendard/tree/v1.3.9
+Font license included at /fonts/OFL.txt.
+
+User-supplied original artwork, reused without pixel edits:
+04e9e24933b3e4bb.png: original corgi garden illustration.
+8df6278d43d07b9e.png: original flower-covered garden gate.
+
+User-supplied UI reference images are copied without changes into brand/.
+Photo.tsx uses SVG viewports to show the reference photo regions only.
+Brand.tsx uses the unchanged corgi PNG as the ACTIVE wordmark logo and the garden gate PNG as the GARDEN logo.
+The original artwork is no longer repeated as page decoration.
+The favicon wraps the original PNG in an SVG viewport without altering its pixels.
+All interface labels, navigation and forms are rendered as working HTML.

@@ -1,0 +1,237 @@
+"use client";
+import Link from "next/link";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useApp } from "@/app/AppProvider";
+import { Icon } from "@/shared/ui/Icon";
+import { useLife } from "./useLife";
+import { LifeHeading, DemoNote, lifeStyles as s } from "./LifeUi";
+type InstallEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: string }>;
+};
+const subscribe = (callback: () => void) => {
+  window.addEventListener("online", callback);
+  window.addEventListener("offline", callback);
+  return () => {
+    window.removeEventListener("online", callback);
+    window.removeEventListener("offline", callback);
+  };
+};
+export function SettingsScreen() {
+  const app = useApp();
+  const life = useLife();
+  const [install, setInstall] = useState<InstallEvent | null>(null);
+  const offline = useSyncExternalStore(
+    subscribe,
+    () => !navigator.onLine,
+    () => false,
+  );
+  useEffect(() => {
+    const listener = (event: Event) => {
+      event.preventDefault();
+      setInstall(event as InstallEvent);
+    };
+    window.addEventListener("beforeinstallprompt", listener);
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator)
+      void navigator.serviceWorker
+        .register("/service-worker.js")
+        .catch(() => undefined);
+    return () => window.removeEventListener("beforeinstallprompt", listener);
+  }, []);
+  return (
+    <>
+      <LifeHeading
+        label="PREFERENCES"
+        title="설정과 서비스 안내"
+        body="나에게 맞는 기록 공간을 차분히 준비해요."
+      />
+      <div className={s.twoGrid}>
+        <section className={s.panel}>
+          <h2>앱처럼 사용하기</h2>
+          <p>
+            설치를 지원하는 브라우저에서는 PawMento를 홈 화면에 추가할 수
+            있어요.
+          </p>
+          <button
+            className="button primary"
+            disabled={!install}
+            onClick={async () => {
+              if (!install) return;
+              await install.prompt();
+              const choice = await install.userChoice;
+              app.notify(
+                choice.outcome === "accepted"
+                  ? "설치를 시작했어요."
+                  : "설치를 취소했어요.",
+              );
+              setInstall(null);
+            }}
+          >
+            <Icon name="download" size={16} />홈 화면에 설치
+          </button>
+          {!install && (
+            <p className={s.meta}>
+              버튼이 활성화되지 않으면 브라우저 메뉴의 ‘앱 설치’ 또는 ‘홈 화면에
+              추가’를 확인해 주세요.
+            </p>
+          )}
+          <div className={s.statusLine}>
+            <span className={offline ? s.offlineDot : s.onlineDot} />
+            {offline ? "현재 오프라인이에요." : "현재 온라인이에요."}
+          </div>
+          <Link className="text-link" href="/offline">
+            오프라인 안내 보기
+            <Icon name="arrow" size={15} />
+          </Link>
+        </section>
+        <section className={s.panel}>
+          <h2>반려동물별 공간</h2>
+          {app.state.pets.map((pet) => (
+            <Link
+              className={s.sourceLink}
+              href={`/pets/${pet.id}/settings/mode`}
+              key={pet.id}
+            >
+              <strong>{pet.name}</strong>
+              <span>
+                {pet.mode === "GARDEN" ? "기억의 정원" : "함께하는 오늘"}
+              </span>
+              <Icon name="settings" size={17} />
+            </Link>
+          ))}
+          <Link href="/pets/new" className="text-link">
+            새 친구 등록
+          </Link>
+        </section>
+        <section className={s.panel}>
+          <h2>서비스 공지</h2>
+          {life.state?.notices
+            .filter((notice) => notice.published)
+            .map((notice) => (
+              <details key={notice.id} className={s.notice}>
+                <summary>{notice.title}</summary>
+                <p>{notice.body}</p>
+              </details>
+            ))}
+          {!life.state?.notices.some((notice) => notice.published) && (
+            <p className="muted">등록된 공지가 없어요.</p>
+          )}
+        </section>
+        <section className={s.panel}>
+          <h2>내 계정과 활동</h2>
+          <Link className={s.sourceLink} href="/me">
+            <strong>마이페이지</strong>
+            <Icon name="chevron" size={16} />
+          </Link>
+          <Link className={s.sourceLink} href="/me/activity">
+            <strong>내가 쓴 글 · 댓글 · 북마크</strong>
+            <Icon name="chevron" size={16} />
+          </Link>
+          <Link className={s.sourceLink} href="/reset-password">
+            <strong>데모 비밀번호 변경</strong>
+            <Icon name="chevron" size={16} />
+          </Link>
+        </section>
+      </div>
+      <DemoNote>
+        외부 푸시 알림과 자동 음성 재생은 사용하지 않아요. 계정은 현재 탭의
+        메모리, 기록과 공유 상태는 이 브라우저에 저장되는 데모입니다. 브라우저
+        데이터를 삭제하면 복구할 수 없습니다.
+      </DemoNote>
+    </>
+  );
+}
+export function OfflineScreen() {
+  return (
+    <div className={s.standalone}>
+      <Icon name="wifi" size={44} />
+      <h1>잠시 연결이 쉬어가고 있어요</h1>
+      <p>
+        저장된 기록은 브라우저에 남아 있어요.
+        <br />
+        네트워크 연결을 확인한 뒤 다시 열어주세요.
+      </p>
+      <button className="button primary" onClick={() => location.reload()}>
+        다시 연결하기
+      </button>
+      <Link href="/" className="text-link">
+        처음 화면으로
+      </Link>
+    </div>
+  );
+}
+export function ResetPasswordScreen() {
+  const app = useApp();
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  return (
+    <div className={s.standalone}>
+      <h1>데모 비밀번호 변경</h1>
+      <p>
+        현재 탭에서 가입한 데모 계정만 변경할 수 있어요. 실제 이메일이나 인증
+        코드는 발송하지 않습니다.
+      </p>
+      {done ? (
+        <>
+          <p role="status">이 탭의 데모 비밀번호를 변경했어요.</p>
+          <Link href="/sign-in" className="button primary">
+            로그인으로
+          </Link>
+          <button className="text-link" onClick={() => setDone(false)}>
+            다시 변경하기
+          </button>
+        </>
+      ) : (
+        <form
+          className="form-stack"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setError("");
+            const data = new FormData(event.currentTarget);
+            try {
+              if (data.get("password") !== data.get("confirmation"))
+                throw Error("비밀번호 확인이 일치하지 않아요.");
+              await app.dependencies.auth.resetPassword({
+                email: String(data.get("email")),
+                password: String(data.get("password")),
+              });
+              setDone(true);
+            } catch (cause) {
+              setError(
+                cause instanceof Error ? cause.message : "변경하지 못했어요.",
+              );
+            }
+          }}
+        >
+          <label>
+            이메일
+            <input name="email" type="email" required />
+          </label>
+          <label>
+            새 데모 비밀번호
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={8}
+              maxLength={72}
+            />
+          </label>
+          <label>
+            비밀번호 확인
+            <input name="confirmation" type="password" required minLength={8} />
+          </label>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="button primary">데모 비밀번호 변경</button>
+          <Link href="/sign-in" className="text-link">
+            로그인으로 돌아가기
+          </Link>
+        </form>
+      )}
+    </div>
+  );
+}

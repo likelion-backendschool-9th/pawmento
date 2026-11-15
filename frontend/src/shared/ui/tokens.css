@@ -1,0 +1,43 @@
+:root {
+  color-scheme: light;
+  --color-ivory-50: #fffcf6;
+  --color-ivory-100: #f7f3eb;
+  --color-cream-200: #efe9de;
+  --color-sage-100: #eaf0d9;
+  --color-sage-200: #e1e8ce;
+  --color-sage-400: #a5b37e;
+  --color-sage-600: #7c925a;
+  --color-sage-700: #536b35;
+  --color-apricot-100: #f9e8d8;
+  --color-apricot-300: #f5d9c5;
+  --color-sky-100: #eaf3f5;
+  --color-brown-900: #393526;
+  --color-brown-600: #716b5d;
+  --color-brown-500: #787363;
+  --color-white: #fff;
+  --color-danger-600: #b54745;
+  --color-success-700: #3c7051;
+  --surface-page: var(--color-ivory-100);
+  --surface-card: var(--color-ivory-50);
+  --surface-elevated: var(--color-white);
+  --surface-subtle: var(--color-sage-100);
+  --text-primary: var(--color-brown-900);
+  --text-secondary: var(--color-brown-600);
+  --text-muted: var(--color-brown-500);
+  --brand-primary: var(--color-sage-700);
+  --brand-hover: #354b2b;
+  --border-default: #e6ded0;
+  --focus-ring: #385e46;
+  --text-danger: var(--color-danger-600);
+  --font-sans:
+    Pretendard, SUIT, "Noto Sans KR", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  --font-brand: Georgia, "Times New Roman", serif;
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 28px;
+  --radius-xl: 36px;
+  --shadow-card: 0 10px 30px rgb(101 83 51 / 0.07);
+  --layout-max: 1200px;
+  --reading-max: 720px;
+}
