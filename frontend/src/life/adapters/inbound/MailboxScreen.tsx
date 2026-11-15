@@ -6,6 +6,7 @@ import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
 import type { Pet } from "@/workspace/domain/models";
 import type { Postcard } from "../../domain/models";
+import { PostcardPaper } from "./PostcardPaper";
 import { downloadPostcard } from "../outbound/downloadPostcard";
 import { useLife } from "./useLife";
 import {
@@ -321,21 +322,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
         </div>
       ) : (
         <>
-          <article className={s.postcardDetail}>
-            {current.imageUrl && (
-              <Photo
-                src={current.imageUrl}
-                alt="선택한 원본 기록 사진"
-                className={s.postcardImage}
-              />
-            )}
-            <div>
-              <span className="badge">데모 엽서 · 실제 AI 생성 아님</span>
-              <h2>{current.title}</h2>
-              <p>{current.text}</p>
-              <small>{current.createdAt.slice(0, 10)} · PawMento</small>
-            </div>
-          </article>
+          <PostcardPaper card={current} petName={pet.name} />
           <div className={s.inlineActions}>
             <button
               className="button secondary"
@@ -357,7 +344,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
               className="button primary"
               onClick={() =>
                 void life.run(
-                  () => downloadPostcard(current),
+                  () => downloadPostcard(current, pet.name),
                   "엽서 파일을 준비했어요.",
                 )
               }

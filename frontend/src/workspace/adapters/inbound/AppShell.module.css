@@ -403,3 +403,145 @@
     gap: 7px;
   }
 }
+.modePortal {
+  margin: 10px 16px 0;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #dce5d0;
+  border-radius: 9px;
+  color: #63764f;
+  background: #f8fbf1;
+  font-size: 10px;
+}
+.modePortal > span {
+  flex: 1;
+}
+.modePortal small {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  opacity: 0.8;
+  margin-top: 3px;
+}
+.app[data-mode="GARDEN"] {
+  --mode-card: #fffdf7e8;
+  --mode-subtle: #eeedf4;
+  --mode-border: #ded9dc;
+  --mode-ink: #5c5966;
+  --mode-muted: #7e7987;
+  --mode-accent: #77758b;
+  --brand-primary: #77758b;
+  --brand-hover: #656279;
+  --surface-subtle: #eae8f0;
+  --surface-card: #fffdf8;
+  --border-default: #ded9dc;
+  --text-primary: #5c5966;
+  --text-secondary: #7e7987;
+  color: #5c5966;
+  background:
+    linear-gradient(#f9f7f3dd, #f4f1f8ee 600px),
+    url("/images/watercolor-garden.png") center top/cover fixed;
+}
+.app[data-mode="GARDEN"] .sidebar {
+  background:
+    linear-gradient(#fffdf8f0, #f0edf5ed),
+    url("/images/watercolor-garden.png") center bottom/auto 65% no-repeat;
+  border-color: #ded9df;
+}
+.app[data-mode="GARDEN"] .petSwitcher {
+  background: #eeeaf2;
+  border-color: #e0dbe6;
+}
+.app[data-mode="GARDEN"] .modePortal {
+  background: #e4dfed;
+  border-color: #d4cddd;
+  color: #6b627e;
+  border-radius: 18px 5px 18px 5px;
+}
+.app[data-mode="GARDEN"] .navGroup > p,
+.app[data-mode="GARDEN"] .navGroup a svg {
+  color: #898098;
+}
+.app[data-mode="GARDEN"] .navGroup a {
+  color: #756d80;
+}
+.app[data-mode="GARDEN"] .navGroup .active {
+  background: #e9e3f0;
+  color: #625870;
+  border-radius: 18px 6px 18px 6px;
+}
+.app[data-mode="GARDEN"] .navGroup a:hover {
+  background: #f0ebf4;
+}
+.app[data-mode="GARDEN"] .topbar {
+  background: #faf7f0d9;
+  border-color: #e2dce3;
+}
+.app[data-mode="GARDEN"] .demoPill {
+  background: #eeebf3;
+  color: #80738b;
+  border-color: #e0d9e8;
+}
+.app[data-mode="GARDEN"] .main {
+  animation: enterGarden 0.5s ease-out;
+}
+.app[data-mode="GARDEN"] .footer {
+  border-color: #e1dbe5;
+  color: #89808e;
+  background: #fffaf433;
+}
+.app[data-mode="GARDEN"] .mobileNav {
+  background: #fbf8f3ed;
+  border-color: #e2dce3;
+}
+.app[data-mode="GARDEN"] .mobileNav > a {
+  color: #81728c;
+}
+.app[data-mode="GARDEN"] .mobileNav > a[aria-current="page"] {
+  color: #695578;
+}
+.app[data-mode="GARDEN"] .mobileNav > a:nth-child(3) > svg {
+  background: #8f82a1;
+}
+.app[data-mode="GARDEN"] :global(.primary) {
+  background: #80758e;
+  border-color: #80758e;
+  color: #fff;
+}
+.app[data-mode="GARDEN"] :global(.primary:hover) {
+  background: #6c627b;
+}
+.app[data-mode="GARDEN"] :global(.secondary) {
+  background: #fffaf6;
+  border-color: #ded5e3;
+  color: #7a6c88;
+}
+.app[data-mode="GARDEN"] :global(.badge) {
+  background: #ece6f1;
+  color: #796b87;
+}
+.app[data-mode="GARDEN"] :global(h1) {
+  font-family: Georgia, var(--font-sans);
+  font-weight: 500;
+  color: #62586e;
+}
+.app[data-mode="GARDEN"] :global(input:not([type="checkbox"])),
+.app[data-mode="GARDEN"] :global(textarea),
+.app[data-mode="GARDEN"] :global(select) {
+  background: #fffcf8;
+  border-color: #ded5df;
+  color: #62596c;
+}
+@keyframes enterGarden {
+  from {
+    opacity: 0.3;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

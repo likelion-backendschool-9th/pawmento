@@ -10,7 +10,7 @@
 }
 .heading > div > p {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 0 0 7px;
 }
 .heading h1 {
@@ -24,12 +24,12 @@
 }
 .heading h1 > span {
   font-size: 26px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-weight: 400;
 }
 .heading > div > span {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .today {
   display: flex;
@@ -52,7 +52,7 @@
 .stats > div {
   position: relative;
   padding: 18px 21px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e5e8dc;
   border-radius: 12px;
   display: flex;
@@ -62,7 +62,7 @@
 }
 .stats > div > span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .stats strong {
   font-size: 23px;
@@ -78,14 +78,14 @@
 .stats small {
   font-size: 10px;
   letter-spacing: 0;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-weight: 400;
 }
 .stats > div > svg {
   position: absolute;
   right: 19px;
   top: 17px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .stats > div:last-child strong {
   font-size: 19px;
@@ -124,7 +124,7 @@
 }
 .questionMeta > small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .question h2 {
   font-size: 25px;
@@ -139,7 +139,7 @@
 }
 .question > p {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.85;
   margin-bottom: 23px;
   position: relative;
@@ -161,7 +161,7 @@
   font:
     italic 160px/1 Georgia,
     serif;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   opacity: 0.45;
   pointer-events: none;
 }
@@ -180,7 +180,7 @@
 }
 .sectionHeading p {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 6px 0 0;
 }
 .sectionHeading > :global(.text-link) {
@@ -188,7 +188,7 @@
   white-space: nowrap;
 }
 .savedPair {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e4e8da;
   border-radius: 12px;
   padding: 22px 25px;
@@ -236,16 +236,16 @@
 }
 .quickLinks > a {
   position: relative;
-  border: 1px solid #e3e8d9;
+  border: 1px solid var(--mode-border, #e3e8d9);
   border-radius: 10px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   padding: 19px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .quickLinks > a > svg:first-child {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 3px;
 }
 .quickLinks strong {
@@ -254,13 +254,13 @@
 }
 .quickLinks span {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .quickLinks > a > svg:last-child {
   position: absolute;
   right: 13px;
   top: 20px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .aside {
   display: flex;
@@ -273,7 +273,7 @@
   border-radius: 12px;
   padding: 25px 18px 20px;
   box-shadow: none;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
 }
 .aside [class*="petAvatar"] {
   width: 78px !important;
@@ -301,7 +301,7 @@
   font-size: 10px;
 }
 .calendar {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e4e8da;
   border-radius: 12px;
   padding: 14px 17px 18px;
@@ -348,7 +348,7 @@
   margin-top: 13px;
 }
 .asideLinks {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e4e8da;
   border-radius: 12px;
   padding: 20px 17px 15px;

@@ -1,0 +1,385 @@
+.stationery {
+  margin: 28px 0 32px;
+  color: #665e58;
+}
+.toolbar,
+.under {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+.toolbar {
+  margin-bottom: 22px;
+}
+.toolbar > span {
+  font:
+    13px Georgia,
+    serif;
+  letter-spacing: 3px;
+}
+.toolbar small {
+  display: block;
+  font: 11px/1.7 var(--font-sans);
+  letter-spacing: 0;
+  margin-top: 6px;
+  color: #827c78;
+}
+.toolbar > div {
+  display: flex;
+  border: 1px solid #ded7d0;
+  border-radius: 30px;
+  padding: 4px;
+  background: #fffdf7b3;
+}
+.toolbar button {
+  border: 0;
+  border-radius: 25px;
+  background: none;
+  font-size: 11px;
+  padding: 9px 16px;
+  color: #766e69;
+}
+.toolbar button[aria-pressed="true"] {
+  background: #dfdfd0;
+  color: #4a5e48;
+}
+.stage {
+  padding: 30px 25px;
+  background:
+    radial-gradient(ellipse at 10% 70%, #d4dbe14d, transparent 60%),
+    radial-gradient(ellipse at 90% 10%, #ead7cf66, transparent 55%), #eeeae3;
+  border-radius: 14px;
+}
+.paper {
+  position: relative;
+  isolation: isolate;
+  background: #fffdf5;
+  border: 1px solid #e6dfd1;
+  box-shadow:
+    2px 4px 0 #e4ddcf,
+    0 18px 30px #6b5b4226;
+  min-height: 390px;
+  animation: reveal 0.35s ease-out;
+}
+.paper::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0.2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23776b52' opacity='.25' filter='url(%23n)' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+.front {
+  padding: 16px 16px 0;
+  transform: rotate(-0.7deg);
+}
+.frontArt {
+  min-height: 285px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 32px 45px 50px;
+  background: #f0f1e9 url("/images/watercolor-garden.png") center/cover;
+}
+.photoMount {
+  width: 73%;
+  aspect-ratio: 1.65;
+  padding: 9px 9px 21px;
+  background: #fffdf8;
+  transform: rotate(2.5deg);
+  box-shadow: 0 5px 18px #6d71512b;
+}
+.photoMount :global(.photo) {
+  min-height: 0;
+}
+.frontNote {
+  position: absolute;
+  bottom: 13px;
+  font:
+    italic 17px Georgia,
+    serif;
+  color: #68735e;
+  letter-spacing: 0.5px;
+}
+.caption {
+  padding: 18px 9px 19px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+.caption span {
+  font:
+    8px Georgia,
+    serif;
+  letter-spacing: 2.3px;
+  color: #938a77;
+}
+.caption h2 {
+  font-size: 17px;
+  font-weight: 500;
+  color: #565f4e;
+  margin: 5px 0 0;
+}
+.caption > small {
+  text-align: right;
+  font:
+    10px/1.8 Georgia,
+    serif;
+  color: #928874;
+  flex-shrink: 0;
+}
+.back {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  padding: 32px;
+  gap: 29px;
+  transform: rotate(0.5deg);
+  background:
+    linear-gradient(#fffdf5e8, #fffdf5ed),
+    url("/images/watercolor-garden.png") center/cover;
+}
+.letter {
+  min-width: 0;
+  padding: 5px 0;
+}
+.kicker {
+  font:
+    8px Georgia,
+    serif;
+  letter-spacing: 1.5px;
+  color: #938676;
+}
+.letter h2 {
+  font-size: 17px;
+  font-weight: 500;
+  margin: 16px 0;
+}
+.letter p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font:
+    15px/2.15 Georgia,
+    var(--font-sans);
+  background: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    #cfc4b155 31px,
+    #cfc4b155 32px
+  );
+  margin-bottom: 20px;
+}
+.letter > small {
+  font-size: 9px;
+  color: #938676;
+}
+.address {
+  border-left: 1px solid #d8cdb9;
+  padding-left: 26px;
+  display: flex;
+  flex-direction: column;
+}
+.postage {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
+  gap: 5px;
+  min-height: 100px;
+}
+.stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 83px;
+  color: #7a8d71;
+  background: radial-gradient(ellipse, #ece7dd, #d5dfcf);
+  border: 5px dotted #fffdf5;
+  outline: 1px solid #ddd6c8;
+  transform: rotate(5deg);
+}
+.stamp small {
+  font-size: 8px;
+  margin-top: 4px;
+}
+.postmark {
+  font:
+    9px/1.6 Georgia,
+    serif;
+  width: 90px;
+  height: 90px;
+  border: 2px double #a49a8277;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #958d7c;
+  transform: rotate(-18deg);
+  margin-right: -27px;
+  z-index: 1;
+}
+.postmark small {
+  font-size: 6px;
+}
+.recipient {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 35px;
+}
+.recipient small {
+  font:
+    9px Georgia,
+    serif;
+  letter-spacing: 2px;
+  color: #a69985;
+}
+.recipient strong {
+  font-size: 12px;
+  font-weight: 400;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #d8cdb9;
+}
+.recipient > span {
+  border-bottom: 1px solid #d8cdb9;
+  height: 12px;
+}
+.postcode {
+  margin-top: 25px;
+  font:
+    21px Georgia,
+    serif;
+  letter-spacing: 4px;
+  color: #c0b39e;
+}
+.under {
+  margin: 20px 4px 0;
+  font-size: 10px;
+  color: #8c8276;
+}
+.under button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  padding: 8px;
+  color: #5c6d59;
+}
+.note {
+  font-size: 10px;
+  line-height: 1.8;
+  color: #8d877c;
+  margin: 9px 4px 0;
+}
+@keyframes reveal {
+  from {
+    opacity: 0.4;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (min-width: 1500px) {
+  .frontArt {
+    min-height: 350px;
+  }
+}
+@media (max-width: 600px) {
+  .toolbar {
+    align-items: flex-start;
+  }
+  .toolbar small {
+    max-width: 110px;
+  }
+  .toolbar button {
+    padding: 9px 11px;
+    font-size: 10px;
+  }
+  .stage {
+    padding: 20px 10px;
+    margin: 0 -5px;
+  }
+  .paper {
+    min-height: 0;
+  }
+  .front {
+    padding: 9px 9px 0;
+  }
+  .frontArt {
+    min-height: 200px;
+    padding: 25px 14px 42px;
+  }
+  .photoMount {
+    width: 85%;
+  }
+  .caption {
+    padding: 13px 4px;
+    gap: 9px;
+  }
+  .caption h2 {
+    font-size: 13px;
+  }
+  .caption > small {
+    font-size: 8px;
+  }
+  .back {
+    padding: 20px 16px;
+    gap: 17px;
+    grid-template-columns: 1fr;
+  }
+  .letter p {
+    font-size: 14px;
+  }
+  .address {
+    border-left: 0;
+    border-top: 1px solid #d8cdb9;
+    padding: 20px 0 0;
+    display: grid;
+    grid-template-columns: 1fr 115px;
+    gap: 10px;
+  }
+  .postage {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+  }
+  .recipient {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    gap: 9px;
+  }
+  .postmark {
+    width: 65px;
+    height: 65px;
+    font-size: 7px;
+  }
+  .stamp {
+    width: 55px;
+    height: 70px;
+  }
+  .postcode {
+    margin-top: 8px;
+  }
+}
+
+.postcode {
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .toolbar small {
+    max-width: 135px;
+  }
+  .postcode {
+    font-size: 17px;
+    letter-spacing: 2px;
+  }
+}

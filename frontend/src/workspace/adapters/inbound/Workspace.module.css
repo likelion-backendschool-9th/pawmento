@@ -28,7 +28,7 @@
 }
 .recordCard {
   display: block;
-  background: #fffdf8e8;
+  background: var(--mode-card, #fffdf8)e8;
   border: 1px solid #fffcf7;
   border-radius: 25px;
   overflow: hidden;
@@ -241,7 +241,7 @@
 }
 .empty > span {
   display: block;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 18px;
 }
 .empty h2 {
@@ -272,7 +272,7 @@
   place-items: center;
   width: 36px;
   height: 36px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   background: #f0f0e2;
   border-radius: 50%;
 }
@@ -348,7 +348,7 @@
   margin: auto;
 }
 .accountCard {
-  background: #fffdf8e8;
+  background: var(--mode-card, #fffdf8)e8;
   border: 1px solid #fffdfa;
   border-radius: 30px;
   padding: 35px;
@@ -425,7 +425,7 @@
   margin: 0 auto;
   padding: 33px;
   background: #fffdf6e8;
-  border: 1px solid #fffdf8;
+  border: 1px solid var(--mode-card, #fffdf8);
   border-radius: 38px;
   box-shadow: 0 8px 28px #755e3810;
   position: relative;
@@ -496,7 +496,7 @@
   color: var(--text-secondary);
 }
 .detail {
-  background: #fffdf8e8;
+  background: var(--mode-card, #fffdf8)e8;
   border: 1px solid #fffdfa;
   border-radius: 30px;
   overflow: hidden;
@@ -999,11 +999,11 @@
 }
 .pageHeading p:not([class]) {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .pageHeading :global(.eyebrow) {
   font-size: 9px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .pageHeading > .button {
   font-size: 12px;
@@ -1013,7 +1013,7 @@
 .recordCard {
   border: 1px solid #e2e9d5;
   border-radius: 11px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   box-shadow: none;
 }
 .recordPhoto {
@@ -1030,11 +1030,11 @@
 }
 .recordInfo > time {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .recordInfo > span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-top: 13px;
 }
 .recordBadge {
@@ -1053,11 +1053,11 @@
 .archiveTabs .tabActive {
   background: #e9f0dc;
   border-color: #d2e0bc;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .archiveTabs > span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .calendarArchive {
   grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr);
@@ -1066,7 +1066,7 @@
 .fullCalendar {
   max-width: none;
   padding: 25px 22px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e2e9d5;
   border-radius: 12px;
   box-shadow: none;
@@ -1081,7 +1081,7 @@
 .calendarHeader button {
   min-height: 32px;
   min-width: 32px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-size: 11px;
 }
 .calendarGrid {
@@ -1092,14 +1092,14 @@
   min-height: 84px;
   aspect-ratio: auto;
   border: 1px solid #edf1e4;
-  background: #fcfdf8;
+  background: var(--mode-card, #fcfdf8);
   align-items: flex-start;
   justify-content: flex-start;
   padding: 9px;
   position: relative;
   font-size: 12px;
   gap: 5px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .calendarDay > i {
   position: absolute;
@@ -1111,7 +1111,7 @@
 .calendarDay.today {
   border-color: #c2d69f;
   background: #f0f6e5;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .calendarDay.selectedDay {
   background: #e7f0d9 !important;
@@ -1137,11 +1137,11 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 400;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .cellDiary > strong {
   font-weight: 550;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .calendarRecords {
   grid-template-columns: 1fr;
@@ -1151,16 +1151,16 @@
 }
 .dayHeading {
   font-size: 15px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 0 0 17px;
 }
 .calendarLegend {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .weekday {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .compactCalendar .calendarGrid {
   gap: 1px;
@@ -1190,7 +1190,7 @@
   font-size: 9px;
 }
 .editor {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e1e9d3;
   border-radius: 13px;
   box-shadow: none;
@@ -1200,11 +1200,11 @@
 }
 .editorFields h2 {
   font-size: 24px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .editorFields > label {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .editorFields > textarea {
   font-size: 14px;
@@ -1227,14 +1227,14 @@
 .editorQuestion > p {
   justify-content: flex-start;
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 15px;
 }
 .editorQuestion > h2 {
   font-size: 27px;
   max-width: none;
   margin: 0;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.65;
 }
 .editorQuestion:after {
@@ -1265,7 +1265,7 @@
 }
 .detailHeading h1 {
   font-size: 28px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.6;
 }
 .detailHeading h1 > br {
@@ -1273,13 +1273,13 @@
 }
 .detailHeading > p {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .detail {
   border-radius: 13px;
   border: 1px solid #e2e9d5;
   box-shadow: none;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
   align-items: start;
@@ -1298,7 +1298,7 @@
 }
 .detailMeta {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   gap: 7px 15px;
   border-color: #e8eedd;
 }
@@ -1314,11 +1314,11 @@
   border-color: #e1e8d4;
   border-radius: 13px;
   box-shadow: none;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
 }
 .petSummary h2 {
   font-size: 24px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .petList {
   gap: 20px;
@@ -1328,33 +1328,33 @@
   background: #f0f5e7;
 }
 .petStats strong {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .accountCard {
   border-radius: 13px;
   border-color: #e1e8d4;
   box-shadow: none;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
 }
 .largeAvatar {
   background: #edf4e1;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .accountCard > h2 {
   font-size: 24px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .accountInfo h2 {
   font-size: 22px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .accountStats strong {
   font-size: 38px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .accountStats span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .empty {
   border-radius: 12px;
@@ -1364,25 +1364,25 @@
 }
 .empty h2 {
   font-size: 22px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .empty > p {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .empty > .button {
   font-size: 12px;
   border-radius: 7px;
 }
 .notFound {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .localNote {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-size: 10px;
 }
 .characterCount {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-size: 10px;
 }
 @media (max-width: 1279px) {

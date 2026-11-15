@@ -8,7 +8,7 @@
 .heading > div > p {
   font-size: 10px;
   letter-spacing: 1.7px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 0 0 9px;
 }
 .heading h1 {
@@ -16,12 +16,12 @@
   font-weight: 600;
   letter-spacing: -0.8px;
   margin: 0 0 10px;
-  color: #35452c;
+  color: var(--mode-ink, #35452c);
 }
 .heading > div > span {
   font-size: 13px;
   line-height: 1.9;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .heading > :global(.button) {
   font-size: 12px;
@@ -32,15 +32,15 @@
 .loading {
   padding: 35px;
   font-size: 14px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .empty {
   border: 1px dashed #d6dec9;
-  background: #fcfdf8;
+  background: var(--mode-card, #fcfdf8);
   text-align: center;
   padding: 45px 25px;
   border-radius: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .empty > svg {
   margin-bottom: 17px;
@@ -48,12 +48,12 @@
 .empty h2 {
   font-size: 21px;
   font-weight: 500;
-  color: #536342;
+  color: var(--mode-ink, #536342);
   margin: 0 0 12px;
 }
 .empty > p {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.9;
   margin: 0 0 23px;
 }
@@ -67,15 +67,15 @@
   gap: 9px;
   align-items: flex-start;
   padding: 14px 17px;
-  background: #eef2e5;
+  background: var(--mode-subtle, #eef2e5);
   border: 1px solid #e3e9d6;
   border-radius: 9px;
   margin: 20px 0;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .demoNote > svg {
   margin-top: 3px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .demoNote > p {
   font-size: 11px;
@@ -94,8 +94,8 @@
   gap: 22px;
 }
 .panel {
-  background: #fffefb;
-  border: 1px solid #e3e8d9;
+  background: var(--mode-card, #fffefb);
+  border: 1px solid var(--mode-border, #e3e8d9);
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 23px;
@@ -120,7 +120,7 @@
 .panel > p {
   font-size: 13px;
   line-height: 1.95;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .panelHeading {
   display: flex;
@@ -146,7 +146,7 @@
 }
 .meta {
   font-size: 11px !important;
-  color: #6f7d62 !important;
+  color: var(--mode-muted, #6f7d62) !important;
   line-height: 1.9;
   display: block;
   margin: 13px 0 16px;
@@ -175,8 +175,8 @@
 .tabs > button,
 .categories > button {
   border: 1px solid #e0e6d5;
-  background: #fffefb;
-  color: #6f7d62;
+  background: var(--mode-card, #fffefb);
+  color: var(--mode-muted, #6f7d62);
   border-radius: 8px;
   padding: 9px 16px;
   min-height: 39px;
@@ -191,7 +191,7 @@
 }
 .tabs > span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-left: auto;
 }
 .categories {
@@ -220,13 +220,13 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #dfe6d2;
   padding: 0 13px;
   border-radius: 8px;
   max-width: 520px;
   flex: 1;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .search > input {
   border: 0 !important;
@@ -254,7 +254,7 @@
   margin-bottom: 25px;
 }
 .communityBanner > svg {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .communityBanner strong {
   font-size: 16px;
@@ -263,7 +263,7 @@
 }
 .communityBanner p {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 7px 0 0;
 }
 .communityBanner > :global(.text-link) {
@@ -279,7 +279,7 @@
   display: flex;
   gap: 24px;
   padding: 22px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e2e8d8;
   border-radius: 12px;
   transition: border-color 0.15s;
@@ -306,7 +306,7 @@
 }
 .postCard p {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.85;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -320,7 +320,7 @@
   gap: 15px;
   justify-content: space-between;
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .postCard footer > span:last-child {
   display: flex;
@@ -335,7 +335,7 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr);
   align-items: start;
   gap: 30px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e1e7d7;
   padding: 30px;
   border-radius: 13px;
@@ -354,7 +354,7 @@
   margin: 0 auto;
 }
 .article {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e2e8d7;
   border-radius: 13px;
   padding: 32px 36px;
@@ -373,7 +373,7 @@
   justify-content: space-between;
   gap: 17px;
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 25px;
 }
 .articleMeta > span:last-child {
@@ -385,7 +385,7 @@
   border: 0;
   background: none;
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .articlePhoto {
   height: 365px !important;
@@ -412,11 +412,11 @@
   align-items: center;
   gap: 8px;
   border: 1px solid #dfe6d3;
-  background: #fcfdf8;
+  background: var(--mode-card, #fcfdf8);
   border-radius: 7px;
   padding: 8px 12px;
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   min-height: 37px;
 }
 .articleActions > button[aria-pressed="true"] {
@@ -459,7 +459,7 @@
 }
 .comment small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .comment header > span {
   margin-left: auto;
@@ -469,7 +469,7 @@
 .comment button {
   border: 0;
   background: none;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-size: 10px;
 }
 .comment > p {
@@ -489,16 +489,16 @@
   gap: 24px;
 }
 .modeGrid > button {
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e1e7d5;
   border-radius: 14px;
   padding: 34px 30px;
   text-align: left;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   min-height: 240px;
 }
 .modeGrid > button > svg {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 19px;
 }
 .modeGrid h2 {
@@ -510,7 +510,7 @@
 .modeGrid p {
   font-size: 13px;
   line-height: 1.95;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 15px;
 }
 .modeGrid .modeSelected {
@@ -527,7 +527,7 @@
   border-radius: 13px;
   padding: 29px 31px;
   margin-bottom: 23px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .gardenWelcome h2 {
   font-size: 24px;
@@ -537,7 +537,7 @@
 }
 .gardenWelcome p {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 0;
   line-height: 1.9;
 }
@@ -551,11 +551,11 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   border: 1px solid #e2e8d7;
   padding: 20px 17px;
   border-radius: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .shortcutGrid strong {
   font-size: 12px;
@@ -574,7 +574,7 @@
 .mediaTile {
   border: 1px solid #e1e8d5;
   border-radius: 11px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   overflow: hidden;
   min-width: 0;
 }
@@ -590,7 +590,7 @@
 }
 .mediaTile time {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-left: auto;
 }
 .mediaTile :global(.text-link) {
@@ -621,7 +621,7 @@
 }
 .memberRow small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   display: block;
   margin-top: 5px;
 }
@@ -632,7 +632,7 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   flex-shrink: 0;
 }
 .memberRow > select {
@@ -653,7 +653,7 @@
 .inviteLink > code {
   font-size: 11px;
   line-height: 1.9;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   overflow-wrap: anywhere;
   background: #f0f5e8;
   padding: 10px 12px;
@@ -679,7 +679,7 @@
 .tableWrap th {
   font-size: 10px;
   font-weight: 500;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   background: #f4f7ef;
   padding: 11px 13px;
   border-bottom: 1px solid #e5ecda;
@@ -688,7 +688,7 @@
   border-bottom: 1px solid #e9eedf;
   padding: 15px 13px;
   line-height: 1.85;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   max-width: 250px;
   overflow-wrap: anywhere;
 }
@@ -718,13 +718,13 @@
 }
 .recordChoice strong {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   font-weight: 500;
 }
 .recordChoice p {
   font-size: 12px;
   line-height: 1.85;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 7px 0 0;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -738,7 +738,7 @@
   align-items: flex-start;
   cursor: pointer;
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.9;
 }
 .progress {
@@ -747,7 +747,7 @@
   align-items: center;
   gap: 12px;
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-top: 20px;
 }
 .progress > progress {
@@ -759,7 +759,7 @@
   border: 1px solid #e0e9d4;
   border-radius: 13px;
   overflow: hidden;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   box-shadow: 0 4px 15px #63784604;
 }
 .postcardCard > div {
@@ -777,7 +777,7 @@
 .postcardCard p {
   font-size: 12px;
   line-height: 1.95;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -785,7 +785,7 @@
 }
 .postcardCard small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .postcardPlaceholder {
   display: grid;
@@ -793,7 +793,7 @@
   width: 100%;
   height: 100%;
   background: #eaf2df;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .postcardDetail {
   border: 1px solid #e5e6d6;
@@ -824,7 +824,7 @@
 }
 .postcardDetail small {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .sourceLink {
   display: flex;
@@ -833,17 +833,17 @@
   border-bottom: 1px solid #e7eddd;
   padding: 16px 0;
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .sourceLink > span {
   font-size: 11px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .sourceLink strong {
   font-size: 12px;
   font-weight: 500;
   line-height: 1.8;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   flex: 1;
 }
 .sourceLink > svg {
@@ -865,11 +865,11 @@
   font-weight: 500;
   line-height: 1.9;
   display: block;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
 }
 .adminRow small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   display: block;
   margin-top: 5px;
 }
@@ -882,7 +882,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin: 20px 0 15px;
 }
 .onlineDot,
@@ -902,12 +902,12 @@
 }
 .notice summary {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   cursor: pointer;
 }
 .notice p {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   line-height: 1.95;
   white-space: pre-wrap;
   padding-left: 15px;
@@ -919,11 +919,11 @@
   padding: 35px 30px;
   border: 1px solid #e1e8d5;
   border-radius: 15px;
-  background: #fffefb;
+  background: var(--mode-card, #fffefb);
   text-align: center;
 }
 .standalone > svg {
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 22px;
 }
 .standalone h1 {
@@ -936,7 +936,7 @@
 .standalone > p {
   font-size: 14px;
   line-height: 1.95;
-  color: #6f7d62;
+  color: var(--mode-muted, #6f7d62);
   margin-bottom: 25px;
 }
 .standalone > .text-link {
@@ -1504,5 +1504,62 @@
   }
   .sourceLink {
     gap: 8px;
+  }
+}
+
+:global([data-mode="GARDEN"]) .gardenWelcome {
+  min-height: 300px;
+  padding: 65px 45px;
+  align-items: center;
+  border: 1px solid #e3ddcf;
+  border-radius: 24px 8px 24px 8px;
+  background:
+    linear-gradient(90deg, #fffdf4ed, #fffdf455),
+    url("/images/watercolor-garden.png") center/cover;
+  box-shadow: 0 12px 35px #77737f0d;
+}
+:global([data-mode="GARDEN"]) .gardenWelcome h2 {
+  font:
+    400 32px/1.6 Georgia,
+    var(--font-sans);
+  color: #696175;
+}
+:global([data-mode="GARDEN"]) .gardenWelcome p {
+  max-width: 330px;
+  line-height: 2;
+  color: #807785;
+}
+:global([data-mode="GARDEN"]) .shortcutGrid > a {
+  background: #fffaf4d9;
+  border-color: #e5dce4;
+  color: #80738b;
+  border-radius: 18px 6px 18px 6px;
+}
+:global([data-mode="GARDEN"]) .panel {
+  box-shadow: 0 8px 25px #8b77950b;
+  border-radius: 17px;
+}
+:global([data-mode="GARDEN"]) .postcardCard {
+  border-radius: 3px;
+  padding: 10px;
+  background: #fffdf5;
+  box-shadow: 0 6px 16px #8d7d7420;
+  transform: rotate(-0.5deg);
+}
+:global([data-mode="GARDEN"]) .postcardCard > div {
+  padding: 16px;
+  background: url("/images/watercolor-garden.png") center/cover;
+}
+:global([data-mode="GARDEN"]) .postcardCard > div > :global(.photo) {
+  border: 6px solid #fffdf6;
+  transform: rotate(2deg);
+}
+@media (max-width: 600px) {
+  :global([data-mode="GARDEN"]) .gardenWelcome {
+    min-height: 250px;
+    padding: 30px 22px;
+  }
+  :global([data-mode="GARDEN"]) .gardenWelcome h2 {
+    font-size: 25px;
   }
 }

@@ -22,6 +22,7 @@ export function Shell({
   const router = useRouter();
   const [switching, setSwitching] = useState(false);
   const [open, setOpen] = useState(false);
+  const garden = pet?.mode === "GARDEN";
   const p = pet ? `/pets/${pet.id}` : "/pets";
   const todayDiary = app.state.records.find(
     (record) =>
@@ -31,9 +32,13 @@ export function Shell({
   );
   const groups = [
     {
-      title: "나의 기록",
+      title: garden ? "정원에 보관한 기억" : "나의 기록",
       links: [
-        { href: "/home", label: "대시보드", icon: "home" },
+        {
+          href: "/home",
+          label: garden ? "정원 둘러보기" : "대시보드",
+          icon: garden ? "leaf" : "home",
+        },
         {
           href: pet
             ? pet.accessRole === "VIEWER"
@@ -47,17 +52,17 @@ export function Shell({
         },
         {
           href: pet ? `${p}/calendar` : "/pets",
-          label: "기록 달력",
+          label: garden ? "기억 달력" : "기록 달력",
           icon: "calendar",
         },
         {
           href: pet ? `${p}/timeline` : "/pets",
-          label: "타임라인",
+          label: garden ? "함께한 시간" : "타임라인",
           icon: "book",
         },
         {
           href: pet ? `${p}/media` : "/pets",
-          label: "미디어 앨범",
+          label: garden ? "추억 앨범 · 목소리" : "미디어 앨범",
           icon: "camera",
         },
         {
@@ -142,7 +147,7 @@ export function Shell({
     </>
   );
   return (
-    <div className={styles.app}>
+    <div className={styles.app} data-mode={garden ? "GARDEN" : "ACTIVE"}>
       <a className="skip-link" href="#main">
         본문으로 바로가기
       </a>
@@ -175,12 +180,28 @@ export function Shell({
             ))}
           </select>
         </div>
+        {pet && (
+          <Link className={styles.modePortal} href={`${p}/settings/mode`}>
+            <Icon name={garden ? "leaf" : "sun"} size={17} />
+            <span>
+              {garden ? "GARDEN · 기억의 정원" : "ACTIVE · 함께하는 오늘"}
+              <small>
+                공간 전환 <Icon name="shuffle" size={12} />
+              </small>
+            </span>
+          </Link>
+        )}
         <nav aria-label="주요 메뉴" className={styles.nav}>
           {nav}
         </nav>
         <div className={styles.sideBottom}>
           <span className={styles.demoDot} />
-          브라우저 데모<small>함께한 오늘을, 오래도록.</small>
+          브라우저 데모
+          <small>
+            {garden
+              ? "천천히 꺼내보는, 우리의 계절."
+              : "함께한 오늘을, 오래도록."}
+          </small>
         </div>
       </aside>
       {open && (
@@ -216,7 +237,7 @@ export function Shell({
                 href={pet ? `${p}/records/new` : "/pets/new"}
               >
                 <Icon name="plus" size={16} />
-                기록 남기기
+                {garden ? "새 기억 남기기" : "기록 남기기"}
               </Link>
             )}
             <Link href="/me" aria-label="내 정보" className={styles.account}>
@@ -225,7 +246,11 @@ export function Shell({
             </Link>
           </div>
         </header>
-        <main id="main" className={styles.main}>
+        <main
+          key={garden ? "garden" : "active"}
+          id="main"
+          className={styles.main}
+        >
           {children}
         </main>
         <footer className={styles.footer}>
@@ -238,16 +263,24 @@ export function Shell({
       </div>
       <nav className={styles.mobileNav} aria-label="모바일 주요 메뉴">
         {[
-          { href: "/home", label: "홈", icon: "home" },
+          {
+            href: "/home",
+            label: garden ? "정원" : "홈",
+            icon: garden ? "leaf" : "home",
+          },
           {
             href: pet ? `${p}/calendar` : "/pets",
             label: "기록",
             icon: "calendar",
           },
           {
-            href: pet ? `${p}/records/new` : "/pets/new",
-            label: "기록하기",
-            icon: "plus",
+            href: garden
+              ? `${p}/garden/mailbox`
+              : pet
+                ? `${p}/records/new`
+                : "/pets/new",
+            label: garden ? "우체통" : "기록하기",
+            icon: garden ? "mail" : "plus",
           },
           { href: "/community", label: "커뮤니티", icon: "users" },
           { href: "/me", label: "마이", icon: "user" },
