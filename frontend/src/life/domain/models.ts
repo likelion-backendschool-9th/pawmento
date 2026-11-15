@@ -38,6 +38,11 @@ export type Postcard = {
   text: string;
   imageUrl: string;
   sourceRecordIds: string[];
+  demoArtwork?: {
+    scene: "PARK" | "BEACH" | "NAP";
+    prompt: string;
+    referencePhotoUrl: string;
+  };
   status: "PROCESSING" | "COMPLETED" | "FAILED";
   error: string;
   saved: boolean;

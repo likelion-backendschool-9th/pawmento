@@ -209,6 +209,7 @@ export function createLifeUseCases(
       records: readonly Memory[],
       consent: boolean,
       retryId?: string,
+      petPhotoUrl?: string,
     ) => {
       if (!consent) throw Error("데모 생성 안내를 확인해 주세요.");
       if (!records.length || records.some((item) => item.petId !== petId))
@@ -248,7 +249,11 @@ export function createLifeUseCases(
         return card;
       });
       try {
-        const generated = await generator.generate(records, petName);
+        const generated = await generator.generate(
+          records,
+          petName,
+          petPhotoUrl,
+        );
         return await mutate((state) => {
           const card = state.postcards.find((item) => item.id === value.id)!;
           Object.assign(card, generated, { status: "COMPLETED" });

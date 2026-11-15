@@ -81,10 +81,23 @@ export function PostcardPaper({
             </>
           ) : (
             <>
-              <div className={s.frontArt}>
+              <div
+                className={`${s.frontArt} ${card.demoArtwork ? s.illustrated : ""}`}
+              >
                 {card.imageUrl ? (
-                  <div className={s.photoMount}>
-                    <Photo src={card.imageUrl} alt="선택한 기록의 원본 사진" />
+                  <div
+                    className={
+                      card.demoArtwork ? s.scenePainting : s.photoMount
+                    }
+                  >
+                    <Photo
+                      src={card.imageUrl}
+                      alt={
+                        card.demoArtwork
+                          ? "기록의 상황을 표현한 수채화 엽서 샘플"
+                          : "선택한 기록의 원본 사진"
+                      }
+                    />
                   </div>
                 ) : (
                   <Icon name="leaf" size={48} />
@@ -114,8 +127,9 @@ export function PostcardPaper({
         </button>
       </div>
       <p className={s.note}>
-        선택한 원본 사진과 기록으로 구성한 데모 엽서입니다. 수채화 배경은 공통
-        장식 이미지예요.
+        {card.demoArtwork
+          ? "기록의 상황을 표현한 코기 수채화 샘플입니다. 실시간 AI 생성이나 외형 분석은 하지 않습니다."
+          : "이전 방식으로 만든 사진 엽서입니다. 새 엽서는 랜덤 기록과 수채화 샘플로 구성됩니다."}
       </p>
     </section>
   );

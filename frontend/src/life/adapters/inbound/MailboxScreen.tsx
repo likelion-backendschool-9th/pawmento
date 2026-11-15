@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
+import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
+import { drawMemory, postcardScenes } from "../../application/postcardScenes";
 import type { Pet } from "@/workspace/domain/models";
 import type { Postcard } from "../../domain/models";
 import { PostcardPaper } from "./PostcardPaper";
@@ -65,7 +67,7 @@ export function MailboxScreen({
       <LifeHeading
         label="MEMORY MAILBOX"
         title="기억의 우체통"
-        body="기록을 바탕으로 엮은 작은 엽서를, 내가 원할 때 천천히 펼쳐봐요."
+        body="우연히 펼친 기억 하나가, 새로운 수채화 장면이 되어 도착해요."
       >
         <Link
           className="button primary"
@@ -76,8 +78,9 @@ export function MailboxScreen({
         </Link>
       </LifeHeading>
       <DemoNote>
-        실제 AI가 생성하거나 반려동물이 보낸 편지가 아닙니다. 선택한 기록으로
-        구성하는 프론트엔드 미리보기예요. 자동 생성·푸시·외부 전송은 없습니다.
+        기록을 랜덤으로 뽑아 새 엽서 그림을 만드는 흐름의 데모예요. 실제 AI 호출
+        없이 공원·바닷가·낮잠 샘플 그림을 보여주며, 반려견의 외형을 실시간으로
+        반영하지는 않습니다.
       </DemoNote>
       <div className={s.tabs}>
         <button
@@ -143,23 +146,36 @@ export function MailboxScreen({
 function PostcardComposer({ pet }: { pet: Pet }) {
   const life = useLife();
   const router = useRouter();
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState("");
   const [consent, setConsent] = useState(false);
   const records = life.app.state.records.filter(
     (record) => record.petId === pet.id,
   );
+  const selected = records.find((record) => record.id === selectedId);
+  const referencePhoto = pet.photoUrl || selected?.photoUrl;
+  function draw() {
+    const pool =
+      records.length > 1
+        ? records.filter((record) => record.id !== selectedId)
+        : records;
+    setSelectedId(drawMemory(pool)?.id ?? "");
+  }
   async function generate(event: React.FormEvent) {
     event.preventDefault();
-    const task = life.app.dependencies.life.requestPostcard(
-      life.actor,
-      pet.id,
-      pet.name,
-      records.filter((record) => selected.includes(record.id)),
-      consent,
+    if (!selected) return;
+    const result = await life.run(() =>
+      life.app.dependencies.life.requestPostcard(
+        life.actor,
+        pet.id,
+        pet.name,
+        [selected],
+        consent,
+        undefined,
+        pet.photoUrl,
+      ),
     );
-    const result = await life.run(() => task);
     if (result) {
-      setSelected([]);
+      setSelectedId("");
       setConsent(false);
       router.push(`/pets/${pet.id}/garden/mailbox/${result.id}`);
     }
@@ -170,40 +186,58 @@ function PostcardComposer({ pet }: { pet: Pet }) {
         ← 기억의 우체통
       </Link>
       <LifeHeading
-        label="MAKE A POSTCARD"
-        title="작은 기억을 엽서로"
-        body="소중한 기록을 선택해 데모 엽서를 미리 만들어보세요."
+        label="A MEMORY BECOMES A SCENE"
+        title="우연히 펼친 기억 한 장"
+        body="기록 하나를 랜덤으로 뽑고, 그날의 우리 아이를 새로운 그림 속에서 만나요."
       />
       <form onSubmit={generate}>
         <div className={s.twoGrid}>
           <section className={s.panel}>
-            <h2>1. 함께 담을 기록</h2>
-            {records.length ? (
-              records.map((record) => (
-                <label className={s.recordChoice} key={record.id}>
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(record.id)}
-                    onChange={(event) =>
-                      setSelected((items) =>
-                        event.target.checked
-                          ? [...items, record.id]
-                          : items.filter((id) => id !== record.id),
-                      )
-                    }
-                    disabled={life.busy}
+            <h2>1. 어떤 기억이 찾아올까요?</h2>
+            <p className={s.meta}>
+              {pet.name}의 일기와 기록 {records.length}개 중 한 장을 뽑아요.
+            </p>
+            <button
+              type="button"
+              className="button secondary full"
+              disabled={life.busy || !records.length}
+              onClick={draw}
+            >
+              <Icon name="shuffle" size={18} />
+              {selected ? "다른 기억 랜덤으로 뽑기" : "랜덤으로 기억 뽑기"}
+            </button>
+            {selected ? (
+              <div className={s.drawnMemory} aria-live="polite">
+                <span className="badge">
+                  이번에 찾아온 기억 · {selected.recordedDate}
+                </span>
+                {selected.type === "DIARY" ? (
+                  <QuestionAnswer
+                    question={selected.question}
+                    answer={selected.body}
                   />
-                  <div>
-                    <strong>
-                      {record.recordedDate}
-                      {record.type === "DIARY" ? " · 질문 다이어리" : ""}
-                    </strong>
-                    <p>
-                      {record.question || record.body || "사진으로 남긴 기억"}
-                    </p>
+                ) : (
+                  <p>{selected.body || "사진으로 남긴 소중한 순간"}</p>
+                )}
+                {selected.photoUrl && (
+                  <div className={s.sourcePhoto}>
+                    <Photo
+                      src={selected.photoUrl}
+                      alt="뽑힌 기록의 원본 사진"
+                    />
                   </div>
-                </label>
-              ))
+                )}
+                <small>이 기록의 상황을 바탕으로 장면을 구성해요.</small>
+              </div>
+            ) : records.length ? (
+              <div className={s.drawEmpty}>
+                <Icon name="mail" size={42} />
+                <p>
+                  어느 날의 기억이
+                  <br />
+                  작은 엽서가 되어 올까요?
+                </p>
+              </div>
             ) : (
               <LifeEmpty
                 title="원본 기록이 필요해요"
@@ -214,14 +248,36 @@ function PostcardComposer({ pet }: { pet: Pet }) {
             )}
           </section>
           <section className={s.panel}>
-            <h2>2. 생성 안내 확인</h2>
-            <p>
-              선택한 질문과 답변·사진을 엽서로 엮습니다. 원본 기록은 그대로
-              유지돼요.
-            </p>
+            <h2>2. 그날의 장면을 수채화로</h2>
+            <div className={s.petReference}>
+              <div>
+                <Photo
+                  src={referencePhoto}
+                  alt={`${pet.name}의 외형 참고 사진`}
+                />
+              </div>
+              <section>
+                <strong>{pet.name}</strong>
+                <p>반려견 외형 참고 사진</p>
+                <small>
+                  {pet.photoUrl
+                    ? "프로필 사진"
+                    : selected?.photoUrl
+                      ? "기록에 담긴 사진"
+                      : "등록된 사진이 없어요"}
+                </small>
+              </section>
+            </div>
+            <ol className={s.creationSteps}>
+              <li>랜덤으로 뽑은 기억의 상황 읽기</li>
+              <li>반려견 사진과 상황을 함께 참조하기</li>
+              <li>그 장면 속 반려견을 새 엽서 그림으로 표현하기</li>
+            </ol>
             <DemoNote>
-              실제 AI 호출 없이 로컬 템플릿으로 만드는 데모입니다. 실제 AI 생성
-              이미지나 반려동물의 말로 표시하지 않습니다.
+              지금은 프론트엔드 데모예요. 기록 내용에 따라 미리 준비한 코기
+              수채화 3종 중 하나를 보여줍니다. 사진을 분석하거나 새로운 이미지를
+              실시간 생성하지 않습니다. 다른 반려동물을 등록해도 코기 샘플이
+              표시돼요.
             </DemoNote>
             <label className={s.checkLabel}>
               <input
@@ -229,23 +285,27 @@ function PostcardComposer({ pet }: { pet: Pet }) {
                 checked={consent}
                 onChange={(event) => setConsent(event.target.checked)}
                 required
+                disabled={life.busy}
               />
-              <span>데모 미리보기이며 실제 AI 생성이 아님을 확인했어요.</span>
+              <span>샘플 그림으로 보여주는 데모임을 확인했어요.</span>
             </label>
             <p className={s.meta}>
-              선택한 기록 {selected.length}개 · 하루 최대 5장
+              기억 한 장 · 수채화 엽서 한 장 · 하루 최대 5장
             </p>
             <LifeStatus error={life.error} />
             <button
               className="button primary full"
-              disabled={life.busy || !selected.length || !consent}
+              disabled={life.busy || !selected || !consent}
             >
-              {life.busy ? "기록을 엽서로 엮는 중…" : "데모 엽서 만들기"}
+              <Icon name="mail" size={17} />
+              {life.busy
+                ? "기억을 그림으로 옮기는 중…"
+                : "이 기억으로 데모 엽서 만들기"}
             </button>
             {life.busy && (
               <div role="status" className={s.progress}>
                 <progress />
-                원본을 보존하며 미리보기를 준비하고 있어요.
+                뽑은 기억과 참고 사진으로 엽서 미리보기를 준비해요.
               </div>
             )}
           </section>
@@ -289,6 +349,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
                   sources,
                   true,
                   current.id,
+                  current.demoArtwork?.referencePhotoUrl || pet.photoUrl,
                 ),
               )
             }
@@ -313,6 +374,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
                   sources,
                   true,
                   current.id,
+                  current.demoArtwork?.referencePhotoUrl || pet.photoUrl,
                 ),
               )
             }
@@ -323,6 +385,36 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
       ) : (
         <>
           <PostcardPaper card={current} petName={pet.name} />
+          {current.demoArtwork && (
+            <section className={`${s.panel} ${s.artworkProvenance}`}>
+              <span className="badge">
+                수채화 샘플 · {postcardScenes[current.demoArtwork.scene].title}
+              </span>
+              <h2>이 기억이 한 장의 그림으로</h2>
+              <p>
+                랜덤으로 뽑힌 기록 1개와 {pet.name}의 참고 사진을 연결한
+                데모입니다. 표시된 그림은 미리 준비한 코기 샘플이에요.
+              </p>
+              {current.demoArtwork.referencePhotoUrl && (
+                <div className={s.petReference}>
+                  <div>
+                    <Photo
+                      src={current.demoArtwork.referencePhotoUrl}
+                      alt="엽서에 연결한 반려견 참고 사진"
+                    />
+                  </div>
+                  <section>
+                    <strong>{pet.name}의 참고 사진</strong>
+                    <small>새 장면 속 외형을 참고할 사진</small>
+                  </section>
+                </div>
+              )}
+              <details>
+                <summary>이 기록으로 구성한 장면 설명</summary>
+                <p>{current.demoArtwork.prompt}</p>
+              </details>
+            </section>
+          )}
           <div className={s.inlineActions}>
             <button
               className="button secondary"

@@ -1563,3 +1563,98 @@
     font-size: 25px;
   }
 }
+.drawnMemory {
+  margin-top: 22px;
+  border: 1px solid #e5dce5;
+  border-radius: 12px;
+  padding: 20px;
+  background: #fffdf8;
+}
+.drawnMemory > p {
+  white-space: pre-wrap;
+  font-size: 14px;
+  margin: 18px 0;
+}
+.drawnMemory > small {
+  color: #8c8291;
+  font-size: 11px;
+  display: block;
+  margin-top: 14px;
+}
+.sourcePhoto {
+  height: 180px;
+  margin-top: 18px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.drawEmpty {
+  padding: 55px 10px 30px;
+  text-align: center;
+  color: #9b8fa4;
+}
+.drawEmpty p {
+  font-size: 15px;
+  line-height: 2;
+  margin: 17px 0;
+}
+.petReference {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0;
+}
+.petReference > div {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.petReference strong {
+  font-size: 14px;
+  color: #6c6079;
+}
+.petReference p {
+  margin: 3px 0;
+  font-size: 12px;
+  color: #8a7d93;
+}
+.petReference small {
+  display: block;
+  font-size: 10px;
+  color: #9a90a1;
+}
+.creationSteps {
+  padding-left: 22px;
+  font-size: 12px;
+  line-height: 2.4;
+  color: #82738e;
+}
+.artworkProvenance {
+  margin: 20px 0;
+}
+.artworkProvenance h2 {
+  margin-top: 16px;
+}
+.artworkProvenance > p {
+  font-size: 12px;
+  color: #83768c;
+  line-height: 1.9;
+}
+.artworkProvenance details {
+  border-top: 1px solid #e7e0e8;
+  padding-top: 13px;
+  font-size: 12px;
+  color: #7d7088;
+}
+.artworkProvenance summary {
+  cursor: pointer;
+}
+.artworkProvenance details p {
+  white-space: pre-wrap;
+  line-height: 2;
+  padding: 15px;
+  background: #f6f2f7;
+  border-radius: 8px;
+  margin: 12px 0 0;
+}

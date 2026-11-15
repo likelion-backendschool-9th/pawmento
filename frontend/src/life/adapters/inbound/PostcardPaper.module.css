@@ -383,3 +383,19 @@
     letter-spacing: 2px;
   }
 }
+.illustrated {
+  padding: 0;
+  min-height: 0;
+  aspect-ratio: 1.5;
+  overflow: hidden;
+}
+.scenePainting {
+  position: absolute;
+  inset: 0;
+}
+.illustrated .frontNote {
+  background: #fffdf6d4;
+  padding: 4px 15px;
+  border-radius: 3px;
+  font-size: 14px;
+}
