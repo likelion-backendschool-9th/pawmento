@@ -32,8 +32,8 @@ export function MailboxScreen({
       <LifeEmpty
         title="우체통은 정원에 있어요"
         body="기억의 정원 모드로 직접 전환한 뒤 이용할 수 있어요."
-        href={`/pets/${pet.id}/settings/mode`}
-        action="모드 설정"
+        href="/settings"
+        action="설정으로"
       />
     );
   if (!life.state) return <LifeStatus loading error={life.error} />;

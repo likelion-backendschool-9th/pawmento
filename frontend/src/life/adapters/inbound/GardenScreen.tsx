@@ -40,6 +40,9 @@ export function ModeScreen({ pet }: { pet: Pet }) {
   }
   return (
     <>
+      <Link className="text-link" href="/settings">
+        ← 설정으로 돌아가기
+      </Link>
       <LifeHeading
         label="PET MODE"
         title={`${pet.name}의 공간 설정`}
@@ -143,9 +146,9 @@ export function GardenScreen({ pet }: { pet: Pet }) {
         />
         <LifeEmpty
           title="정원 모드에서 만나요"
-          body="프로필 설정에서 모드 차이를 확인하고 직접 전환할 수 있어요."
-          href={`/pets/${pet.id}/settings/mode`}
-          action="모드 설정으로"
+          body="일상과 정원은 설정 화면에서 전환할 수 있어요."
+          href="/settings"
+          action="설정으로"
         />
       </>
     );
@@ -155,15 +158,7 @@ export function GardenScreen({ pet }: { pet: Pet }) {
         label="MEMORY GARDEN"
         title={`${pet.name}의 기억의 정원`}
         body="소중한 기억이 자라는 곳. 서두르지 않아도 괜찮아요."
-      >
-        <Link
-          className="button secondary"
-          href={`/pets/${pet.id}/settings/mode`}
-        >
-          모드 설정
-          <Icon name="settings" size={16} />
-        </Link>
-      </LifeHeading>
+      />
       <section className={s.gardenWelcome}>
         <Icon name="leaf" size={31} />
         <div>

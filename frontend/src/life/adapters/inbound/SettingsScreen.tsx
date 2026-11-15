@@ -85,7 +85,8 @@ export function SettingsScreen() {
           </Link>
         </section>
         <section className={s.panel}>
-          <h2>반려동물별 공간</h2>
+          <h2>반려동물별 공간 설정</h2>
+          <p>일상과 기억의 정원 전환은 여기에서 관리해요.</p>
           {app.state.pets.map((pet) => (
             <Link
               className={s.sourceLink}

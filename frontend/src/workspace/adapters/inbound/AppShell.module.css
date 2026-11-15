@@ -403,29 +403,6 @@
     gap: 7px;
   }
 }
-.modePortal {
-  margin: 10px 16px 0;
-  padding: 11px 12px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  border: 1px solid #dce5d0;
-  border-radius: 9px;
-  color: #63764f;
-  background: #f8fbf1;
-  font-size: 10px;
-}
-.modePortal > span {
-  flex: 1;
-}
-.modePortal small {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 9px;
-  opacity: 0.8;
-  margin-top: 3px;
-}
 .app[data-mode="GARDEN"] {
   --mode-card: #fffdf7e8;
   --mode-subtle: #eeedf4;
@@ -454,12 +431,6 @@
 .app[data-mode="GARDEN"] .petSwitcher {
   background: #eeeaf2;
   border-color: #e0dbe6;
-}
-.app[data-mode="GARDEN"] .modePortal {
-  background: #e4dfed;
-  border-color: #d4cddd;
-  color: #6b627e;
-  border-radius: 18px 5px 18px 5px;
 }
 .app[data-mode="GARDEN"] .navGroup > p,
 .app[data-mode="GARDEN"] .navGroup a svg {

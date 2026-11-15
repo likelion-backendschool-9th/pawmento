@@ -218,13 +218,6 @@ export function PetForm({ pet }: { pet?: Pet }) {
           </button>
           {pet && (
             <div>
-              <Link
-                className="text-link"
-                href={`/pets/${pet.id}/settings/mode`}
-              >
-                ACTIVE / GARDEN 모드 설정
-              </Link>
-              <br />
               <Link className="text-link" href={`/pets/${pet.id}/family`}>
                 가족 공동 기록 설정
               </Link>

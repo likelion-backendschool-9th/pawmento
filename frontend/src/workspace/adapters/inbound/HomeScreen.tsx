@@ -217,11 +217,6 @@ export function HomeScreen({ pet }: { pet: Pet }) {
             {[
               ["question", "지난 질문과 답변", `/pets/${pet.id}/questions`],
               [
-                "settings",
-                "ACTIVE / GARDEN 설정",
-                `/pets/${pet.id}/settings/mode`,
-              ],
-              [
                 "plus",
                 "질문 없이, 마음 가는 대로",
                 `/pets/${pet.id}/records/new`,

@@ -75,13 +75,9 @@ export function Shell({
     {
       title: "함께하는 공간",
       links: [
-        {
-          href: pet ? `${p}/garden` : "/pets",
-          label: "기억의 정원",
-          icon: "leaf",
-        },
         ...(pet?.mode === "GARDEN"
           ? [
+              { href: `${p}/garden`, label: "기억의 정원", icon: "leaf" },
               {
                 href: `${p}/garden/mailbox`,
                 label: "기억의 우체통",
@@ -180,17 +176,6 @@ export function Shell({
             ))}
           </select>
         </div>
-        {pet && (
-          <Link className={styles.modePortal} href={`${p}/settings/mode`}>
-            <Icon name={garden ? "leaf" : "sun"} size={17} />
-            <span>
-              {garden ? "GARDEN · 기억의 정원" : "ACTIVE · 함께하는 오늘"}
-              <small>
-                공간 전환 <Icon name="shuffle" size={12} />
-              </small>
-            </span>
-          </Link>
-        )}
         <nav aria-label="주요 메뉴" className={styles.nav}>
           {nav}
         </nav>
