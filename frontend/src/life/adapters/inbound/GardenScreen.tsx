@@ -6,6 +6,8 @@ import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/shared/ui/Icon";
 import { today } from "@/shared/date";
 import { RecordCard } from "@/workspace/adapters/inbound/WorkspaceUi";
+import { Photo } from "@/shared/ui/Photo";
+import g from "./GardenHome.module.css";
 import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
 import type { Pet } from "@/workspace/domain/models";
 import { LifeHeading, LifeEmpty, DemoNote, lifeStyles as s } from "./LifeUi";
@@ -154,16 +156,23 @@ export function GardenScreen({ pet }: { pet: Pet }) {
     );
   return (
     <>
-      <LifeHeading
-        label="MEMORY GARDEN"
-        title={`${pet.name}의 기억의 정원`}
-        body="소중한 기억이 자라는 곳. 서두르지 않아도 괜찮아요."
-      />
-      <section className={s.gardenWelcome}>
-        <Icon name="leaf" size={31} />
-        <div>
-          <h2>함께한 날들이, 오래도록.</h2>
-          <p>사진 한 장, 목소리 하나, 남겨둔 문장 속에서 다시 만나요.</p>
+      <section className={g.hero}>
+        <div className={g.heroCopy}>
+          <span>A GARDEN OF OUR DAYS</span>
+          <h1>{pet.name}의 기억의 정원</h1>
+          <p>
+            함께한 날들이, 오래도록.
+            <br />
+            소중한 기억이 자라는 이곳에서
+            <br />
+            우리의 계절을 천천히 꺼내봐요.
+          </p>
+        </div>
+        <div className={g.portrait}>
+          <div>
+            <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
+          </div>
+          <small>함께 남긴 {records.length}개의 기억</small>
         </div>
       </section>
       <div className={s.shortcutGrid}>
@@ -180,6 +189,49 @@ export function GardenScreen({ pet }: { pet: Pet }) {
           </Link>
         ))}
       </div>
+      {records.length > 0 && (
+        <section className={g.gallery}>
+          <div className={g.galleryHeading}>
+            <div>
+              <span>OUR LITTLE EXHIBITION</span>
+              <h2>사진 속에 머문, 우리의 계절</h2>
+            </div>
+            <Link href={`/pets/${pet.id}/media`}>
+              앨범 펼쳐보기 <Icon name="chevron" size={14} />
+            </Link>
+          </div>
+          <div className={g.galleryGrid}>
+            {records.slice(0, 3).map((record) => (
+              <Link
+                className={g.photoPrint}
+                key={record.id}
+                href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+              >
+                <div>
+                  <Photo
+                    src={record.photoUrl}
+                    alt={`${record.recordedDate}의 추억 사진`}
+                  />
+                </div>
+                <time>{record.recordedDate.replaceAll("-", ". ")}</time>
+                <p>{record.body || record.question || "함께한 작은 순간"}</p>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+      <section className={g.invitation}>
+        <div>
+          <Icon name="mail" size={32} />
+          <section>
+            <h2>어느 날의 기억이, 한 장의 엽서로.</h2>
+            <p>우연히 펼친 기록 속 우리 아이를 수채화 엽서로 만나보세요.</p>
+          </section>
+        </div>
+        <Link href={`/pets/${pet.id}/garden/mailbox`}>
+          기억의 우체통 열기 <Icon name="arrow" size={15} />
+        </Link>
+      </section>
       {onThisDay.length > 0 && (
         <section className={s.section}>
           <h2>지난 오늘, 우리가 남긴 순간</h2>

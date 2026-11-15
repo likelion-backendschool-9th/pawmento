@@ -8,6 +8,7 @@ import { Brand } from "@/shared/ui/Brand";
 import { Icon } from "@/shared/ui/Icon";
 import type { Pet } from "../../domain/models";
 import styles from "./AppShell.module.css";
+import { GardenShell } from "./GardenShell";
 import { messageOf } from "./presentation";
 export function Shell({
   children,
@@ -142,8 +143,24 @@ export function Shell({
       ))}
     </>
   );
+  if (garden && pet)
+    return (
+      <div className={styles.app} data-mode="GARDEN">
+        <GardenShell
+          pet={pet}
+          route={route}
+          navigation={nav}
+          open={open}
+          setOpen={setOpen}
+          onSelect={select}
+          switching={switching}
+        >
+          {children}
+        </GardenShell>
+      </div>
+    );
   return (
-    <div className={styles.app} data-mode={garden ? "GARDEN" : "ACTIVE"}>
+    <div className={styles.app} data-mode="ACTIVE" data-experience="daily">
       <a className="skip-link" href="#main">
         본문으로 바로가기
       </a>
