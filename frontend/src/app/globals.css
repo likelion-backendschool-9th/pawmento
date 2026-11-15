@@ -196,23 +196,6 @@ button {
   letter-spacing: -1.9px;
   text-align: center;
 }
-.brand-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 25px;
-  margin: 0 0 3px;
-  background: none;
-  border: 0;
-  border-radius: 0;
-  color: #687e48;
-}
-.brand-mark svg {
-  width: 25px;
-  height: 25px;
-  stroke-width: 2;
-}
 .brand-light {
   font-weight: 400;
 }
@@ -367,12 +350,6 @@ label small {
   outline: 3px solid var(--focus-ring);
   outline-offset: 4px;
 }
-.garden-art {
-  width: 100%;
-  height: auto;
-  display: block;
-  overflow: visible;
-}
 .toast {
   position: fixed;
   z-index: 100;
@@ -482,10 +459,6 @@ label small {
   }
   .brand {
     font-size: 24px;
-  }
-  .brand-mark {
-    height: 39px;
-    width: 34px;
   }
   .brand small {
     font-size: 8px;
@@ -626,15 +599,6 @@ textarea {
     font-size: 41px;
     line-height: 1;
   }
-  .brand-mark {
-    height: 21px;
-    width: 25px;
-    margin-bottom: 4px;
-  }
-  .brand-mark svg {
-    width: 22px;
-    height: 22px;
-  }
   .brand small {
     font-size: 10px;
     margin-top: 7px;
@@ -682,14 +646,11 @@ textarea {
   width: 17px;
   height: 17px;
 }
-.diary-demo-photo {
-  aspect-ratio: 1.6;
-}
 
 /* Desktop application identity: supplied artwork is a logo, never page decoration. */
 body {
-  background: #f6f7f2;
-  color: #39452f;
+  background: var(--surface-page);
+  color: var(--text-primary);
 }
 .brand {
   display: inline-flex;
@@ -726,7 +687,7 @@ body {
 .brand small {
   font: 400 8px/1.4 var(--font-sans);
   letter-spacing: 0.5px;
-  color: #6f7d62;
+  color: var(--text-secondary);
   margin-top: 5px;
 }
 .brand-light {
@@ -738,24 +699,24 @@ body {
   font-size: 13px;
 }
 .primary {
-  background: #688647;
-  border-color: #688647;
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
   box-shadow: none;
 }
 .primary:hover {
-  background: #587638;
+  background: var(--brand-hover);
 }
 .secondary {
   background: #fcfdf9;
-  border-color: #dce5ce;
-  color: #6f7d62;
+  border-color: var(--border-default);
+  color: var(--text-secondary);
 }
 .badge {
   border-radius: 5px;
   padding: 4px 9px;
   font-size: 10px;
-  background: #edf3e3;
-  color: #6f7d62;
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
 }
 .form-stack {
   gap: 18px;
@@ -765,7 +726,7 @@ textarea,
 select {
   border-radius: 8px;
   border-color: #dce5cd;
-  background: #fffefa;
+  background: var(--surface-elevated);
   font-size: 14px;
 }
 textarea {
@@ -775,11 +736,11 @@ textarea {
 .demo-banner {
   border-radius: 8px;
   background: #eef3e4;
-  color: #6f7d62;
+  color: var(--text-secondary);
 }
 .dialog {
   border-radius: 13px;
-  background: #fffefa;
+  background: var(--surface-elevated);
   border-color: #dce6cc;
 }
 .toast {
@@ -825,12 +786,12 @@ textarea {
 }
 .attachments-heading > strong {
   font-size: 13px;
-  color: #6f7d62;
+  color: var(--text-secondary);
   font-weight: 550;
 }
 .attachments-heading > span {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--text-secondary);
 }
 .attachments-actions {
   display: flex;
@@ -851,14 +812,14 @@ textarea {
 }
 .attachments > small {
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--text-secondary);
   display: block;
   line-height: 1.9;
   margin: 12px 0;
 }
 .attachments > p {
   font-size: 12px;
-  color: #6f7d62;
+  color: var(--text-secondary);
 }
 .attachments-list {
   display: grid;
@@ -899,7 +860,7 @@ textarea {
 .media-player > small {
   display: block;
   font-size: 10px;
-  color: #6f7d62;
+  color: var(--text-secondary);
   margin-top: 8px;
   overflow-wrap: anywhere;
 }
