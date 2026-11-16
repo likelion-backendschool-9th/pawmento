@@ -10,6 +10,7 @@ import type { Account } from "../auth/domain/account";
 import type { Workspace } from "../workspace/domain/models";
 import { createDependencies, type Dependencies } from "./composition";
 import { today } from "../shared/date";
+import { demoQuestionInputs } from "./demoQuestions";
 type Context = {
   dependencies: Dependencies;
   account: Account | null;
@@ -19,6 +20,7 @@ type Context = {
   refresh: (account?: Account) => Promise<void>;
   authenticate: (account: Account) => Promise<void>;
   startDemo: () => Promise<void>;
+  addDemoQuestions: (petId: string) => Promise<void>;
   signOut: () => Promise<void>;
   notify: (message: string) => void;
 };
@@ -105,7 +107,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       }
     }
+    const seeded = await dependencies.workspace.load(current.id);
+    const demoPet =
+      seeded.pets.find((pet) => pet.id === seeded.selectedPetId) ??
+      seeded.pets[0];
+    if (demoPet) {
+      for (const input of demoQuestionInputs(
+        demoPet,
+        seeded.records,
+        today(),
+      )) {
+        await dependencies.workspace.saveMemory(current.id, input);
+      }
+    }
     await authenticate(current);
+  };
+  const addDemoQuestions = async (petId: string) => {
+    if (account?.id !== "demo")
+      throw Error("데모 계정에서만 샘플을 추가할 수 있어요.");
+    const current = await dependencies.workspace.load(account.id);
+    const pet = current.pets.find((item) => item.id === petId);
+    if (!pet || pet.accessRole === "VIEWER")
+      throw Error("기록을 추가할 수 없어요.");
+    const inputs = demoQuestionInputs(pet, current.records, today());
+    for (const input of inputs)
+      await dependencies.workspace.saveMemory(account.id, input);
+    await refresh();
+    notify(
+      inputs.length
+        ? "데모 질문과 답변을 추가했어요."
+        : "이미 데모 기록이 있거나 같은 날짜의 답변이 있어요.",
+    );
   };
   const signOut = async () => {
     await dependencies.auth.signOut();
@@ -129,6 +161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         refresh,
         authenticate,
         startDemo,
+        addDemoQuestions,
         signOut,
         notify,
       }}

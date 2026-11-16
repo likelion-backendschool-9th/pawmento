@@ -34,88 +34,46 @@ export function SpaceShell({
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
-  const links = garden
-    ? [
-        {
-          href: "/home",
-          label: "정원",
-          icon: "leaf",
-          active: route === "/home" || route === `${base}/garden`,
-        },
-        {
-          href: `${base}/media`,
-          label: "추억 앨범",
-          icon: "camera",
-          active: route.startsWith(`${base}/media`),
-        },
-        {
-          href: `${base}/garden/mailbox`,
-          label: "기억의 우체통",
-          icon: "mail",
-          active: route.startsWith(`${base}/garden/mailbox`),
-        },
-        {
-          href: `${base}/timeline`,
-          label: "함께한 시간",
-          icon: "book",
-          active: route.startsWith(`${base}/timeline`),
-        },
-        {
-          href: "/community",
-          label: "기억 나누기",
-          icon: "users",
-          active: route.startsWith("/community"),
-        },
-      ]
-    : [
-        {
-          href: "/home",
-          label: "오늘의 일상",
-          icon: "home",
-          active: route === "/home",
-        },
-        {
-          href: pet ? `${base}/calendar` : "/pets",
-          label: "기록 달력",
-          icon: "calendar",
-          active: route.startsWith(`${base}/calendar`),
-        },
-        {
-          href: pet
-            ? pet.accessRole === "VIEWER"
-              ? `${base}/timeline`
-              : `${base}/records/new`
-            : "/pets/new",
-          label: pet?.accessRole === "VIEWER" ? "타임라인" : "기록하기",
-          icon: pet?.accessRole === "VIEWER" ? "book" : "edit",
-          active: route.startsWith(
-            pet?.accessRole === "VIEWER"
-              ? `${base}/timeline`
-              : `${base}/records/new`,
-          ),
-        },
-        {
-          href: pet ? `${base}/media` : "/pets",
-          label: "일상 앨범",
-          icon: "camera",
-          active: route.startsWith(`${base}/media`),
-        },
-        {
-          href: "/community",
-          label: "함께 나누기",
-          icon: "users",
-          active: route.startsWith("/community"),
-        },
-      ];
-  const headerLinks = [
-    links[0],
+  const archiveActive = ["timeline", "calendar", "media"].some((page) =>
+    route.startsWith(`${base}/${page}`),
+  );
+  const links = [
+    {
+      href: "/home",
+      label: garden ? "정원" : "오늘",
+      icon: garden ? "leaf" : "home",
+      active: route === "/home" || route === `${base}/garden`,
+    },
     {
       href: pet ? `${base}/questions` : "/pets",
       label: "질문과 답변",
       icon: "question",
-      active: route.startsWith(`${base}/questions`),
+      active:
+        route.startsWith(`${base}/questions`) ||
+        route.startsWith(`${base}/diary`),
     },
-    ...links.slice(1),
+    {
+      href: pet ? `${base}/timeline` : "/pets",
+      label: "기록 모아보기",
+      icon: "book",
+      active: archiveActive,
+    },
+    ...(garden
+      ? [
+          {
+            href: `${base}/garden/mailbox`,
+            label: "우체통",
+            icon: "mail",
+            active: route.startsWith(`${base}/garden/mailbox`),
+          },
+        ]
+      : []),
+    {
+      href: "/community",
+      label: "커뮤니티",
+      icon: "users",
+      active: route.startsWith("/community"),
+    },
   ];
   return (
     <div
@@ -128,16 +86,14 @@ export function SpaceShell({
       <header className={s.header}>
         <div className={s.masthead}>
           <Brand href="/home" garden={garden} />
-          <div className={s.identity}>
-            <span>{garden ? "THE MEMORY GARDEN" : "OUR EVERYDAY STORY"}</span>
-            <p>
-              {garden
-                ? `${pet?.name}와 함께한 계절을 거닐어요.`
-                : pet
-                  ? `${pet.name}와 함께하는 오늘을 남겨요.`
-                  : "함께할 친구의 이야기를 시작해요."}
-            </p>
-          </div>
+          <Link href="/pets" className={s.identity} aria-label="반려동물 선택">
+            <Icon name={garden ? "leaf" : "paw"} size={15} />
+            <span>
+              {pet
+                ? `${pet.name} · ${garden ? "정원" : "일상"}`
+                : "반려동물 등록"}
+            </span>
+          </Link>
           <div className={s.headerActions}>
             <Link href="/settings" className="icon-button" aria-label="설정">
               <Icon name="settings" size={21} />
@@ -158,7 +114,7 @@ export function SpaceShell({
           className={s.navigation}
           aria-label={garden ? "정원 주요 메뉴" : "일상 주요 메뉴"}
         >
-          {headerLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.label}
               href={link.href}

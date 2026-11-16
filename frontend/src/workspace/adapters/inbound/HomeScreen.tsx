@@ -182,10 +182,10 @@ export function HomeScreen({ pet }: { pet: Pet }) {
                 `/pets/${pet.id}/family`,
               ],
               [
-                "leaf",
-                "기억의 정원",
-                "쌓인 기억을 천천히 꺼내봐요",
-                `/pets/${pet.id}/garden`,
+                "question",
+                "질문과 답변",
+                "그날의 질문과 답변을 다시 읽어요",
+                `/pets/${pet.id}/questions`,
               ],
             ].map(([icon, title, body, href]) => (
               <Link key={title} href={href}>

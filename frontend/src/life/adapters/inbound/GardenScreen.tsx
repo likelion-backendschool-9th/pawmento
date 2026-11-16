@@ -177,8 +177,8 @@ export function GardenScreen({ pet }: { pet: Pet }) {
       </section>
       <div className={s.shortcutGrid}>
         {[
-          ["camera", "미디어 앨범", `/pets/${pet.id}/media`],
-          ["book", "기억 타임라인", `/pets/${pet.id}/timeline`],
+          ["book", "기록 모아보기", `/pets/${pet.id}/timeline`],
+          ["question", "질문과 답변", `/pets/${pet.id}/questions`],
           ["mail", "기억의 우체통", `/pets/${pet.id}/garden/mailbox`],
           ["plus", "새 기억 남기기", `/pets/${pet.id}/records/new`],
         ].map(([icon, title, href]) => (
@@ -299,6 +299,8 @@ export function GardenScreen({ pet }: { pet: Pet }) {
 }
 export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();
+  const [adding, setAdding] = useState(false);
+  const [demoError, setDemoError] = useState("");
   const records = app.state.records
     .filter((record) => record.petId === pet.id && record.type === "DIARY")
     .sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
@@ -324,6 +326,43 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
           </Link>
         )}
       </LifeHeading>
+      {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
+        <div className="demo-banner">
+          <Icon name="question" size={18} />
+          <div>
+            <p>
+              질문과 답변 샘플을 읽고, 날짜를 눌러 기록을 열어보세요. 기존
+              답변은 그대로 유지돼요.
+            </p>
+            <button
+              className="button secondary"
+              disabled={adding}
+              onClick={async () => {
+                setAdding(true);
+                setDemoError("");
+                try {
+                  await app.addDemoQuestions(pet.id);
+                } catch (cause) {
+                  setDemoError(
+                    cause instanceof Error
+                      ? cause.message
+                      : "샘플을 추가하지 못했어요.",
+                  );
+                } finally {
+                  setAdding(false);
+                }
+              }}
+            >
+              {adding ? "추가 중…" : "데모 질문 기록 추가"}
+            </button>
+          </div>
+        </div>
+      )}
+      {demoError && (
+        <p className="error" role="alert">
+          {demoError}
+        </p>
+      )}
       {records.length ? (
         <div className={s.twoGrid}>
           {records.map((record) => (
@@ -333,6 +372,9 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
               key={record.id}
             >
               <time className={s.meta}>{record.recordedDate}</time>
+              {record.questionId?.startsWith("demo-question-") && (
+                <span className="badge">데모 기록</span>
+              )}
               <QuestionAnswer question={record.question} answer={record.body} />
             </Link>
           ))}

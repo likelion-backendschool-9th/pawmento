@@ -28,7 +28,7 @@
 }
 .recordCard {
   display: block;
-  background: var(--mode-card, #fffdf8)e8;
+  background: var(--mode-card, #fffdf8) e8;
   border: 1px solid #fffcf7;
   border-radius: 25px;
   overflow: hidden;
@@ -83,33 +83,7 @@
   color: var(--brand-primary);
   font-size: 12px;
 }
-.archiveTabs {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  margin: 0 0 28px;
-}
-.archiveTabs > a {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #dfdece;
-  border-radius: 30px;
-  padding: 9px 20px;
-  font-size: 14px;
-  background: #fffcf780;
-  color: var(--text-secondary);
-}
-.archiveTabs .tabActive {
-  background: linear-gradient(115deg, #a0ae76, #6f864d);
-  color: white;
-  border-color: transparent;
-}
-.archiveTabs > span {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-muted);
-}
+
 .calendarArchive {
   display: grid;
   grid-template-columns: 390px minmax(0, 1fr);
@@ -348,7 +322,7 @@
   margin: auto;
 }
 .accountCard {
-  background: var(--mode-card, #fffdf8)e8;
+  background: var(--mode-card, #fffdf8) e8;
   border: 1px solid #fffdfa;
   border-radius: 30px;
   padding: 35px;
@@ -496,7 +470,7 @@
   color: var(--text-secondary);
 }
 .detail {
-  background: var(--mode-card, #fffdf8)e8;
+  background: var(--mode-card, #fffdf8) e8;
   border: 1px solid #fffdfa;
   border-radius: 30px;
   overflow: hidden;
@@ -689,22 +663,7 @@
     font-size: 10px;
     gap: 5px;
   }
-  .archiveTabs {
-    gap: 9px;
-    flex-wrap: wrap;
-    margin-bottom: 23px;
-  }
-  .archiveTabs > a {
-    padding: 8px 14px;
-    font-size: 12px;
-    gap: 6px;
-  }
-  .archiveTabs > span {
-    font-size: 10px;
-    flex: 1;
-    text-align: right;
-    min-width: 100px;
-  }
+
   .calendarArchive {
     gap: 25px;
   }
@@ -895,13 +854,6 @@
   .calendarDay {
     min-height: 38px;
   }
-  .archiveTabs > a {
-    padding: 8px 12px;
-  }
-  .archiveTabs > span {
-    font-size: 9px;
-    min-width: 95px;
-  }
 }
 
 .diaryEditor {
@@ -1044,21 +996,7 @@
 .recordGrid {
   gap: 20px;
 }
-.archiveTabs > a {
-  border-radius: 7px;
-  font-size: 12px;
-  padding: 8px 15px;
-  min-height: 37px;
-}
-.archiveTabs .tabActive {
-  background: #e9f0dc;
-  border-color: #d2e0bc;
-  color: var(--mode-muted, #6f7d62);
-}
-.archiveTabs > span {
-  font-size: 11px;
-  color: var(--mode-muted, #6f7d62);
-}
+
 .calendarArchive {
   grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr);
   gap: 23px;
@@ -1520,13 +1458,7 @@
   .compactCalendar .calendarDay {
     padding: 3px;
   }
-  .archiveTabs > a {
-    font-size: 11px;
-    padding: 8px 12px;
-  }
-  .archiveTabs > span {
-    font-size: 9px;
-  }
+
   .recordPhoto {
     height: 150px;
   }

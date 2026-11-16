@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -194,7 +195,7 @@ export function ArchiveScreen({
     <>
       <PageHeading
         eyebrow="질문과 답변이 함께 쌓이는 기록"
-        title={calendar ? "기록 달력" : "기록 타임라인"}
+        title={calendar ? "기록 달력" : "기록 모아보기"}
         body={`${pet.name}와 함께한 순간들을 천천히 꺼내봐요.`}
       >
         <Link className="button primary" href={`/pets/${pet.id}/records/new`}>
@@ -207,26 +208,10 @@ export function ArchiveScreen({
           날짜 주소가 올바르지 않아 오늘의 기록을 보여드려요.
         </p>
       )}
-      <div className={styles.archiveTabs}>
-        <Link
-          className={!calendar ? styles.tabActive : ""}
-          href={`/pets/${pet.id}/timeline`}
-        >
-          <Icon name="book" size={17} />
-          타임라인
-        </Link>
-        <Link
-          className={calendar ? styles.tabActive : ""}
-          href={`/pets/${pet.id}/calendar`}
-        >
-          <Icon name="calendar" size={17} />
-          달력
-        </Link>
-        <span>
-          {calendar ? formatDate(date) : "모든 순간"} · {result.total}개의
-          이야기
-        </span>
-      </div>
+      <ArchiveNavigation
+        petId={pet.id}
+        active={calendar ? "calendar" : "timeline"}
+      />
       <div className={calendar ? styles.calendarArchive : ""}>
         {calendar && (
           <section className={styles.fullCalendar}>

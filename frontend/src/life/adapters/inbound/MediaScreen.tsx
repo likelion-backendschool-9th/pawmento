@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Photo } from "@/shared/ui/Photo";
@@ -33,7 +34,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
     <>
       <LifeHeading
         label="MEDIA ARCHIVE"
-        title="우리의 미디어 앨범"
+        title="기록 모아보기"
         body={`${pet.name}의 사진과 영상, 목소리를 한곳에서 만나보세요.`}
       >
         {pet.accessRole !== "VIEWER" && (
@@ -43,6 +44,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
           </Link>
         )}
       </LifeHeading>
+      <ArchiveNavigation petId={pet.id} active="media" />
       <div className={s.tabs}>
         {[
           ["ALL", "전체"],

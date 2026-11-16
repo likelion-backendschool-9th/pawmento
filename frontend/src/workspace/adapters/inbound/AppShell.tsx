@@ -3,7 +3,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { today } from "@/shared/date";
 import { Icon } from "@/shared/ui/Icon";
 import type { Pet } from "../../domain/models";
 import styles from "./AppShell.module.css";
@@ -24,12 +23,6 @@ export function Shell({
   const [open, setOpen] = useState(false);
   const garden = pet?.mode === "GARDEN";
   const p = pet ? `/pets/${pet.id}` : "/pets";
-  const todayDiary = app.state.records.find(
-    (record) =>
-      record.petId === pet?.id &&
-      record.type === "DIARY" &&
-      record.recordedDate === today(),
-  );
   const groups = [
     {
       title: garden ? "정원에 보관한 기억" : "나의 기록",
@@ -40,30 +33,9 @@ export function Shell({
           icon: garden ? "leaf" : "home",
         },
         {
-          href: pet
-            ? pet.accessRole === "VIEWER"
-              ? `${p}/questions`
-              : todayDiary
-                ? `${p}/diary/${todayDiary.id}`
-                : `${p}/diary/new`
-            : "/pets",
-          label: "질문 다이어리",
-          icon: "edit",
-        },
-        {
-          href: pet ? `${p}/calendar` : "/pets",
-          label: garden ? "기억 달력" : "기록 달력",
-          icon: "calendar",
-        },
-        {
           href: pet ? `${p}/timeline` : "/pets",
-          label: garden ? "함께한 시간" : "타임라인",
+          label: "기록 모아보기",
           icon: "book",
-        },
-        {
-          href: pet ? `${p}/media` : "/pets",
-          label: garden ? "추억 앨범 · 목소리" : "미디어 앨범",
-          icon: "camera",
         },
         {
           href: pet ? `${p}/questions` : "/pets",
@@ -77,7 +49,6 @@ export function Shell({
       links: [
         ...(pet?.mode === "GARDEN"
           ? [
-              { href: `${p}/garden`, label: "기억의 정원", icon: "leaf" },
               {
                 href: `${p}/garden/mailbox`,
                 label: "기억의 우체통",
@@ -105,9 +76,20 @@ export function Shell({
       ],
     },
   ];
+  const navigationRoute =
+    pet &&
+    ["calendar", "media"].some((page) => route.startsWith(`${p}/${page}`))
+      ? `${p}/timeline`
+      : pet && route.startsWith(`${p}/diary`)
+        ? `${p}/questions`
+        : route;
   const current = groups
     .flatMap((group) => group.links)
-    .filter((link) => route === link.href || route.startsWith(link.href + "/"))
+    .filter(
+      (link) =>
+        navigationRoute === link.href ||
+        navigationRoute.startsWith(link.href + "/"),
+    )
     .sort((a, b) => b.href.length - a.href.length)[0];
   async function select(id: string) {
     setSwitching(true);
