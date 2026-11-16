@@ -16,6 +16,8 @@
   margin-bottom: 30px;
 }
 .heroCopy {
+  min-width: 0;
+  overflow-wrap: anywhere;
   max-width: 520px;
 }
 .heroCopy > span {
@@ -201,6 +203,7 @@
 }
 @media (max-width: 600px) {
   .hero {
+    flex-direction: column;
     min-height: 365px;
     padding: 35px 23px;
     align-items: flex-start;
@@ -226,9 +229,8 @@
     max-width: 205px;
   }
   .portrait {
-    position: absolute;
-    right: 25px;
-    bottom: 22px;
+    position: static;
+    align-self: flex-end;
     padding: 0;
   }
   .portrait > div {
@@ -288,5 +290,23 @@
   .invitation > a {
     align-self: flex-end;
     font-size: 11px;
+  }
+}
+
+.questionActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  margin-top: 20px;
+}
+.questionActions > a {
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (max-width: 600px) {
+  .shortcuts > a:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }

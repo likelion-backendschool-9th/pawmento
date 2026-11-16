@@ -28,7 +28,7 @@
 }
 .recordCard {
   display: block;
-  background: var(--mode-card, #fffdf8) e8;
+  background: var(--mode-card, #fffdf8);
   border: 1px solid #fffcf7;
   border-radius: 25px;
   overflow: hidden;
@@ -322,7 +322,7 @@
   margin: auto;
 }
 .accountCard {
-  background: var(--mode-card, #fffdf8) e8;
+  background: var(--mode-card, #fffdf8);
   border: 1px solid #fffdfa;
   border-radius: 30px;
   padding: 35px;
@@ -470,7 +470,7 @@
   color: var(--text-secondary);
 }
 .detail {
-  background: var(--mode-card, #fffdf8) e8;
+  background: var(--mode-card, #fffdf8);
   border: 1px solid #fffdfa;
   border-radius: 30px;
   overflow: hidden;
@@ -1538,4 +1538,34 @@
   .empty > p {
     font-size: 12px;
   }
+}
+
+.petList > article,
+.petSummary,
+.pageHeading > div {
+  min-width: 0;
+}
+.petSummary h2 {
+  flex-direction: column;
+}
+.petSummary h2 > strong {
+  max-width: 100%;
+  font: inherit;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.pageHeading h1 {
+  overflow-wrap: anywhere;
+}
+
+.editor,
+.editor > section,
+.editorQuestion {
+  min-width: 0;
+}
+.editorQuestion > h2 {
+  overflow-wrap: anywhere;
+}
+.editorQuestion > p {
+  flex-wrap: wrap;
 }

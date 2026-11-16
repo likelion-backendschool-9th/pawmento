@@ -25,13 +25,14 @@ export function ModeScreen({ pet }: { pet: Pet }) {
         pet.id,
         mode,
       );
+      await app.dependencies.workspace.selectPet(app.account!.id, pet.id);
       await app.refresh();
       app.notify(
         mode === "GARDEN"
           ? "기억의 정원으로 이동해요."
           : "오늘의 이야기로 돌아왔어요.",
       );
-      router.push(mode === "GARDEN" ? `/pets/${pet.id}/garden` : "/home");
+      router.push("/home");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "변경하지 못했어요.");
     } finally {
@@ -46,7 +47,7 @@ export function ModeScreen({ pet }: { pet: Pet }) {
       <LifeHeading
         label="PET MODE"
         title={`${pet.name}의 공간 설정`}
-        body="기록하는 오늘과 기억을 돌아보는 정원 사이를 자유롭게 오갈 수 있어요."
+        body={`${pet.name}의 모드만 변경해요. 다른 반려동물의 설정과 기록은 그대로 유지돼요.`}
       />
       <div className={s.modeGrid}>
         {[
@@ -95,7 +96,7 @@ export function ModeScreen({ pet }: { pet: Pet }) {
               ? "기억의 정원으로 이동할까요?"
               : "함께하는 오늘로 돌아갈까요?"}
           </h2>
-          <p>기록은 삭제되지 않으며 모드만 변경됩니다.</p>
+          <p>{pet.name}의 모드만 변경합니다. 모든 기록은 그대로 유지돼요.</p>
           <div className={s.inlineActions}>
             <button
               className="button secondary"

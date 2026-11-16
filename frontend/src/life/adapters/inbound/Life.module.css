@@ -1533,11 +1533,9 @@
   background: #fffaf4d9;
   border-color: #e5dce4;
   color: #80738b;
-  border-radius: 18px 6px 18px 6px;
 }
 :global([data-mode="GARDEN"]) .panel {
   box-shadow: 0 8px 25px #8b77950b;
-  border-radius: 17px;
 }
 :global([data-mode="GARDEN"]) .postcardCard {
   border-radius: 3px;
@@ -1657,4 +1655,30 @@
   background: #f6f2f7;
   border-radius: 8px;
   margin: 12px 0 0;
+}
+
+.panel {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.panelHeading {
+  flex-wrap: wrap;
+}
+.shortcutGrid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+}
+.shortcutGrid > a {
+  min-width: 0;
+}
+.shortcutGrid strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .shortcutGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .shortcutGrid > a {
+    padding: 14px 10px;
+  }
 }

@@ -12,7 +12,7 @@ export function QuestionAnswer({
     <dl className={`${styles.pair} ${compact ? styles.compact : ""}`}>
       <div>
         <dt>
-          <span>Q</span>오늘의 질문
+          <span>Q</span>질문
         </dt>
         <dd>{question || "이전 기록의 질문 정보가 없어요."}</dd>
       </div>

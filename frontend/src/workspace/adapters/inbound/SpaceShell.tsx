@@ -34,8 +34,8 @@ export function SpaceShell({
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
-  const archiveActive = ["timeline", "calendar", "media"].some((page) =>
-    route.startsWith(`${base}/${page}`),
+  const archiveActive = ["timeline", "calendar", "media", "records"].some(
+    (page) => route.startsWith(`${base}/${page}`),
   );
   const links = [
     {
@@ -58,12 +58,16 @@ export function SpaceShell({
       icon: "book",
       active: archiveActive,
     },
-    {
-      href: pet ? `${base}/garden/mailbox` : "/pets",
-      label: "우체통",
-      icon: "mail",
-      active: route.startsWith(`${base}/garden/mailbox`),
-    },
+    ...(garden
+      ? [
+          {
+            href: `${base}/garden/mailbox`,
+            label: "우체통",
+            icon: "mail",
+            active: route.startsWith(`${base}/garden/mailbox`),
+          },
+        ]
+      : []),
     {
       href: "/community",
       label: "커뮤니티",
@@ -82,14 +86,25 @@ export function SpaceShell({
       <header className={s.header}>
         <div className={s.masthead}>
           <Brand href="/home" garden={garden} />
-          <Link href="/pets" className={s.identity} aria-label="반려동물 선택">
+          <label className={s.identity}>
+            <span className="visually-hidden">보고 있는 반려동물</span>
             <Icon name={garden ? "leaf" : "paw"} size={15} />
-            <span>
-              {pet
-                ? `${pet.name} · ${garden ? "정원" : "일상"}`
-                : "반려동물 등록"}
-            </span>
-          </Link>
+            <select
+              aria-label="보고 있는 반려동물"
+              value={pet?.id ?? app.state.selectedPetId}
+              disabled={switching || !app.state.pets.length}
+              onChange={(event) => void onSelect(event.target.value)}
+            >
+              {!app.state.pets.length && (
+                <option value="">반려동물을 등록해 주세요</option>
+              )}
+              {app.state.pets.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name} · {item.mode === "GARDEN" ? "정원" : "일상"}
+                </option>
+              ))}
+            </select>
+          </label>
           <div className={s.headerActions}>
             <Link href="/settings" className="icon-button" aria-label="설정">
               <Icon name="settings" size={21} />

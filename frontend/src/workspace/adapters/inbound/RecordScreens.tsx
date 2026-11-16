@@ -182,7 +182,7 @@ export function RecordForm({
             rows={8}
             maxLength={3000}
             required={diary}
-            placeholder={`${pet.name}와 함께한 순간, 지금의 마음을 들려주세요.`}
+            placeholder={`${pet.name}의 하루와 지금의 마음을 들려주세요.`}
           />
           {diary && prompt.error && (
             <p className="error" role="alert">
@@ -214,7 +214,11 @@ export function RecordForm({
           <div className={styles.editorActions}>
             <Link
               className="button secondary"
-              href={record ? `/pets/${pet.id}/records/${record.id}` : "/home"}
+              href={
+                record
+                  ? `/pets/${pet.id}/${diary ? "diary" : "records"}/${record.id}`
+                  : `/pets/${pet.id}/${diary ? "questions" : "timeline"}`
+              }
             >
               취소
             </Link>

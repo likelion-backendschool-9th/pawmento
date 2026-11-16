@@ -405,3 +405,26 @@ test("#12-S4 다이어리와 질문 답변은 페이지·날짜 필터에서 분
   assert.equal((await uc.list("owner", p.id)).total, 3);
   assert.deepEqual(await uc.load("owner"), before);
 });
+
+test("#12-S7 반려동물마다 모드를 독립 저장하고 선택을 바꿔도 기록을 보존한다", async () => {
+  const { useCases: uc } = setup();
+  const a = await uc.savePet("owner", { ...pet, name: "보리" });
+  const b = await uc.savePet("owner", { ...pet, name: "코코" });
+  await uc.saveMemory("owner", memory(a.id));
+  await uc.saveMemory("owner", memory(b.id));
+  const before = (await uc.load("owner")).records;
+  await uc.changeMode("owner", b.id, "GARDEN");
+  await uc.selectPet("owner", a.id);
+  let state = await uc.load("owner");
+  assert.equal(state.pets.find((pet) => pet.id === a.id)!.mode, "ACTIVE");
+  assert.equal(state.pets.find((pet) => pet.id === b.id)!.mode, "GARDEN");
+  assert.equal(state.selectedPetId, a.id);
+  await uc.changeMode("owner", a.id, "GARDEN");
+  await uc.changeMode("owner", b.id, "ACTIVE");
+  await uc.selectPet("owner", b.id);
+  state = await uc.load("owner");
+  assert.equal(state.pets.find((pet) => pet.id === a.id)!.mode, "GARDEN");
+  assert.equal(state.pets.find((pet) => pet.id === b.id)!.mode, "ACTIVE");
+  assert.equal(state.selectedPetId, b.id);
+  assert.deepEqual(state.records, before);
+});

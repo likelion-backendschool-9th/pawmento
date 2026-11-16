@@ -47,11 +47,15 @@ export function Shell({
     {
       title: "함께하는 공간",
       links: [
-        {
-          href: pet ? `${p}/garden/mailbox` : "/pets",
-          label: "기억의 우체통",
-          icon: "mail",
-        },
+        ...(garden
+          ? [
+              {
+                href: `${p}/garden/mailbox`,
+                label: "기억의 우체통",
+                icon: "mail",
+              },
+            ]
+          : []),
         { href: "/community", label: "커뮤니티", icon: "users" },
         {
           href: pet ? `${p}/family` : "/pets",
@@ -74,7 +78,9 @@ export function Shell({
   ];
   const navigationRoute =
     pet &&
-    ["calendar", "media"].some((page) => route.startsWith(`${p}/${page}`))
+    ["calendar", "media", "records"].some((page) =>
+      route.startsWith(`${p}/${page}`),
+    )
       ? `${p}/timeline`
       : pet && route.startsWith(`${p}/diary`)
         ? `${p}/questions`

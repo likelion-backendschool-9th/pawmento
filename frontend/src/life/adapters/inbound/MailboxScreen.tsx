@@ -27,6 +27,15 @@ export function MailboxScreen({
 }) {
   const life = useLife();
   const [tab, setTab] = useState("all");
+  if (pet.mode !== "GARDEN")
+    return (
+      <LifeEmpty
+        title="우체통은 정원에서 이용해요"
+        body="반려동물별 공간 설정에서 이 아이의 모드를 변경할 수 있어요."
+        href="/settings"
+        action="설정으로"
+      />
+    );
   if (!life.state) return <LifeStatus loading error={life.error} />;
   if (segments[0] === "new") return <PostcardComposer pet={pet} />;
   if (segments[0]) {

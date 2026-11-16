@@ -18,22 +18,35 @@
   max-width: 1380px;
   margin: auto;
   padding: 6px 40px;
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
   gap: 25px;
 }
 .identity {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-right: auto;
-  padding: 7px 12px;
+  margin: 0;
+  min-width: 0;
+  max-width: 300px;
+  flex-direction: row;
+  padding: 3px 10px;
   border-radius: 20px;
   background: #eeeadf80;
   color: #7c756b;
   font-size: 12px;
   white-space: nowrap;
+}
+.identity select {
+  min-width: 0;
+  min-height: 36px;
+  font-size: 12px;
+  border: 0;
+  padding: 5px 22px 5px 0;
+  background: transparent;
+  color: inherit;
+  text-overflow: ellipsis;
 }
 .headerActions {
   display: flex;
@@ -191,12 +204,13 @@
 }
 @media (max-width: 767px) {
   .masthead {
+    grid-template-columns: minmax(0, 1fr) auto;
     min-height: 75px;
     padding: 6px 14px;
     gap: 8px;
   }
   .masthead :global(.brand) {
-    font-size: 25px;
+    font-size: clamp(20px, 6vw, 25px);
   }
   .masthead :global(.brand-logo) {
     width: 53px;
@@ -206,7 +220,10 @@
     display: none;
   }
   .identity {
-    display: none;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    max-width: none;
+    width: 100%;
   }
   .headerActions {
     gap: 2px;

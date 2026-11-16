@@ -32,6 +32,8 @@ export function HomeScreen({ pet }: { pet: Pet }) {
     (prompt.text
       ? question(pet.name, prompt.text)
       : "오늘의 질문을 준비하고 있어요…");
+  const garden = pet.mode === "GARDEN";
+  const photos = records.filter((record) => record.photoUrl);
   const onThisDay = records.filter(
     (record) =>
       record.recordedDate.slice(5) === date.slice(5) &&
@@ -42,7 +44,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
       <section className={g.hero}>
         <div className={g.heroCopy}>
           <span>OUR DAYS, TOGETHER</span>
-          <h1>{pet.name}와 함께하는 오늘</h1>
+          <h1>{pet.name}의 하루</h1>
           <p>
             함께한 날들이, 오래도록.
             <br />
@@ -58,14 +60,18 @@ export function HomeScreen({ pet }: { pet: Pet }) {
           <small>함께 남긴 {records.length}개의 기억</small>
         </div>
       </section>
-      <div className={s.shortcutGrid}>
+      <div className={`${s.shortcutGrid} ${g.shortcuts}`}>
         {[
           ["book", "다이어리", `/pets/${pet.id}/timeline`],
           ["question", "오늘의 질문", `/pets/${pet.id}/questions`],
           ["mail", "기억의 우체통", `/pets/${pet.id}/garden/mailbox`],
           ["plus", "새 기억 남기기", `/pets/${pet.id}/records/new`],
         ]
-          .filter(([icon]) => icon !== "plus" || pet.accessRole !== "VIEWER")
+          .filter(
+            ([icon]) =>
+              (icon !== "plus" || pet.accessRole !== "VIEWER") &&
+              (icon !== "mail" || garden),
+          )
           .map(([icon, title, href]) => (
             <Link href={href} key={title}>
               <Icon name={icon} size={24} />
@@ -74,7 +80,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
             </Link>
           ))}
       </div>
-      {records.length > 0 && (
+      {photos.length > 0 && (
         <section className={g.gallery}>
           <div className={g.galleryHeading}>
             <div>
@@ -86,40 +92,39 @@ export function HomeScreen({ pet }: { pet: Pet }) {
             </Link>
           </div>
           <div className={g.galleryGrid}>
-            {records
-              .filter((record) => record.photoUrl)
-              .slice(0, 3)
-              .map((record) => (
-                <Link
-                  className={g.photoPrint}
-                  key={record.id}
-                  href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
-                >
-                  <div>
-                    <Photo
-                      src={record.photoUrl}
-                      alt={`${record.recordedDate}의 추억 사진`}
-                    />
-                  </div>
-                  <time>{record.recordedDate.replaceAll("-", ". ")}</time>
-                  <p>{record.body || record.question || "함께한 작은 순간"}</p>
-                </Link>
-              ))}
+            {photos.slice(0, 3).map((record) => (
+              <Link
+                className={g.photoPrint}
+                key={record.id}
+                href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+              >
+                <div>
+                  <Photo
+                    src={record.photoUrl}
+                    alt={`${record.recordedDate}의 추억 사진`}
+                  />
+                </div>
+                <time>{record.recordedDate.replaceAll("-", ". ")}</time>
+                <p>{record.body || record.question || "함께한 작은 순간"}</p>
+              </Link>
+            ))}
           </div>
         </section>
       )}
-      <section className={g.invitation}>
-        <div>
-          <Icon name="mail" size={32} />
-          <section>
-            <h2>어느 날의 기억이, 한 장의 엽서로.</h2>
-            <p>우연히 펼친 기록 속 우리 아이를 수채화 엽서로 만나보세요.</p>
-          </section>
-        </div>
-        <Link href={`/pets/${pet.id}/garden/mailbox`}>
-          기억의 우체통 열기 <Icon name="arrow" size={15} />
-        </Link>
-      </section>
+      {garden && (
+        <section className={g.invitation}>
+          <div>
+            <Icon name="mail" size={32} />
+            <section>
+              <h2>어느 날의 기억이, 한 장의 엽서로.</h2>
+              <p>우연히 펼친 기록 속 우리 아이를 수채화 엽서로 만나보세요.</p>
+            </section>
+          </div>
+          <Link href={`/pets/${pet.id}/garden/mailbox`}>
+            기억의 우체통 열기 <Icon name="arrow" size={15} />
+          </Link>
+        </section>
+      )}
       {onThisDay.length > 0 && (
         <section className={s.section}>
           <h2>지난 오늘, 우리가 남긴 순간</h2>
@@ -177,25 +182,27 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               answer={answer?.body ?? "아직 답변을 남기지 않았어요."}
             />
           )}
-          <Link
-            className="button primary"
-            href={
-              answer
-                ? `/pets/${pet.id}/diary/${answer.id}`
+          <div className={g.questionActions}>
+            <Link
+              className="button primary"
+              href={
+                answer
+                  ? `/pets/${pet.id}/diary/${answer.id}`
+                  : pet.accessRole === "VIEWER"
+                    ? `/pets/${pet.id}/questions`
+                    : `/pets/${pet.id}/diary/new`
+              }
+            >
+              {answer
+                ? "오늘의 답변 보기"
                 : pet.accessRole === "VIEWER"
-                  ? `/pets/${pet.id}/questions`
-                  : `/pets/${pet.id}/diary/new`
-            }
-          >
-            {answer
-              ? "오늘의 답변 보기"
-              : pet.accessRole === "VIEWER"
-                ? "질문 기록 보기"
-                : "오늘의 질문 답하기"}
-          </Link>
-          <Link className="text-link" href={`/pets/${pet.id}/questions`}>
-            지난 질문과 답변 <Icon name="arrow" size={15} />
-          </Link>
+                  ? "질문 기록 보기"
+                  : "오늘의 질문 답하기"}
+            </Link>
+            <Link className="text-link" href={`/pets/${pet.id}/questions`}>
+              지난 질문과 답변 <Icon name="arrow" size={15} />
+            </Link>
+          </div>
         </section>
       </div>
     </>

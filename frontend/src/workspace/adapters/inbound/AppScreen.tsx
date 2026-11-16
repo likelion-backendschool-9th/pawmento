@@ -97,7 +97,8 @@ function AuthenticatedScreen({ path }: { path: string[] }) {
   else if (path[2] === "media") content = <MediaScreen pet={pet} />;
   else if (path[2] === "family") content = <FamilyScreen pet={pet} />;
   else if (path[2] === "questions") content = <QuestionHistory pet={pet} />;
-  else if (path[2] === "settings") content = <ModeScreen pet={pet} />;
+  else if (path[2] === "settings")
+    content = <ModeScreen key={`${pet.id}:${pet.mode}`} pet={pet} />;
   else if (
     path[2] === "garden" &&
     (path[3] === "mailbox" || path[3] === "postcards")

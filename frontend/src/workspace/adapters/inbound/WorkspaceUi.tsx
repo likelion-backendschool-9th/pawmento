@@ -26,7 +26,7 @@ export function PetSummary({ pet, count }: { pet: Pet; count: number }) {
         className={styles.petAvatar}
       />
       <h2>
-        {pet.name}
+        <strong>{pet.name}</strong>
         <span>
           {pet.accessRole === "VIEWER"
             ? "공유 · 열람"
