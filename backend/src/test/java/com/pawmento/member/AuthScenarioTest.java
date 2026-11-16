@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
@@ -173,12 +174,29 @@ class AuthScenarioTest {
 	@Test
 	@DisplayName("#14-S6 로그아웃하면 토큰 쿠키가 지워진다")
 	void logout() throws Exception {
-		mockMvc.perform(post("/api/auth/logout"))
+		mockMvc.perform(post("/api/auth/logout").contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isNoContent())
 			.andExpect(cookie().value(AccessTokenCookie.NAME, ""))
 			.andExpect(cookie().maxAge(AccessTokenCookie.NAME, 0))
 			.andExpect(cookie().path(AccessTokenCookie.NAME, "/"))
 			.andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true));
+	}
+
+	@Test
+	@DisplayName("#14-S6 다른 사이트의 폼 요청으로는 로그아웃되지 않는다")
+	void logoutByCrossSiteForm() throws Exception {
+		// HTML 폼이 보낼 수 있는 형식 세 가지와 Content-Type이 없는 요청. 쿠키를 지우는 응답이 나가면 안 된다
+		for (MediaType formType : List.of(MediaType.APPLICATION_FORM_URLENCODED, MediaType.MULTIPART_FORM_DATA,
+				MediaType.TEXT_PLAIN)) {
+			mockMvc
+				.perform(post("/api/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example")
+					.contentType(formType))
+				.andExpect(status().isUnsupportedMediaType())
+				.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));
+		}
+		mockMvc.perform(post("/api/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example"))
+			.andExpect(status().isUnsupportedMediaType())
+			.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));
 	}
 
 	@Test

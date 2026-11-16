@@ -2,6 +2,7 @@ package com.pawmento.member.adapter.in.web;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,8 +49,10 @@ class AuthController {
 			.body(result.member());
 	}
 
-	// 쿠키를 지운다. 서버는 토큰을 저장하지 않으므로 이미 발급된 토큰 자체는 만료 시간까지 유효하다
-	@PostMapping("/logout")
+	// 쿠키를 지운다. 서버는 토큰을 저장하지 않으므로 이미 발급된 토큰 자체는 만료 시간까지 유효하다.
+	// 본문은 없지만 Content-Type: application/json을 요구한다. 다른 사이트의 HTML 폼은 이 형식으로 보낼 수 없어,
+	// 폼을 자동 제출시켜 사용자를 강제로 로그아웃시키는 요청이 415로 거부된다
+	@PostMapping(path = "/logout", consumes = MediaType.APPLICATION_JSON_VALUE)
 	ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
 		return ResponseEntity.noContent()
 			.header(HttpHeaders.SET_COOKIE, accessTokenCookie.expire(httpRequest).toString())
