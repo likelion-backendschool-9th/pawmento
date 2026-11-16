@@ -50,6 +50,9 @@ class NaverAddressAdapterTest {
 		}
 		""";
 
+	// 실제 네이버 응답(좌표 127.0276,37.4979)을 그대로 옮긴 것이다. 좌표·건물 정보 같은 쓰지 않는 필드가 함께 온다
+	private static final String REAL_RESPONSE_JSON = "{\"status\":{\"code\":0,\"name\":\"ok\",\"message\":\"done\"},\"results\":[{\"name\":\"roadaddr\",\"code\":{\"id\":\"1165010800\",\"type\":\"L\",\"mappingId\":\"09650108\"},\"region\":{\"area0\":{\"name\":\"kr\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}},\"area1\":{\"name\":\"서울특별시\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":126.978388,\"y\":37.56661}},\"alias\":\"서울\"},\"area2\":{\"name\":\"서초구\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":127.032598,\"y\":37.483569}}},\"area3\":{\"name\":\"서초동\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":127.019508,\"y\":37.490119}}},\"area4\":{\"name\":\"\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}}},\"land\":{\"type\":\"\",\"number1\":\"405\",\"number2\":\"2\",\"addition0\":{\"type\":\"building\",\"value\":\"가로판매대\"},\"addition1\":{\"type\":\"zipcode\",\"value\":\"06615\"},\"addition2\":{\"type\":\"roadGroupCode\",\"value\":\"116502102001\"},\"addition3\":{\"type\":\"\",\"value\":\"\"},\"addition4\":{\"type\":\"\",\"value\":\"\"},\"name\":\"강남대로\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}}},{\"name\":\"addr\",\"code\":{\"id\":\"1165010800\",\"type\":\"L\",\"mappingId\":\"09650108\"},\"region\":{\"area0\":{\"name\":\"kr\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}},\"area1\":{\"name\":\"서울특별시\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":126.978388,\"y\":37.56661}},\"alias\":\"서울\"},\"area2\":{\"name\":\"서초구\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":127.032598,\"y\":37.483569}}},\"area3\":{\"name\":\"서초동\",\"coords\":{\"center\":{\"crs\":\"EPSG:4326\",\"x\":127.019508,\"y\":37.490119}}},\"area4\":{\"name\":\"\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}}},\"land\":{\"type\":\"1\",\"number1\":\"1373\",\"number2\":\"\",\"addition0\":{\"type\":\"\",\"value\":\"\"},\"addition1\":{\"type\":\"\",\"value\":\"\"},\"addition2\":{\"type\":\"\",\"value\":\"\"},\"addition3\":{\"type\":\"\",\"value\":\"\"},\"addition4\":{\"type\":\"\",\"value\":\"\"},\"name\":\"\",\"coords\":{\"center\":{\"crs\":\"\",\"x\":0.0,\"y\":0.0}}}}]}";
+
 	private static NaverMapProperties properties(String clientId, String clientSecret, String baseUrl,
 			Duration readTimeout) {
 		return new NaverMapProperties(clientId, clientSecret, baseUrl, Duration.ofSeconds(1), readTimeout);
@@ -81,6 +84,18 @@ class NaverAddressAdapterTest {
 
 		assertThat(address).contains("서울특별시 강남구 테헤란로 152");
 		f.server().verify();
+	}
+
+	@Test
+	@DisplayName("#19-S3 실제 네이버 응답 모양에서도 도로명 주소를 받는다")
+	void loadsAddressFromRealResponseShape() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(REAL_RESPONSE_JSON, MediaType.APPLICATION_JSON));
+
+		Optional<String> address = f.adapter().loadByCoordinates(37.4979, 127.0276);
+
+		assertThat(address).contains("서울특별시 서초구 강남대로 405-2");
 	}
 
 	@Test
