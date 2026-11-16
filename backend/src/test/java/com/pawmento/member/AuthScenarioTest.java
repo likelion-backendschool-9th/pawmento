@@ -80,7 +80,7 @@ class AuthScenarioTest {
 			.andExpect(cookie().maxAge(AccessTokenCookie.NAME, 3600))
 			.andReturn();
 
-		mockMvc.perform(get("/api/members/me").cookie(accessTokenCookie(login)))
+		mockMvc.perform(get("/api/v1/members/me").cookie(accessTokenCookie(login)))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.nickname").value("보리 보호자"))
@@ -90,7 +90,7 @@ class AuthScenarioTest {
 	@Test
 	@DisplayName("#14-S2 로그인 없이 보호 API를 부르면 401과 JSON 에러를 받는다")
 	void protectedApiWithoutLogin() throws Exception {
-		mockMvc.perform(get("/api/members/me"))
+		mockMvc.perform(get("/api/v1/members/me"))
 			.andExpect(status().isUnauthorized())
 			.andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/json;charset=UTF-8"))
 			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"))
@@ -99,7 +99,7 @@ class AuthScenarioTest {
 			.andExpect(header().doesNotExist(HttpHeaders.LOCATION));
 
 		// 아직 없는 경로도 공개 경로가 아니면 로그인이 필요하다
-		mockMvc.perform(get("/api/pets")).andExpect(status().isUnauthorized());
+		mockMvc.perform(get("/api/v1/pets")).andExpect(status().isUnauthorized());
 	}
 
 	@Test
@@ -156,15 +156,15 @@ class AuthScenarioTest {
 		Cookie expired = new Cookie(AccessTokenCookie.NAME, expiredToken());
 		Cookie forged = new Cookie(AccessTokenCookie.NAME, forgedToken(login(email, PASSWORD).andReturn()));
 
-		mockMvc.perform(get("/api/members/me").cookie(expired))
+		mockMvc.perform(get("/api/v1/members/me").cookie(expired))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
-		mockMvc.perform(get("/api/members/me").cookie(forged))
+		mockMvc.perform(get("/api/v1/members/me").cookie(forged))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 
 		mockMvc
-			.perform(post("/api/auth/login").cookie(expired)
+			.perform(post("/api/v1/auth/login").cookie(expired)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json(email, PASSWORD, null)))
 			.andExpect(status().isOk())
@@ -174,7 +174,7 @@ class AuthScenarioTest {
 	@Test
 	@DisplayName("#14-S6 로그아웃하면 토큰 쿠키가 지워진다")
 	void logout() throws Exception {
-		mockMvc.perform(post("/api/auth/logout").contentType(MediaType.APPLICATION_JSON))
+		mockMvc.perform(post("/api/v1/auth/logout").contentType(MediaType.APPLICATION_JSON))
 			.andExpect(status().isNoContent())
 			.andExpect(cookie().value(AccessTokenCookie.NAME, ""))
 			.andExpect(cookie().maxAge(AccessTokenCookie.NAME, 0))
@@ -189,12 +189,12 @@ class AuthScenarioTest {
 		for (MediaType formType : List.of(MediaType.APPLICATION_FORM_URLENCODED, MediaType.MULTIPART_FORM_DATA,
 				MediaType.TEXT_PLAIN)) {
 			mockMvc
-				.perform(post("/api/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example")
+				.perform(post("/api/v1/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example")
 					.contentType(formType))
 				.andExpect(status().isUnsupportedMediaType())
 				.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));
 		}
-		mockMvc.perform(post("/api/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example"))
+		mockMvc.perform(post("/api/v1/auth/logout").header(HttpHeaders.ORIGIN, "https://other-site.example"))
 			.andExpect(status().isUnsupportedMediaType())
 			.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));
 	}
@@ -219,7 +219,7 @@ class AuthScenarioTest {
 			.andExpect(jsonPath("$.code").value("VALIDATION"))
 			.andExpect(jsonPath("$.message").value("비밀번호가 너무 깁니다. 한글은 24자까지 쓸 수 있습니다."));
 
-		mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content("{"))
+		mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content("{"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"));
 
@@ -237,13 +237,13 @@ class AuthScenarioTest {
 	}
 
 	private ResultActions signUp(String email, String password, String nickname) throws Exception {
-		return mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON)
+		return mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
 			.content(json(email, password, nickname)));
 	}
 
 	private ResultActions login(String email, String password) throws Exception {
 		return mockMvc
-			.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON).content(json(email, password, null)));
+			.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON).content(json(email, password, null)));
 	}
 
 	private static String json(String email, String password, String nickname) {

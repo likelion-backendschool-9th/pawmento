@@ -21,7 +21,7 @@ import jakarta.validation.Valid;
 
 // 로그인 없이 부르는 경로다 (global.security.PublicEndpoints)
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 class AuthController {
 
 	private final MemberUseCase memberUseCase;
