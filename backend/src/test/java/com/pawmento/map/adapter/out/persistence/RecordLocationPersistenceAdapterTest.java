@@ -1,0 +1,233 @@
+package com.pawmento.map.adapter.out.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.map.application.exception.RecordLocationAlreadyExistsException;
+import com.pawmento.map.domain.MapArea;
+import com.pawmento.map.domain.RecordLocation;
+
+// 시나리오는 docs/map/record-location.md에 있다. API를 만들기 전이라 저장소가 지키는 부분만 확인한다.
+// 진짜 PostgreSQL에서 확인하고, 각 테스트가 끝나면 되돌린다
+@Import(TestcontainersConfiguration.class)
+@SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
+@Transactional
+class RecordLocationPersistenceAdapterTest {
+
+	private static final long MEMBER = 1L;
+	private static final long PET = 10L;
+
+	@Autowired
+	private RecordLocationPersistenceAdapter adapter;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	private Long save(long recordId, long petId, long memberId, double latitude, double longitude) {
+		return adapter.save(RecordLocation.create(recordId, petId, memberId, latitude, longitude, null));
+	}
+
+	@Test
+	@DisplayName("#19-S1 위치를 저장하고 기록 번호로 다시 읽으면 같은 값이다")
+	void saveAndLoad() {
+		Long id = adapter.save(RecordLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
+
+		RecordLocation loaded = adapter.loadByRecordId(100L).orElseThrow();
+
+		assertThat(id).isNotNull();
+		assertThat(loaded.getId()).isEqualTo(id);
+		assertThat(loaded.getRecordId()).isEqualTo(100L);
+		assertThat(loaded.getPetId()).isEqualTo(PET);
+		assertThat(loaded.getCreatedBy()).isEqualTo(MEMBER);
+		assertThat(loaded.getLatitude()).isEqualTo(37.4979);
+		assertThat(loaded.getLongitude()).isEqualTo(127.0276);
+		assertThat(loaded.getPlaceName()).isEqualTo("강남역");
+	}
+
+	@Test
+	@DisplayName("#19-S1 위치가 없는 기록은 빈 값을 받는다")
+	void loadMissing() {
+		assertThat(adapter.loadByRecordId(999L)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#19-S1 같은 기록에 다시 저장하면 새로 쌓이지 않고 바뀐다")
+	void saveAgainUpdates() {
+		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
+
+		RecordLocation existing = adapter.loadByRecordId(100L).orElseThrow();
+		existing.move(35.1796, 129.0756, "부산");
+		Long updatedId = adapter.save(existing);
+
+		assertThat(updatedId).isEqualTo(id);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from record_location", Long.class)).isEqualTo(1L);
+		RecordLocation loaded = adapter.loadByRecordId(100L).orElseThrow();
+		assertThat(loaded.getLatitude()).isEqualTo(35.1796);
+		assertThat(loaded.getPlaceName()).isEqualTo("부산");
+	}
+
+	@Test
+	@DisplayName("#19-S1 같은 기록에 위치를 새로 두 번 넣으려 하면 DB가 막고, 이미 있다는 오류를 받는다")
+	void uniquePerRecord() {
+		save(100L, PET, MEMBER, 37.0, 127.0);
+
+		assertThatThrownBy(() -> save(100L, PET, MEMBER, 36.0, 128.0))
+			.isInstanceOf(RecordLocationAlreadyExistsException.class)
+			.hasCauseInstanceOf(DataIntegrityViolationException.class);
+	}
+
+	@Test
+	@DisplayName("#19-S1 저장된 적 없는 id의 위치를 바꾸려 하면 오류가 난다")
+	void updateMissing() {
+		RecordLocation ghost = RecordLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null);
+
+		assertThatThrownBy(() -> adapter.save(ghost)).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	@DisplayName("#19-S7 다른 기록·작성자의 값을 담은 위치로 저장된 위치를 덮어쓸 수 없다")
+	void cannotOverwriteWithDifferentOwner() {
+		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
+		RecordLocation otherRecord = RecordLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null);
+		RecordLocation otherMember = RecordLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null);
+		RecordLocation otherPet = RecordLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null);
+
+		assertThatThrownBy(() -> adapter.save(otherRecord)).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> adapter.save(otherMember)).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> adapter.save(otherPet)).isInstanceOf(IllegalStateException.class);
+		assertThat(adapter.loadByRecordId(100L).orElseThrow().getLatitude()).isEqualTo(37.0);
+	}
+
+	@Test
+	@DisplayName("#19-S4 위치를 지우면 읽히지 않고, 지울 위치가 없어도 오류가 아니다")
+	void delete() {
+		save(100L, PET, MEMBER, 37.0, 127.0);
+
+		adapter.deleteByRecordId(100L);
+		adapter.deleteByRecordId(100L);
+
+		assertThat(adapter.loadByRecordId(100L)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#19-S4 지운 위치를 같은 트랜잭션에서 그 id로 바꾸려 하면 오류가 난다")
+	void deletedLocationIsNotServedFromCache() {
+		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
+		RecordLocation stale = RecordLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
+
+		adapter.deleteByRecordId(100L);
+
+		assertThatThrownBy(() -> adapter.save(stale)).isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	@DisplayName("#19-S4 위치를 지우면 그 기록의 핀이 영역 조회에서 사라진다")
+	void deletedPinDisappears() {
+		save(100L, PET, MEMBER, 37.5, 127.0);
+		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
+		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).hasSize(1);
+
+		adapter.deleteByRecordId(100L);
+
+		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#19-S5 영역 안의 위치만 조회되고 영역 밖은 나오지 않는다")
+	void onlyInsideArea() {
+		save(1L, PET, MEMBER, 37.5, 127.0); // 안
+		save(2L, PET, MEMBER, 36.9, 127.0); // 위도 아래
+		save(3L, PET, MEMBER, 38.1, 127.0); // 위도 위
+		save(4L, PET, MEMBER, 37.5, 125.9); // 경도 왼쪽
+		save(5L, PET, MEMBER, 37.5, 128.1); // 경도 오른쪽
+
+		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+
+		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+	}
+
+	@Test
+	@DisplayName("#19-S5 영역의 경계선 위에 있는 위치도 조회된다")
+	void boundaryIsInclusive() {
+		save(1L, PET, MEMBER, 37.0, 126.0);
+		save(2L, PET, MEMBER, 38.0, 128.0);
+
+		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+
+		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L, 2L);
+	}
+
+	@Test
+	@DisplayName("#19-S5 같은 영역이어도 다른 반려동물의 위치는 나오지 않는다")
+	void otherPetExcluded() {
+		save(1L, PET, MEMBER, 37.5, 127.0);
+		save(2L, PET + 1, MEMBER, 37.5, 127.0);
+
+		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+
+		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+	}
+
+	@Test
+	@DisplayName("#19-S7 다른 회원이 만든 위치는 같은 영역·반려동물이어도 나오지 않는다")
+	void otherMemberExcluded() {
+		save(1L, PET, MEMBER, 37.5, 127.0);
+		save(2L, PET, MEMBER + 1, 37.5, 127.0);
+
+		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+
+		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+	}
+
+	@Test
+	@DisplayName("#19-S6 limit보다 많으면 limit개만 오래된 순으로 돌려준다")
+	void limitsResults() {
+		for (long recordId = 1; recordId <= 5; recordId++) {
+			save(recordId, PET, MEMBER, 37.5, 127.0);
+		}
+
+		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 3);
+
+		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L, 2L, 3L);
+	}
+
+	@Test
+	@DisplayName("#19-S6 limit이 1보다 작으면 거부한다")
+	void rejectsInvalidLimit() {
+		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
+
+		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 0)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	@DisplayName("#19-S7 회원, 반려동물, 영역 중 하나라도 없으면 빈 목록이 아니라 오류로 거부한다")
+	void rejectsMissingArguments() {
+		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
+
+		assertThatThrownBy(() -> adapter.loadInArea(null, PET, area, 10)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, null, area, 10)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, null, 10)).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	@DisplayName("#19-S5 핀 조회용 인덱스와 기록별 유일 제약이 DB에 만들어진다")
+	void schemaHasIndexAndConstraint() {
+		List<String> indexes = jdbcTemplate.queryForList(
+				"select indexname from pg_indexes where tablename = 'record_location'", String.class);
+
+		assertThat(indexes).contains(RecordLocationJpaEntity.PIN_LOOKUP_INDEX, "uk_record_location_record");
+	}
+
+}
