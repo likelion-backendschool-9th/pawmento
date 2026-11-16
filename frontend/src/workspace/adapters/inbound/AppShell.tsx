@@ -4,11 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { today } from "@/shared/date";
-import { Brand } from "@/shared/ui/Brand";
 import { Icon } from "@/shared/ui/Icon";
 import type { Pet } from "../../domain/models";
 import styles from "./AppShell.module.css";
-import { GardenShell } from "./GardenShell";
+import { SpaceShell } from "./SpaceShell";
 import { messageOf } from "./presentation";
 export function Shell({
   children,
@@ -37,7 +36,7 @@ export function Shell({
       links: [
         {
           href: "/home",
-          label: garden ? "정원 둘러보기" : "대시보드",
+          label: garden ? "정원 둘러보기" : "일상 둘러보기",
           icon: garden ? "leaf" : "home",
         },
         {
@@ -143,160 +142,19 @@ export function Shell({
       ))}
     </>
   );
-  if (garden && pet)
-    return (
-      <div className={styles.app} data-mode="GARDEN">
-        <GardenShell
-          pet={pet}
-          route={route}
-          navigation={nav}
-          open={open}
-          setOpen={setOpen}
-          onSelect={select}
-          switching={switching}
-        >
-          {children}
-        </GardenShell>
-      </div>
-    );
   return (
-    <div className={styles.app} data-mode="ACTIVE" data-experience="daily">
-      <a className="skip-link" href="#main">
-        본문으로 바로가기
-      </a>
-      <aside className={`${styles.sidebar} ${open ? styles.sidebarOpen : ""}`}>
-        <div className={styles.logo}>
-          <Brand href="/home" garden={pet?.mode === "GARDEN"} />
-          <button
-            className={`icon-button ${styles.closeMenu}`}
-            onClick={() => setOpen(false)}
-            aria-label="메뉴 닫기"
-          >
-            <Icon name="close" />
-          </button>
-        </div>
-        <div className={styles.petSwitcher}>
-          <label htmlFor="pet-switcher">함께 기록할 반려동물</label>
-          <select
-            id="pet-switcher"
-            value={pet?.id ?? app.state.selectedPetId}
-            disabled={!app.state.pets.length || switching}
-            onChange={(event) => void select(event.target.value)}
-          >
-            {!app.state.pets.length && (
-              <option value="">친구를 등록해 주세요</option>
-            )}
-            {app.state.pets.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}의 이야기
-              </option>
-            ))}
-          </select>
-        </div>
-        <nav aria-label="주요 메뉴" className={styles.nav}>
-          {nav}
-        </nav>
-        <div className={styles.sideBottom}>
-          <span className={styles.demoDot} />
-          브라우저 데모
-          <small>
-            {garden
-              ? "천천히 꺼내보는, 우리의 계절."
-              : "함께한 오늘을, 오래도록."}
-          </small>
-        </div>
-      </aside>
-      {open && (
-        <button
-          className={styles.scrim}
-          aria-label="메뉴 닫기"
-          onClick={() => setOpen(false)}
-        />
-      )}
-      <div className={styles.workspace}>
-        <header className={styles.topbar}>
-          <button
-            className={`icon-button ${styles.menuToggle}`}
-            aria-label="전체 메뉴 열기"
-            aria-expanded={open}
-            onClick={() => setOpen(true)}
-          >
-            <Icon name="menu" />
-          </button>
-          <div className={styles.mobileBrand}>
-            <Brand href="/home" garden={pet?.mode === "GARDEN"} />
-          </div>
-          <div className={styles.breadcrumb}>
-            <span>{pet?.name ?? "PawMento"}</span>
-            <Icon name="chevron" size={13} />
-            <strong>{current?.label ?? "우리의 이야기"}</strong>
-          </div>
-          <div className={styles.topActions}>
-            <span className={styles.demoPill}>프론트엔드 데모</span>
-            {pet?.accessRole !== "VIEWER" && (
-              <Link
-                className={`button primary ${styles.writeButton}`}
-                href={pet ? `${p}/records/new` : "/pets/new"}
-              >
-                <Icon name="plus" size={16} />
-                {garden ? "새 기억 남기기" : "기록 남기기"}
-              </Link>
-            )}
-            <Link href="/me" aria-label="내 정보" className={styles.account}>
-              <span>{app.account!.nickname.slice(0, 1)}</span>
-              <small>{app.account!.nickname}</small>
-            </Link>
-          </div>
-        </header>
-        <main
-          key={garden ? "garden" : "active"}
-          id="main"
-          className={styles.main}
-        >
-          {children}
-        </main>
-        <footer className={styles.footer}>
-          <span>PawMento</span>
-          <small>
-            기록은 이 브라우저에 보관됩니다 · 실제 AI 호출과 외부 전송은 하지
-            않습니다.
-          </small>
-        </footer>
-      </div>
-      <nav className={styles.mobileNav} aria-label="모바일 주요 메뉴">
-        {[
-          {
-            href: "/home",
-            label: garden ? "정원" : "홈",
-            icon: garden ? "leaf" : "home",
-          },
-          {
-            href: pet ? `${p}/calendar` : "/pets",
-            label: "기록",
-            icon: "calendar",
-          },
-          {
-            href: garden
-              ? `${p}/garden/mailbox`
-              : pet
-                ? `${p}/records/new`
-                : "/pets/new",
-            label: garden ? "우체통" : "기록하기",
-            icon: garden ? "mail" : "plus",
-          },
-          { href: "/community", label: "커뮤니티", icon: "users" },
-          { href: "/me", label: "마이", icon: "user" },
-        ].map((link) => (
-          <Link
-            key={link.label}
-            href={link.href}
-            aria-current={route === link.href ? "page" : undefined}
-          >
-            <Icon name={link.icon} size={21} />
-            <span>{link.label}</span>
-          </Link>
-        ))}
-      </nav>
+    <div className={styles.app} data-mode={garden ? "GARDEN" : "ACTIVE"}>
+      <SpaceShell
+        pet={pet}
+        route={route}
+        navigation={nav}
+        open={open}
+        setOpen={setOpen}
+        onSelect={select}
+        switching={switching}
+      >
+        {children}
+      </SpaceShell>
     </div>
   );
 }

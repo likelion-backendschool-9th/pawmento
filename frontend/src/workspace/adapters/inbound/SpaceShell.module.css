@@ -297,3 +297,65 @@
     max-width: none;
   }
 }
+
+/* The same open layout, with a fresh morning palette for daily records. */
+.daily {
+  background:
+    radial-gradient(ellipse at 10% 0%, #e9f1d9 0, transparent 45%),
+    linear-gradient(145deg, #fafbf5, #f1f6ec 60%, #f9f6ec);
+}
+.daily .header {
+  background: #fcfdf5ed;
+  border-color: #dfe7d3;
+}
+.daily .identity > span {
+  color: #738552;
+}
+.daily .identity p,
+.daily .headerActions,
+.daily .menuButton,
+.daily .navigation a {
+  color: #63794d;
+}
+.daily .menuButton {
+  background: #f8fbf1;
+  border-color: #dce5ce;
+}
+.daily .navigation a[aria-current="page"] {
+  background: #dfeccf;
+  color: #496731;
+}
+.daily .navigation a:hover {
+  background: #edf3e2;
+}
+.daily .footer {
+  border-color: #dfe7d3;
+  background: #f5f8ecb3;
+  color: #768464;
+}
+.daily .footer > span {
+  color: #63794d;
+}
+.daily .menuDialog {
+  background: #fcfdf7;
+  border-color: #dce5ce;
+  color: #536b40;
+}
+.daily .petChoice {
+  color: #63794d;
+  border-color: #dfe7d3;
+}
+.daily .mobileNav {
+  background: #fbfdf5ed;
+  border-color: #dce5ce;
+}
+.daily .mobileNav > a,
+.daily .mobileNav > button {
+  color: #63794d;
+}
+.daily .mobileNav > a[aria-current="page"] {
+  color: #496731;
+}
+.daily .mobileNav > a[aria-current="page"] svg {
+  background: #dfeccf;
+}
