@@ -20,7 +20,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 | --- | --- | --- |
 | 로컬 실행 `bootRun` | Spring Boot Docker Compose 지원이 `backend/compose.yaml`을 실행 | 실행 중인 컨테이너에서 자동 연결 |
 | 테스트·CI | Testcontainers (`TestcontainersConfiguration`) | `@ServiceConnection`이 자동 연결 |
-| 개발 서버 | `compose.develop.yaml`의 `db` 서비스 | 환경 변수 `SPRING_DATASOURCE_*` |
+| 개발 서버 | 루트 `compose.yaml`의 `db` 서비스 | 환경 변수 `SPRING_DATASOURCE_*` |
 
 고른 이유:
 
@@ -46,7 +46,8 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 
 - 팀에 배정된 포트 하나로 프론트엔드와 백엔드를 함께 받아야 해서 팀 nginx를 둔다. 경로 규칙과 업로드 크기를 서버 관리자에게 요청하지 않고 팀이 정할 수 있다.
 - HTTPS는 호스트 nginx가 처리한다. 호스트 nginx에 필요한 설정은 [`nginx/host.conf.example`](../nginx/host.conf.example)에 있다.
-- 백엔드 API 경로는 `/api/`로 시작한다는 전제다. 백엔드·프론트엔드 구조를 정할 때 다르게 정하면 `nginx/develop.conf`를 고친다.
+- 백엔드 API 경로는 `/api/v1`로 시작한다(#22). 팀 nginx는 `/api/` 전체를 백엔드로 넘기므로 버전이 바뀌어도 nginx는 고치지 않는다.
+- compose 파일은 둘로 나눈다. `compose.yaml`에는 어느 서버든 같은 정의(서비스, 이미지, DB 연결)를, `compose.override.yaml`에는 개발 서버만의 설정(팀 포트, `nginx/develop.conf`)을 둔다. 같은 폴더의 override 파일은 docker compose가 자동으로 합쳐 읽어서 서버에서는 `docker compose up -d`만 실행하면 된다. 운영 서버를 만들 때는 `compose.prod.yaml`을 더해 `-f compose.yaml -f compose.prod.yaml`로 실행한다(`-f`를 지정하면 override 파일은 읽지 않는다).
 
 ### 공용 서버에서 지킬 것
 
@@ -73,7 +74,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 - 되돌리기: 서버의 저장소 폴더에서 이전 태그로 다시 띄운다.
 
   ```bash
-  IMAGE_TAG=sha-<이전 커밋> docker compose -f compose.develop.yaml up -d --no-build
+  IMAGE_TAG=sha-<이전 커밋> docker compose up -d --no-build
   ```
 
 - 시연·외부 테스트 기간: 머지하면 자동으로 다시 배포되므로, 그 기간에는 `develop` 머지를 멈추거나 배포 작업을 끈다. 끄는 방법은 GitHub 환경 `develop`의 `DEPLOY_HOST`를 잠시 지우는 것이다(배포 단계만 건너뛰고 검사·이미지 업로드는 계속된다).
@@ -84,7 +85,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 
 - `backend/compose.yaml` (로컬)
 - `backend/src/test/java/com/pawmento/TestcontainersConfiguration.java` (테스트·CI)
-- `compose.develop.yaml` (개발 서버)
+- `compose.yaml` (서버)
 
 PostgreSQL 18부터 컨테이너의 데이터 위치가 `/var/lib/postgresql/<버전>/docker`로 바뀌었다. 그래서 볼륨은 상위 폴더 `/var/lib/postgresql`에 연결한다.
 
