@@ -17,7 +17,7 @@
 
 ```text
 com.pawmento
- ├─ common/
+ ├─ global/
  │   ├─ security/                         로그인 회원 정보(@LoginMember 등)
  │   └─ error/                            공통 에러 응답, 예외 → HTTP 응답 변환
  └─ <도메인>/
@@ -47,7 +47,7 @@ com.pawmento
                  └─ <Domain>JpaRepository       Spring Data JPA
 ```
 
-- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.common` 아래에 역할별로 둔다(`security`, `error`). 특정 도메인에만 쓰는 코드는 `common`에 두지 않는다.
+- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.global` 아래에 역할별로 둔다(`security`, `error`). 특정 도메인에만 쓰는 코드는 `global`에 두지 않는다.
 - 객체 스토리지, 외부 API처럼 DB가 아닌 출구는 `adapter/out/<역할>`로 폴더를 더한다. 예: `adapter/out/storage`. 폴더 이름은 기술(`jpa`, `s3`)이 아니라 역할로 짓는다.
 
 ## 의존 규칙
@@ -56,10 +56,10 @@ com.pawmento
 
 | 패키지 | import 가능 | import 금지 |
 | --- | --- | --- |
-| `domain` | 자바 표준 라이브러리, `lombok.Getter` | `application`, `adapter`, `common`, Spring, `jakarta.persistence` |
-| `application.port` | `domain`, 같은 도메인의 `port` | `adapter`, `common`, Spring, `jakarta.persistence` |
-| `application.service` | `domain`, `application.port`, `common.error`, `org.springframework.stereotype`, `org.springframework.transaction`, `lombok` | `adapter`, `common.security`, Spring Security, `jakarta.persistence`, 웹 DTO |
-| `adapter.in.web` | `application.port.in`, `common`, Spring Web, `jakarta.validation`, `lombok` | `domain`, `application.service`, `adapter.out` |
+| `domain` | 자바 표준 라이브러리, `lombok.Getter` | `application`, `adapter`, `global`, Spring, `jakarta.persistence` |
+| `application.port` | `domain`, 같은 도메인의 `port` | `adapter`, `global`, Spring, `jakarta.persistence` |
+| `application.service` | `domain`, `application.port`, `global.error`, `org.springframework.stereotype`, `org.springframework.transaction`, `lombok` | `adapter`, `global.security`, Spring Security, `jakarta.persistence`, 웹 DTO |
+| `adapter.in.web` | `application.port.in`, `global`, Spring Web, `jakarta.validation`, `lombok` | `domain`, `application.service`, `adapter.out` |
 | `adapter.out.persistence` | `domain`, `application.port.out`, Spring Data JPA, `jakarta.persistence`, `lombok` | `application.service`, `application.port.in`, `adapter.in` |
 
 - 컨트롤러는 서비스 클래스가 아니라 유스케이스 인터페이스를 받는다.
@@ -224,7 +224,7 @@ public interface SaveRecordPort {
 - 하는 일은 세 가지다: Request를 Command·Query로 옮겨 담기, 유스케이스 호출, 결과(id나 `Result`)를 Response로 옮겨 담기.
 - 비즈니스 규칙을 두지 않는다. 도메인 객체를 import하지 않는다.
 - Request는 `record`로 만들고 Bean Validation 어노테이션을 붙인다. 컨트롤러 매개변수에 `@Valid`를 붙인다.
-- 로그인 정보는 `common.security`의 방식(예: `@LoginMember`)으로 받아 Command·Query에 담는다.
+- 로그인 정보는 `global.security`의 방식(예: `@LoginMember`)으로 받아 Command·Query에 담는다.
 
 ```java
 @RestController
@@ -298,7 +298,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 리뷰 체크리스트
 
-- [ ] `domain` 파일에 Spring·JPA 어노테이션이나 `application`·`adapter`·`common` import가 없다
+- [ ] `domain` 파일에 Spring·JPA 어노테이션이나 `application`·`adapter`·`global` import가 없다
 - [ ] `application` 파일에 `adapter`·JPA·Spring Security·웹 DTO import가 없다
 - [ ] 컨트롤러가 서비스 클래스가 아니라 유스케이스를 받고, 도메인 객체를 import하지 않는다
 - [ ] 서비스가 어댑터나 JpaRepository가 아니라 출력 포트를 받는다
@@ -319,7 +319,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 - 입력 포트 인터페이스(`UseCase`)를 모든 기능에 둔다. 컨트롤러는 서비스 클래스를 직접 받지 않는다.
 - 유스케이스 입력은 Command(변경)·Query(조회)로 받고, 결과는 id나 `Result`로 돌려준다. 도메인 객체를 돌려주지 않는다.
-- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.common`에 두고, 하위에 `security`, `error`를 둔다.
+- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.global`에 두고, 하위에 `security`, `error`를 둔다.
 - API 경로는 `/api/<복수형>`으로 시작한다.
 - 로그인한 회원 id는 Command·Query의 `memberId`로 넘긴다. 서비스는 Spring Security를 모른다.
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
@@ -330,6 +330,6 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 - 도메인 객체와 JpaEntity를 계속 분리할지 (#16은 분리)
 - 도메인 클래스 이름 `Record` 유지 여부. 프론트엔드가 이 개념을 `Memory`로 쓰고 있어 `Memory`로 맞추자는 의견이 있다. 바꾸면 패키지(`com.pawmento.memory`), 문서 폴더, 프론트엔드 경로를 함께 바꾼다
-- 도메인 예외를 `common.error`의 공통 에러 응답(400)으로 연결하는 방식
+- 도메인 예외를 `global.error`의 공통 에러 응답(400)으로 연결하는 방식
 - 다른 도메인 기능을 부르는 방식
 - 테스트를 계층별로 어디에 어떻게 둘지
