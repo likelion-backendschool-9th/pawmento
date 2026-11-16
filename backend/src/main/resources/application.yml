@@ -19,3 +19,9 @@ pawmento:
     jwt-secret: ${JWT_SECRET:}
     # 액세스 토큰과 쿠키의 유효 시간
     access-token-ttl: 1h
+  map:
+    naver:
+      # 네이버 클라우드 플랫폼 Maps 애플리케이션 키. 저장소에 두지 않고 환경 변수로만 받는다.
+      # 비어 있으면 주소 조회를 건너뛴다(저장은 주소 없이 이어간다)
+      client-id: ${NAVER_MAP_CLIENT_ID:}
+      client-secret: ${NAVER_MAP_CLIENT_SECRET:}
