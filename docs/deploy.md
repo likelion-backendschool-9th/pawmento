@@ -46,6 +46,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 
 - 팀에 배정된 포트 하나로 프론트엔드와 백엔드를 함께 받아야 해서 팀 nginx를 둔다. 경로 규칙과 업로드 크기를 서버 관리자에게 요청하지 않고 팀이 정할 수 있다.
 - HTTPS는 호스트 nginx가 처리한다. 호스트 nginx에 필요한 설정은 [`nginx/host.conf.example`](../nginx/host.conf.example)에 있다.
+- HTTPS는 호스트 nginx에서 끝나므로 백엔드는 `X-Forwarded-Proto`를 믿어야 요청을 HTTPS로 인식한다(`SERVER_FORWARD_HEADERS_STRATEGY: native`, `compose.prod.yaml`). 로그인 쿠키의 `Secure`와 리다이렉트 주소가 여기에 달려 있다. Tomcat은 내부망 주소(Docker 네트워크 포함)에서 온 헤더만 믿는다. 팀 nginx(`nginx/proxy.conf`)는 호스트 nginx가 보낸 헤더를 그대로 넘긴다.
 - 백엔드 API 경로는 `/api/v1`로 시작한다(#22). 팀 nginx는 `/api/` 전체를 백엔드로 넘기므로 버전이 바뀌어도 nginx는 고치지 않는다.
 - compose 파일은 Docker 공식 관례대로 셋으로 나눈다.
 
@@ -76,7 +77,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 | 앱 비밀값 (DB 비밀번호, 인증 키 등) | 서버의 `.env` (`.env.prod.example` 참고) | 워크플로 로그와 이미지에 남지 않는다 |
 | 알림 웹훅 (`CAMPFIRE_WEBHOOK_URL`) | 저장소 Secrets | 노출돼도 피해가 적고, 환경 지정 없이 읽어야 한다 |
 
-인증 키처럼 인증 방식에 따라 생기는 값은 인증 작업 때 서버 `.env`와 `.env.prod.example`에 더한다.
+백엔드가 서버에서 받는 값은 `compose.prod.yaml`의 backend 환경 변수에 있다. 로그인 서명 키 `JWT_SECRET`(#14)은 없으면 재배포할 때마다 로그인이 풀려서 필수로 받고, 네이버 지도 키 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`(#23)은 비어 있으면 주소 조회만 건너뛴다. 새 값이 생기면 `compose.prod.yaml`, `.env.prod.example`, 서버 `.env` 세 곳에 더한다.
 
 ### 배포 버전 고정과 되돌리기
 
@@ -130,7 +131,6 @@ PostgreSQL 18부터 컨테이너의 데이터 위치가 `/var/lib/postgresql/<�
 - **외부 테스터용 서버**: 개발 서버는 머지할 때마다 바뀌고 데이터가 초기화될 수 있으며 백업이 없다. 테스터가 실제 기록을 오래 남긴다면 `main`을 공용 서버에 따로 띄우는 방법을 검토한다(팀 포트 추가 필요). 테스터 모집 시기·인원·기간을 정한 뒤 결정한다.
 - **운영 서버**: 클라우드 종류, 운영 DB, 도메인
 - **스키마 관리**: `ddl-auto`나 Flyway 같은 마이그레이션 도구. 백엔드 구조 작업에서 정한다. 외부 테스터를 받기 전에는 데이터를 지우지 않는 방식이어야 한다
-- **forwarded 헤더**: 백엔드가 `X-Forwarded-Proto` 등을 믿도록 하는 설정(`SERVER_FORWARD_HEADERS_STRATEGY`)은 인증 작업 때 넣는다. 리다이렉트와 소셜 로그인 콜백 주소가 HTTPS로 만들어지려면 필요하다
 - **모바일 확인**: 휴대폰에서 PC의 IP로 접속하면 HTTPS가 아니라 서비스 워커·PWA 설치·마이크 녹음이 동작하지 않는다. 방법(`next dev --experimental-https`, Android 포트 포워딩, 개발 서버)은 PWA 작업 때 정한다
 
 ## 참고
