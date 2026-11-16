@@ -2,7 +2,7 @@
 
 > **문서 버전:** 2.0 (2026-11-15)<br>
 > **근거:** `PawMento_기능명세_원본.md` · 82개 기능, P1/P2/P3 단계<br>
-> **전제:** React + TypeScript + Vite 제안 · **PC 웹 먼저**, 반응형 모바일 웹 → PWA · 프론트엔드 1인 개발<br>
+> **전제:** Next.js App Router + React + TypeScript · **PC 웹 먼저**, 반응형 모바일 웹 → PWA · 프론트엔드 1인 개발<br>
 > **아키텍처:** 프론트엔드의 **Ports & Adapters(헥사고날)**. 백엔드 헥사고날 구조와는 **별개로 적용**한다.
 
 ## 0. 설계 결론
@@ -48,60 +48,31 @@ flowchart LR
 
 ## 2. 프로젝트 폴더 트리 (권장)
 
-기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `App.tsx`에서 관리하고, 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
+기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `src/app/(auth)`·`src/app/(app)`의 명시적인 `page.tsx` 파일에서 관리하고 공통 인증·Shell은 `(app)/layout.tsx`에서 공유한다. 각 페이지는 필요한 inbound 화면만 import하며, 브라우저 저장소를 사용하는 화면의 Client Component 경계를 유지한다. (고침 #12: Next.js 유지 결정과 파일 기반 라우트 리뷰 반영) 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
 
 ```text
-pawmento-web/
-├─ public/
-│  ├─ images/                     # 정원·로고·빈 상태 에셋
-│  └─ icons/                      # PWA(P2)
+frontend/
+├─ public/                         # 로고·수채화·사진·PWA 에셋
 ├─ src/
-│  ├─ main.tsx
-│  ├─ App.tsx                      # 라우트 / 레이아웃, 구체 HTTP 호출 없음
-│  ├─ app.css                      # 리셋 + 토큰 import
 │  ├─ app/
-│  │  ├─ composition.ts           # 포트 ↔ 실제 어댑터 조립
-│  │  └─ dependencies.ts          # 화면에서 사용할 유스케이스 집합 계약
-│  ├─ shared/
-│  │  ├─ ui/                      # Button/Input/Dialog 등 + *.module.css
-│  │  ├─ http/apiClient.ts        # 인증 및 오류 공통 전송
-│  │  ├─ errors/appError.ts
-│  │  └─ date/localDate.ts
-│  ├─ auth/
-│  │  ├─ domain/                  # Account, Session 등 순수 모델
-│  │  ├─ application/
-│  │  │  ├─ ports/AuthRepository.ts
-│  │  │  └─ useCases/SignIn.ts
-│  │  ├─ adapters/outbound/HttpAuthRepository.ts
-│  │  └─ adapters/inbound/
-│  │     ├─ SignInScreen.tsx
-│  │     ├─ useSignIn.ts
-│  │     └─ SignInScreen.module.css
-│  ├─ pets/
-│  │  ├─ domain/Pet.ts
-│  │  ├─ application/
-│  │  │  ├─ ports/PetRepository.ts
-│  │  │  └─ useCases/{ListPets,CreatePet,SelectPet}.ts
-│  │  ├─ adapters/outbound/{HttpPetRepository,petMapper}.ts
-│  │  └─ adapters/inbound/{PetListScreen,PetForm,PetSwitcher}.tsx
-│  ├─ diaries/
-│  │  ├─ domain/Question.ts
-│  │  ├─ application/ports/QuestionRepository.ts
-│  │  ├─ application/useCases/{GetTodayQuestion,SaveDiary}.ts
-│  │  ├─ adapters/outbound/HttpQuestionRepository.ts
-│  │  └─ adapters/inbound/{ActiveHomeScreen,DiaryEditorScreen}.tsx
-│  ├─ records/
-│  │  ├─ domain/{Record,RecordType}.ts
-│  │  ├─ application/ports/{RecordRepository,MediaStoragePort}.ts
-│  │  ├─ application/useCases/{CreateRecord,ListTimeline,ListCalendar}.ts
-│  │  ├─ adapters/outbound/{HttpRecordRepository,UploadAdapter}.ts
-│  │  └─ adapters/inbound/{RecordEditorScreen,TimelineScreen,CalendarScreen}.tsx
-│  ├─ garden/                     # P2: domain/application/adapters 동일 패턴
-│  ├─ community/                  # P2
-│  ├─ postcards/                  # P3 (GARDEN 전용 우체통)
-│  └─ family/                     # P3
-├─ index.html
-├─ vite.config.ts
+│  │  ├─ layout.tsx                # 공통 provider·글로벌 CSS
+│  │  ├─ page.tsx                  # 공개 진입 화면
+│  │  ├─ (auth)/                   # sign-in·sign-up·reset-password·offline
+│  │  ├─ (app)/
+│  │  │  ├─ layout.tsx             # 인증·공통 Shell·Suspense
+│  │  │  ├─ loading.tsx / error.tsx / not-found.tsx
+│  │  │  ├─ home/page.tsx
+│  │  │  ├─ pets/[petId]/          # 프로필·기록·질문·정원·가족
+│  │  │  ├─ community/[postId]/    # 목록·작성·상세·수정
+│  │  │  ├─ me/                   # 내 정보·활동
+│  │  │  └─ admin/                # 운영 화면별 페이지
+│  │  ├─ AppProvider.tsx           # 브라우저 데모 세션·상태
+│  │  └─ composition.ts           # 포트 ↔ 어댑터 조립
+│  ├─ auth/                       # domain/application/adapters
+│  ├─ workspace/                  # 반려동물·기록·질문: 같은 경계
+│  ├─ life/                       # 커뮤니티·가족·엽서·운영: 같은 경계
+│  └─ shared/                     # 날짜·이탈 확인·범용 UI와 토큰
+├─ next.config.ts
 └─ package.json
 ```
 
@@ -253,7 +224,7 @@ export const useMyPets = () => useQuery({
 ## 6. 1인 프론트 개발 실행 순서
 
 ### Stage 0 — 경계와 디자인 시스템
-- [ ] Vite + TS, 테스트 러너, 포맷터, `App.tsx` 라우터 설정
+- [ ] Next.js App Router + TypeScript, 테스트 러너, 포맷터, 페이지별 라우트·레이아웃·오류 경계 설정 (고침 #12: Next.js를 유지하고 중앙 화면 분기를 제거)
 - [ ] 디자인 토큰 CSS와 범용 Button/Input/Dialog/Toast 등 구현
 - [ ] 공통 `ApiClient`, 오류 매핑, composition root 설계
 - [ ] Pet/Question/Record 도메인 모델과 핵심 포트·Mock 어댑터 작성
@@ -315,7 +286,7 @@ export const useMyPets = () => useQuery({
 
 ## 부록 A. 전체 화면 URL·요구사항 매핑 (이전 청사진에서 유지)
 
-라우트는 **권장 URL 초안**이다. React Router 사용 여부, `petId` 식별자, 로그인 방식 등은 API 협의로 확정한다. **모든 페이지 라우트를 `src/pages` 폴더로 몰아넣지 않고**, 화면과 스타일을 도메인별로 코로케이션한다.
+라우트는 **권장 URL 초안**이다. Next.js App Router를 사용하며 `petId` 식별자와 서버 로그인 계약은 API 협의로 확정한다. **모든 페이지 라우트를 `src/pages` 폴더로 몰아넣지 않고**, 화면과 스타일을 도메인별로 코로케이션한다.
 
 | 화면 ID | 추천 URL | 목적 | 주요 기능 ID | 단계 |
 |---|---|---|---|---|
