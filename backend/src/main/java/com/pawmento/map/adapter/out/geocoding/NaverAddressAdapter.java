@@ -30,6 +30,9 @@ class NaverAddressAdapter implements LoadAddressPort {
 	// 도로명 주소를 먼저 찾고, 없으면 지번 주소를 쓴다
 	private static final String ORDERS = "roadaddr,addr";
 
+	// 지번 주소(addr)의 land.type 값. 일반 지번은 "1", 산은 "2"
+	private static final String MOUNTAIN_LOT_TYPE = "2";
+
 	private final NaverMapProperties properties;
 	private final RestClient restClient;
 
@@ -111,19 +114,22 @@ class NaverAddressAdapter implements LoadAddressPort {
 			}
 		}
 		if (result.land() != null) {
-			addText(parts, number(result.land()));
+			addText(parts, number(result));
 		}
 		return String.join(" ", parts);
 	}
 
-	private static String number(Land land) {
+	// 지번 주소에서 type이 "2"이면 산이다. 산 번호와 일반 번호는 다른 필지이므로 "산"을 붙여 구분한다
+	private static String number(Result result) {
+		Land land = result.land();
 		if (land.number1() == null || land.number1().isBlank()) {
 			return null;
 		}
-		if (land.number2() == null || land.number2().isBlank()) {
-			return land.number1();
-		}
-		return land.number1() + "-" + land.number2();
+		String number = land.number2() == null || land.number2().isBlank()
+				? land.number1()
+				: land.number1() + "-" + land.number2();
+		boolean mountain = "addr".equals(result.name()) && MOUNTAIN_LOT_TYPE.equals(land.type());
+		return mountain ? "산 " + number : number;
 	}
 
 	private static void add(List<String> parts, Area area) {
@@ -159,7 +165,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 	}
 
 	@JsonIgnoreProperties(ignoreUnknown = true)
-	record Land(String name, String number1, String number2) {
+	record Land(String type, String name, String number1, String number2) {
 	}
 
 }
