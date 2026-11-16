@@ -87,8 +87,8 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               <span>OUR LITTLE EXHIBITION</span>
               <h2>사진 속에 머문, 우리의 계절</h2>
             </div>
-            <Link href={`/pets/${pet.id}/media`}>
-              앨범 펼쳐보기 <Icon name="chevron" size={14} />
+            <Link href={`/pets/${pet.id}/timeline`}>
+              일기 펼쳐보기 <Icon name="chevron" size={14} />
             </Link>
           </div>
           <div className={g.galleryGrid}>

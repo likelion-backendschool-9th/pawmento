@@ -43,11 +43,16 @@ export function CommunityScreen({
       <PostDetail post={post} />
     );
   }
-  const category = search.get("category") ?? "";
+  const requestedCategory = search.get("category");
+  const category: Category =
+    requestedCategory && Object.hasOwn(categories, requestedCategory)
+      ? (requestedCategory as Category)
+      : "LIFE";
   const query = search.get("q") ?? "";
   const sort = search.get("sort") ?? "latest";
   const update = (key: string, value: string) => {
     const params = new URLSearchParams(search.toString());
+    params.set("category", category);
     if (value) params.set(key, value);
     else params.delete(key);
     router.replace(`${activity ? "/me/activity" : "/community"}?${params}`, {
@@ -57,7 +62,7 @@ export function CommunityScreen({
   let posts = life.state.posts.filter(
     (item) =>
       !item.hidden &&
-      (!category || item.category === category) &&
+      item.category === category &&
       `${item.title} ${item.body}`.toLowerCase().includes(query.toLowerCase()),
   );
   if (activity)
@@ -84,7 +89,10 @@ export function CommunityScreen({
         title={activity ? "나의 커뮤니티 활동" : "함께 나누는 이야기"}
         body="반려생활의 발견부터 소중한 기억까지, 서로의 이야기를 천천히 나누어요."
       >
-        <Link className="button primary" href="/community/new">
+        <Link
+          className="button primary"
+          href={`/community/new?category=${category}`}
+        >
           <Icon name="edit" size={16} />글 쓰기
         </Link>
       </LifeHeading>
@@ -98,7 +106,7 @@ export function CommunityScreen({
           href={activity ? "/community" : "/me/activity"}
           className="text-link"
         >
-          {activity ? "모든 이야기" : "내가 쓴 글 · 댓글 · 북마크"}
+          {activity ? "커뮤니티로" : "내가 쓴 글 · 댓글 · 북마크"}
           <Icon name="arrow" size={16} />
         </Link>
       </div>
@@ -119,23 +127,18 @@ export function CommunityScreen({
           ))}
         </div>
       )}
-      <div className={s.categories}>
-        <button
-          className={!category ? s.selected : ""}
-          onClick={() => update("category", "")}
-        >
-          전체
-        </button>
+      <nav className={s.categories} aria-label="커뮤니티 카테고리">
         {Object.entries(categories).map(([key, label]) => (
           <button
             key={key}
             className={category === key ? s.selected : ""}
+            aria-pressed={category === key}
             onClick={() => update("category", key)}
           >
             {label}
           </button>
         ))}
-      </div>
+      </nav>
       <div className={s.toolbar}>
         <form
           onSubmit={(event) => {
@@ -217,7 +220,7 @@ export function CommunityScreen({
         <LifeEmpty
           title="아직 이야기가 없어요"
           body="첫 번째 이야기를 나누어 주세요."
-          href="/community/new"
+          href={`/community/new?category=${category}`}
           action="글 쓰기"
         />
       )}
@@ -229,6 +232,13 @@ export function CommunityScreen({
   );
 }
 function PostEditor({ post }: { post?: Post }) {
+  const search = useSearchParams();
+  const requestedCategory = search.get("category");
+  const initialCategory =
+    post?.category ??
+    (requestedCategory && Object.hasOwn(categories, requestedCategory)
+      ? (requestedCategory as Category)
+      : "LIFE");
   const life = useLife();
   const router = useRouter();
   const [photo, setPhoto] = useState(post?.photoUrl ?? "");
@@ -269,7 +279,10 @@ function PostEditor({ post }: { post?: Post }) {
   }
   return (
     <>
-      <Link className="text-link" href="/community">
+      <Link
+        className="text-link"
+        href={`/community?category=${initialCategory}`}
+      >
         ← 커뮤니티
       </Link>
       <LifeHeading
@@ -281,7 +294,7 @@ function PostEditor({ post }: { post?: Post }) {
         <div className="form-stack">
           <label>
             카테고리
-            <select name="category" defaultValue={post?.category ?? "LIFE"}>
+            <select name="category" defaultValue={initialCategory}>
               {Object.entries(categories).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
@@ -336,12 +349,15 @@ function PostDetail({ post }: { post: Post }) {
       await life.app.dependencies.life.deletePost(life.actor, post.id);
       return true;
     }, "게시글을 삭제했어요.");
-    if (result) router.push("/community");
+    if (result) router.push(`/community?category=${current.category}`);
   }
   return (
     <div className={s.reading}>
-      <Link href="/community" className="text-link">
-        ← 모든 이야기
+      <Link
+        href={`/community?category=${current.category}`}
+        className="text-link"
+      >
+        ← {categories[current.category]}
       </Link>
       <article className={s.article}>
         <span className="badge">{categories[current.category]}</span>
