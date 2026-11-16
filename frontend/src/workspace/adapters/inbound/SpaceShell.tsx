@@ -83,12 +83,16 @@ export function SpaceShell({
         {
           href: pet
             ? pet.accessRole === "VIEWER"
-              ? `${base}/questions`
+              ? `${base}/timeline`
               : `${base}/records/new`
             : "/pets/new",
-          label: pet?.accessRole === "VIEWER" ? "질문과 답변" : "기록하기",
-          icon: "edit",
-          active: route.startsWith(`${base}/records/new`),
+          label: pet?.accessRole === "VIEWER" ? "타임라인" : "기록하기",
+          icon: pet?.accessRole === "VIEWER" ? "book" : "edit",
+          active: route.startsWith(
+            pet?.accessRole === "VIEWER"
+              ? `${base}/timeline`
+              : `${base}/records/new`,
+          ),
         },
         {
           href: pet ? `${base}/media` : "/pets",
@@ -103,6 +107,16 @@ export function SpaceShell({
           active: route.startsWith("/community"),
         },
       ];
+  const headerLinks = [
+    links[0],
+    {
+      href: pet ? `${base}/questions` : "/pets",
+      label: "질문과 답변",
+      icon: "question",
+      active: route.startsWith(`${base}/questions`),
+    },
+    ...links.slice(1),
+  ];
   return (
     <div
       className={`${s.garden} ${garden ? "" : s.daily}`}
@@ -144,7 +158,7 @@ export function SpaceShell({
           className={s.navigation}
           aria-label={garden ? "정원 주요 메뉴" : "일상 주요 메뉴"}
         >
-          {links.map((link) => (
+          {headerLinks.map((link) => (
             <Link
               key={link.label}
               href={link.href}
