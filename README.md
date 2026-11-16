@@ -74,7 +74,10 @@
 | 파일 | 쓰는 곳 | 하는 일 |
 | --- | --- | --- |
 | `backend/compose.yaml` | 로컬 개발 | 로컬 개발용 PostgreSQL. 백엔드를 실행하면 Spring Boot가 자동으로 띄움 (#5) |
-| `compose.develop.yaml` | 개발 서버 | DB·백엔드·프론트엔드·nginx. `develop`에 머지하면 배포 워크플로가 서버에서 실행. 로컬에서는 쓰지 않음 |
+| `compose.yaml` | 서버 | DB·백엔드·프론트엔드·nginx. 어느 서버든 같은 정의. 로컬에서는 쓰지 않음 |
+| `compose.override.yaml` | 개발 서버 | 개발 서버만의 설정(팀 포트, `nginx/develop.conf`). `compose.yaml`과 자동으로 합쳐짐. `develop`에 머지하면 배포 워크플로가 서버에서 `docker compose up -d` 실행 |
+
+백엔드는 `backend/`에서 실행한다. IDE에서 실행할 때도 작업 폴더를 `backend/`로 둔다. 저장소 루트에서 실행하면 Spring Boot가 `backend/compose.yaml` 대신 루트의 `compose.yaml`(서버용)을 읽어 실패한다.
 
 ## 배포
 

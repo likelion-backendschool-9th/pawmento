@@ -137,13 +137,14 @@ jobs:
           script: |
             set -e
             cd ~/pawmento
-            # compose.develop.yaml, nginx 설정을 최신으로 맞춘다
+            # compose 파일, nginx 설정을 최신으로 맞춘다
             git pull --ff-only
-            docker compose -f compose.develop.yaml pull
-            docker compose -f compose.develop.yaml up -d --no-build
+            # compose.yaml과 compose.override.yaml(개발 서버 설정)을 자동으로 합쳐 읽는다
+            docker compose pull
+            docker compose up -d --no-build
             # 다른 팀도 쓰는 서버라 우리 저장소에서 만든 이미지만 정리한다
             docker image prune -f --filter "label=org.opencontainers.image.source=$REPO_URL"
-            docker compose -f compose.develop.yaml ps
+            docker compose ps
             # 팀 포트가 응답할 때까지 최대 30초 기다린다 (127.0.0.1에만 열려 있으므로 IP로 확인)
             TEAM_PORT=$(grep -E '^TEAM_PORT=' .env | cut -d= -f2)
             for i in $(seq 1 10); do
