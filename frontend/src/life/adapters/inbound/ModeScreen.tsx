@@ -4,11 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/shared/ui/Icon";
-import { today } from "@/shared/date";
-import { HomeScreen } from "@/workspace/adapters/inbound/HomeScreen";
-import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
 import type { Pet } from "@/workspace/domain/models";
-import { LifeHeading, LifeEmpty, DemoNote, lifeStyles as s } from "./LifeUi";
+import { LifeHeading, DemoNote, lifeStyles as s } from "./LifeUi";
 export function ModeScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const router = useRouter();
@@ -121,103 +118,6 @@ export function ModeScreen({ pet }: { pet: Pet }) {
         >
           선택한 모드 적용
         </button>
-      )}
-    </>
-  );
-}
-export function GardenScreen({ pet }: { pet: Pet }) {
-  return <HomeScreen pet={pet} />;
-}
-export function QuestionHistory({ pet }: { pet: Pet }) {
-  const app = useApp();
-  const [adding, setAdding] = useState(false);
-  const [demoError, setDemoError] = useState("");
-  const records = app.state.records
-    .filter((record) => record.petId === pet.id && record.type === "DIARY")
-    .sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
-  return (
-    <>
-      <LifeHeading
-        label="QUESTION JOURNAL"
-        title="오늘의 질문"
-        body="오늘의 질문에 답하고, 지난 질문과 답변을 다시 읽어보세요. 다이어리와 별도로 보관해요."
-      >
-        {pet.accessRole !== "VIEWER" && (
-          <Link
-            className="button primary"
-            href={
-              records.some((record) => record.recordedDate === today())
-                ? `/pets/${pet.id}/diary/${records.find((record) => record.recordedDate === today())!.id}`
-                : `/pets/${pet.id}/diary/new`
-            }
-          >
-            {records.some((record) => record.recordedDate === today())
-              ? "오늘의 질문과 답변 보기"
-              : "오늘의 질문 답하기"}
-          </Link>
-        )}
-      </LifeHeading>
-      {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
-        <div className="demo-banner">
-          <Icon name="question" size={18} />
-          <div>
-            <p>
-              질문과 답변 샘플을 읽고, 날짜를 눌러 기록을 열어보세요. 기존
-              답변은 그대로 유지돼요.
-            </p>
-            <button
-              className="button secondary"
-              disabled={adding}
-              onClick={async () => {
-                setAdding(true);
-                setDemoError("");
-                try {
-                  await app.addDemoQuestions(pet.id);
-                } catch (cause) {
-                  setDemoError(
-                    cause instanceof Error
-                      ? cause.message
-                      : "샘플을 추가하지 못했어요.",
-                  );
-                } finally {
-                  setAdding(false);
-                }
-              }}
-            >
-              {adding ? "추가 중…" : "데모 질문 기록 추가"}
-            </button>
-          </div>
-        </div>
-      )}
-      {demoError && (
-        <p className="error" role="alert">
-          {demoError}
-        </p>
-      )}
-      {records.length > 0 && <h2>지난 질문과 답변</h2>}
-      {records.length ? (
-        <div className={s.twoGrid}>
-          {records.map((record) => (
-            <Link
-              href={`/pets/${pet.id}/diary/${record.id}`}
-              className={s.panel}
-              key={record.id}
-            >
-              <time className={s.meta}>{record.recordedDate}</time>
-              {record.questionId?.startsWith("demo-question-") && (
-                <span className="badge">데모 기록</span>
-              )}
-              <QuestionAnswer question={record.question} answer={record.body} />
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <LifeEmpty
-          title="첫 질문을 기다리는 공간"
-          body="오늘의 질문에 답하면 이곳에 질문과 답변이 함께 쌓여요."
-          href={`/pets/${pet.id}/diary/new`}
-          action="답변 남기기"
-        />
       )}
     </>
   );
