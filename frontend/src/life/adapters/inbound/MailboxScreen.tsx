@@ -27,15 +27,6 @@ export function MailboxScreen({
 }) {
   const life = useLife();
   const [tab, setTab] = useState("all");
-  if (pet.mode !== "GARDEN")
-    return (
-      <LifeEmpty
-        title="우체통은 정원에 있어요"
-        body="기억의 정원 모드로 직접 전환한 뒤 이용할 수 있어요."
-        href="/settings"
-        action="설정으로"
-      />
-    );
   if (!life.state) return <LifeStatus loading error={life.error} />;
   if (segments[0] === "new") return <PostcardComposer pet={pet} />;
   if (segments[0]) {

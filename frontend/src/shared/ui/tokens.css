@@ -9,6 +9,15 @@
   --color-brown-500: #787363;
   --color-white: #fff;
   --color-danger-600: #b54745;
+  --mode-card: #fffefbe8;
+  --mode-subtle: #edf3e3;
+  --mode-border: #dce5ce;
+  --mode-ink: #39452f;
+  --mode-muted: #6f7d62;
+  --space-wash: #f5faedeb;
+  --space-tint: #ecf3e4ef;
+  --hero-wash: #fbfef2ed;
+  --hero-tint: #edf5db66;
   --surface-page: #f6f7f2;
   --surface-card: #fffefb;
   --surface-elevated: #fffefa;
@@ -29,6 +38,10 @@
 
 /* Shared controls inherit the current space; layout remains in each shell. */
 [data-mode="GARDEN"] {
+  --space-wash: #fbf8f0eb;
+  --space-tint: #f1edf7ef;
+  --hero-wash: #fffaf4ed;
+  --hero-tint: #eee7f066;
   --mode-card: #fffdf7e8;
   --mode-subtle: #eeedf4;
   --mode-border: #ded9dc;

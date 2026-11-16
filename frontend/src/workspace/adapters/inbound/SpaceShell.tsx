@@ -40,8 +40,8 @@ export function SpaceShell({
   const links = [
     {
       href: "/home",
-      label: garden ? "정원" : "오늘",
-      icon: garden ? "leaf" : "home",
+      label: "홈",
+      icon: "home",
       active: route === "/home" || route === `${base}/garden`,
     },
     {
@@ -58,16 +58,12 @@ export function SpaceShell({
       icon: "book",
       active: archiveActive,
     },
-    ...(garden
-      ? [
-          {
-            href: `${base}/garden/mailbox`,
-            label: "우체통",
-            icon: "mail",
-            active: route.startsWith(`${base}/garden/mailbox`),
-          },
-        ]
-      : []),
+    {
+      href: pet ? `${base}/garden/mailbox` : "/pets",
+      label: "우체통",
+      icon: "mail",
+      active: route.startsWith(`${base}/garden/mailbox`),
+    },
     {
       href: "/community",
       label: "커뮤니티",
@@ -130,12 +126,8 @@ export function SpaceShell({
         {children}
       </main>
       <footer className={s.footer}>
-        <Icon name={garden ? "leaf" : "paw"} size={21} />
-        <span>
-          {garden
-            ? "우리의 기억은, 언제나 여기에."
-            : "함께한 오늘이, 내일의 소중한 기억으로."}
-        </span>
+        <Icon name="paw" size={21} />
+        <span>함께한 오늘이, 내일의 소중한 기억으로.</span>
         <small>
           PawMento · 브라우저 데모 · 기록은 이 브라우저에 보관됩니다.
         </small>
@@ -179,8 +171,8 @@ export function SpaceShell({
       >
         <div className={s.menuHeading}>
           <div>
-            <span>{garden ? "YOUR GARDEN" : "YOUR DAILY SPACE"}</span>
-            <h2>{garden ? "정원의 모든 공간" : "일상의 모든 공간"}</h2>
+            <span>YOUR SPACE</span>
+            <h2>전체 메뉴</h2>
           </div>
           <button
             type="button"

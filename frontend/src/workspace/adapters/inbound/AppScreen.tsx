@@ -159,13 +159,7 @@ function AuthenticatedScreen({ path }: { path: string[] }) {
       ) : (
         <PetForm key={pet.id} pet={pet} />
       );
-  else
-    content =
-      pet.mode === "GARDEN" ? (
-        <GardenScreen pet={pet} />
-      ) : (
-        <HomeScreen pet={pet} />
-      );
+  else content = <HomeScreen pet={pet} />;
   return (
     <Shell pet={pet} route={route}>
       {app.loading && (

@@ -1,7 +1,11 @@
 .garden {
   min-height: 100dvh;
   background:
-    linear-gradient(#fbf8f0c9, #f5f0f8e6 60%, #f1efe8db),
+    linear-gradient(
+      var(--space-wash),
+      var(--space-tint) 60%,
+      var(--space-wash)
+    ),
     url("/images/watercolor-garden.png") center top/100% auto fixed;
 }
 .header {
@@ -295,11 +299,6 @@
 }
 
 /* The same open layout, with a fresh morning palette for daily records. */
-.daily {
-  background:
-    radial-gradient(ellipse at 10% 0%, #e9f1d9 0, transparent 45%),
-    linear-gradient(145deg, #fafbf5, #f1f6ec 60%, #f9f6ec);
-}
 .daily .header {
   background: #fcfdf5ed;
   border-color: #dfe7d3;

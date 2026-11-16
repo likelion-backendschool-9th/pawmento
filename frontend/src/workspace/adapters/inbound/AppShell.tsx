@@ -25,12 +25,12 @@ export function Shell({
   const p = pet ? `/pets/${pet.id}` : "/pets";
   const groups = [
     {
-      title: garden ? "정원에 보관한 기억" : "나의 기록",
+      title: "나의 기록",
       links: [
         {
           href: "/home",
-          label: garden ? "정원 둘러보기" : "일상 둘러보기",
-          icon: garden ? "leaf" : "home",
+          label: "홈",
+          icon: "home",
         },
         {
           href: pet ? `${p}/timeline` : "/pets",
@@ -47,15 +47,11 @@ export function Shell({
     {
       title: "함께하는 공간",
       links: [
-        ...(pet?.mode === "GARDEN"
-          ? [
-              {
-                href: `${p}/garden/mailbox`,
-                label: "기억의 우체통",
-                icon: "mail",
-              },
-            ]
-          : []),
+        {
+          href: pet ? `${p}/garden/mailbox` : "/pets",
+          label: "기억의 우체통",
+          icon: "mail",
+        },
         { href: "/community", label: "커뮤니티", icon: "users" },
         {
           href: pet ? `${p}/family` : "/pets",

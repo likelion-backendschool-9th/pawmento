@@ -58,8 +58,6 @@
   color: #796b87;
 }
 .app[data-mode="GARDEN"] :global(h1) {
-  font-family: Georgia, var(--font-sans);
-  font-weight: 500;
   color: #62586e;
 }
 .app[data-mode="GARDEN"] :global(input:not([type="checkbox"])),
