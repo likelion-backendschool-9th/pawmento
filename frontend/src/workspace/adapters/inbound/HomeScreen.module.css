@@ -304,9 +304,3 @@
   max-width: 100%;
   white-space: normal;
 }
-
-@media (max-width: 600px) {
-  .shortcuts > a:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-}

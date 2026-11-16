@@ -60,26 +60,6 @@ export function HomeScreen({ pet }: { pet: Pet }) {
           <small>함께 남긴 {records.length}개의 기억</small>
         </div>
       </section>
-      <div className={`${s.shortcutGrid} ${g.shortcuts}`}>
-        {[
-          ["book", "다이어리", `/pets/${pet.id}/timeline`],
-          ["question", "오늘의 질문", `/pets/${pet.id}/questions`],
-          ["mail", "기억의 우체통", `/pets/${pet.id}/garden/mailbox`],
-          ["plus", "새 기억 남기기", `/pets/${pet.id}/records/new`],
-        ]
-          .filter(
-            ([icon]) =>
-              (icon !== "plus" || pet.accessRole !== "VIEWER") &&
-              (icon !== "mail" || garden),
-          )
-          .map(([icon, title, href]) => (
-            <Link href={href} key={title}>
-              <Icon name={icon} size={24} />
-              <strong>{title}</strong>
-              <Icon name="chevron" size={16} />
-            </Link>
-          ))}
-      </div>
       {photos.length > 0 && (
         <section className={g.gallery}>
           <div className={g.galleryHeading}>

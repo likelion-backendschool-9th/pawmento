@@ -541,31 +541,7 @@
   margin: 0;
   line-height: 1.9;
 }
-.shortcutGrid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 17px;
-  margin-bottom: 25px;
-}
-.shortcutGrid > a {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  background: var(--mode-card, #fffefb);
-  border: 1px solid #e2e8d7;
-  padding: 20px 17px;
-  border-radius: 10px;
-  color: var(--mode-muted, #6f7d62);
-}
-.shortcutGrid strong {
-  font-size: 12px;
-  font-weight: 550;
-  color: #6e8352;
-}
-.shortcutGrid > a > svg:last-child {
-  margin-left: auto;
-  width: 13px;
-}
+
 .mediaGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -955,9 +931,7 @@
   .mediaGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .shortcutGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+
   .postPhoto {
     width: 145px !important;
     height: 135px !important;
@@ -1308,20 +1282,7 @@
   .gardenWelcome p {
     font-size: 12px;
   }
-  .shortcutGrid {
-    gap: 12px;
-  }
-  .shortcutGrid > a {
-    padding: 17px 13px;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .shortcutGrid strong {
-    font-size: 11px;
-  }
-  .shortcutGrid > a > svg:first-child {
-    width: 20px;
-  }
+
   .mediaGrid {
     gap: 13px;
   }
@@ -1529,11 +1490,7 @@
   line-height: 2;
   color: #807785;
 }
-:global([data-mode="GARDEN"]) .shortcutGrid > a {
-  background: #fffaf4d9;
-  border-color: #e5dce4;
-  color: #80738b;
-}
+
 :global([data-mode="GARDEN"]) .panel {
   box-shadow: 0 8px 25px #8b77950b;
 }
@@ -1663,22 +1620,4 @@
 }
 .panelHeading {
   flex-wrap: wrap;
-}
-.shortcutGrid {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
-}
-.shortcutGrid > a {
-  min-width: 0;
-}
-.shortcutGrid strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-@media (max-width: 600px) {
-  .shortcutGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .shortcutGrid > a {
-    padding: 14px 10px;
-  }
 }
