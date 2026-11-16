@@ -5,7 +5,6 @@ import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/shared/ui/Icon";
 import { useLife } from "./useLife";
 import { LifeHeading, DemoNote, lifeStyles as s } from "./LifeUi";
-import m from "./SettingsScreen.module.css";
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: string }>;
@@ -46,47 +45,6 @@ export function SettingsScreen() {
         title="설정과 서비스 안내"
         body="나에게 맞는 기록 공간을 차분히 준비해요."
       />
-      <section
-        className={`${s.panel} ${m.modes}`}
-        aria-label="반려동물별 공간 설정"
-      >
-        <h2>반려동물별 공간 설정</h2>
-        <p>
-          아이마다 일상 또는 정원을 따로 선택해요. 반려동물을 바꾸면 그 아이에게
-          저장된 모드가 적용됩니다.
-        </p>
-        <div className={m.petGrid}>
-          {app.state.pets.map((pet) => (
-            <div key={pet.id} className={m.petCard}>
-              <div className={m.petInfo}>
-                <strong>{pet.name}</strong>
-                <span>
-                  {pet.mode === "GARDEN" ? "정원" : "일상"}
-                  {app.state.selectedPetId === pet.id
-                    ? " · 보고 있는 아이"
-                    : ""}
-                </span>
-              </div>
-              {!pet.accessRole || pet.accessRole === "OWNER" ? (
-                <Link
-                  href={`/pets/${pet.id}/settings/mode`}
-                  className="button secondary"
-                  aria-label={`${pet.name} 모드 설정`}
-                >
-                  모드 설정
-                  <Icon name="chevron" size={14} />
-                </Link>
-              ) : (
-                <span className={m.ownerNote}>소유자가 변경할 수 있어요</span>
-              )}
-            </div>
-          ))}
-        </div>
-        <Link href="/pets/new" className="text-link">
-          새 친구 등록
-          <Icon name="plus" size={14} />
-        </Link>
-      </section>
       <div className={s.twoGrid}>
         <section className={s.panel}>
           <h2>앱처럼 사용하기</h2>

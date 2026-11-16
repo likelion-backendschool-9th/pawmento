@@ -41,8 +41,8 @@ export function ModeScreen({ pet }: { pet: Pet }) {
   }
   return (
     <>
-      <Link className="text-link" href="/settings">
-        ← 설정으로 돌아가기
+      <Link className="text-link" href="/pets">
+        ← 반려동물 관리로 돌아가기
       </Link>
       <LifeHeading
         label="PET MODE"

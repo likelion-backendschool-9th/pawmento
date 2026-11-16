@@ -35,7 +35,7 @@ export function PetList() {
       <PageHeading
         eyebrow="OUR LITTLE FAMILY"
         title="함께하는 친구들"
-        body="누구와 함께한 하루를 기록할까요?"
+        body="함께 기록할 아이를 선택하고, 아이마다 일상·정원 모드를 관리해요."
       >
         <Link className="button primary" href="/pets/new">
           <Icon name="plus" size={17} />
@@ -58,16 +58,30 @@ export function PetList() {
                     .length
                 }
               />
-              <button
-                className="button secondary full"
-                disabled={busy}
-                onClick={() => void select(pet)}
-              >
-                {app.state.selectedPetId === pet.id
-                  ? "함께 기록하는 중"
-                  : "이 친구와 기록하기"}
-                <Icon name="arrow" size={17} />
-              </button>
+              <div className={styles.petActions}>
+                <button
+                  className="button secondary full"
+                  disabled={busy}
+                  onClick={() => void select(pet)}
+                >
+                  {app.state.selectedPetId === pet.id
+                    ? "함께 기록하는 중"
+                    : "이 친구와 기록하기"}
+                  <Icon name="arrow" size={17} />
+                </button>
+                {!pet.accessRole || pet.accessRole === "OWNER" ? (
+                  <Link
+                    className="button secondary full"
+                    href={`/pets/${pet.id}/settings/mode`}
+                    aria-label={`${pet.name} 모드 설정`}
+                  >
+                    <Icon name="settings" size={16} />
+                    모드 변경
+                  </Link>
+                ) : (
+                  <p className="muted">모드는 소유자가 변경할 수 있어요.</p>
+                )}
+              </div>
             </article>
           ))}
         </div>
