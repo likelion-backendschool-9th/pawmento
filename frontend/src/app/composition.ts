@@ -1,3 +1,4 @@
+import { createId } from "../shared/id.ts";
 import { SharedWorkspaceRepository } from "../life/adapters/outbound/SharedWorkspaceRepository.ts";
 import { BrowserLifeRepository } from "../life/adapters/outbound/BrowserLifeRepository.ts";
 import { DemoPostcardGenerator } from "../life/adapters/outbound/DemoPostcardGenerator.ts";
@@ -13,7 +14,7 @@ import { DemoAuthRepository } from "../auth/adapters/outbound/DemoAuthRepository
 export function createDependencies() {
   const lifeRepository = new BrowserLifeRepository();
   const runtime = {
-    id: () => crypto.randomUUID(),
+    id: () => createId(),
     now: () => new Date().toISOString(),
   };
   return {
@@ -31,7 +32,7 @@ export function createDependencies() {
         lifeRepository,
       ),
       {
-        id: () => crypto.randomUUID(),
+        id: () => createId(),
         now: () => new Date().toISOString(),
       },
     ),

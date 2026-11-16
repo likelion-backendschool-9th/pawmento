@@ -1,3 +1,4 @@
+import { createId } from "../../../shared/id.ts";
 import type { AuthRepository } from "../../application/auth.ts";
 import type { Account, Credentials } from "../../domain/account.ts";
 
@@ -12,7 +13,7 @@ export class DemoAuthRepository implements AuthRepository {
     if (this.accounts.has(input.email))
       throw Error("이 탭에서 이미 가입한 이메일이에요.");
     const account = {
-      id: crypto.randomUUID(),
+      id: createId(),
       email: input.email,
       nickname: input.nickname,
     };

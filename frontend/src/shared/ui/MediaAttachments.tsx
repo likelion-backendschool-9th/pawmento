@@ -1,4 +1,5 @@
 "use client";
+import { createId } from "../id";
 import { useEffect, useId, useRef, useState } from "react";
 import type { MediaAttachment } from "@/workspace/domain/models";
 import { Icon } from "./Icon";
@@ -75,7 +76,7 @@ export function MediaAttachments({
             "브라우저 데모에서는 첨부 파일 한 개가 2MB 이하여야 해요.",
           );
         added.push({
-          id: crypto.randomUUID(),
+          id: createId(),
           name: file.name,
           mimeType: file.type,
           type: file.type.startsWith("image/")
@@ -121,7 +122,7 @@ export function MediaAttachments({
         onChange([
           ...value,
           {
-            id: crypto.randomUUID(),
+            id: createId(),
             name: "우리 아이의 목소리.webm",
             mimeType: next.mimeType,
             type: "VOICE",
