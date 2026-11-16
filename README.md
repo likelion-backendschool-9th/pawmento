@@ -59,12 +59,14 @@
 
 ## 실행과 확인
 
-필요한 도구: Java 21, Node.js 24
+필요한 도구: Java 21, Node.js 24, Docker
+
+백엔드는 PostgreSQL을 씁니다. DB는 따로 띄우지 않아도 됩니다. Docker만 켜 두면 실행할 때는 `backend/compose.yaml`의 DB를, 테스트할 때는 Testcontainers가 만든 DB를 Spring Boot가 자동으로 연결합니다.
 
 | 대상 | 명령 (각 폴더에서 실행) | 하는 일 |
 | --- | --- | --- |
-| 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행 |
-| 백엔드 테스트 | `./gradlew test` | CI의 `Backend test`와 같음 |
+| 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행. 로컬 DB를 함께 띄우고, 앱을 꺼도 DB는 켜 둠 (끌 때는 `docker compose down`) |
+| 백엔드 테스트 | `./gradlew test` | 테스트용 DB 컨테이너를 띄워 실행. CI의 `Backend test`와 같음 |
 | 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
 | 프론트엔드 실행 | `npm run dev` | http://localhost:3000 에서 개발 서버 실행 |
 | 프론트엔드 검사 | `npm run lint`, `npm run build` | CI의 `Frontend lint·build`와 같음 |

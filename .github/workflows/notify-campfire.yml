@@ -1,0 +1,38 @@
+name: Notify Campfire
+
+on:
+  push:
+    # 머지(develop·main)와 긴급 수정(hotfix)만 알린다. feature 브랜치의 작업 중 push는 알리지 않는다
+    branches: [develop, main, 'hotfix/**']
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.head_commit != null }}   # 브랜치 삭제 push는 스킵
+    steps:
+      - name: Send push notification to Campfire
+        env:
+          WEBHOOK_URL:  ${{ secrets.CAMPFIRE_WEBHOOK_URL }}
+          REPO:         ${{ github.repository }}
+          BRANCH:       ${{ github.ref_name }}
+          ACTOR:        ${{ github.actor }}
+          AVATAR:       ${{ github.event.sender.avatar_url }}
+          COMPARE_URL:  ${{ github.event.compare }}
+          COMMITS_JSON: ${{ toJSON(github.event.commits) }}
+        run: |
+          set -euo pipefail
+          COUNT=$(printf '%s' "$COMMITS_JSON" | jq 'length')
+          TEXT=$(printf '%s' "$COMMITS_JSON" | jq -r '
+            .[0:10][]
+            | "[`" + .id[0:7] + "`](" + .url + ") "
+              + (.message | split("\n")[0]) + " — " + .author.name')
+          if [ "$COUNT" -gt 10 ]; then TEXT="$TEXT
+            …및 $((COUNT - 10))개 더"; fi
+          PAYLOAD=$(jq -n \
+            --arg title "[$REPO:$BRANCH] $COUNT new commit(s)" \
+            --arg link "$COMPARE_URL" --arg author "$ACTOR" \
+            --arg icon "$AVATAR" --arg text "$TEXT" \
+            '{attachments:[{color:"#0969da",author_name:$author,author_icon:$icon,
+              title:$title,title_link:$link,text:$text}]}')
+          curl -sS --fail-with-body -X POST "$WEBHOOK_URL" \
+            -H "Content-Type: application/json" -d "$PAYLOAD"

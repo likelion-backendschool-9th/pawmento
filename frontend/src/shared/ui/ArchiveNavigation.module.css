@@ -1,0 +1,35 @@
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 24px;
+  padding: 5px;
+  border: 1px solid var(--border-default);
+  background: var(--surface-card);
+  border-radius: 14px;
+  width: fit-content;
+}
+.tabs a {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  min-height: 42px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.tabs a[aria-current="page"],
+.tabs a:hover {
+  background: var(--surface-subtle);
+  color: var(--brand-primary);
+}
+@media (max-width: 767px) {
+  .tabs {
+    width: 100%;
+  }
+  .tabs a {
+    padding: 9px 8px;
+    font-size: 11px;
+  }
+}
