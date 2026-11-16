@@ -198,7 +198,8 @@ class AuthScenarioTest {
 
 		// 72자 이내지만 72바이트를 넘는 한글 비밀번호
 		signUp(uniqueEmail(), "가".repeat(25), "보호자").andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("비밀번호가 너무 깁니다. 한글은 24자까지 쓸 수 있습니다."));
 
 		mockMvc.perform(post("/api/auth/signup").contentType(MediaType.APPLICATION_JSON).content("{"))
 			.andExpect(status().isBadRequest())
@@ -211,6 +212,9 @@ class AuthScenarioTest {
 				.andExpect(jsonPath("$.message").value("이메일 주소를 확인해 주세요."));
 			signUp(uniqueEmail(), "short", "").andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("비밀번호는 8~72자로 입력해 주세요."));
+			// 바이트 제한도 비밀번호의 오류다. 뒤 항목인 닉네임보다 먼저 받는다
+			signUp(uniqueEmail(), "가".repeat(25), "").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("비밀번호가 너무 깁니다. 한글은 24자까지 쓸 수 있습니다."));
 		}
 	}
 

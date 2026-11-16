@@ -48,7 +48,8 @@ class GlobalExceptionHandler {
 		return List.of(target.getClass().getRecordComponents()).stream().map(RecordComponent::getName).toList();
 	}
 
-	// 선언된 필드가 아니면(여러 필드를 함께 보는 검증 등) 맨 뒤로 보낸다
+	// 요청 본문의 필드가 아닌 이름으로 온 오류는 맨 뒤로 보낸다.
+	// 순서가 필요한 검증은 해당 필드에 붙인다(예: 비밀번호 바이트 제한은 password 필드의 @MaxUtf8Bytes)
 	private static int declaredOrder(List<String> declaredFields, String field) {
 		int index = declaredFields.indexOf(field);
 		return index >= 0 ? index : Integer.MAX_VALUE;
