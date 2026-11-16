@@ -100,7 +100,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 
 - **API 응답·에러 형식, 패키지 구조**: 백엔드 구조 작업에서 정한다. 지금의 에러 형식(`code`, `message`)과 패키지 배치는 임시이고, 정해지면 맞춘다.
 - **스키마 관리**: 테이블이 만들어지도록 `ddl-auto: update`를 임시로 켰다. 데이터를 지우지는 않지만 컬럼 이름 변경·삭제는 반영하지 못한다. `ddl-auto`를 계속 쓸지 Flyway 같은 마이그레이션 도구를 쓸지 백엔드 구조 작업에서 정한다.
-- **개발 서버 설정**: 개발 서버 배포(#10)가 머지되면 서버 `.env`와 `.env.develop.example`에 `JWT_SECRET`을, `compose.develop.yaml`의 backend 환경 변수에 `JWT_SECRET`과 `SERVER_FORWARD_HEADERS_STRATEGY: native`를 더한다. 없으면 재배포마다 로그인이 풀리고 쿠키에 `Secure`가 붙지 않는다.
+- **개발 서버 설정**: 개발 서버 배포(#10)가 머지되면 서버 `.env`와 `.env.prod.example`에 `JWT_SECRET`을, `compose.prod.yaml`의 backend 환경 변수에 `JWT_SECRET`과 `SERVER_FORWARD_HEADERS_STRATEGY: native`를 더한다. 없으면 재배포마다 로그인이 풀리고 쿠키에 `Secure`가 붙지 않는다.
 - **파일 업로드 API의 CSRF**: `SameSite`는 사이트(등록 도메인) 단위로 판단한다. 개발 서버는 다른 팀과 함께 쓰는 공용 서버라, 다른 팀의 주소가 같은 도메인의 하위 주소면 그쪽에서 보낸 요청에도 쿠키가 붙는다. JSON 요청은 브라우저가 막지만 폼으로 보낼 수 있는 `multipart/form-data` 요청은 막지 못한다. 사진 업로드 API를 만들기 전에 CSRF 토큰이나 출처(Origin) 검사를 더할지 정한다.
 - **로그인 시도 제한**: 같은 계정·IP에서 로그인 실패가 반복될 때 막는 장치가 없다. 외부 테스터를 받기 전에 정한다.
 - **refresh 토큰**: 지금은 액세스 토큰(1시간)만 있어, 만료되면 다시 로그인한다. 재발급(기능 명세 AUTH-05)은 스프린트 1의 member에서 다룬다. 로그아웃한 토큰을 바로 막는 방법도 그때 함께 정한다.

@@ -1,0 +1,37 @@
+# 서버 전용. compose.yaml에 겹쳐 쓴다. 지금은 개발 서버(develop)가 쓰고, 운영 서버가 생기면 .env만 다르게 해서 같이 쓴다
+#   docker compose -f compose.yaml -f compose.prod.yaml pull
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+# 배포 워크플로가 이 파일, compose.yaml, nginx/proxy.conf를 서버에 복사하고 위 명령을 실행한다
+#
+# 값은 같은 폴더의 .env에서 읽는다 (.env.prod.example 참고). 빠진 값이 있으면 :? 검사로 어떤 값인지 알려 주고 멈춘다
+#
+# 다른 팀과 함께 쓰는 공용 서버다
+# - COMPOSE_PROJECT_NAME(.env)으로 네트워크·볼륨 이름을 팀별로 나눈다
+# - container_name은 두지 않는다. 컨테이너 이름은 <COMPOSE_PROJECT_NAME>-<서비스>-<번호>로 붙는다
+# - 밖으로 여는 포트는 팀에 배정된 TEAM_PORT 하나뿐이고, 127.0.0.1에만 연다. 호스트 nginx가 도메인으로 연결한다
+
+services:
+  db:
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB를 .env에 설정하세요}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER를 .env에 설정하세요}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD를 .env에 설정하세요}
+
+  backend:
+    # IMAGE_TAG로 배포할 버전(sha-<커밋 7자리>)을 고른다. 이전 태그로 바꾸면 되돌릴 수 있다
+    image: ghcr.io/${GITHUB_OWNER:?GITHUB_OWNER를 .env에 설정하세요}/pawmento-backend:${IMAGE_TAG:?IMAGE_TAG를 설정하세요}
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB를 .env에 설정하세요}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER를 .env에 설정하세요}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD를 .env에 설정하세요}
+
+  frontend:
+    image: ghcr.io/${GITHUB_OWNER:?GITHUB_OWNER를 .env에 설정하세요}/pawmento-frontend:${IMAGE_TAG:?IMAGE_TAG를 설정하세요}
+    restart: unless-stopped
+
+  nginx:
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${TEAM_PORT:?TEAM_PORT를 .env에 설정하세요}:80"

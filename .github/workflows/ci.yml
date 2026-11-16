@@ -96,7 +96,7 @@ jobs:
 
   # 서버에 SSH로 들어가 새 이미지로 다시 띄운다
   # 접속 정보는 GitHub 환경 develop의 Secrets에 둔다: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (포트가 22가 아니면 DEPLOY_PORT)
-  # 서버에는 ~/pawmento에 저장소를 develop 브랜치로 clone하고 .env를 둔다 (.env.develop.example 참고)
+  # 서버에는 ~/pawmento/.env만 미리 둔다 (.env.prod.example 참고). compose 파일과 nginx 설정은 배포 때 복사한다
   # 앱 비밀값(DB 비밀번호 등)은 Secrets에 두지 않고 서버 .env에만 둔다
   deploy:
     name: Deploy to develop server
@@ -123,6 +123,23 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         run: echo "IMAGE_TAG=sha-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
 
+      # 서버에 둘 파일(compose 파일, 팀 nginx 설정)을 이 커밋 그대로 복사한다. 이미지와 설정이 항상 같은 커밋에서 온다
+      # 서버의 .env는 덮어쓰지 않는다 (rm을 켜면 .env까지 지워지므로 켜지 않는다)
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.ready == 'true'
+
+      # 서드파티 액션이라 태그 대신 커밋 SHA로 고정한다 (v1.0.0)
+      - uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+        if: steps.check.outputs.ready == 'true'
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          port: ${{ secrets.DEPLOY_PORT || 22 }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: compose.yaml,compose.prod.yaml,nginx/proxy.conf
+          target: ~/pawmento
+          overwrite: true
+
       # 서드파티 액션이라 태그 대신 커밋 SHA로 고정한다 (v1.2.5)
       - uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
         if: steps.check.outputs.ready == 'true'
@@ -137,14 +154,15 @@ jobs:
           script: |
             set -e
             cd ~/pawmento
-            # compose 파일, nginx 설정을 최신으로 맞춘다
-            git pull --ff-only
-            # compose.yaml과 compose.override.yaml(개발 서버 설정)을 자동으로 합쳐 읽는다
-            docker compose pull
-            docker compose up -d --no-build
+            # .env는 서버에서 직접 만든다 (.env.prod.example 참고). 없으면 어떤 파일이 빠졌는지 알리고 멈춘다
+            test -f .env || { echo "~/pawmento/.env가 없습니다"; exit 1; }
+            # 로컬용 compose.override.yaml은 읽지 않는다
+            COMPOSE="docker compose -f compose.yaml -f compose.prod.yaml"
+            $COMPOSE pull
+            $COMPOSE up -d --no-build
             # 다른 팀도 쓰는 서버라 우리 저장소에서 만든 이미지만 정리한다
             docker image prune -f --filter "label=org.opencontainers.image.source=$REPO_URL"
-            docker compose ps
+            $COMPOSE ps
             # 팀 포트가 응답할 때까지 최대 30초 기다린다 (127.0.0.1에만 열려 있으므로 IP로 확인)
             TEAM_PORT=$(grep -E '^TEAM_PORT=' .env | cut -d= -f2)
             for i in $(seq 1 10); do

@@ -1,7 +1,7 @@
 # 호스트 nginx 설정 예시 (서버 관리자에게 전달용. 이 저장소에서는 쓰지 않는다)
 #
 # 인터넷 → 호스트 nginx (팀 도메인, HTTPS) ← 이 파일
-#        → http://127.0.0.1:<TEAM_PORT> (팀 nginx, nginx/develop.conf)
+#        → http://127.0.0.1:<TEAM_PORT> (팀 nginx, nginx/proxy.conf)
 #        → /api/ 는 백엔드, 나머지는 프론트엔드
 #
 # 바꿀 값: <팀 도메인>, <TEAM_PORT>, 인증서 경로
@@ -23,7 +23,7 @@ server {
     ssl_certificate     /etc/letsencrypt/live/<팀 도메인>/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/<팀 도메인>/privkey.pem;
 
-    # 사진 업로드를 받을 수 있게 팀 nginx(nginx/develop.conf)와 같은 값으로 둔다. 기본값 1m이면 업로드가 막힌다
+    # 사진 업로드를 받을 수 있게 팀 nginx(nginx/proxy.conf)와 같은 값으로 둔다. 기본값 1m이면 업로드가 막힌다
     client_max_body_size 20m;
 
     location / {
