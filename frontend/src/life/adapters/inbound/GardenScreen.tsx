@@ -177,8 +177,8 @@ export function GardenScreen({ pet }: { pet: Pet }) {
       </section>
       <div className={s.shortcutGrid}>
         {[
-          ["book", "기록 모아보기", `/pets/${pet.id}/timeline`],
-          ["question", "질문과 답변", `/pets/${pet.id}/questions`],
+          ["book", "다이어리", `/pets/${pet.id}/timeline`],
+          ["question", "오늘의 질문", `/pets/${pet.id}/questions`],
           ["mail", "기억의 우체통", `/pets/${pet.id}/garden/mailbox`],
           ["plus", "새 기억 남기기", `/pets/${pet.id}/records/new`],
         ].map(([icon, title, href]) => (
@@ -308,8 +308,8 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
     <>
       <LifeHeading
         label="QUESTION JOURNAL"
-        title="질문과 답변의 기록"
-        body="질문을 받았던 그날의 문구와 내가 남긴 답변을 함께 보관해요."
+        title="오늘의 질문"
+        body="오늘의 질문에 답하고, 지난 질문과 답변을 다시 읽어보세요. 다이어리와 별도로 보관해요."
       >
         {pet.accessRole !== "VIEWER" && (
           <Link
@@ -363,6 +363,7 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
           {demoError}
         </p>
       )}
+      {records.length > 0 && <h2>지난 질문과 답변</h2>}
       {records.length ? (
         <div className={s.twoGrid}>
           {records.map((record) => (

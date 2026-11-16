@@ -34,12 +34,12 @@ export function Shell({
         },
         {
           href: pet ? `${p}/timeline` : "/pets",
-          label: "기록 모아보기",
+          label: "다이어리",
           icon: "book",
         },
         {
           href: pet ? `${p}/questions` : "/pets",
-          label: "질문과 답변 이력",
+          label: "오늘의 질문",
           icon: "question",
         },
       ],

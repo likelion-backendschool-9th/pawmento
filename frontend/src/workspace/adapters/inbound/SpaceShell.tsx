@@ -46,7 +46,7 @@ export function SpaceShell({
     },
     {
       href: pet ? `${base}/questions` : "/pets",
-      label: "질문과 답변",
+      label: "오늘의 질문",
       icon: "question",
       active:
         route.startsWith(`${base}/questions`) ||
@@ -54,7 +54,7 @@ export function SpaceShell({
     },
     {
       href: pet ? `${base}/timeline` : "/pets",
-      label: "기록 모아보기",
+      label: "다이어리",
       icon: "book",
       active: archiveActive,
     },

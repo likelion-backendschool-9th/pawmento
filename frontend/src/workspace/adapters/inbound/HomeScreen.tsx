@@ -15,14 +15,17 @@ export function HomeScreen({ pet }: { pet: Pet }) {
   const date = today();
   const prompt = useTodayQuestion(pet.id, date);
   const records = app.state.records
-    .filter((item) => item.petId === pet.id)
+    .filter((item) => item.petId === pet.id && item.type !== "DIARY")
     .sort(
       (a, b) =>
         b.recordedDate.localeCompare(a.recordedDate) ||
         b.createdAt.localeCompare(a.createdAt),
     );
-  const diary = records.find(
-    (item) => item.type === "DIARY" && item.recordedDate === date,
+  const diary = app.state.records.find(
+    (item) =>
+      item.petId === pet.id &&
+      item.type === "DIARY" &&
+      item.recordedDate === date,
   );
   const displayQuestion =
     diary?.question ??
@@ -183,7 +186,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               ],
               [
                 "question",
-                "질문과 답변",
+                "오늘의 질문",
                 "그날의 질문과 답변을 다시 읽어요",
                 `/pets/${pet.id}/questions`,
               ],

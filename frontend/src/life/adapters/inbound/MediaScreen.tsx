@@ -11,7 +11,9 @@ import { LifeHeading, LifeEmpty, lifeStyles as s } from "./LifeUi";
 export function MediaScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const [filter, setFilter] = useState("ALL");
-  const records = app.state.records.filter((record) => record.petId === pet.id);
+  const records = app.state.records.filter(
+    (record) => record.petId === pet.id && record.type !== "DIARY",
+  );
   const files = records
     .flatMap((record) =>
       [
@@ -34,7 +36,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
     <>
       <LifeHeading
         label="MEDIA ARCHIVE"
-        title="기록 모아보기"
+        title="다이어리"
         body={`${pet.name}의 사진과 영상, 목소리를 한곳에서 만나보세요.`}
       >
         {pet.accessRole !== "VIEWER" && (

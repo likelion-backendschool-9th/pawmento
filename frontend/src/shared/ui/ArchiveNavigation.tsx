@@ -10,10 +10,10 @@ export function ArchiveNavigation({
   active: "timeline" | "calendar" | "media";
 }) {
   return (
-    <nav className={s.tabs} aria-label="기록 보기 방식">
+    <nav className={s.tabs} aria-label="다이어리 보기 방식">
       {(
         [
-          ["timeline", "전체 기록", "book"],
+          ["timeline", "전체 일기", "book"],
           ["calendar", "달력", "calendar"],
           ["media", "사진·영상·목소리", "camera"],
         ] as const

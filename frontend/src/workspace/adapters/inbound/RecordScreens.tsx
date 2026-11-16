@@ -109,10 +109,10 @@ export function RecordForm({
         href={
           record
             ? `/pets/${pet.id}/${diary ? "diary" : "records"}/${record.id}`
-            : "/home"
+            : `/pets/${pet.id}/${diary ? "questions" : "timeline"}`
         }
       >
-        ← {record ? "기록으로 돌아가기" : "오늘의 이야기"}
+        ← {record ? "기록으로 돌아가기" : diary ? "오늘의 질문" : "다이어리"}
       </Link>
       <PageHeading
         eyebrow={diary ? "오늘의 작은 기억" : "마음에 남은 순간"}
@@ -120,8 +120,8 @@ export function RecordForm({
           record
             ? "우리의 이야기 다듬기"
             : diary
-              ? "오늘의 이야기를 남겨요"
-              : "마음 가는 대로, 기록해요"
+              ? "오늘의 질문에 답해요"
+              : "다이어리 쓰기"
         }
         body="완벽한 문장보다 지금의 마음이면 충분해요."
       />
@@ -260,7 +260,9 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
       await app.refresh();
       dialog.current?.close();
       app.notify("기록을 삭제했어요.");
-      router.push(`/pets/${pet.id}/timeline`);
+      router.push(
+        `/pets/${pet.id}/${record.type === "DIARY" ? "questions" : "timeline"}`,
+      );
     } catch (cause) {
       setError(messageOf(cause));
     } finally {
@@ -269,13 +271,16 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
   }
   return (
     <div className={styles.detailWrap}>
-      <Link className="text-link" href={`/pets/${pet.id}/timeline`}>
-        ← 우리의 기록
+      <Link
+        className="text-link"
+        href={`/pets/${pet.id}/${record.type === "DIARY" ? "questions" : "timeline"}`}
+      >
+        ← {record.type === "DIARY" ? "오늘의 질문" : "다이어리"}
       </Link>
       <header className={styles.detailHeading}>
         <span className="badge">
           <Icon name={record.type === "DIARY" ? "book" : "camera"} size={14} />
-          {record.type === "DIARY" ? "질문 일기" : "자유 기록"}
+          {record.type === "DIARY" ? "질문과 답변" : "다이어리"}
         </span>
         <h1>
           {formatDate(record.recordedDate, {

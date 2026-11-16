@@ -346,3 +346,62 @@ test("#12-S7 모드 전환과 프로필 수정 후 모든 기록 보존", async 
   assert.equal((await uc.list("a", p.id)).total, 1);
   await assert.rejects(uc.deletePet("a", p.id), /기록이 있는/);
 });
+
+test("#12-S4 다이어리와 질문 답변은 페이지·날짜 필터에서 분리되고 원본은 유지된다", async () => {
+  const { useCases: uc } = setup();
+  const p = await uc.savePet("owner", pet);
+  const q = await uc.saveMemory(
+    "owner",
+    memory(p.id, {
+      type: "DIARY",
+      recordedDate: "2026-11-15",
+      question: "오늘 가장 좋았던 순간은?",
+      questionId: "today",
+      body: "함께 산책한 순간",
+    }),
+  );
+  const a = await uc.saveMemory(
+    "owner",
+    memory(p.id, {
+      type: "TEXT",
+      recordedDate: "2026-11-15",
+      question: "",
+      body: "자유롭게 쓴 일기",
+    }),
+  );
+  const b = await uc.saveMemory(
+    "owner",
+    memory(p.id, {
+      type: "PHOTO",
+      recordedDate: "2026-11-14",
+      question: "",
+      photoUrl: "reference:running",
+    }),
+  );
+  const before = await uc.load("owner");
+  const first = await uc.list("owner", p.id, { collection: "diary", limit: 1 });
+  assert.equal(first.total, 2);
+  assert.equal(first.hasMore, true);
+  assert.equal(first.records[0].id, a.id);
+  const next = await uc.list("owner", p.id, {
+    collection: "diary",
+    offset: 1,
+    limit: 1,
+  });
+  assert.equal(next.records[0].id, b.id);
+  assert.equal(next.hasMore, false);
+  assert.deepEqual(
+    (
+      await uc.list("owner", p.id, { collection: "diary", date: "2026-11-15" })
+    ).records.map((record) => record.id),
+    [a.id],
+  );
+  assert.deepEqual(
+    (await uc.list("owner", p.id, { collection: "question" })).records.map(
+      (record) => record.id,
+    ),
+    [q.id],
+  );
+  assert.equal((await uc.list("owner", p.id)).total, 3);
+  assert.deepEqual(await uc.load("owner"), before);
+});

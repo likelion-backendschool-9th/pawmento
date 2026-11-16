@@ -163,7 +163,12 @@ export function createWorkspaceUseCases(
     list: async (
       accountId: string,
       petId: string,
-      options: { date?: string; offset?: number; limit?: number } = {},
+      options: {
+        date?: string;
+        offset?: number;
+        limit?: number;
+        collection?: "diary" | "question";
+      } = {},
     ) => {
       if (options.date) validateDate(options.date);
       const state = await repository.load(accountId);
@@ -171,6 +176,10 @@ export function createWorkspaceUseCases(
         .filter(
           (record) =>
             record.petId === petId &&
+            (!options.collection ||
+              (options.collection === "question"
+                ? record.type === "DIARY"
+                : record.type !== "DIARY")) &&
             (!options.date || record.recordedDate === options.date),
         )
         .sort(

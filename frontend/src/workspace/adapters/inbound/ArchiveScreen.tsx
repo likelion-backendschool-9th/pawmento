@@ -33,7 +33,9 @@ export function Calendar({
   const [year, num] = month.split("-").map(Number);
   const first = new Date(Date.UTC(year, num - 1, 1)).getUTCDay();
   const days = new Date(Date.UTC(year, num, 0)).getUTCDate();
-  const records = app.state.records.filter((record) => record.petId === pet.id);
+  const records = app.state.records.filter(
+    (record) => record.petId === pet.id && record.type !== "DIARY",
+  );
   function shift(delta: number) {
     const next = new Date(Date.UTC(year, num - 1 + delta, 1));
     setMonth(next.toISOString().slice(0, 7));
@@ -86,19 +88,10 @@ export function Calendar({
             (record) => record.recordedDate === date,
           ).length;
           const href = `/pets/${pet.id}/calendar?date=${date}`;
-          const dailyDiary = records.find(
-            (record) => record.recordedDate === date && record.type === "DIARY",
-          );
           const contents = (
             <>
               <span>{i + 1}</span>
               {count > 0 && <i />}
-              {!compact && dailyDiary && (
-                <span className={styles.cellDiary}>
-                  <strong>Q. {dailyDiary.question}</strong>
-                  <span>A. {dailyDiary.body}</span>
-                </span>
-              )}
             </>
           );
           const cls = `${styles.calendarDay} ${date === current ? styles.today : ""} ${date === selected ? styles.selectedDay : ""}`;
@@ -164,6 +157,7 @@ export function ArchiveScreen({
     app.dependencies.workspace
       .list(app.account!.id, pet.id, {
         date: calendar ? date : undefined,
+        collection: "diary",
         limit,
       })
       .then((value) => {
@@ -194,9 +188,9 @@ export function ArchiveScreen({
   return (
     <>
       <PageHeading
-        eyebrow="질문과 답변이 함께 쌓이는 기록"
-        title={calendar ? "기록 달력" : "기록 모아보기"}
-        body={`${pet.name}와 함께한 순간들을 천천히 꺼내봐요.`}
+        eyebrow="자유롭게 남기는 일상의 이야기"
+        title={calendar ? "다이어리 달력" : "다이어리"}
+        body={`${pet.name}와 함께한 일기와 사진을 모았어요. 질문에 남긴 답변은 오늘의 질문에서 볼 수 있어요.`}
       >
         <Link className="button primary" href={`/pets/${pet.id}/records/new`}>
           <Icon name="plus" size={17} />
