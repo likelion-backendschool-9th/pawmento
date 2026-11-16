@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
+import { useConfirmNavigation } from "@/shared/ui/UnsavedChangesProvider";
 import { Icon } from "@/shared/ui/Icon";
 import { PhotoPicker } from "@/shared/ui/PhotoPicker";
 import { today } from "@/shared/date";
@@ -16,9 +17,11 @@ import { speciesName, messageOf } from "./presentation";
 export function PetList() {
   const app = useApp();
   const router = useRouter();
+  const confirmNavigation = useConfirmNavigation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function select(pet: Pet) {
+    if (!confirmNavigation()) return;
     setBusy(true);
     try {
       await app.dependencies.workspace.selectPet(app.account!.id, pet.id);

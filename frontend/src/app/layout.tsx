@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppProvider } from "./AppProvider";
+import { UnsavedChangesProvider } from "@/shared/ui/UnsavedChangesProvider";
 import "./globals.css";
 export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
@@ -18,7 +19,9 @@ export default function RootLayout({
   return (
     <html lang="ko" data-scroll-behavior="smooth">
       <body>
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+        </AppProvider>
       </body>
     </html>
   );

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
+import { useConfirmNavigation } from "@/shared/ui/UnsavedChangesProvider";
 import { Icon } from "@/shared/ui/Icon";
 import type { Pet } from "../../domain/models";
 import styles from "./AppShell.module.css";
@@ -19,6 +20,7 @@ export function Shell({
 }) {
   const app = useApp();
   const router = useRouter();
+  const confirmNavigation = useConfirmNavigation();
   const [switching, setSwitching] = useState(false);
   const [open, setOpen] = useState(false);
   const garden = pet?.mode === "GARDEN";
@@ -94,6 +96,7 @@ export function Shell({
     )
     .sort((a, b) => b.href.length - a.href.length)[0];
   async function select(id: string) {
+    if (!confirmNavigation()) return;
     setSwitching(true);
     try {
       await app.dependencies.workspace.selectPet(app.account!.id, id);
