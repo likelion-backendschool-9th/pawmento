@@ -26,6 +26,14 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:?POSTGRES_DB를 .env에 설정하세요}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER를 .env에 설정하세요}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD를 .env에 설정하세요}
+      # 로그인 토큰 서명 키 (docs/member/README.md). 없으면 재배포할 때마다 로그인이 풀리므로 서버에서는 필수로 받는다
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET을 .env에 설정하세요}
+      # 호스트 nginx가 HTTPS를 처리하므로 X-Forwarded-Proto를 믿어야 요청을 HTTPS로 인식한다 (쿠키 Secure, 리다이렉트 주소)
+      # Tomcat은 내부망 주소(Docker 네트워크 포함)에서 온 헤더만 믿는다
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+      # 네이버 지도 키 (docs/map/record-location.md). 비어 있으면 주소 조회만 건너뛴다
+      NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
+      NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
 
   frontend:
     image: ghcr.io/${GITHUB_OWNER:?GITHUB_OWNER를 .env에 설정하세요}/pawmento-frontend:${IMAGE_TAG:?IMAGE_TAG를 설정하세요}
