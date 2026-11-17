@@ -1,6 +1,6 @@
 # 백엔드 구조 (헥사고날 아키텍처)
 
-백엔드 코드를 어떤 패키지에 어떤 클래스로 나누는지 정한 규칙이다. 사람과 AI 모두 새 기능을 만들 때 이 문서대로 만든다. 예시는 이슈 #16 `record` 도메인의 "기록 작성하기"다.
+백엔드 코드를 어떤 패키지에 어떤 클래스로 나누는지 정한 규칙이다. 사람과 AI 모두 새 기능을 만들 때 이 문서대로 만든다. 예시는 이슈 #16 `memory` 도메인의 "기록 작성하기"다.
 
 > 이 문서는 #16 샘플과 그 리뷰를 기준으로 쓴 초안이다. 팀이 정한 것은 [정한 것](#정한-것)에, 남은 것은 [아직 정하지 않은 것](#아직-정하지-않은-것)에 둔다.
 
@@ -70,25 +70,25 @@ com.pawmento
 
 ## API 경로
 
-- 모든 API 경로는 `/api/<도메인 복수형>`으로 시작한다. 예: `/api/records`. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다.
+- 모든 API 경로는 `/api/<도메인 복수형>`으로 시작한다. 예: `/api/memories`. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다.
 - 컨트롤러 클래스에 `@RequestMapping("/api/<복수형>")`을 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다.
 
 ## 이름 규칙
 
 | 종류 | 형식 | 예 |
 | --- | --- | --- |
-| 입력 포트 | `<Action><Domain>UseCase` | `CreateRecordUseCase` |
-| 서비스 | `<Action><Domain>Service` | `CreateRecordService` |
-| 변경 입력 (생성·수정·삭제) | `<Action><Domain>Command` | `CreateRecordCommand` |
-| 조회 입력 | `<Action><Domain>Query` | `GetRecordQuery` |
-| 유스케이스 결과 | `<Action><Domain>Result` | `GetRecordResult` |
-| 출력 포트 | `<Verb><Domain>Port` | `SaveRecordPort`, `LoadRecordPort` |
-| 요청 DTO | `<Action><Domain>Request` | `CreateRecordRequest` |
-| 응답 DTO | `<Domain>Response` | `RecordResponse` |
-| 컨트롤러 | `<Domain>Controller` | `RecordController` |
-| 영속성 어댑터 | `<Domain>PersistenceAdapter` | `RecordPersistenceAdapter` |
-| JPA 엔티티 | `<Domain>JpaEntity` | `RecordJpaEntity` |
-| JPA 리포지토리 | `<Domain>JpaRepository` | `RecordJpaRepository` |
+| 입력 포트 | `<Action><Domain>UseCase` | `CreateMemoryUseCase` |
+| 서비스 | `<Action><Domain>Service` | `CreateMemoryService` |
+| 변경 입력 (생성·수정·삭제) | `<Action><Domain>Command` | `CreateMemoryCommand` |
+| 조회 입력 | `<Action><Domain>Query` | `GetMemoryQuery` |
+| 유스케이스 결과 | `<Action><Domain>Result` | `GetMemoryResult` |
+| 출력 포트 | `<Verb><Domain>Port` | `SaveMemoryPort`, `LoadMemoryPort` |
+| 요청 DTO | `<Action><Domain>Request` | `CreateMemoryRequest` |
+| 응답 DTO | `<Domain>Response` | `MemoryResponse` |
+| 컨트롤러 | `<Domain>Controller` | `MemoryController` |
+| 영속성 어댑터 | `<Domain>PersistenceAdapter` | `MemoryPersistenceAdapter` |
+| JPA 엔티티 | `<Domain>JpaEntity` | `MemoryJpaEntity` |
+| JPA 리포지토리 | `<Domain>JpaRepository` | `MemoryJpaRepository` |
 
 - `<Action>`은 사용자 기준 동작이다: `Create`, `Edit`, `Delete`, `Get`, `List`.
 - `<Verb>`는 저장소 기준 동작이다: `Save`, `Load`, `Update`, `Delete`.
@@ -149,21 +149,21 @@ com.pawmento
 
 ```java
 @Getter
-public class Record {
+public class Memory {
     private Long id;
     private Long petId;
     private String content;
 
-    private Record(Long petId, String content) {
+    private Memory(Long petId, String content) {
         this.petId = petId;
         this.content = content;
     }
 
-    public static Record create(Long petId, String content) {
+    public static Memory create(Long petId, String content) {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException("내용이 비었습니다.");
         }
-        return new Record(petId, content);
+        return new Memory(petId, content);
     }
 }
 ```
@@ -176,11 +176,11 @@ public class Record {
 - 반환값은 새로 만든 id(`Long`)나 `Result`다. 도메인 객체를 그대로 돌려주지 않는다.
 
 ```java
-public interface CreateRecordUseCase {
-    Long create(CreateRecordCommand command);
+public interface CreateMemoryUseCase {
+    Long create(CreateMemoryCommand command);
 }
 
-public record CreateRecordCommand(Long petId, String content) {
+public record CreateMemoryCommand(Long petId, String content) {
 }
 ```
 
@@ -195,14 +195,14 @@ public record CreateRecordCommand(Long petId, String content) {
 ```java
 @Service
 @RequiredArgsConstructor
-public class CreateRecordService implements CreateRecordUseCase {
-    private final SaveRecordPort saveRecordPort;
+public class CreateMemoryService implements CreateMemoryUseCase {
+    private final SaveMemoryPort saveMemoryPort;
 
     @Override
     @Transactional
-    public Long create(CreateRecordCommand command) {
-        Record record = Record.create(command.petId(), command.content());
-        return saveRecordPort.save(record);
+    public Long create(CreateMemoryCommand command) {
+        Memory memory = Memory.create(command.petId(), command.content());
+        return saveMemoryPort.save(memory);
     }
 }
 ```
@@ -213,8 +213,8 @@ public class CreateRecordService implements CreateRecordUseCase {
 - 매개변수와 반환값에는 도메인 객체나 자바 기본 타입만 쓴다. `JpaEntity`를 쓰지 않는다.
 
 ```java
-public interface SaveRecordPort {
-    Long save(Record record);
+public interface SaveMemoryPort {
+    Long save(Memory memory);
 }
 ```
 
@@ -228,25 +228,25 @@ public interface SaveRecordPort {
 
 ```java
 @RestController
-@RequestMapping("/api/records")
+@RequestMapping("/api/memories")
 @RequiredArgsConstructor
-public class RecordController {
-    private final CreateRecordUseCase createRecordUseCase;
+public class MemoryController {
+    private final CreateMemoryUseCase createMemoryUseCase;
 
     @PostMapping
-    public RecordResponse create(@Valid @RequestBody CreateRecordRequest request) {
-        CreateRecordCommand command = new CreateRecordCommand(request.petId(), request.content());
-        Long id = createRecordUseCase.create(command);
-        return new RecordResponse(id);
+    public MemoryResponse create(@Valid @RequestBody CreateMemoryRequest request) {
+        CreateMemoryCommand command = new CreateMemoryCommand(request.petId(), request.content());
+        Long id = createMemoryUseCase.create(command);
+        return new MemoryResponse(id);
     }
 }
 
-public record CreateRecordRequest(
+public record CreateMemoryRequest(
         @NotNull Long petId,
         @NotBlank String content) {
 }
 
-public record RecordResponse(Long recordId) {
+public record MemoryResponse(Long memoryId) {
 }
 ```
 
@@ -261,12 +261,12 @@ public record RecordResponse(Long recordId) {
 ```java
 @Component
 @RequiredArgsConstructor
-public class RecordPersistenceAdapter implements SaveRecordPort {
-    private final RecordJpaRepository recordJpaRepository;
+public class MemoryPersistenceAdapter implements SaveMemoryPort {
+    private final MemoryJpaRepository memoryJpaRepository;
 
     @Override
-    public Long save(Record record) {
-        RecordJpaEntity saved = recordJpaRepository.save(RecordJpaEntity.from(record));
+    public Long save(Memory memory) {
+        MemoryJpaEntity saved = memoryJpaRepository.save(MemoryJpaEntity.from(memory));
         return saved.getId();
     }
 }
@@ -274,7 +274,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 요청 흐름
 
-`POST /api/records` 하나가 지나가는 순서다. 새 기능도 같은 순서로 흐르게 만든다.
+`POST /api/memories` 하나가 지나가는 순서다. 새 기능도 같은 순서로 흐르게 만든다.
 
 1. 서버를 켤 때 Spring이 `JpaRepository → PersistenceAdapter → Service → Controller` 순서로 객체를 만들어 생성자에 넣는다.
 2. 컨트롤러: JSON → Request(`@Valid`로 형식 검증) → Command, 유스케이스 호출
@@ -312,7 +312,6 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 함정
 
-- 자바에는 `java.lang.Record`가 있고 `java.lang`은 자동으로 import된다. 도메인 클래스 이름이 `Record`이면, import를 빠뜨려도 컴파일 에러 없이 자바 내장 `Record`로 컴파일된다. `Record`를 쓰는 파일은 `import com.pawmento.record.domain.Record;`를 확인한다.
 - 에디터 자동 import로 `domain`에 `application` 클래스가 들어가는 일이 있다. 쓰지 않는 import라도 지운다.
 
 ## 정한 것
@@ -325,11 +324,11 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
 - Command·Query·Result·Request·Response는 자바 `record`로 만든다.
 - 롬복을 쓴다. 범위는 [롬복 사용 범위](#롬복-사용-범위)를 따른다.
+- 기록 도메인 이름은 `Memory`로 한다. 프론트엔드가 쓰는 이름과 맞추고, 자바 내장 `java.lang.Record`와 헷갈리지 않게 하기 위해서다.
 
 ## 아직 정하지 않은 것
 
 - 도메인 객체와 JpaEntity를 계속 분리할지 (#16은 분리)
-- 도메인 클래스 이름 `Record` 유지 여부. 프론트엔드가 이 개념을 `Memory`로 쓰고 있어 `Memory`로 맞추자는 의견이 있다. 바꾸면 패키지(`com.pawmento.memory`), 문서 폴더, 프론트엔드 경로를 함께 바꾼다
 - 도메인 예외를 `global.error`의 공통 에러 응답(400)으로 연결하는 방식
 - 다른 도메인 기능을 부르는 방식
 - 테스트를 계층별로 어디에 어떻게 둘지
