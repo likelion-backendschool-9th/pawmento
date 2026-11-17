@@ -1,5 +1,5 @@
 # 백엔드 이미지. backend/ 폴더를 빌드 컨텍스트로 쓴다: docker build -t pawmento-backend backend
-# 실행할 때 DB 접속 정보(DB_HOST 등)를 환경 변수로 넘긴다.
+# 실행할 때 DB 접속 정보(SPRING_DATASOURCE_*)와 파일 저장 위치(PAWMENTO_MEDIA_ROOT)를 환경 변수로 넘긴다 (compose.yaml).
 
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
@@ -13,7 +13,11 @@ RUN ./gradlew bootJar --no-daemon -x test
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-RUN groupadd --system app && useradd --system --gid app app
+# 사진·음성 파일 저장 폴더를 실행 사용자(app) 소유로 만든다. 처음 연결되는 Docker 볼륨이 이 소유권을 이어받아,
+# root가 아닌 백엔드가 볼륨에 쓸 수 있다 (#47)
+RUN groupadd --system app && useradd --system --gid app app \
+    && mkdir -p /var/lib/pawmento/media \
+    && chown app:app /var/lib/pawmento/media
 COPY --from=build /app/build/libs/*.jar app.jar
 USER app
 EXPOSE 8080
