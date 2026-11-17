@@ -320,7 +320,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 - 입력 포트 인터페이스(`UseCase`)를 모든 기능에 둔다. 컨트롤러는 서비스 클래스를 직접 받지 않는다.
 - 유스케이스 입력은 Command(변경)·Query(조회)로 받고, 결과는 id나 `Result`로 돌려준다. 도메인 객체를 돌려주지 않는다.
-- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.common`에 두고, 하위에 `security`, `error`를 둔다.
+- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.global`에 두고, 하위에 `security`, `error`를 둔다.
 - API 경로는 `/api/v1/<복수형>`이다. 컨트롤러에는 `/<복수형>`만 쓴다.
 - 로그인한 회원 id는 Command·Query의 `memberId`로 넘긴다. 서비스는 Spring Security를 모른다.
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
