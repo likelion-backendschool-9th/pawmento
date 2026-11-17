@@ -24,6 +24,7 @@ server {
     ssl_certificate_key /etc/letsencrypt/live/<팀 도메인>/privkey.pem;
 
     # 사진 업로드를 받을 수 있게 팀 nginx(nginx/proxy.conf)와 같은 값으로 둔다. 기본값 1m이면 업로드가 막힌다
+    # 사진은 한 요청에 한 장, 최대 15MB다 (docs/deploy.md)
     client_max_body_size 20m;
 
     location / {
