@@ -11,6 +11,7 @@
 | 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증](../member/README.md) |
 | 기존 저장 방식 논의 | [#4](https://github.com/likelion-backendschool-9th/pawmento/issues/4). 개발 서버 Docker volume 저장 결정과 연결 |
 | 개발 이슈 | [#33](https://github.com/likelion-backendschool-9th/pawmento/issues/33) |
+| 볼륨·권한·백업 배포 결정 | [#47](https://github.com/likelion-backendschool-9th/pawmento/issues/47) |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
 ## 요구사항
@@ -43,18 +44,16 @@
 services:
   backend:
     volumes:
-      - pawmento_media:/var/lib/pawmento/media
+      - media-data:/var/lib/pawmento/media
     environment:
       PAWMENTO_MEDIA_ROOT: /var/lib/pawmento/media
 volumes:
-  pawmento_media:
-    external: true
-    name: pawmento-media
+  media-data:
 ```
 
-이 예시는 설계안이다. 실제 compose 서비스·배포 설정은 담당 파일과 맞춰 구현한다. external volume은 서버에서 한 번 준비하고 없으면 기동을 실패시킨다. 컨테이너의 비 root 실행 UID/GID에 쓰기 권한을 부여하고, 공개 static/nginx alias로 이 경로를 노출하지 않는다. `tmp/`, `files/`, `thumbnails/`를 서버 생성 상대 키로 구분한다.
+볼륨은 #47의 배포 결정에 따라 external이 아닌 일반 `media-data`로 한다. `COMPOSE_PROJECT_NAME`으로 이름이 구분되며 서버에서는 `pawmento-develop_media-data`를 사용한다. 로컬에서 볼륨을 미리 만들 필요가 없다. `backend/Dockerfile`에서 저장 폴더를 `app` 사용자 소유로 만들어 새 볼륨이 이 소유권을 이어받도록 한다. 기존 볼륨의 권한 이관은 별도로 확인한다. 공개 static/nginx alias로 이 경로를 노출하지 않는다. (고침 #47: 공용 서버의 프로젝트별 볼륨 분리와 로컬 자동 생성 정책 반영) `tmp/`, `files/`, `thumbnails/`를 서버 생성 상대 키로 구분한다.
 
-Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 서버 디스크 자체의 유실을 막아주는 백업은 아니다. 이 앱은 우선 **단일 호스트**를 전제로 하고 DB와 volume을 함께 백업·복구하는 절차를 둔다. 여러 서버로 확장할 때는 이 volume이 자동 공유되지 않으므로 저장 어댑터/인프라를 다시 정한다. [Docker 공식 문서](https://docs.docker.com/engine/storage/volumes/)
+Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 서버 디스크 자체의 유실을 막아주는 백업은 아니다. 이 앱은 우선 **단일 호스트**를 전제로 한다. 개발 서버는 현재 백업하지 않으며 데이터가 사라질 수 있음을 팀에 알린다. **외부 테스터를 받기 전에 DB와 volume을 함께 백업·복구하는 절차를 만들고 복구를 확인한다.** (고침 #47: 개발 서버 백업 준비 시점 명시) 여러 서버로 확장할 때는 이 volume이 자동 공유되지 않으므로 저장 어댑터/인프라를 다시 정한다. [Docker 공식 문서](https://docs.docker.com/engine/storage/volumes/)
 
 ## 업로드부터 저장까지
 
@@ -174,13 +173,13 @@ spring:
 - 마지막 참조가 사라지면 자산을 DELETING으로 표시하고 작업자가 최종 파일·썸네일·임시 파일를 삭제한다. 저장소 장애는 재시도하며 글을 되살리지 않는다. 이미 없는 파일 삭제는 성공으로 취급한다.
 - 만료 PENDING, 장시간 PROCESSING, 미연결 READY, REJECTED, volume에만 남은 고아 파일를 정리한다. 작업 임대·시도 횟수·최종 오류를 기록하고 영구 실패는 운영자가 확인할 수 있게 한다.
 - 임시 디렉터리/고아 파일 정리는 앱의 배치로 관리한다. DB 정합성 확인 없이 최종 디렉터리 전체를 만료 삭제하지 않는다. 디스크 사용률·미완료 업로드 수·업로더별 임시 사용량·동시 업로드 수를 제한/관찰하고, 용량 부족 시 새 업로드를 거부하되 기존 파일과 글은 보존한다.
-- 배포 때 미디어 volume을 초기화하거나 다른 Compose 프로젝트 이름으로 새 volume을 만들지 않는다. 서비스 파일·썸네일·GPS 후보/메타데이터의 DB를 일관되게 백업하고 실제 복구를 확인한다.
+- 배포 때 미디어 volume을 초기화하거나 다른 Compose 프로젝트 이름으로 새 volume을 만들지 않는다. 개발 서버는 현재 백업하지 않는다. 외부 테스터를 받기 전에 서비스 파일·썸네일과 GPS 후보/메타데이터 DB의 일관된 백업·복구 절차를 마련하고 실제 복구를 확인한다. (고침 #47: 백업은 외부 테스터 수용 전 별도 준비)
 
 ## 헥사고날 경계·구현 순서
 
 `com.pawmento.media` 아래 domain/application/adapter 규칙을 따른다. JPA 엔티티·파일 시스템 경로·MultipartFile·브라우저 MIME 처리 객체가 핵심 계층으로 새지 않도록 한다.
 
-1. 개발 이슈·형식/용량·권한·저장소 계약 확정. 실제 named volume 준비·권한·백업 절차는 배포 담당과 연결한다.
+1. 개발 이슈·형식/용량·권한·저장소 계약 확정. 일반 `media-data` 볼륨·`app` 쓰기 권한은 배포 #47과 연결한다. 백업·복구는 외부 테스터를 받기 전에 별도로 준비한다.
 2. `MediaAsset` 상태·저장소 포트·volume/테스트 어댑터, JSON 업로드 세션·multipart 파일 전송·15MiB 제한·CSRF 검사·만료 처리.
 3. 검증 작업자·완료/상태 조회·불변 최종 저장·썸네일·비공개 열람.
 4. `AcquireMediaReferencesUseCase`, `ReleaseMediaReferencesUseCase` 등 내부 포트와 트랜잭션 규약을 정의해 diary/question 첨부 저장과 연결.
@@ -212,11 +211,11 @@ media에서 부모 참조 확인이 필요하면 출력 포트와 각 도메인�
 | 테스트 | #33-S15 사진·음성 각각 15MiB 경계 허용·1바이트 초과 거부, 한 요청 한 파일·최대 5개/75MiB 검사 |
 | 테스트 | #33-S16 파일 수신 중단·디스크 부족·재시작·권한 오류 시 입력/기존 파일 보존, 임시 파일 정리 |
 | 테스트 | #33-S17 multipart 헤더/출처 누락 거부·인증 필터 순서·경로 순회/심볼릭 링크 거부 |
-| 직접 | #33-S18 컨테이너 교체 후 volume 파일 유지·DB/파일 백업 복구·프록시 요청 크기·실제 Range 재생 확인 |
+| 직접 | #33-S18 컨테이너를 다시 만든 뒤 볼륨 파일 유지·프록시 요청 크기·실제 Range 재생 확인 (고침 #47: 개발 서버는 현재 백업하지 않으며 백업·복구 검증은 외부 테스터 수용 전 별도 준비) |
 
 ## 아직 정하지 않은 것과 범위 밖
 
-- 저장소는 Docker volume으로 정했다. 15MiB 단위·최대 5개·재생 시간·TTL의 추천값과 실제 volume 이름·UID/GID·디스크 경보·백업 일정을 확정한다.
+- 저장소는 Docker volume으로 정했다. 파일당 15MiB·한 요청에 파일 하나·Spring 요청 16MiB·nginx 20m·일반 `media-data` 볼륨·`app` 쓰기 권한은 #47 배포 결정과 맞춘다. 최대 5개·재생 시간·TTL·디스크 경보 기준은 확인한다. 개발 서버 백업은 현재 하지 않으며, **외부 테스터를 받기 전** 백업 일정·보관 기간·DB/volume 일관성·복구 절차를 정한다. (고침 #47: 확정 배포 항목과 추후 백업 시점을 구분)
 - 악성코드 검사 도구·미디어 파서·EXIF 제거 도구·이미지 썸네일 도구와 배포 자원 한도를 정한다. 선택한 실제 라이브러리·도구의 공식 문서와 라이선스는 구현 이슈에서 확인한다.
 - 영상 업로드·재생·썸네일·트랜스코딩/HLS, S3 multipart/이어 올리기, CDN, 음성 전사·파형 분석은 초기 범위 밖이다. 사진과 음성 녹음 업로드·열람/재생만 포함한다.
 - 아이/회원 삭제와 가족 탈퇴 시 파일·작성자 데이터 보존은 각 도메인 정책과 맞춘다. 파일은 현재 권한을 확인하는 인증 스트리밍으로 제공하며 이미 내려받은 파일 회수는 범위 밖이다.
