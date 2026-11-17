@@ -48,7 +48,7 @@
 | `photo_asset_id` 또는 URL | 프로필 사진. media 정책 확정 전 미정 |
 | `mode` | `ACTIVE` / `GARDEN` |
 | `created_at`, `updated_at` | 시각 |
-| `version` | 동시 수정 충돌용(제안) |
+| `version` | 동시 수정 충돌용(낙관적 잠금). 이름 수정과 모드 변경이 겹치면 409 (#46, PR #48) |
 
 ## 아직 정하지 않은 것
 
