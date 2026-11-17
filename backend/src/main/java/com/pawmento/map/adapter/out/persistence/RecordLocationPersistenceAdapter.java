@@ -3,6 +3,7 @@ package com.pawmento.map.adapter.out.persistence;
 import java.util.List;
 import java.util.Optional;
 
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
@@ -35,10 +36,10 @@ class RecordLocationPersistenceAdapter
 			entity = recordLocationJpaRepository.findById(location.getId())
 				.orElseThrow(() -> new IllegalStateException("저장된 위치를 찾을 수 없습니다. id=" + location.getId()));
 			// 기록·반려동물·작성자는 바뀌지 않는다. 다른 위치의 id로 덮어쓰는 일을 막는다
-			if (!entity.isSameOwner(location)) {
+			if (!entity.hasSameReferences(location)) {
 				throw new IllegalStateException("저장된 위치와 기록·반려동물·작성자가 다릅니다. id=" + location.getId());
 			}
-			entity.apply(location);
+			entity.updateLocation(location);
 		}
 		return saveEntity(entity, location);
 	}
@@ -49,8 +50,17 @@ class RecordLocationPersistenceAdapter
 			return recordLocationJpaRepository.save(entity).getId();
 		}
 		catch (DataIntegrityViolationException e) {
-			throw new RecordLocationAlreadyExistsException(location.getRecordId(), e);
+			// 기록당 위치 하나라는 유일 제약을 어긴 경우만 "이미 있는 위치"로 본다. 다른 무결성 오류는 그대로 던진다
+			if (isRecordUniqueViolation(e)) {
+				throw new RecordLocationAlreadyExistsException(location.getRecordId(), e);
+			}
+			throw e;
 		}
+	}
+
+	private boolean isRecordUniqueViolation(DataIntegrityViolationException e) {
+		return e.getCause() instanceof ConstraintViolationException violation
+				&& RecordLocationJpaEntity.RECORD_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
 	}
 
 	@Override

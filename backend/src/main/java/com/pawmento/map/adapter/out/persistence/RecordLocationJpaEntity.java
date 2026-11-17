@@ -18,10 +18,14 @@ import jakarta.persistence.UniqueConstraint;
 // 기록·반려동물·회원은 다른 도메인이므로 엔티티로 잇지 않고 id만 저장한다
 @Entity
 @Table(name = "record_location",
-		uniqueConstraints = @UniqueConstraint(name = "uk_record_location_record", columnNames = "record_id"),
+		uniqueConstraints = @UniqueConstraint(name = RecordLocationJpaEntity.RECORD_UNIQUE_CONSTRAINT,
+				columnNames = "record_id"),
 		indexes = @Index(name = RecordLocationJpaEntity.PIN_LOOKUP_INDEX,
 				columnList = "created_by, pet_id, latitude, longitude"))
 class RecordLocationJpaEntity {
+
+	// 기록당 위치 하나를 지키는 유일 제약. 이 제약을 어겼을 때만 "이미 있는 위치"로 본다
+	static final String RECORD_UNIQUE_CONSTRAINT = "uk_record_location_record";
 
 	// 핀 조회용 인덱스. 실행 계획은 PR에서 확인한 결과를 따른다
 	static final String PIN_LOOKUP_INDEX = "idx_record_location_pin_lookup";
@@ -62,18 +66,19 @@ class RecordLocationJpaEntity {
 		entity.recordId = location.getRecordId();
 		entity.petId = location.getPetId();
 		entity.createdBy = location.getCreatedBy();
-		entity.apply(location);
+		entity.updateLocation(location);
 		return entity;
 	}
 
-	// 위치가 바뀔 수 있는 값만 옮긴다. 기록·반려동물·작성자는 바뀌지 않는다
-	void apply(RecordLocation location) {
+	// 좌표와 장소 이름만 바꾼다. 기록·반려동물·작성자는 바뀌지 않는다
+	void updateLocation(RecordLocation location) {
 		this.latitude = location.getLatitude();
 		this.longitude = location.getLongitude();
 		this.placeName = location.getPlaceName();
 	}
 
-	boolean isSameOwner(RecordLocation location) {
+	// 기록·반려동물·작성자 id가 모두 같은지 비교한다. 권한 검사가 아니라 같은 위치 행인지 확인하는 용도다
+	boolean hasSameReferences(RecordLocation location) {
 		return recordId.equals(location.getRecordId()) && petId.equals(location.getPetId())
 				&& createdBy.equals(location.getCreatedBy());
 	}

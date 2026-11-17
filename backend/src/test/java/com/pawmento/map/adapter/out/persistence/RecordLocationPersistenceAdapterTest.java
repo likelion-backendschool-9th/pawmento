@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,9 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.map.application.exception.RecordLocationAlreadyExistsException;
 import com.pawmento.map.domain.MapArea;
 import com.pawmento.map.domain.RecordLocation;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 // 시나리오는 docs/map/record-location.md에 있다. API를 만들기 전이라 저장소가 지키는 부분만 확인한다.
 // 진짜 PostgreSQL에서 확인하고, 각 테스트가 끝나면 되돌린다
@@ -35,14 +39,27 @@ class RecordLocationPersistenceAdapterTest {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	@PersistenceContext
+	private EntityManager entityManager;
+
+	// 같은 트랜잭션의 영속성 컨텍스트에서 읽으면 DB가 아니라 메모리에 있는 엔티티가 돌아온다.
+	// 저장한 뒤에는 DB에 반영하고 컨텍스트를 비워서, 다음 조회가 실제 행을 읽게 한다
+	private void flushAndClear() {
+		entityManager.flush();
+		entityManager.clear();
+	}
+
 	private Long save(long recordId, long petId, long memberId, double latitude, double longitude) {
-		return adapter.save(RecordLocation.create(recordId, petId, memberId, latitude, longitude, null));
+		Long id = adapter.save(RecordLocation.create(recordId, petId, memberId, latitude, longitude, null));
+		flushAndClear();
+		return id;
 	}
 
 	@Test
 	@DisplayName("#19-S1 위치를 저장하고 기록 번호로 다시 읽으면 같은 값이다")
 	void saveAndLoad() {
 		Long id = adapter.save(RecordLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
+		flushAndClear();
 
 		RecordLocation loaded = adapter.loadByRecordId(100L).orElseThrow();
 
@@ -70,12 +87,17 @@ class RecordLocationPersistenceAdapterTest {
 		RecordLocation existing = adapter.loadByRecordId(100L).orElseThrow();
 		existing.move(35.1796, 129.0756, "부산");
 		Long updatedId = adapter.save(existing);
+		flushAndClear();
 
 		assertThat(updatedId).isEqualTo(id);
 		assertThat(jdbcTemplate.queryForObject("select count(*) from record_location", Long.class)).isEqualTo(1L);
-		RecordLocation loaded = adapter.loadByRecordId(100L).orElseThrow();
-		assertThat(loaded.getLatitude()).isEqualTo(35.1796);
-		assertThat(loaded.getPlaceName()).isEqualTo("부산");
+		// 컨텍스트를 비운 뒤라 DB 행의 값을 직접 확인한다
+		Map<String, Object> row = jdbcTemplate
+			.queryForMap("select latitude, longitude, place_name from record_location where record_id = 100");
+		assertThat(row.get("latitude")).isEqualTo(35.1796);
+		assertThat(row.get("longitude")).isEqualTo(129.0756);
+		assertThat(row.get("place_name")).isEqualTo("부산");
+		assertThat(adapter.loadByRecordId(100L).orElseThrow().getPlaceName()).isEqualTo("부산");
 	}
 
 	@Test
@@ -124,7 +146,8 @@ class RecordLocationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#19-S4 지운 위치를 같은 트랜잭션에서 그 id로 바꾸려 하면 오류가 난다")
 	void deletedLocationIsNotServedFromCache() {
-		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
+		// 저장한 엔티티가 영속성 컨텍스트에 남아 있는 상태에서 지워야 의미가 있어서, 여기서는 컨텍스트를 비우지 않는다
+		Long id = adapter.save(RecordLocation.create(100L, PET, MEMBER, 37.0, 127.0, null));
 		RecordLocation stale = RecordLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
 
 		adapter.deleteByRecordId(100L);
