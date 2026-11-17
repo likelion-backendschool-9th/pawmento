@@ -30,7 +30,7 @@
 - Then  400과 `code: "VALIDATION"`을 받는다
 - Given 카테고리가 사용하지 않는 카테고리(`active = false`)다
 - When  글을 쓴다
-- Then  409와 `code: "CONFLICT"`를 받는다
+- Then  409와 `code: "CONFLICT"`를 받는다 (고침 #21: 숨긴 카테고리는 다시 켜면 성공하므로 예외 처리 문서 기준에 따라 400에서 409로)
 - Then  두 경우 모두 `posts`에 행이 늘지 않는다
 
 ## 2. 목록 (#21-R2)
@@ -52,16 +52,16 @@
 - When  `GET /api/v1/posts?category=NOPE`를 부른다
 - Then  400과 `code: "VALIDATION"`을 받는다
 - When  `GET /api/v1/posts`(카테고리 없이)를 부른다
-- Then  400을 받는다. 응답 본문 형식은 #60에서 정한다([예외 처리 문서](../backend-exceptions.md#아직-정하지-않은-것)의 Spring MVC 표준 예외)
+- Then  400을 받는다. 응답 본문 형식은 #60에서 정한다([예외 처리 문서](../backend-exceptions.md#아직-정하지-않은-것)의 Spring MVC 표준 예외) (고침 #21: 공통 요청 오류의 형식이 미정이라 `code` 확인을 뺌)
 
-#21-S7 실패: 목록 범위 [테스트]
+#21-S13 실패: 목록 범위 [테스트]
 - When  `size=0`, `size=51`, `cursor=0`으로 각각 목록을 부른다
 - Then  셋 다 400과 `code: "VALIDATION"`을 받는다
 
 ## 3. 상세 (#21-R3)
 누구나 글 하나의 상세를 본다.
 
-#21-S8 로그인 없이 보기 [테스트]
+#21-S7 로그인 없이 보기 [테스트]
 - Given 글 1이 있고, 쿠키 없이 요청한다
 - When  `GET /api/v1/posts?category=CARE`와 `GET /api/v1/posts/1`을 부른다
 - Then  둘 다 200을 받는다
@@ -72,7 +72,7 @@
 ## 4. 글 수정 (#21-R4)
 작성자가 자기 글의 카테고리·제목·본문을 고친다.
 
-#21-S9 정상 [테스트]
+#21-S8 정상 [테스트]
 - Given 회원 A가 쓴 `CARE` 글 1이 있다
 - When  A가 `PUT /api/v1/posts/1`에 `{"category":"MEMORIAL","title":"고친 제목","body":"고친 본문"}`을 보낸다
 - Then  200을 받는다
@@ -82,7 +82,7 @@
 ## 5. 글 삭제 (#21-R5)
 작성자가 자기 글을 지우면 목록과 상세에서 보이지 않는다.
 
-#21-S10 정상 [테스트]
+#21-S9 정상 [테스트]
 - Given 회원 A가 쓴 글 1이 있다
 - When  A가 `DELETE /api/v1/posts/1`을 부른다
 - Then  204를 받는다
@@ -92,14 +92,14 @@
 ## 6. 권한 (#21-R6, #21-R7)
 작성자가 아닌 회원은 고치거나 지울 수 없고(R6), 로그인하지 않은 방문자는 쓰거나 고치거나 지울 수 없다(R7).
 
-#21-S11 다른 회원 [테스트]
+#21-S10 다른 회원 [테스트]
 - Given 회원 A가 쓴 글 1이 있고, 회원 B가 로그인했다
 - When  B가 글 1을 `PUT`하거나 `DELETE`한다
 - Then  둘 다 403과 `code: "FORBIDDEN"`을 받는다
 - Then  글 1의 내용은 그대로이고 목록에 남아 있다
 - 도메인 `Post.edit`·`Post.delete`도 작성자가 아니면 거부한다 (단위 테스트)
 
-#21-S12 비로그인 [테스트]
+#21-S11 비로그인 [테스트]
 - Given 쿠키 없이 요청한다
 - When  `POST`, `PUT /1`, `DELETE /1`을 부른다
 - Then  셋 다 401을 받는다
@@ -107,7 +107,7 @@
 ## 7. 카테고리 목록 (#21-R8)
 누구나 사용 중인 카테고리 목록을 본다. 프론트엔드는 카테고리를 하드코딩하지 않고 이 목록으로 탭을 만든다.
 
-#21-S13 정상 [테스트]
+#21-S12 정상 [테스트]
 - Given 기본 카테고리만 있다 (서버가 시작할 때 넣은 5개)
 - When  쿠키 없이 `GET /api/v1/posts/categories`를 부른다
 - Then  200과 5개를 순서대로 받는다: `LIFE`(반려 생활), `CARE`(건강·돌봄), `FUNERAL`(장례 정보), `MEMORIAL`(추모 방식), `MEMORY`(기억 나누기)
@@ -137,16 +137,16 @@
 ## 작업 순서
 [백엔드 구조 문서](../backend-architecture.md)의 "안쪽부터" 순서를 따른다. 1~2단계는 DB와 웹 없이 단위 테스트로 확인한다. 롬복 의존성을 더하는 PR이 머지되면 `develop`을 받은 뒤 코드를 쓴다.
 
-1. 도메인: `Post`, `PostCategory`, 도메인 예외 — S2(도메인), S11(도메인)
+1. 도메인: `Post`, `PostCategory`, 도메인 예외 — S2(도메인), S10(도메인)
    - 파일: `community/domain/Post.java`, `PostCategory.java`, `community/domain/exception/{InvalidPostException,NotPostAuthorException}.java`, 테스트 `community/domain/PostTest.java`
    - 확인: `./gradlew test --tests 'com.pawmento.community.domain.*'`
-2. 포트와 서비스: 유스케이스 6개(글 5개, 카테고리 목록 1개), Command·Query·Result, 출력 포트, 서비스 — S1·S3·S7·S9·S10·S11의 서비스 흐름
+2. 포트와 서비스: 유스케이스 6개(글 5개, 카테고리 목록 1개), Command·Query·Result, 출력 포트, 서비스 — S1·S3·S8·S9·S10·S13의 서비스 흐름
    - 파일: `community/application/port/in/*`, `port/out/{Save,Load,Update}PostPort.java`, `port/out/LoadPostCategoryPort.java`(`PostPersistenceAdapter`가 함께 구현), `application/service/*`, `application/exception/{PostNotFoundException,InvalidPostCategoryException,InactivePostCategoryException,InvalidPostPageException,PostConcurrentModificationException}.java`, 테스트 `community/application/service/*Test.java`(가짜 포트)
    - 확인: `./gradlew test --tests 'com.pawmento.community.application.*'`
-3. 영속성 어댑터: `PostJpaEntity`(`@Version`), `PostCategoryJpaEntity`, 리포지토리, `PostPersistenceAdapter`(저장 직후 `flush`해 버전 충돌을 `PostConcurrentModificationException`으로 바꿈), 초기 카테고리 넣기(`PostCategorySeeder`) — S4·S5(커서 쿼리), S13(초기 데이터), S14(버전 충돌)
+3. 영속성 어댑터: `PostJpaEntity`(`@Version`), `PostCategoryJpaEntity`, 리포지토리, `PostPersistenceAdapter`(저장 직후 `flush`해 버전 충돌을 `PostConcurrentModificationException`으로 바꿈), 초기 카테고리 넣기(`PostCategorySeeder`) — S4·S5(커서 쿼리), S12(초기 데이터), S14(버전 충돌)
    - 파일: `community/adapter/out/persistence/*`
    - 확인: `./gradlew compileJava` (동작은 5단계의 시나리오 테스트로 확인)
-4. 웹 어댑터와 공개 경로: `PostController`(카테고리 목록 포함), Request·Response, `PublicEndpoints`에 공개 읽기 경로 묶음 추가(`GET ApiPaths.V1 + "/posts"`, `GET ApiPaths.V1 + "/posts/*"`), 그 묶음에서도 토큰을 읽지 않게 `CookieBearerTokenResolver` 수정 — S6·S8·S12
+4. 웹 어댑터와 공개 경로: `PostController`(카테고리 목록 포함), Request·Response, `PublicEndpoints`에 공개 읽기 경로 묶음 추가(`GET ApiPaths.V1 + "/posts"`, `GET ApiPaths.V1 + "/posts/*"`), 그 묶음에서도 토큰을 읽지 않게 `CookieBearerTokenResolver` 수정 — S6·S7·S11
    - 파일: `community/adapter/in/web/*`, `global/security/{PublicEndpoints,SecurityConfig,CookieBearerTokenResolver}.java`, `docs/member/README.md`(공개 경로 표)
    - 확인: `./gradlew compileJava`
 5. 시나리오 테스트 — S1~S14 (API 전체)
