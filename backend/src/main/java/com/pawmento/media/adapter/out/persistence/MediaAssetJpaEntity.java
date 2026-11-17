@@ -67,6 +67,14 @@ public class MediaAssetJpaEntity {
   @Column(name = "temporary_file_deleted", nullable = false)
   private boolean temporaryFileDeleted;
 
+  @Embedded private VerifiedMediaColumns verified;
+  private Instant readyAt;
+  private Instant unattachedExpiresAt;
+  private Instant deletedAt;
+
+  @Column(nullable = false, columnDefinition = "integer default 0")
+  private int referenceCount;
+
   @Version private Long version;
 
   public static MediaAssetJpaEntity from(MediaAsset a) {
@@ -89,6 +97,11 @@ public class MediaAssetJpaEntity {
     e.failureReason = a.getFailureReason();
     e.temporaryFileDeleted = a.isTemporaryFileDeleted();
     e.version = a.getVersion();
+    e.verified = VerifiedMediaColumns.from(a.getVerified());
+    e.readyAt = a.getReadyAt();
+    e.unattachedExpiresAt = a.getUnattachedExpiresAt();
+    e.deletedAt = a.getDeletedAt();
+    e.referenceCount = a.getReferenceCount();
     return e;
   }
 
@@ -111,6 +124,11 @@ public class MediaAssetJpaEntity {
         sha256,
         failureReason,
         temporaryFileDeleted,
-        version);
+        version,
+        verified == null ? null : verified.toDomain(),
+        readyAt,
+        unattachedExpiresAt,
+        deletedAt,
+        referenceCount);
   }
 }

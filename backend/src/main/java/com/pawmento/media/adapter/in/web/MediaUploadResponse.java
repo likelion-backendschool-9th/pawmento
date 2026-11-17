@@ -16,7 +16,14 @@ public record MediaUploadResponse(
     Instant expiresAt,
     String contentPath,
     String statusPath,
-    String failureReason) {
+    String failureReason,
+    String mimeType,
+    Long sizeBytes,
+    Long durationMs,
+    Integer width,
+    Integer height,
+    String previewPath,
+    String thumbnailPath) {
   public static MediaUploadResponse from(MediaUploadResult r) {
     String path = ApiPaths.V1 + "/pets/" + r.petId() + "/media/" + r.assetId();
     return new MediaUploadResponse(
@@ -31,6 +38,13 @@ public record MediaUploadResponse(
         r.expiresAt(),
         path + "/content",
         path,
-        r.failureReason());
+        r.failureReason(),
+        r.mimeType(),
+        r.sizeBytes(),
+        r.durationMs(),
+        r.width(),
+        r.height(),
+        r.status().equals("READY") ? path + "/preview" : null,
+        r.status().equals("READY") && r.thumbnailAvailable() ? path + "/thumbnail" : null);
   }
 }

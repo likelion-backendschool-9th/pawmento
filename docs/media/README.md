@@ -2,6 +2,8 @@
 
 질문·다이어리와 함께 구현할 공통 파일 도메인의 개발 설계 초안이다. 사용자는 두 기능에서 사진·음성 녹음을 첨부할 수 있어야 한다고 정했다. 저장소는 사용자 선택에 따라 Docker named volume으로 한다. 파일 크기는 사진·음성 모두 15MiB를 추천안으로 정리했고 나머지 제한·유효 시간은 검토할 제안이며, 업로드 자체는 후속 범위가 아니라 이번 구현 범위다.
 
+현재 실행 방법과 아직 연결하지 않은 경계는 [실행 문서](runtime.md)에 정리한다. 가족·부모 참조·위치 동의 전체가 구현되었다는 뜻은 아니다.
+
 ## 관련 문서와 이슈
 
 | 항목 | 연결 |
@@ -136,7 +138,7 @@ spring:
       location: /var/lib/pawmento/media/tmp/multipart
 ```
 
-요청당 파일 하나를 받아 파일 제한 15MiB와 multipart 헤더 여유를 포함한 요청 제한 16MiB를 분리한다. 애플리케이션의 실제 읽기·검증도 15MiB를 검사한다. 생성된 서비스본도 15MiB를 넘으면 재처리하거나 거부한다. 설정 예시는 문서이며 아직 실제 application.yml은 바꾸지 않았다. [Spring Boot 공식 설정](https://docs.spring.io/spring-boot/appendix/application-properties/)
+요청당 파일 하나를 받아 파일 제한 15MiB와 multipart 헤더 여유를 포함한 요청 제한 16MiB를 분리한다. 애플리케이션의 실제 읽기·검증도 15MiB를 검사한다. 생성된 서비스본도 15MiB를 넘으면 재처리하거나 거부한다. 요청 크기 설정은 현재 application.yml에 반영했다. [Spring Boot 공식 설정](https://docs.spring.io/spring-boot/appendix/application-properties/)
 
 프록시/nginx도 최대 요청 본문 16MiB 이상으로 맞춘다(예: 20m). 여러 장을 한 요청에 합치지 않으므로 5장 합계가 75MiB여도 프록시 요청 하나가 75MiB가 되지 않는다. 두 nginx를 거치는 배포라면 양쪽을 확인하고 프록시의 413도 사용자에게 안내한다.
 

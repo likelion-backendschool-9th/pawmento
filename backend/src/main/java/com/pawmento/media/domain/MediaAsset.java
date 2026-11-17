@@ -34,6 +34,13 @@ public class MediaAsset {
   private String failureReason;
   private boolean temporaryFileDeleted;
   private Long version;
+  private VerifiedMedia verified;
+  private Instant readyAt;
+  private Instant unattachedExpiresAt;
+  private Instant deletedAt;
+  private int referenceCount;
+  public static final Duration UNATTACHED_TTL = Duration.ofHours(24);
+  public static final Duration UPLOAD_TIMEOUT = Duration.ofMinutes(15);
 
   private MediaAsset() {}
 
@@ -104,7 +111,12 @@ public class MediaAsset {
       String checksum,
       String failure,
       boolean cleaned,
-      Long version) {
+      Long version,
+      VerifiedMedia verified,
+      Instant readyAt,
+      Instant unattachedExpiresAt,
+      Instant deletedAt,
+      int referenceCount) {
     MediaAsset a = new MediaAsset();
     a.id = id;
     a.uploaderMemberId = memberId;
@@ -124,6 +136,11 @@ public class MediaAsset {
     a.failureReason = failure;
     a.temporaryFileDeleted = cleaned;
     a.version = version;
+    a.verified = verified;
+    a.readyAt = readyAt;
+    a.unattachedExpiresAt = unattachedExpiresAt;
+    a.deletedAt = deletedAt;
+    a.referenceCount = referenceCount;
     return a;
   }
 
@@ -167,9 +184,64 @@ public class MediaAsset {
   }
 
   public void temporaryRemoved(Instant now) {
-    if (status != MediaUploadStatus.REJECTED)
+    if (status != MediaUploadStatus.REJECTED
+        && status != MediaUploadStatus.READY
+        && status != MediaUploadStatus.DELETING
+        && status != MediaUploadStatus.DELETED)
       throw new MediaViolation(CONFLICT, "파일 정리 상태를 확인해 주세요.");
     temporaryFileDeleted = true;
+    updatedAt = now;
+  }
+
+  public void validated(VerifiedMedia result, Instant now) {
+    if (status != MediaUploadStatus.PROCESSING)
+      throw new MediaViolation(CONFLICT, "검증 중인 파일이 아니에요.");
+    if ((mediaType == MediaType.IMAGE) != result.mimeType().startsWith("image/"))
+      throw new MediaViolation(CONFLICT, "검증한 파일의 종류가 달라요.");
+    verified = result;
+    readyAt = now;
+    unattachedExpiresAt = now.plus(UNATTACHED_TTL);
+    status = MediaUploadStatus.READY;
+    failureReason = null;
+    updatedAt = now;
+  }
+
+  public void invalidMedia(String reason, Instant now) {
+    if (status != MediaUploadStatus.PROCESSING) return;
+    status = MediaUploadStatus.REJECTED;
+    failureReason = reason;
+    updatedAt = now;
+  }
+
+  public void requirePreview(Instant now) {
+    if (status != MediaUploadStatus.READY
+        || referenceCount != 0
+        || !now.isBefore(unattachedExpiresAt))
+      throw new MediaViolation(CONFLICT, "미리보기를 할 수 없는 파일이에요.");
+  }
+
+  public boolean needsCleanup(Instant now) {
+    return switch (status) {
+      case PENDING -> !now.isBefore(expiresAt);
+      case UPLOADING -> !now.isBefore(updatedAt.plus(UPLOAD_TIMEOUT));
+      case READY -> referenceCount == 0 && !now.isBefore(unattachedExpiresAt);
+      case REJECTED -> true;
+      default -> false;
+    };
+  }
+
+  public void requestDeletion(Instant now) {
+    if (referenceCount != 0) throw new MediaViolation(CONFLICT, "글에 연결된 파일은 삭제할 수 없어요.");
+    if (status == MediaUploadStatus.DELETING || status == MediaUploadStatus.DELETED) return;
+    status = MediaUploadStatus.DELETING;
+    updatedAt = now;
+  }
+
+  public void deleted(Instant now) {
+    if (status != MediaUploadStatus.DELETING) throw new MediaViolation(CONFLICT, "삭제 중인 파일이 아니에요.");
+    status = MediaUploadStatus.DELETED;
+    temporaryFileDeleted = true;
+    deletedAt = now;
     updatedAt = now;
   }
 }

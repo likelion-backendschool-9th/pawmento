@@ -111,4 +111,47 @@ class VolumeMediaUploadAdapterTest {
         .isInstanceOf(MediaStorageException.class);
     assertThat(uploads().resolve(key + ".upload")).doesNotExist();
   }
+
+  @Test
+  @DisplayName("#33-S17 서비스본과 썸네일도 경로·심볼릭 링크·덮어쓰기를 거부한다")
+  void protectedServiceFiles() throws Exception {
+    String key = UUID.randomUUID().toString();
+    storage.write(key, "content", new ByteArrayInputStream("safe".getBytes()), 10);
+    assertThatThrownBy(
+            () -> storage.write(key, "content", new ByteArrayInputStream("bad".getBytes()), 10))
+        .isInstanceOf(MediaStorageException.class);
+    try (var in = storage.open(key, "content")) {
+      assertThat(new String(in.readAllBytes())).isEqualTo("safe");
+    }
+    var files = uploads().getParent().getParent().resolve("files");
+    Path target = files.resolve("target");
+    Files.writeString(target, "private");
+    String linked = UUID.randomUUID().toString();
+    Files.createSymbolicLink(files.resolve(linked + ".media"), target);
+    assertThatThrownBy(() -> storage.open(linked, "content"))
+        .isInstanceOf(MediaStorageException.class);
+    assertThatThrownBy(() -> storage.open("../escape", "content"))
+        .isInstanceOf(MediaStorageException.class);
+  }
+
+  @Test
+  @DisplayName("#33-S16 재시작 뒤 남은 오래된 파서 작업·multipart 파일을 안전하게 제거한다")
+  void abandonedWorkspace() throws Exception {
+    Path mediaRoot = uploads().getParent().getParent();
+    Path workspace = mediaRoot.resolve("tmp/work/decode-abandoned");
+    Files.createDirectory(workspace);
+    Path outside = mediaRoot.resolve("keep");
+    Files.writeString(outside, "keep");
+    Files.createSymbolicLink(workspace.resolve("link"), outside);
+    Files.writeString(workspace.resolve("input"), "abandoned");
+    Path multipart = mediaRoot.resolve("tmp/multipart/old.tmp");
+    Files.writeString(multipart, "stale");
+    var old = java.nio.file.attribute.FileTime.from(java.time.Instant.now().minusSeconds(172800));
+    Files.setLastModifiedTime(workspace, old);
+    Files.setLastModifiedTime(multipart, old);
+    storage.collect(java.time.Instant.now().minusSeconds(86400));
+    assertThat(workspace).doesNotExist();
+    assertThat(multipart).doesNotExist();
+    assertThat(Files.readString(outside)).isEqualTo("keep");
+  }
 }

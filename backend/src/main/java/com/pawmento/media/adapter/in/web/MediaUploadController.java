@@ -17,6 +17,8 @@ public class MediaUploadController {
   private final CreateMediaUploadUseCase create;
   private final GetMediaUploadUseCase get;
   private final UploadMediaContentUseCase upload;
+  private final GetMediaPreviewUseCase preview;
+  private final DeleteMediaUploadUseCase deletion;
 
   @PostMapping(path = "/uploads", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
@@ -59,5 +61,33 @@ public class MediaUploadController {
     } catch (IOException e) {
       throw new MediaUploadException(MediaUploadException.Kind.STORAGE, "파일을 읽지 못했어요.");
     }
+  }
+
+  @GetMapping({"/{assetId}/preview", "/{assetId}/thumbnail"})
+  ResponseEntity<org.springframework.core.io.Resource> preview(
+      @LoginMember Long memberId,
+      @PathVariable Long petId,
+      @PathVariable Long assetId,
+      jakarta.servlet.http.HttpServletRequest request) {
+    boolean thumbnail = request.getRequestURI().endsWith("/thumbnail");
+    var r = preview.get(new GetMediaUploadQuery(memberId, petId, assetId), thumbnail);
+    var response =
+        ResponseEntity.ok()
+            .contentType(MediaType.parseMediaType(r.mimeType()))
+            .contentLength(r.sizeBytes())
+            .header("X-Content-Type-Options", "nosniff")
+            .header("Cache-Control", "private, no-store")
+            .header("Accept-Ranges", "bytes")
+            .header(
+                "Content-Disposition",
+                ContentDisposition.inline().filename(r.filename()).build().toString());
+    if (request.getMethod().equals("HEAD")) return response.build();
+    return response.body(new MediaPreviewResource(r));
+  }
+
+  @DeleteMapping("/{assetId}")
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  void delete(@LoginMember Long memberId, @PathVariable Long petId, @PathVariable Long assetId) {
+    deletion.delete(new GetMediaUploadQuery(memberId, petId, assetId));
   }
 }

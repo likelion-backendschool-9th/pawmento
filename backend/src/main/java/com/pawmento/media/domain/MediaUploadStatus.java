@@ -4,5 +4,8 @@ public enum MediaUploadStatus {
   PENDING,
   UPLOADING,
   PROCESSING,
-  REJECTED
+  READY,
+  REJECTED,
+  DELETING,
+  DELETED
 }

@@ -31,7 +31,10 @@ import org.springframework.test.web.servlet.*;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
+    properties = {
+      "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
+      "pawmento.media.worker.enabled=false"
+    })
 @AutoConfigureMockMvc
 class MediaUploadScenarioTest {
   private static final Path ROOT =
@@ -47,6 +50,17 @@ class MediaUploadScenarioTest {
   @Autowired MediaValidationJobJpaRepository jobs;
   @Autowired CreateMediaUploadUseCase createUseCase;
   @LocalServerPort int port;
+  @Autowired ProcessMediaWorkUseCase worker;
+  @Autowired CleanupMediaUseCase cleanupUseCase;
+  @Autowired com.pawmento.media.application.service.MediaWorkTransactions workTransactions;
+  @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
+  @Autowired com.pawmento.media.application.port.out.LoadMediaAssetPort assets;
+  @Autowired com.pawmento.media.application.port.out.CollectMediaOrphansPort orphans;
+
+  @BeforeEach
+  void isolateWork() {
+    jobs.deleteAll();
+  }
 
   record Owner(Cookie cookie, Long memberId, Long petId) {}
 
@@ -273,6 +287,310 @@ class MediaUploadScenarioTest {
     try (var files = Files.list(ROOT.resolve("tmp/uploads"))) {
       return files.count();
     }
+  }
+
+  byte[] fixture(String name) throws Exception {
+    try (var in = getClass().getResourceAsStream("/media/" + name)) {
+      return in.readAllBytes();
+    }
+  }
+
+  void drain() {
+    for (int n = 0; n < 100 && worker.processNext(); n++) {}
+  }
+
+  String state(long id) {
+    return assets.findById(id).orElseThrow().getStatus().name();
+  }
+
+  long received(Owner owner, String mime, byte[] data) throws Exception {
+    long id = session(owner, mime, data.length);
+    upload(owner, id, data).andExpect(status().isAccepted());
+    return id;
+  }
+
+  @Test
+  @DisplayName("#33-S1 실제 JPEG·PNG·WebP 검증 후 READY와 안전한 메타데이터·썸네일을 제공한다")
+  void imagesReady() throws Exception {
+    Owner a = owner();
+    for (var pair :
+        List.of(
+            new String[] {"sample.png", "image/png"},
+            new String[] {"sample.jpg", "image/jpeg"},
+            new String[] {"sample.webp", "image/webp"})) {
+      long id = received(a, pair[1], fixture(pair[0]));
+      drain();
+      assertThat(state(id)).isEqualTo("READY");
+      mvc.perform(get(path(a, id)).cookie(a.cookie()))
+          .andExpect(status().isOk())
+          .andExpect(jsonPath("$.width").value(80))
+          .andExpect(jsonPath("$.height").value(40))
+          .andExpect(jsonPath("$.previewPath").value(path(a, id) + "/preview"))
+          .andExpect(jsonPath("$.storageKey").doesNotExist());
+      mvc.perform(get(path(a, id) + "/thumbnail").cookie(a.cookie()))
+          .andExpect(status().isOk())
+          .andExpect(content().contentType("image/jpeg"));
+      assertThat(assets.findById(id).orElseThrow().isTemporaryFileDeleted()).isTrue();
+      assertThat(jobs.findById(id).orElseThrow().getStatus()).isEqualTo("DONE");
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S1 실제 WebM·Ogg/Opus·M4A/AAC·MP3를 음성 서비스본으로 검증한다")
+  void audioReady() throws Exception {
+    Owner a = owner();
+    for (var pair :
+        List.of(
+            new String[] {"sample.webm", "audio/webm"},
+            new String[] {"sample.ogg", "audio/ogg"},
+            new String[] {"sample.m4a", "audio/mp4"},
+            new String[] {"sample.mp3", "audio/mpeg"})) {
+      long id = received(a, pair[1], fixture(pair[0]));
+      drain();
+      assertThat(state(id)).isEqualTo("READY");
+      mvc.perform(get(path(a, id)).cookie(a.cookie()))
+          .andExpect(jsonPath("$.mimeType").value("audio/mp4"))
+          .andExpect(jsonPath("$.durationMs").isNumber())
+          .andExpect(jsonPath("$.thumbnailPath").isEmpty());
+      var body =
+          mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
+              .andExpect(status().isOk())
+              .andReturn()
+              .getResponse()
+              .getContentAsByteArray();
+      assertThat(new String(body, java.nio.charset.StandardCharsets.ISO_8859_1))
+          .doesNotContain("PRIVATE_DEVICE_DATA");
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S3 위조 MIME·손상 파일·영상 트랙·5분 초과 음성을 REJECTED로 처리한다")
+  void rejectsInvalidMedia() throws Exception {
+    for (var sample :
+        List.of(
+            new Object[] {"image/jpeg", fixture("sample.png")},
+            new Object[] {"image/png", new byte[] {1, 2, 3}},
+            new Object[] {"audio/mp4", fixture("video.mp4")},
+            new Object[] {"audio/ogg", fixture("too-long.ogg")},
+            new Object[] {"image/jpeg", Arrays.copyOf(fixture("sample.jpg"), 25)},
+            new Object[] {"image/png", fixture("too-many-pixels.png")},
+            new Object[] {"audio/mp4", fixture("unsupported.m4a")})) {
+      Owner a = owner();
+      long id = received(a, (String) sample[0], (byte[]) sample[1]);
+      drain();
+      assertThat(state(id)).isEqualTo("REJECTED");
+      mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
+          .andExpect(status().isConflict());
+      assertThat(assets.findById(id).orElseThrow().isTemporaryFileDeleted()).isTrue();
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S10 EXIF 방향을 보정하고 원본 메타데이터를 서비스본에서 제거한다")
+  void orientationAndPrivacy() throws Exception {
+    Owner a = owner();
+    long id = received(a, "image/jpeg", fixture("oriented.jpg"));
+    drain();
+    mvc.perform(get(path(a, id)).cookie(a.cookie()))
+        .andExpect(jsonPath("$.status").value("READY"))
+        .andExpect(jsonPath("$.width").value(40))
+        .andExpect(jsonPath("$.height").value(80));
+    byte[] service =
+        mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsByteArray();
+    assertThat(new String(service, java.nio.charset.StandardCharsets.ISO_8859_1))
+        .doesNotContain("Exif", "PRIVATE_GPS_DEVICE_DATA");
+  }
+
+  @Test
+  @DisplayName("#33-S8 미리보기의 인증·소유권·Range·HEAD·416을 검사한다")
+  void authenticatedRange() throws Exception {
+    Owner a = owner(), b = owner();
+    long id = received(a, "audio/ogg", fixture("sample.ogg"));
+    drain();
+    String url = path(a, id) + "/preview";
+    mvc.perform(get(url)).andExpect(status().isUnauthorized());
+    mvc.perform(get(url).cookie(b.cookie())).andExpect(status().isForbidden());
+    var full =
+        mvc.perform(get(url).cookie(a.cookie()))
+            .andExpect(status().isOk())
+            .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+            .andExpect(header().string("Cache-Control", "private, no-store"))
+            .andReturn()
+            .getResponse()
+            .getContentAsByteArray();
+    mvc.perform(get(url).cookie(a.cookie()).header("Range", "bytes=0-9"))
+        .andExpect(status().isPartialContent())
+        .andExpect(header().string("Content-Range", "bytes 0-9/" + full.length))
+        .andExpect(content().bytes(Arrays.copyOf(full, 10)));
+    mvc.perform(get(url).cookie(a.cookie()).header("Range", "bytes=-10"))
+        .andExpect(status().isPartialContent())
+        .andExpect(content().bytes(Arrays.copyOfRange(full, full.length - 10, full.length)));
+    mvc.perform(head(url).cookie(a.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(content().bytes(new byte[0]))
+        .andExpect(header().string("Content-Length", Integer.toString(full.length)));
+    mvc.perform(get(url).cookie(a.cookie()).header("Range", "bytes=" + full.length + "-"))
+        .andExpect(status().isRequestedRangeNotSatisfiable());
+    mvc.perform(get(path(a, id) + "/thumbnail").cookie(a.cookie()))
+        .andExpect(status().isNotFound());
+    var client = HttpClient.newHttpClient();
+    String cookie = a.cookie().getName() + "=" + a.cookie().getValue();
+    var actual =
+        client.send(
+            HttpRequest.newBuilder(URI.create("http://localhost:" + port + url))
+                .header("Cookie", cookie)
+                .header("Range", "bytes=0-9")
+                .GET()
+                .build(),
+            HttpResponse.BodyHandlers.ofByteArray());
+    assertThat(actual.statusCode()).isEqualTo(206);
+    assertThat(actual.body()).isEqualTo(Arrays.copyOf(full, 10));
+    var actualHead =
+        client.send(
+            HttpRequest.newBuilder(URI.create("http://localhost:" + port + url))
+                .header("Cookie", cookie)
+                .method("HEAD", HttpRequest.BodyPublishers.noBody())
+                .build(),
+            HttpResponse.BodyHandlers.ofByteArray());
+    assertThat(actualHead.statusCode()).isEqualTo(200);
+    assertThat(actualHead.body()).isEmpty();
+  }
+
+  @Test
+  @DisplayName("#33-S7 취소·만료 세션·미사용 READY와 실패 파일을 정리하고 중복 삭제는 허용한다")
+  void cancellationAndExpiry() throws Exception {
+    Owner a = owner();
+    long ready = received(a, "image/png", fixture("sample.png"));
+    drain();
+    long pending = session(a, "image/png", 3);
+    mvc.perform(delete(path(a, ready)).cookie(a.cookie())).andExpect(status().isAccepted());
+    drain();
+    assertThat(state(ready)).isEqualTo("DELETED");
+    mvc.perform(delete(path(a, ready)).cookie(a.cookie())).andExpect(status().isAccepted());
+    jdbc.update(
+        "update media_assets set expires_at=? where id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        pending);
+    long expiredReady = received(a, "image/png", fixture("sample.png"));
+    drain();
+    jdbc.update(
+        "update media_assets set unattached_expires_at=? where id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        expiredReady);
+    long failed = received(a, "image/png", new byte[] {1, 2, 3});
+    drain();
+    cleanupUseCase.cleanup();
+    drain();
+    for (long id : List.of(pending, expiredReady, failed))
+      assertThat(state(id)).isEqualTo("DELETED");
+    for (long id : List.of(ready, expiredReady)) {
+      var verified = assets.findById(id).orElseThrow().getVerified();
+      assertThat(ROOT.resolve("files").resolve(verified.storageKey() + ".media")).doesNotExist();
+      assertThat(ROOT.resolve("files").resolve(verified.storageKey() + ".thumb")).doesNotExist();
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S4 작업 임대 만료 후 재처리하며 이전 임대의 완료는 READY를 덮어쓰지 못한다")
+  void leaseRecovery() throws Exception {
+    Owner a = owner();
+    long id = received(a, "image/png", fixture("sample.png"));
+    var old = workTransactions.claim().orElseThrow();
+    assertThat(old.assetId()).isEqualTo(id);
+    assertThat(workTransactions.claim()).isEmpty();
+    jdbc.update(
+        "update media_validation_jobs set lease_until=? where asset_id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        id);
+    drain();
+    assertThat(state(id)).isEqualTo("READY");
+    workTransactions.rejected(old, "STALE_FAILURE");
+    assertThat(state(id)).isEqualTo("READY");
+    assertThat(jobs.findById(id).orElseThrow().getAttempts()).isEqualTo(2);
+  }
+
+  @Test
+  @DisplayName("#33-S7 검증 중 취소하면 늦게 온 검증 결과는 파일을 되살리지 않는다")
+  void cancelValidation() throws Exception {
+    Owner a = owner();
+    long id = received(a, "image/png", fixture("sample.png"));
+    var work = workTransactions.claim().orElseThrow();
+    mvc.perform(delete(path(a, id)).cookie(a.cookie())).andExpect(status().isAccepted());
+    var fake =
+        new com.pawmento.media.domain.VerifiedMedia(
+            UUID.randomUUID().toString(), "image/png", 10, "a".repeat(64), null, 1, 1, null);
+    workTransactions.success(work, fake);
+    drain();
+    assertThat(state(id)).isEqualTo("DELETED");
+  }
+
+  @Test
+  @DisplayName("#33-S16 오래된 미추적 파일만 제거하며 READY 파일과 현재 작업 파일을 보존한다")
+  void orphanCollection() throws Exception {
+    Owner a = owner();
+    long id = received(a, "image/png", fixture("sample.png"));
+    drain();
+    Path kept =
+        ROOT.resolve("files")
+            .resolve(assets.findById(id).orElseThrow().getVerified().storageKey() + ".media");
+    var old = java.nio.file.attribute.FileTime.from(Instant.now().minusSeconds(172800));
+    Files.setLastModifiedTime(kept, old);
+    Path orphan = ROOT.resolve("files").resolve(UUID.randomUUID() + ".media");
+    Files.writeString(orphan, "orphan");
+    Files.setLastModifiedTime(orphan, old);
+    long processing = received(a, "image/png", fixture("sample.png"));
+    var lease = workTransactions.claim().orElseThrow();
+    Path active = ROOT.resolve("files").resolve(lease.token() + ".media");
+    Files.writeString(active, "working");
+    Files.setLastModifiedTime(active, old);
+    orphans.collect(Instant.now().minusSeconds(86400));
+    assertThat(orphan).doesNotExist();
+    assertThat(kept).exists();
+    assertThat(active).exists();
+  }
+
+  @Test
+  @DisplayName("#33-S9 삭제 실패를 DB 작업으로 남기고 재시도하여 만료된 파일을 정리한다")
+  void durableDeletionRetry() throws Exception {
+    Owner a = owner();
+    long id = session(a, "image/png", 3);
+    var asset = assets.findById(id).orElseThrow();
+    Path blocked = ROOT.resolve("tmp/uploads").resolve(asset.getTemporaryStorageKey() + ".upload");
+    Files.createDirectory(blocked);
+    mvc.perform(delete(path(a, id)).cookie(a.cookie())).andExpect(status().isAccepted());
+    drain();
+    assertThat(state(id)).isEqualTo("DELETING");
+    assertThat(jobs.findById(id).orElseThrow().getStatus()).isEqualTo("RETRY");
+    assertThat(jobs.findById(id).orElseThrow().getLastError()).isNotBlank();
+    Files.delete(blocked);
+    jdbc.update(
+        "update media_validation_jobs set next_attempt_at=? where asset_id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        id);
+    drain();
+    assertThat(state(id)).isEqualTo("DELETED");
+  }
+
+  @Test
+  @DisplayName("#33-S9 참조 수가 남아 있는 파일은 취소·만료 정리에서 보존한다")
+  void referencedFilePreserved() throws Exception {
+    Owner a = owner();
+    long id = received(a, "image/png", fixture("sample.png"));
+    drain();
+    jdbc.update(
+        "update media_assets set reference_count=1,unattached_expires_at=? where id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        id);
+    mvc.perform(delete(path(a, id)).cookie(a.cookie())).andExpect(status().isConflict());
+    cleanupUseCase.cleanup();
+    drain();
+    assertThat(state(id)).isEqualTo("READY");
+    var a1 = assets.findById(id).orElseThrow();
+    assertThat(ROOT.resolve("files").resolve(a1.getVerified().storageKey() + ".media")).exists();
   }
 
   String path(Owner a, long id) {

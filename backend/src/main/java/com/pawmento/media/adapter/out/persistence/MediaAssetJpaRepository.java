@@ -14,6 +14,7 @@ public interface MediaAssetJpaRepository extends JpaRepository<MediaAssetJpaEnti
 
   @Query(
       "select count(a) from MediaAssetJpaEntity a where a.uploaderMemberId=:memberId and"
+          + " (a.status<>com.pawmento.media.domain.MediaUploadStatus.DELETED) and"
           + " (a.status<>:pending or a.expiresAt>:now) and (a.status<>:rejected or"
           + " a.temporaryFileDeleted=false)")
   long countOpen(

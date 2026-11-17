@@ -51,6 +51,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
+      - name: Install media validation tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg util-linux
       - run: ./gradlew test
 
   # ---- 개발 서버 배포 (develop push에서만) ----
