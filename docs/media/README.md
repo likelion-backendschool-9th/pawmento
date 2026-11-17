@@ -101,20 +101,20 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 ## API 계약 제안
 
-공통 `/api/v1` 접두사는 `WebConfig`가 적용한다. 컨트롤러에는 아래 나머지 경로만 쓴다.
+공통 `/api/v1` 접두사는 `WebConfig`가 적용한다. 컨트롤러에는 `/media`를 루트로 아래 나머지 경로만 쓴다. 반려동물은 필수 쿼리 `petId`로 받아 기존 소유권·아이 검사를 유지한다. (고침 #33: #63과 동일한 도메인별 루트로 정리)
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `POST /pets/{petId}/media/uploads` | JSON: `purpose`, `filename`, `mimeType`, `sizeBytes`, 선택 `locationConsent: {granted, policyVersion}` | 201: `assetId`, `status=PENDING`, `expiresAt`, 인증 업로드 경로 |
-| `POST /pets/{petId}/media/{assetId}/content` | multipart, 파일 파트 `file` **한 개만** | 202: PROCESSING과 검증 상태 경로 |
-| `GET /pets/{petId}/media/{assetId}` | 없음 | 200: 상태·검증된 메타데이터·실패 사유. 업로더만 조회 |
-| `GET /pets/{petId}/media/{assetId}/preview` | 없음 | 미연결 READY의 업로더용 파일 응답 |
-| `DELETE /pets/{petId}/media/{assetId}` | 없음 | 미연결 파일 취소/정리 예약 202. 연결 파일은 409 |
+| `POST /media/uploads?petId={petId}` | JSON: `purpose`, `filename`, `mimeType`, `sizeBytes`, 선택 `locationConsent: {granted, policyVersion}` | 201: `assetId`, `status=PENDING`, `expiresAt`, 인증 업로드 경로 |
+| `POST /media/{assetId}/content?petId={petId}` | multipart, 파일 파트 `file` **한 개만** | 202: PROCESSING과 검증 상태 경로 |
+| `GET /media/{assetId}?petId={petId}` | 없음 | 200: 상태·검증된 메타데이터·실패 사유. 업로더만 조회 |
+| `GET /media/{assetId}/preview?petId={petId}` | 없음 | 미연결 READY의 업로더용 파일 응답 |
+| `DELETE /media/{assetId}?petId={petId}` | 없음 | 미연결 파일 취소/정리 예약 202. 연결 파일은 409 |
 
-가족의 파일 열람 경로는 다음과 같다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
+가족의 파일 열람 경로는 다음과 같은 후속 제안이며 각 부모 도메인 구현에서 최종 계약을 확정한다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
 
-- `GET /pets/{petId}/diaries/{recordId}/attachments/{assetId}/content`
-- `GET /pets/{petId}/question-answers/{answerId}/attachments/{assetId}/content`
+- `GET /diaries/{recordId}/attachments/{assetId}/content?petId={petId}`
+- `GET /question-answers/{answerId}/attachments/{assetId}/content?petId={petId}`
 
 일기/답변 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 프론트는 인증된 같은 출처 파일 경로로 표시·재생한다. 물리 경로를 반환하지 않는다. 정적 공개 파일 경로나 일회성 서명 URL을 DB에 저장하지 않는다.
 

@@ -101,21 +101,21 @@ class MediaUploadScenarioTest {
     Owner a = owner(), other = owner();
     long id = session(a, "audio/webm", 3);
     mvc.perform(
-            post("/api/v1/pets/" + a.petId() + "/media/uploads")
+            post("/api/v1/media/uploads?petId=" + a.petId())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body("image/png", 3)))
         .andExpect(status().isUnauthorized());
     mvc.perform(
-            post("/api/v1/pets/" + a.petId() + "/media/uploads")
+            post("/api/v1/media/uploads?petId=" + a.petId())
                 .cookie(other.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body("image/png", 3)))
         .andExpect(status().isForbidden());
     mvc.perform(get(path(a, id)).cookie(other.cookie())).andExpect(status().isForbidden());
-    mvc.perform(get("/api/v1/pets/" + other.petId() + "/media/" + id).cookie(other.cookie()))
+    mvc.perform(get("/api/v1/media/" + id + "?petId=" + other.petId()).cookie(other.cookie()))
         .andExpect(status().isForbidden());
     mvc.perform(
-            multipart(path(a, id) + "/content")
+            multipart(path(a, id, "/content"))
                 .file(new MockMultipartFile("file", "a", null, new byte[] {1, 2, 3}))
                 .cookie(other.cookie())
                 .header("Origin", "http://localhost")
@@ -132,7 +132,7 @@ class MediaUploadScenarioTest {
     create(a, "image/png", 0).andExpect(status().isBadRequest());
     create(a, "image/png", 15728641).andExpect(status().isPayloadTooLarge());
     mvc.perform(
-            post("/api/v1/pets/" + a.petId() + "/media/uploads")
+            post("/api/v1/media/uploads?petId=" + a.petId())
                 .cookie(a.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
@@ -149,7 +149,7 @@ class MediaUploadScenarioTest {
     Owner a = owner();
     long id = session(a, "audio/webm", 3);
     mvc.perform(
-            multipart(path(a, id) + "/content")
+            multipart(path(a, id, "/content"))
                 .file(new MockMultipartFile("file", "a", null, new byte[] {1}))
                 .file(new MockMultipartFile("file", "b", null, new byte[] {2}))
                 .cookie(a.cookie())
@@ -157,7 +157,7 @@ class MediaUploadScenarioTest {
                 .header("X-Pawmento-Upload", "1"))
         .andExpect(status().isBadRequest());
     mvc.perform(
-            multipart(path(a, id) + "/content")
+            multipart(path(a, id, "/content"))
                 .file(new MockMultipartFile("wrong", "a", null, new byte[] {1}))
                 .cookie(a.cookie())
                 .header("Origin", "http://localhost")
@@ -262,7 +262,7 @@ class MediaUploadScenarioTest {
   void guardBeforeParsing() throws Exception {
     Owner a = owner(), other = owner();
     long id = session(a, "image/png", 3);
-    String url = "http://localhost:" + port + path(a, id) + "/content";
+    String url = "http://localhost:" + port + path(a, id, "/content");
     // 이 본문은 multipart로 파싱하면 400이어야 한다. 앞단 거부가 먼저 나와야 한다.
     assertThat(raw(url, null, null, null)).isEqualTo(401);
     assertThat(raw(url, a.cookie(), null, "http://localhost:" + port)).isEqualTo(403);
@@ -329,9 +329,9 @@ class MediaUploadScenarioTest {
           .andExpect(status().isOk())
           .andExpect(jsonPath("$.width").value(80))
           .andExpect(jsonPath("$.height").value(40))
-          .andExpect(jsonPath("$.previewPath").value(path(a, id) + "/preview"))
+          .andExpect(jsonPath("$.previewPath").value(path(a, id, "/preview")))
           .andExpect(jsonPath("$.storageKey").doesNotExist());
-      mvc.perform(get(path(a, id) + "/thumbnail").cookie(a.cookie()))
+      mvc.perform(get(path(a, id, "/thumbnail")).cookie(a.cookie()))
           .andExpect(status().isOk())
           .andExpect(content().contentType("image/jpeg"));
       assertThat(assets.findById(id).orElseThrow().isTemporaryFileDeleted()).isTrue();
@@ -357,7 +357,7 @@ class MediaUploadScenarioTest {
           .andExpect(jsonPath("$.durationMs").isNumber())
           .andExpect(jsonPath("$.thumbnailPath").isEmpty());
       var body =
-          mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
+          mvc.perform(get(path(a, id, "/preview")).cookie(a.cookie()))
               .andExpect(status().isOk())
               .andReturn()
               .getResponse()
@@ -383,8 +383,7 @@ class MediaUploadScenarioTest {
       long id = received(a, (String) sample[0], (byte[]) sample[1]);
       drain();
       assertThat(state(id)).isEqualTo("REJECTED");
-      mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
-          .andExpect(status().isConflict());
+      mvc.perform(get(path(a, id, "/preview")).cookie(a.cookie())).andExpect(status().isConflict());
       assertThat(assets.findById(id).orElseThrow().isTemporaryFileDeleted()).isTrue();
     }
   }
@@ -400,7 +399,7 @@ class MediaUploadScenarioTest {
         .andExpect(jsonPath("$.width").value(40))
         .andExpect(jsonPath("$.height").value(80));
     byte[] service =
-        mvc.perform(get(path(a, id) + "/preview").cookie(a.cookie()))
+        mvc.perform(get(path(a, id, "/preview")).cookie(a.cookie()))
             .andExpect(status().isOk())
             .andReturn()
             .getResponse()
@@ -415,7 +414,7 @@ class MediaUploadScenarioTest {
     Owner a = owner(), b = owner();
     long id = received(a, "audio/ogg", fixture("sample.ogg"));
     drain();
-    String url = path(a, id) + "/preview";
+    String url = path(a, id, "/preview");
     mvc.perform(get(url)).andExpect(status().isUnauthorized());
     mvc.perform(get(url).cookie(b.cookie())).andExpect(status().isForbidden());
     var full =
@@ -439,8 +438,7 @@ class MediaUploadScenarioTest {
         .andExpect(header().string("Content-Length", Integer.toString(full.length)));
     mvc.perform(get(url).cookie(a.cookie()).header("Range", "bytes=" + full.length + "-"))
         .andExpect(status().isRequestedRangeNotSatisfiable());
-    mvc.perform(get(path(a, id) + "/thumbnail").cookie(a.cookie()))
-        .andExpect(status().isNotFound());
+    mvc.perform(get(path(a, id, "/thumbnail")).cookie(a.cookie())).andExpect(status().isNotFound());
     var client = HttpClient.newHttpClient();
     String cookie = a.cookie().getName() + "=" + a.cookie().getValue();
     var actual =
@@ -609,7 +607,7 @@ class MediaUploadScenarioTest {
     drain();
     var client = HttpClient.newHttpClient();
     var request =
-        HttpRequest.newBuilder(URI.create("http://localhost:" + port + path(a, id) + "/preview"))
+        HttpRequest.newBuilder(URI.create("http://localhost:" + port + path(a, id, "/preview")))
             .timeout(Duration.ofSeconds(10))
             .header("Cookie", a.cookie().getName() + "=" + a.cookie().getValue())
             .header("Range", "bytes=0-9,20-29")
@@ -702,13 +700,81 @@ class MediaUploadScenarioTest {
         .isLessThanOrEqualTo(300000L);
   }
 
+  @Test
+  @DisplayName("#33-S1 미디어는 도메인 루트와 petId 쿼리를 쓰며 반환 경로로 파일을 받을 수 있다")
+  void domainRootPaths() throws Exception {
+    Owner a = owner();
+    byte[] data = fixture("sample.png");
+    var created = create(a, "image/png", data.length).andExpect(status().isCreated()).andReturn();
+    long id = number(created, "$.assetId");
+    String statusUrl = JsonPath.read(created.getResponse().getContentAsString(), "$.statusPath");
+    String contentUrl = JsonPath.read(created.getResponse().getContentAsString(), "$.contentPath");
+    assertThat(statusUrl).isEqualTo("/api/v1/media/" + id + "?petId=" + a.petId());
+    assertThat(contentUrl).isEqualTo(path(a, id, "/content"));
+    mvc.perform(
+            multipart(contentUrl)
+                .file(new MockMultipartFile("file", "a.png", "image/png", data))
+                .param("petId", Long.toString(a.petId() + 1))
+                .cookie(a.cookie())
+                .header("Origin", "http://localhost")
+                .header("X-Pawmento-Upload", "1"))
+        .andExpect(status().isBadRequest());
+    mvc.perform(
+            multipart(contentUrl)
+                .file(new MockMultipartFile("file", "a.png", "image/png", data))
+                .param("note", "extra form field")
+                .cookie(a.cookie())
+                .header("Origin", "http://localhost")
+                .header("X-Pawmento-Upload", "1"))
+        .andExpect(status().isBadRequest());
+    String boundary = "media-domain-root";
+    var body = new java.io.ByteArrayOutputStream();
+    body.write(
+        ("--"
+                + boundary
+                + "\r\n"
+                + "Content-Disposition: form-data; name=\"file\"; filename=\"a.png\"\r\n"
+                + "Content-Type: image/png\r\n\r\n")
+            .getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    body.write(data);
+    body.write(("\r\n--" + boundary + "--\r\n").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    var uploaded =
+        HttpClient.newHttpClient()
+            .send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + contentUrl))
+                    .timeout(Duration.ofSeconds(10))
+                    .header("Cookie", a.cookie().getName() + "=" + a.cookie().getValue())
+                    .header("Origin", "http://localhost:" + port)
+                    .header("X-Pawmento-Upload", "1")
+                    .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+                    .build(),
+                HttpResponse.BodyHandlers.ofString());
+    assertThat(uploaded.statusCode()).isEqualTo(202);
+    drain();
+    var status =
+        mvc.perform(get(statusUrl).cookie(a.cookie()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("READY"))
+            .andReturn();
+    String previewUrl = JsonPath.read(status.getResponse().getContentAsString(), "$.previewPath");
+    mvc.perform(get(previewUrl).cookie(a.cookie())).andExpect(status().isOk());
+    mvc.perform(get("/api/v1/pets/" + a.petId() + "/media/" + id).cookie(a.cookie()))
+        .andExpect(status().isNotFound());
+    mvc.perform(get("/api/v1/media/" + id).cookie(a.cookie())).andExpect(status().isBadRequest());
+  }
+
   String path(Owner a, long id) {
-    return "/api/v1/pets/" + a.petId() + "/media/" + id;
+    return path(a, id, "");
+  }
+
+  String path(Owner a, long id, String suffix) {
+    return "/api/v1/media/" + id + suffix + "?petId=" + a.petId();
   }
 
   ResultActions upload(Owner a, long id, byte[] data) throws Exception {
     return mvc.perform(
-        multipart(path(a, id) + "/content")
+        multipart(path(a, id, "/content"))
             .file(new MockMultipartFile("file", "upload.bin", "application/octet-stream", data))
             .cookie(a.cookie())
             .header("Origin", "http://localhost")
@@ -725,7 +791,7 @@ class MediaUploadScenarioTest {
 
   ResultActions create(Owner a, String mime, long size) throws Exception {
     return mvc.perform(
-        post("/api/v1/pets/" + a.petId() + "/media/uploads")
+        post("/api/v1/media/uploads?petId=" + a.petId())
             .cookie(a.cookie())
             .contentType(MediaType.APPLICATION_JSON)
             .content(body(mime, size)));

@@ -11,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 @RestController
-@RequestMapping("/pets/{petId}/media")
+@RequestMapping("/media")
 @RequiredArgsConstructor
 public class MediaUploadController {
   private final CreateMediaUploadUseCase create;
@@ -24,7 +24,7 @@ public class MediaUploadController {
   @ResponseStatus(HttpStatus.CREATED)
   MediaUploadResponse create(
       @LoginMember Long memberId,
-      @PathVariable Long petId,
+      @RequestParam Long petId,
       @Valid @RequestBody CreateMediaUploadRequest r) {
     boolean consent =
         r.locationConsent() != null && Boolean.TRUE.equals(r.locationConsent().granted());
@@ -36,7 +36,7 @@ public class MediaUploadController {
 
   @GetMapping("/{assetId}")
   MediaUploadResponse get(
-      @LoginMember Long memberId, @PathVariable Long petId, @PathVariable Long assetId) {
+      @LoginMember Long memberId, @RequestParam Long petId, @PathVariable Long assetId) {
     return MediaUploadResponse.from(get.get(new GetMediaUploadQuery(memberId, petId, assetId)));
   }
 
@@ -44,14 +44,15 @@ public class MediaUploadController {
   @ResponseStatus(HttpStatus.ACCEPTED)
   MediaUploadResponse content(
       @LoginMember Long memberId,
-      @PathVariable Long petId,
+      @RequestParam Long petId,
       @PathVariable Long assetId,
       MultipartHttpServletRequest request) {
     var files = request.getMultiFileMap();
     if (files.size() != 1
         || !files.containsKey("file")
         || files.get("file").size() != 1
-        || !request.getParameterMap().isEmpty())
+        || !request.getParameterMap().keySet().equals(java.util.Set.of("petId"))
+        || request.getParameterValues("petId").length != 1)
       throw new InvalidMediaRequestException(
           InvalidMediaRequestException.Reason.SINGLE_FILE_REQUIRED);
     MultipartFile file = files.get("file").getFirst();
@@ -64,7 +65,7 @@ public class MediaUploadController {
   @GetMapping({"/{assetId}/preview", "/{assetId}/thumbnail"})
   ResponseEntity<org.springframework.core.io.Resource> preview(
       @LoginMember Long memberId,
-      @PathVariable Long petId,
+      @RequestParam Long petId,
       @PathVariable Long assetId,
       jakarta.servlet.http.HttpServletRequest request) {
     boolean thumbnail = request.getRequestURI().endsWith("/thumbnail");
@@ -84,7 +85,7 @@ public class MediaUploadController {
 
   @DeleteMapping("/{assetId}")
   @ResponseStatus(HttpStatus.ACCEPTED)
-  void delete(@LoginMember Long memberId, @PathVariable Long petId, @PathVariable Long assetId) {
+  void delete(@LoginMember Long memberId, @RequestParam Long petId, @PathVariable Long assetId) {
     deletion.delete(new DeleteMediaUploadCommand(memberId, petId, assetId));
   }
 }

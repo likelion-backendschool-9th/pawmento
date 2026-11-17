@@ -25,7 +25,8 @@ public record MediaUploadResponse(
     String previewPath,
     String thumbnailPath) {
   public static MediaUploadResponse from(GetMediaUploadResult r) {
-    String path = ApiPaths.V1 + "/pets/" + r.petId() + "/media/" + r.assetId();
+    String path = ApiPaths.V1 + "/media/" + r.assetId();
+    String query = "?petId=" + r.petId();
     return new MediaUploadResponse(
         r.assetId(),
         r.petId(),
@@ -36,15 +37,15 @@ public record MediaUploadResponse(
         r.declaredSizeBytes(),
         r.status(),
         r.expiresAt(),
-        path + "/content",
-        path,
+        path + "/content" + query,
+        path + query,
         r.failureReason(),
         r.mimeType(),
         r.sizeBytes(),
         r.durationMs(),
         r.width(),
         r.height(),
-        r.status().equals("READY") ? path + "/preview" : null,
-        r.status().equals("READY") && r.thumbnailAvailable() ? path + "/thumbnail" : null);
+        r.status().equals("READY") ? path + "/preview" + query : null,
+        r.status().equals("READY") && r.thumbnailAvailable() ? path + "/thumbnail" + query : null);
   }
 }

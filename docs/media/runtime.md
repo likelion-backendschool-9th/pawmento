@@ -30,9 +30,9 @@
 
 | 경로 (`/api/v1` 생략) | 동작 |
 | --- | --- |
-| GET/HEAD `/pets/{petId}/media/{assetId}/preview` | 미연결·유효 기간 내 READY의 업로더용 서비스본 |
-| GET/HEAD `/pets/{petId}/media/{assetId}/thumbnail` | 같은 권한의 이미지 썸네일 |
-| DELETE `/pets/{petId}/media/{assetId}` | 미연결 파일 삭제 예약 202. 중복 삭제는 멱등 처리 |
+| GET/HEAD `/media/{assetId}/preview?petId={petId}` | 미연결·유효 기간 내 READY의 업로더용 서비스본 |
+| GET/HEAD `/media/{assetId}/thumbnail?petId={petId}` | 같은 권한의 이미지 썸네일 |
+| DELETE `/media/{assetId}?petId={petId}` | 미연결 파일 삭제 예약 202. 중복 삭제는 멱등 처리 |
 
 매 요청마다 pet 입력 포트로 실제 소유자와 업로더를 검사한다. 정확한 MIME·길이, nosniff, private/no-store와 안전한 파일명을 사용한다. [Spring MVC Resource Range 처리](https://docs.spring.io/spring/reference/web/webmvc/mvc-range.html)로 음성 206/416을 지원하며 HEAD는 본문을 보내지 않는다. 시작한 전송과 이미 받은 바이트는 회수하지 않는다.
 
@@ -53,7 +53,7 @@
 
 ## 경로·정책 설정 (#33 리뷰 반영)
 
-`POST /pets/{petId}/media/uploads`는 별도 세션 테이블 대신 업로드 세션 역할을 하는 PENDING 자산을 만든다. 반환된 assetId는 수신·검증·READY·삭제까지 같은 자산을 가리킨다. 이후 `/media/{assetId}` 경로는 그 자산에 대한 조회·삭제다. 이는 별개의 세션 ID와 자산 ID를 혼용한 것이 아니다. 반려동물 문맥이 필수인 하위 자원 경로는 공통 구조 문서에도 명시한다.
+`POST /media/uploads?petId={petId}`는 별도 세션 테이블 대신 업로드 세션 역할을 하는 PENDING 자산을 만든다. 반환된 assetId는 수신·검증·READY·삭제까지 같은 자산을 가리킨다. 이후 `/media/{assetId}?petId={petId}` 경로는 그 자산에 대한 조회·삭제다. 이는 별개의 세션 ID와 자산 ID를 혼용한 것이 아니다. 지도(#63)와 동일하게 도메인별 루트를 따르며, 반려동물은 필수 petId 쿼리로 지정한다. 기존 중첩 경로는 제공하지 않는다. 업로드 필터는 multipart 파싱을 유발하지 않도록 raw query에서 양의 정수 petId 하나만 읽어 소유권을 확인하고, 중복·누락·잘못된 값은 파싱 전에 거부한다.
 
 - `pawmento.media.lifecycle.session-ttl=10m`: 세션 수명
 - `pawmento.media.lifecycle.unattached-ttl=24h`: READY 이후 미연결 수명
@@ -64,3 +64,7 @@
 임대·재시도 간격·상태는 작업 도메인이 결정한다. 기본 재시도는 지수 간격, 최대 1시간이며 저장소 장애는 횟수만으로 원본을 거부하거나 삭제하지 않는다. 완료된 READY는 미완료 한도에서 제외한다. 원본 정리가 남은 READY·실패 파일·DELETING은 실제 정리 전까지 한도를 차지한다. READY 보관은 별도 24시간 수명으로 제한한다. 이것은 볼륨 전체 용량 제한을 대체하지 않는다.
 
 다중 Range GET은 길이를 Spring의 Resource 변환기에 맡기며 HEAD에만 전체 길이를 설정한다. 생성·수신·상태 조회는 동일 조회 스냅샷 `GetMediaUploadResult`를 재사용하고, 미리보기는 종류를 포함한 `GetMediaPreviewQuery` 하나, 삭제는 `DeleteMediaUploadCommand`를 받는다.
+
+## 공통 규칙 제안과 적용 범위
+
+불변 정책/작업 전달 record 허용, 생성·수신에서 동일 조회 스냅샷 `GetMediaUploadResult` 재사용, 웹 필터/입력 I/O 경계의 제한된 처리는 이번 PR의 공통 규칙 변경 제안이다. 기존에 이미 확정된 규칙을 그대로 따른 부분과 구분하며 공통 구조 문서에서 함께 검토한다. 공통 예외 3종 확장도 같은 제안 범위다. API의 도메인별 루트는 예외를 제안하지 않고 기존 규칙을 그대로 적용한다.

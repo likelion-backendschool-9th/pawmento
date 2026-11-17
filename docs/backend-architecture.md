@@ -63,20 +63,20 @@ com.pawmento
 | `application.exception` | 자바 표준 라이브러리, `global.exception` | `domain`, `application.port`, `application.service`, `adapter`, `global`(`global.exception` 제외), Spring |
 | `application.port` | `domain`, 같은 도메인의 `port` | `adapter`, `global`, Spring, `jakarta.persistence` |
 | `application.service` | `domain`, `application.port`, `application.exception`, `global.exception`, `org.springframework.stereotype`, `org.springframework.transaction`, `lombok` | `adapter`, `global.security`, Spring Security, `jakarta.persistence`, 웹 DTO |
-| `adapter.in.web` | `application.port.in`, 같은 웹 어댑터(`exception` 포함), `global`, Spring Web, `jakarta.validation`, `lombok` | `domain`, `application.service`, `adapter.out` |
+| `adapter.in.web` | `application.port.in`, 같은 웹 어댑터(`exception` 포함, #33 제안), `global`, Spring Web, `jakarta.validation`, `lombok` | `domain`, `application.service`, `adapter.out` |
 | `adapter.out.persistence` | `domain`, `application.port.out`, `application.exception`, Spring Data JPA, `jakarta.persistence`, `lombok` | `application.service`, `application.port.in`, `adapter.in` |
 
 - 컨트롤러는 서비스 클래스가 아니라 유스케이스 인터페이스를 받는다.
 - 컨트롤러는 도메인 객체를 다루지 않는다. 유스케이스는 도메인 객체 대신 id나 `Result`를 돌려준다.
 - 서비스는 영속성 어댑터나 JpaRepository가 아니라 출력 포트를 받는다.
 - 서비스는 Spring Security를 모른다. 로그인한 회원 id는 컨트롤러가 꺼내서 Command·Query에 `memberId`로 담아 넘긴다.
-- 예외는 [백엔드 예외 처리](backend-exceptions.md)를 따른다. 도메인 예외와 애플리케이션 예외는 `global.exception`의 기본 예외를 상속하고, `global.error.GlobalExceptionHandler`가 응답으로 바꾼다. 컨트롤러와 서비스는 업무 예외를 잡아 바꾸지 않는다. HTTP 입력 스트림의 I/O 변환과 DispatcherServlet 전 필터의 전역 resolver 위임은 아래 웹 경계 예외를 따른다. (#60, 고침 #33: 웹 경계 처리 구분)
+- 예외는 [백엔드 예외 처리](backend-exceptions.md)를 따른다. 도메인 예외와 애플리케이션 예외는 `global.exception`의 기본 예외를 상속하고, `global.error.GlobalExceptionHandler`가 응답으로 바꾼다. 컨트롤러와 서비스는 업무 예외를 잡아 바꾸지 않는다. HTTP 입력 스트림의 I/O 변환과 DispatcherServlet 전 필터의 전역 resolver 위임 허용은 아래 #33 변경 제안이며 기존 규칙과 구분한다. (#60, 고침 #33: 웹 경계 처리 구분)
 - 다른 도메인의 기능이 필요하면 그 도메인의 `port/in`을 부른다. 자세한 방식은 [아직 정하지 않은 것](#아직-정하지-않은-것)에서 정한다.
 
 ## API 경로
 
-- API의 기본 경로는 `/api/v1/<도메인 복수형>`이다. 상위 자원의 문맥·권한이 필수인 하위 자원은 `/api/v1/<상위 복수형>/{id}/<하위 복수형>`도 허용한다. 미디어는 반려동물별 용도·접근 경계를 나타내기 위해 `/pets/{petId}/media`를 사용한다. (고침 #33: 계획의 중첩 자원 경로 기준 명시) 예: `/api/v1/records`. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #22: 버전을 붙임)
-- 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 접두어를 제외한 도메인 경로(기본 `/<복수형>`, 문맥이 필요한 하위 자원은 위 중첩 경로)만 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. 나중에 Spring의 API 버전 기능으로 옮겨도 컨트롤러는 고치지 않는다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
+- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/records`. 반려동물 범위는 해당 도메인의 입력(`petId`)으로 받는다. 지도는 `/maps/pins?petId=`, 미디어는 `/media/uploads?petId=`와 `/media/{assetId}?petId=`를 사용한다. 상위 도메인 접두어를 공유하는 예외를 추가하지 않는다. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #33: #63의 도메인별 루트와 동일 기준 적용)
+- 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 `@RequestMapping("/<복수형>")`만 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
 - Spring Security 경로(`PublicEndpoints`)는 접두어가 붙기 전의 실제 요청 경로를 보므로 `ApiPaths.V1`을 붙인 전체 경로로 쓴다. (#22)
 
 ## 이름 규칙
@@ -108,7 +108,8 @@ com.pawmento
 | 클래스 | 형태 | 이유 |
 | --- | --- | --- |
 | Command, Query, Result, Request, Response | `record` | 값만 담아 옮긴다 |
-| 도메인 객체 | `class` | `private` 생성자와 생성 메서드로 규칙을 강제해야 한다 |
+| 식별자·변경 가능한 생명주기가 있는 도메인 상태 객체 | `class` | `private` 생성자와 생성·복원 메서드로 상태/불변 조건을 강제한다 |
+| 도메인 불변 값·정책 값·작업 전달값 (**이번 PR의 허용 제안**) | `record` 가능 | 식별자·상태 변경 없이 값을 표현하며 필요한 값 검증은 정규 생성자에서 한다. 아래 제안 범위를 따른다 |
 | JpaEntity | `class` | JPA가 기본 생성자와 값을 채울 수 있는 구조를 요구한다 |
 
 - `record`의 값은 `get` 없이 이름으로 꺼낸다: `command.petId()`.
@@ -120,7 +121,7 @@ com.pawmento
 | 대상 | 쓰는 것 | 쓰지 않는 것 |
 | --- | --- | --- |
 | 서비스, 컨트롤러, 어댑터 | `@RequiredArgsConstructor` (`private final` 필드로 생성자 주입) | 직접 쓴 주입용 생성자 |
-| 도메인 객체 | `@Getter` | `@Setter`, `@Data`, `@AllArgsConstructor`, `@NoArgsConstructor`, 공개 `@Builder` |
+| 도메인 상태 객체 (`class`) | `@Getter` | `@Setter`, `@Data`, `@AllArgsConstructor`, `@NoArgsConstructor`, 공개 `@Builder` |
 | JpaEntity | `@Getter`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)` | `@Setter`, `@Data` |
 | Command·Query·Result·Request·Response | 쓰지 않는다 (`record`로 충분하다) | 롬복 전부 |
 
@@ -147,8 +148,8 @@ com.pawmento
 ### 도메인 객체 (`domain`)
 
 - 데이터와 그 데이터가 지켜야 할 규칙을 함께 가진다.
-- Spring·JPA 어노테이션을 붙이지 않는다. 롬복은 `@Getter`만 쓴다. 식별자·변경 가능한 생명주기를 가진 도메인 객체는 순수 자바 `class`로 쓴다. 불변 값·정책·작업 전달값의 record 허용 기준은 아래 #33 경계를 따른다.
-- 상태를 가진 도메인 class의 생성자는 `private`으로 막고, 규칙을 검사하는 `static` 생성·복원 메서드로만 만든다. 불변 record의 값 검증은 정규 생성자에서 할 수 있다. 규칙을 건너뛰고 객체를 만드는 길을 남기지 않는다.
+- Spring·JPA 어노테이션을 붙이지 않는다. 롬복은 `@Getter`만 쓴다. 식별자·변경 가능한 생명주기를 가진 도메인 객체는 순수 자바 `class`로 쓴다. 불변 값·정책·작업 전달값의 record 허용은 이번 PR의 변경 제안이며 아래 적용 범위를 따른다.
+- 상태를 가진 도메인 class의 생성자는 `private`으로 막고, 규칙을 검사하는 `static` 생성·복원 메서드로만 만든다. 이번 PR이 제안하는 불변 record의 값 검증은 정규 생성자에서 할 수 있다. 규칙을 건너뛰고 객체를 만드는 길을 남기지 않는다.
 - 상태를 바꾸는 동작은 메서드로 둔다(`edit()`, `changeMode()`). 바꿀 때도 규칙을 검사한다.
 - 영속성 어댑터가 값을 꺼낼 수 있게 `@Getter`를 붙인다. setter는 두지 않는다.
 - 새로 만든 객체의 `id`는 `null`이다. DB에 저장한 뒤 생긴다.
@@ -342,7 +343,10 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - 다른 도메인 기능을 부르는 방식
 - 테스트를 계층별로 어디에 어떻게 둘지
 
-## 미디어 리뷰로 명시한 경계 (#33)
+## 이번 PR에서 제안하는 공통 규칙 변경 (#33, PR #64)
+
+이 절의 **불변 record 허용·동일 조회 결과 재사용·웹 경계의 제한된 처리 허용**은 기존 확정 규칙을 그대로 적용했다는 설명이 아니다. 이번 PR에서 채택 여부와 공통 적용 범위를 검토하는 변경 제안이다. 아래 표·본문의 관련 표기는 제안이 채택되는 경우의 기준을 일관되게 표현한다. 공통 기본 예외 3종 확장도 [예외 처리 문서](backend-exceptions.md)의 별도 제안이며 팀의 기존 합의와 구분한다.
+
 
 - 웹 전용 형식·파트·Origin·헤더·요청 크기 오류는 `adapter/in/web/exception`에서 공통 기본 예외를 상속한다. 업무 오류를 웹 예외로 다시 포장하지 않는다. 필터는 MVC 이전 실패를 전역 resolver로 넘길 수 있고, HTTP 입력 스트림 보조 어댑터는 자신의 I/O 실패만 공통 저장소 예외 하위 타입으로 바꿀 수 있다. 컨트롤러에 도메인/애플리케이션 예외 처리 catch를 추가하는 예외는 아니다.
 - 식별자와 변경 가능한 생명주기가 있는 도메인(자산·작업)은 `class`로 두고 정책을 가진다. 불변 값·작업 전달값·정책 값은 `record`를 사용할 수 있다. 미디어의 `VerifiedMedia`, `StoredUpload`, `MediaWork`, `MediaPolicy`가 해당한다. 복원 경로도 필수 값·상태 간 관계 등 불변 조건을 검사한다.

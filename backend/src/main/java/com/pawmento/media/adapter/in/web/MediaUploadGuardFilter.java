@@ -18,7 +18,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 @RequiredArgsConstructor
 class MediaUploadGuardFilter extends OncePerRequestFilter {
   private static final PathPattern PATH =
-      new PathPatternParser().parse(ApiPaths.V1 + "/pets/{petId}/media/{assetId}/content");
+      new PathPatternParser().parse(ApiPaths.V1 + "/media/{assetId}/content");
   private final CheckMediaUploadUseCase check;
   private final HandlerExceptionResolver errors;
 
@@ -42,13 +42,34 @@ class MediaUploadGuardFilter extends OncePerRequestFilter {
       check.check(
           new CheckMediaUploadQuery(
               Long.valueOf(request.getUserPrincipal().getName()),
-              positiveId(match.getUriVariables().get("petId")),
+              petIdFromQuery(request.getQueryString()),
               positiveId(match.getUriVariables().get("assetId"))));
     } catch (RuntimeException e) {
       if (errors.resolveException(request, response, null, e) == null) throw e;
       return;
     }
     chain.doFilter(request, response);
+  }
+
+  // Never call getParameter*: containers may parse multipart when those methods are used.
+  private static Long petIdFromQuery(String query) {
+    String value = null;
+    try {
+      if (query != null)
+        for (String item : query.split("&", -1)) {
+          String[] pair = item.split("=", 2);
+          String key = java.net.URLDecoder.decode(pair[0], java.nio.charset.StandardCharsets.UTF_8);
+          if (!key.equals("petId")) continue;
+          if (value != null || pair.length != 2) throw new IllegalArgumentException();
+          value = java.net.URLDecoder.decode(pair[1], java.nio.charset.StandardCharsets.UTF_8);
+        }
+      if (value == null) throw new IllegalArgumentException();
+      long id = Long.parseLong(value);
+      if (id <= 0) throw new IllegalArgumentException();
+      return id;
+    } catch (IllegalArgumentException e) {
+      throw new InvalidMediaRequestException(InvalidMediaRequestException.Reason.INVALID_PET_QUERY);
+    }
   }
 
   private static Long positiveId(String value) {
