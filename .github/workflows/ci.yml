@@ -136,6 +136,8 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # 서버 호스트 키 확인. 비어 있으면 확인을 건너뛴다 (아래 ssh 단계와 같은 값)
+          fingerprint: ${{ secrets.DEPLOY_HOST_FINGERPRINT }}
           source: compose.yaml,compose.prod.yaml,nginx/proxy.conf
           target: ~/pawmento
           overwrite: true
@@ -150,6 +152,9 @@ jobs:
           port: ${{ secrets.DEPLOY_PORT || 22 }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # 서버 호스트 키의 SHA256 지문. 두 액션(Go SSH)은 ECDSA 키를 ED25519보다 먼저 고르므로
+          # 서버에서 ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub 의 SHA256:... 값을 넣는다 (ECDSA 키가 없으면 rsa, 그다음 ed25519)
+          fingerprint: ${{ secrets.DEPLOY_HOST_FINGERPRINT }}
           envs: IMAGE_TAG,REPO_URL
           script: |
             set -e
@@ -161,13 +166,26 @@ jobs:
             $COMPOSE pull
             $COMPOSE up -d --no-build
             # 다른 팀도 쓰는 서버라 우리 저장소에서 만든 이미지만 정리한다
-            docker image prune -f --filter "label=org.opencontainers.image.source=$REPO_URL"
+            # -a: 태그가 남은 이전 버전(sha-...)도 지운다. 실행 중인 컨테이너의 이미지는 남는다
+            # 되돌릴 때는 up -d가 GHCR에서 다시 받는다
+            docker image prune -a -f --filter "label=org.opencontainers.image.source=$REPO_URL"
             $COMPOSE ps
-            # 팀 포트가 응답할 때까지 최대 30초 기다린다 (127.0.0.1에만 열려 있으므로 IP로 확인)
+            # 프론트엔드와 백엔드가 모두 응답할 때까지 최대 90초 기다린다 (127.0.0.1에만 열려 있으므로 IP로 확인)
+            # - 프론트엔드: / 가 2xx·3xx
+            # - 백엔드: /api/v1/ 이 nginx 오류(502·503·504)나 연결 실패(000)가 아니면 통과. 로그인 없는 요청이라 보통 401
             TEAM_PORT=$(grep -E '^TEAM_PORT=' .env | cut -d= -f2)
-            for i in $(seq 1 10); do
-              curl -fsS -o /dev/null "http://127.0.0.1:$TEAM_PORT" && exit 0
+            for i in $(seq 1 30); do
+              web=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$TEAM_PORT/" || true)
+              api=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$TEAM_PORT/api/v1/" || true)
+              case "$web" in 2??|3??) web_ok=1 ;; *) web_ok=0 ;; esac
+              case "$api" in 000|502|503|504) api_ok=0 ;; *) api_ok=1 ;; esac
+              if [ "$web_ok" = 1 ] && [ "$api_ok" = 1 ]; then
+                echo "배포 확인: 프론트엔드 $web, 백엔드 $api"
+                exit 0
+              fi
               sleep 3
             done
-            echo "$TEAM_PORT 응답 없음"
+            # 로그는 공개 저장소의 Actions 화면에 남으므로 출력하지 않는다. 서버에서 docker compose logs backend로 확인한다
+            echo "응답 확인 실패: 프론트엔드 $web, 백엔드 $api"
+            $COMPOSE ps
             exit 1
