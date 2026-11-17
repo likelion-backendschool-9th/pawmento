@@ -34,7 +34,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.member.application.exception.DuplicateEmailException;
-import com.pawmento.member.application.port.out.MemberRepository;
+import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 
 import jakarta.servlet.http.Cookie;
@@ -55,7 +55,7 @@ class AuthScenarioTest {
 	private JwtEncoder jwtEncoder;
 
 	@Autowired
-	private MemberRepository memberRepository;
+	private SaveMemberPort memberRepository;
 
 	@Test
 	@DisplayName("#14-S1 가입하고 로그인하면 쿠키로 내 정보를 조회할 수 있다")

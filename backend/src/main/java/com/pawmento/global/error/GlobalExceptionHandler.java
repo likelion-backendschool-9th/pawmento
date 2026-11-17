@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 // 공통 기본 예외와 요청 오류를 응답으로 바꾼다. 개별 도메인 예외는 import하지 않는다.
 @RestControllerAdvice
@@ -90,7 +91,7 @@ class GlobalExceptionHandler {
                         (FieldError error) -> declaredOrder(declaredFields, error.getField()))
                     .thenComparing(FieldError::getField)
                     .thenComparing(error -> String.valueOf(error.getDefaultMessage())))
-            .map(FieldError::getDefaultMessage)
+            .map(GlobalExceptionHandler::message)
             .orElse("입력값을 확인해 주세요.");
     return new ErrorResponse(ErrorCode.VALIDATION, message);
   }
@@ -117,4 +118,18 @@ class GlobalExceptionHandler {
     int index = declaredFields.indexOf(field);
     return index >= 0 ? index : Integer.MAX_VALUE;
   }
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	ErrorResponse handle(MethodArgumentTypeMismatchException e) {
+		return new ErrorResponse(ErrorCode.VALIDATION, invalidFormatMessage(e.getName()));
+	}
+	private static String message(FieldError error) {
+		if ("typeMismatch".equals(error.getCode())) {
+			return invalidFormatMessage(error.getField());
+		}
+		return error.getDefaultMessage();
+	}
+	private static String invalidFormatMessage(String name) {
+		return name + " 값의 형식이 올바르지 않습니다.";
+	}
 }

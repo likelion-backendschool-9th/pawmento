@@ -13,10 +13,14 @@ import com.pawmento.pet.application.port.in.EditPetUseCase;
 import com.pawmento.pet.application.port.in.PetResult;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.SavePetPort;
+import com.pawmento.pet.domain.InvalidPetProfileException;
 import com.pawmento.pet.domain.Pet;
 import com.pawmento.pet.domain.PetSpecies;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class EditPetService implements EditPetUseCase {
 
 	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
@@ -24,12 +28,6 @@ public class EditPetService implements EditPetUseCase {
 	private final LoadPetPort loadPetPort;
 	private final SavePetPort savePetPort;
 	private final Clock clock;
-
-	public EditPetService(LoadPetPort loadPetPort, SavePetPort savePetPort, Clock clock) {
-		this.loadPetPort = loadPetPort;
-		this.savePetPort = savePetPort;
-		this.clock = clock;
-	}
 
 	@Override
 	@Transactional
@@ -40,8 +38,8 @@ public class EditPetService implements EditPetUseCase {
 		try {
 			pet.edit(command.name(), species, command.breed(), command.birthday(), today);
 		}
-		catch (IllegalArgumentException e) {
-			throw InvalidPetException.from(e);
+		catch (InvalidPetProfileException e) {
+			throw new InvalidPetException(e.getMessage());
 		}
 		savePetPort.save(pet);
 		return PetResult.from(pet);

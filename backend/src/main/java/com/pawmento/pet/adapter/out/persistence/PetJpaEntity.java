@@ -16,10 +16,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "pets", uniqueConstraints = @UniqueConstraint(name = "uk_pets_owner_tag",
 		columnNames = { "owner_member_id", "tag" }))
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PetJpaEntity {
 
 	@Id
@@ -51,9 +56,6 @@ public class PetJpaEntity {
 	@Version
 	private Long version;
 
-	protected PetJpaEntity() {
-	}
-
 	public static PetJpaEntity from(Pet pet) {
 		PetJpaEntity entity = new PetJpaEntity();
 		entity.id = pet.getId();
@@ -70,10 +72,6 @@ public class PetJpaEntity {
 
 	public Pet toDomain() {
 		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version);
-	}
-
-	public Long getId() {
-		return id;
 	}
 
 }

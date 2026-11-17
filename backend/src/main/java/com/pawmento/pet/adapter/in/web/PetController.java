@@ -28,9 +28,11 @@ import com.pawmento.pet.application.port.in.ListPetsQuery;
 import com.pawmento.pet.application.port.in.ListPetsUseCase;
 
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/pets")
+@RequiredArgsConstructor
 public class PetController {
 
 	private final CreatePetUseCase createPetUseCase;
@@ -39,17 +41,6 @@ public class PetController {
 	private final EditPetUseCase editPetUseCase;
 	private final ChangePetModeUseCase changePetModeUseCase;
 	private final DeletePetUseCase deletePetUseCase;
-
-	public PetController(CreatePetUseCase createPetUseCase, ListPetsUseCase listPetsUseCase, GetPetUseCase getPetUseCase,
-			EditPetUseCase editPetUseCase, ChangePetModeUseCase changePetModeUseCase,
-			DeletePetUseCase deletePetUseCase) {
-		this.createPetUseCase = createPetUseCase;
-		this.listPetsUseCase = listPetsUseCase;
-		this.getPetUseCase = getPetUseCase;
-		this.editPetUseCase = editPetUseCase;
-		this.changePetModeUseCase = changePetModeUseCase;
-		this.deletePetUseCase = deletePetUseCase;
-	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)

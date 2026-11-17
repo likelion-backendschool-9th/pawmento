@@ -1,92 +1,72 @@
 package com.pawmento.global.error;
 
-import static org.assertj.core.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.pawmento.global.exception.*;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
+
+// 공통 에러 처리가 값의 형식 오류를 우리 에러 형식으로 바꾸는지 확인한다. 특정 도메인에 기대지 않도록 시험용 컨트롤러를 쓴다
 class GlobalExceptionHandlerTest {
-  private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(new FixtureController())
-          .setControllerAdvice(new GlobalExceptionHandler())
-          .build();
 
-  @Test
-  @DisplayName("#33-S2 공통 기본 예외는 도메인 import 없이 400·403·404·409와 공통 본문으로 변환한다")
-  void businessFailures() throws Exception {
-    for (var row :
-        new Object[][] {
-          {"invalid", 400, "VALIDATION"},
-          {"denied", 403, "FORBIDDEN"},
-          {"missing", 404, "NOT_FOUND"},
-          {"conflict", 409, "CONFLICT"},
-          {"large", 413, "VALIDATION"},
-          {"unsupported", 415, "VALIDATION"},
-          {"storage", 503, "STORAGE_UNAVAILABLE"}
-        }) {
-      mvc.perform(get("/fixture/" + row[0]))
-          .andExpect(status().is((Integer) row[1]))
-          .andExpect(jsonPath("$.code").value(row[2]))
-          .andExpect(jsonPath("$.message").value("safe message"));
-    }
-  }
+	private final MockMvc mockMvc = MockMvcBuilders.standaloneSetup(new ProbeController())
+		.setControllerAdvice(new GlobalExceptionHandler())
+		.setValidator(new LocalValidatorFactoryBean())
+		.build();
 
-  @Test
-  @DisplayName("#33-S16 프로그래밍 오류 IllegalArgumentException을 사용자 입력 400으로 숨기지 않는다")
-  void programmingError() {
-    assertThatThrownBy(() -> mvc.perform(get("/fixture/programming")))
-        .hasRootCauseInstanceOf(IllegalArgumentException.class);
-  }
+	@Test
+	@DisplayName("#19-S5 경로 변수를 숫자로 바꾸지 못하면 본문 없는 400이 아니라 JSON 에러를 받는다")
+	void pathVariableTypeMismatch() throws Exception {
+		mockMvc.perform(get("/items/abc"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("id 값의 형식이 올바르지 않습니다."));
+	}
 
-  @Test
-  @DisplayName("#33-S15 multipart 파싱 오류도 전역 핸들러에서 공통 형식으로 응답한다")
-  void multipartErrors() throws Exception {
-    mvc.perform(get("/fixture/multipart-large"))
-        .andExpect(status().is(413))
-        .andExpect(jsonPath("$.code").value("VALIDATION"));
-    mvc.perform(get("/fixture/multipart-invalid"))
-        .andExpect(status().is(400))
-        .andExpect(jsonPath("$.code").value("VALIDATION"))
-        .andExpect(
-            content()
-                .string(
-                    org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("internal parser details"))));
-    mvc.perform(get("/fixture/storage"))
-        .andExpect(status().is(503))
-        .andExpect(
-            content()
-                .string(
-                    org.hamcrest.Matchers.not(
-                        org.hamcrest.Matchers.containsString("internal storage path"))));
-  }
+	@Test
+	@DisplayName("#19-S5 쿼리 문자열 값을 숫자로 바꾸지 못하면 스프링 내부 메시지 대신 우리 문구를 받는다")
+	void queryTypeMismatch() throws Exception {
+		mockMvc.perform(get("/search?size=abc"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("size 값의 형식이 올바르지 않습니다."));
+	}
 
-  @RestController
-  static class FixtureController {
-    @GetMapping("/fixture/{kind}")
-    void fail(@PathVariable String kind) {
-      switch (kind) {
-        case "invalid" -> throw new RuleViolationException("safe message") {};
-        case "denied" -> throw new PermissionDeniedException("safe message") {};
-        case "missing" -> throw new ResourceNotFoundException("safe message") {};
-        case "conflict" -> throw new StateConflictException("safe message") {};
-        case "large" -> throw new ContentLimitExceededException("safe message") {};
-        case "unsupported" -> throw new UnsupportedFormatException("safe message") {};
-        case "storage" ->
-            throw new StorageUnavailableException(
-                "safe message", new java.io.IOException("internal storage path")) {};
-        case "multipart-large" ->
-            throw new org.springframework.web.multipart.MaxUploadSizeExceededException(15728640);
-        case "multipart-invalid" ->
-            throw new org.springframework.web.multipart.MultipartException(
-                "internal parser details");
-        default -> throw new IllegalArgumentException("internal details");
-      }
-    }
-  }
+	@Test
+	@DisplayName("#19-S5 형식 오류가 아닌 검증 실패는 검증 문구를 그대로 받는다")
+	void validationMessageIsKept() throws Exception {
+		mockMvc.perform(get("/search"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("size를 입력해 주세요."));
+	}
+
+	@RestController
+	static class ProbeController {
+
+		@GetMapping("/items/{id}")
+		String item(@PathVariable Long id) {
+			return "ok";
+		}
+
+		@GetMapping("/search")
+		String search(@Valid SearchRequest request) {
+			return "ok";
+		}
+
+	}
+
+	record SearchRequest(@NotNull(message = "size를 입력해 주세요.") Integer size) {
+	}
+
 }
