@@ -1,0 +1,63 @@
+package com.pawmento.media.adapter.in.web;
+
+import com.pawmento.global.security.LoginMember;
+import com.pawmento.media.application.port.in.*;
+import jakarta.validation.Valid;
+import java.io.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.*;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+
+@RestController
+@RequestMapping("/pets/{petId}/media")
+@RequiredArgsConstructor
+public class MediaUploadController {
+  private final CreateMediaUploadUseCase create;
+  private final GetMediaUploadUseCase get;
+  private final UploadMediaContentUseCase upload;
+
+  @PostMapping(path = "/uploads", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @ResponseStatus(HttpStatus.CREATED)
+  MediaUploadResponse create(
+      @LoginMember Long memberId,
+      @PathVariable Long petId,
+      @Valid @RequestBody CreateMediaUploadRequest r) {
+    boolean consent =
+        r.locationConsent() != null && Boolean.TRUE.equals(r.locationConsent().granted());
+    return MediaUploadResponse.from(
+        create.create(
+            new CreateMediaUploadCommand(
+                memberId, petId, r.purpose(), r.filename(), r.mimeType(), r.sizeBytes(), consent)));
+  }
+
+  @GetMapping("/{assetId}")
+  MediaUploadResponse get(
+      @LoginMember Long memberId, @PathVariable Long petId, @PathVariable Long assetId) {
+    return MediaUploadResponse.from(get.get(new GetMediaUploadQuery(memberId, petId, assetId)));
+  }
+
+  @PostMapping(path = "/{assetId}/content", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @ResponseStatus(HttpStatus.ACCEPTED)
+  MediaUploadResponse content(
+      @LoginMember Long memberId,
+      @PathVariable Long petId,
+      @PathVariable Long assetId,
+      MultipartHttpServletRequest request) {
+    var files = request.getMultiFileMap();
+    if (files.size() != 1
+        || !files.containsKey("file")
+        || files.get("file").size() != 1
+        || !request.getParameterMap().isEmpty())
+      throw new MediaUploadException(
+          MediaUploadException.Kind.INVALID, "한 요청에는 file 파일 하나만 보내 주세요.");
+    MultipartFile file = files.get("file").getFirst();
+    try (InputStream input = file.getInputStream()) {
+      return MediaUploadResponse.from(
+          upload.upload(new UploadMediaContentCommand(memberId, petId, assetId, input)));
+    } catch (IOException e) {
+      throw new MediaUploadException(MediaUploadException.Kind.STORAGE, "파일을 읽지 못했어요.");
+    }
+  }
+}
