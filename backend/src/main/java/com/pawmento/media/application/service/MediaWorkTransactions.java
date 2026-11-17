@@ -1,5 +1,6 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.media.application.exception.MediaAssetNotFoundException;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
 import java.time.Clock;
@@ -23,7 +24,7 @@ public class MediaWorkTransactions {
 
   @Transactional
   public boolean success(MediaWork work, VerifiedMedia result) {
-    var a = load.findForUpdate(work.assetId()).orElseThrow();
+    var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
     if (!jobs.owns(work)) return false;
     if (a.getStatus() == MediaUploadStatus.PROCESSING) {
       a.validated(result, clock.instant());
@@ -35,7 +36,7 @@ public class MediaWorkTransactions {
 
   @Transactional
   public boolean rejected(MediaWork work, String reason) {
-    var a = load.findForUpdate(work.assetId()).orElseThrow();
+    var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
     if (!jobs.owns(work)) return false;
     a.invalidMedia(reason, clock.instant());
     save.save(a);
@@ -44,7 +45,7 @@ public class MediaWorkTransactions {
 
   @Transactional
   public void deleted(MediaWork work) {
-    var a = load.findForUpdate(work.assetId()).orElseThrow();
+    var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
     if (!jobs.owns(work)) return;
     a.deleted(clock.instant());
     save.save(a);
@@ -58,7 +59,7 @@ public class MediaWorkTransactions {
 
   @Transactional
   public void retry(MediaWork work, String error) {
-    var a = load.findForUpdate(work.assetId()).orElseThrow();
+    var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
     if (!jobs.owns(work)) return;
     if (work.attempt() >= 5 && a.getStatus() == MediaUploadStatus.PROCESSING) {
       a.invalidMedia("PROCESSING_FAILED", clock.instant());
@@ -69,7 +70,7 @@ public class MediaWorkTransactions {
 
   @Transactional
   public void cleaned(Long id) {
-    var a = load.findForUpdate(id).orElseThrow();
+    var a = load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
     if (a.getStatus() == MediaUploadStatus.READY || a.getStatus() == MediaUploadStatus.REJECTED) {
       a.temporaryRemoved(clock.instant());
       save.save(a);

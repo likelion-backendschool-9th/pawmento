@@ -2,7 +2,8 @@ package com.pawmento.media.adapter.out.storage;
 
 import static org.assertj.core.api.Assertions.*;
 
-import com.pawmento.media.application.port.out.MediaStorageException;
+import com.pawmento.media.application.exception.MediaContentLimitExceededException;
+import com.pawmento.media.application.exception.MediaStorageUnavailableException;
 import com.pawmento.media.domain.MediaAsset;
 import java.io.*;
 import java.nio.file.*;
@@ -41,8 +42,7 @@ class VolumeMediaUploadAdapterTest {
                     rejected,
                     new ByteArrayInputStream(new byte[bytes.length + 1]),
                     MediaAsset.MAX_FILE_BYTES))
-        .isInstanceOfSatisfying(
-            MediaStorageException.class, e -> assertThat(e.tooLarge()).isTrue());
+        .isInstanceOf(MediaContentLimitExceededException.class);
     assertThat(uploads().resolve(rejected + ".upload")).doesNotExist();
   }
 
@@ -50,13 +50,13 @@ class VolumeMediaUploadAdapterTest {
   @DisplayName("#33-S17 경로 순회·파일/디렉터리 심볼릭 링크로 volume 밖에 쓰지 않는다")
   void paths() throws Exception {
     assertThatThrownBy(() -> storage.store("../escape", new ByteArrayInputStream(new byte[1]), 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     Path outside = Files.createDirectory(root.resolve("outside"));
     Path target = Files.writeString(outside.resolve("kept"), "original");
     String key = UUID.randomUUID().toString();
     Files.createSymbolicLink(uploads().resolve(key + ".upload"), target);
     assertThatThrownBy(() -> storage.store(key, new ByteArrayInputStream(new byte[] {1}), 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     assertThat(Files.readString(target)).isEqualTo("original");
     Files.delete(uploads().resolve(key + ".upload"));
     Files.delete(uploads());
@@ -65,7 +65,7 @@ class VolumeMediaUploadAdapterTest {
             () ->
                 storage.store(
                     UUID.randomUUID().toString(), new ByteArrayInputStream(new byte[] {1}), 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     try (var files = Files.list(outside)) {
       assertThat(files.map(Path::getFileName).toList()).containsExactly(Path.of("kept"));
     }
@@ -79,7 +79,7 @@ class VolumeMediaUploadAdapterTest {
     assertThat(receipt.sha256())
         .isEqualTo("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     assertThatThrownBy(() -> storage.store(key, new ByteArrayInputStream("def".getBytes()), 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     assertThat(Files.readString(uploads().resolve(key + ".upload"))).isEqualTo("abc");
     storage.delete(key);
     storage.delete(key);
@@ -108,7 +108,7 @@ class VolumeMediaUploadAdapterTest {
           }
         };
     assertThatThrownBy(() -> storage.store(key, broken, 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     assertThat(uploads().resolve(key + ".upload")).doesNotExist();
   }
 
@@ -119,7 +119,7 @@ class VolumeMediaUploadAdapterTest {
     storage.write(key, "content", new ByteArrayInputStream("safe".getBytes()), 10);
     assertThatThrownBy(
             () -> storage.write(key, "content", new ByteArrayInputStream("bad".getBytes()), 10))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     try (var in = storage.open(key, "content")) {
       assertThat(new String(in.readAllBytes())).isEqualTo("safe");
     }
@@ -129,9 +129,9 @@ class VolumeMediaUploadAdapterTest {
     String linked = UUID.randomUUID().toString();
     Files.createSymbolicLink(files.resolve(linked + ".media"), target);
     assertThatThrownBy(() -> storage.open(linked, "content"))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
     assertThatThrownBy(() -> storage.open("../escape", "content"))
-        .isInstanceOf(MediaStorageException.class);
+        .isInstanceOf(MediaStorageUnavailableException.class);
   }
 
   @Test

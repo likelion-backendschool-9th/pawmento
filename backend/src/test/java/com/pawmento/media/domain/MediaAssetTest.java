@@ -2,6 +2,7 @@ package com.pawmento.media.domain;
 
 import static org.assertj.core.api.Assertions.*;
 
+import com.pawmento.media.domain.exception.*;
 import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,8 +38,8 @@ class MediaAssetTest {
     assertThat(asset(MediaAsset.MAX_FILE_BYTES).getDeclaredSizeBytes())
         .isEqualTo(MediaAsset.MAX_FILE_BYTES);
     assertThatThrownBy(() -> asset(MediaAsset.MAX_FILE_BYTES + 1))
-        .isInstanceOf(MediaViolation.class);
-    assertThatThrownBy(() -> asset(0)).isInstanceOf(MediaViolation.class);
+        .isInstanceOf(MediaSizeLimitExceededException.class);
+    assertThatThrownBy(() -> asset(0)).isInstanceOf(InvalidMediaException.class);
   }
 
   @Test
@@ -56,7 +57,7 @@ class MediaAssetTest {
                       1,
                       "12345678-1234-1234-1234-123456789abc",
                       NOW))
-          .isInstanceOf(MediaViolation.class);
+          .isInstanceOf(UnsupportedMediaFormatException.class);
     assertThat(
             MediaAsset.create(
                     1L,
@@ -76,17 +77,17 @@ class MediaAssetTest {
   void state() {
     var a = asset(3);
     a.begin(NOW);
-    assertThatThrownBy(() -> a.begin(NOW)).isInstanceOf(MediaViolation.class);
+    assertThatThrownBy(() -> a.begin(NOW)).isInstanceOf(MediaStateConflictException.class);
     assertThatThrownBy(() -> asset(3).begin(NOW.plus(MediaAsset.SESSION_TTL)))
-        .isInstanceOf(MediaViolation.class);
+        .isInstanceOf(MediaStateConflictException.class);
   }
 
   @Test
   @DisplayName("#33-S2 업로더와 반려동물이 다르면 접근할 수 없다")
   void ownership() {
     var a = asset(3);
-    assertThatThrownBy(() -> a.requireOwner(3L, 2L)).isInstanceOf(MediaViolation.class);
-    assertThatThrownBy(() -> a.requireOwner(1L, 3L)).isInstanceOf(MediaViolation.class);
+    assertThatThrownBy(() -> a.requireOwner(3L, 2L)).isInstanceOf(MediaAccessDeniedException.class);
+    assertThatThrownBy(() -> a.requireOwner(1L, 3L)).isInstanceOf(MediaAccessDeniedException.class);
   }
 
   @Test
@@ -95,7 +96,7 @@ class MediaAssetTest {
     var a = asset(3);
     a.begin(NOW);
     assertThatThrownBy(() -> a.received(new StoredUpload(2, "digest"), NOW))
-        .isInstanceOf(MediaViolation.class);
+        .isInstanceOf(InvalidMediaException.class);
     assertThat(a.rejectUpload(NOW)).isTrue();
     a.temporaryRemoved(NOW);
     assertThat(a.getStatus()).isEqualTo(MediaUploadStatus.REJECTED);

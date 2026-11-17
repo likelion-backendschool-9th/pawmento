@@ -12,6 +12,9 @@ public class MediaValidationQueueAdapter implements EnqueueMediaValidationPort {
 
   @Override
   public void enqueue(Long id, Instant now) {
-    jobs.saveAndFlush(MediaValidationJobJpaEntity.pending(id, now));
+    MediaPersistenceOperations.execute(
+        () -> {
+          jobs.saveAndFlush(MediaValidationJobJpaEntity.pending(id, now));
+        });
   }
 }

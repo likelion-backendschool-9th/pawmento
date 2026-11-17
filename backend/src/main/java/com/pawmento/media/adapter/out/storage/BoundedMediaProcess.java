@@ -1,5 +1,7 @@
 package com.pawmento.media.adapter.out.storage;
 
+import com.pawmento.media.application.exception.*;
+import com.pawmento.media.application.exception.MediaValidationFailedException;
 import com.pawmento.media.application.port.out.*;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -24,7 +26,7 @@ public class BoundedMediaProcess {
     try {
       process = new ProcessBuilder(command).redirectError(ProcessBuilder.Redirect.DISCARD).start();
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
     var pool = Executors.newVirtualThreadPerTaskExecutor();
     try {
@@ -48,18 +50,18 @@ public class BoundedMediaProcess {
               });
       if (!process.waitFor(properties.timeoutSeconds(), TimeUnit.SECONDS)) {
         process.destroyForcibly();
-        throw new MediaValidationException("PARSER_TIMEOUT");
+        throw new MediaValidationFailedException("PARSER_TIMEOUT");
       }
       String result = output.get(2, TimeUnit.SECONDS);
       if (process.exitValue() == 127)
-        throw new MediaStorageException(false, new IOException("Media tools unavailable"));
-      if (process.exitValue() != 0) throw new MediaValidationException("INVALID_MEDIA");
+        throw new MediaStorageUnavailableException(new IOException("Media tools unavailable"));
+      if (process.exitValue() != 0) throw new MediaValidationFailedException("INVALID_MEDIA");
       return result;
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     } catch (ExecutionException | TimeoutException e) {
-      throw new MediaValidationException("PARSER_OUTPUT_LIMIT");
+      throw new MediaValidationFailedException("PARSER_OUTPUT_LIMIT");
     } finally {
       if (process.isAlive()) process.destroyForcibly();
       pool.shutdownNow();

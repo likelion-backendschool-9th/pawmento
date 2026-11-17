@@ -1,9 +1,9 @@
 package com.pawmento.media.adapter.in.web;
 
 import com.pawmento.global.security.LoginMember;
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.in.*;
 import jakarta.validation.Valid;
-import java.io.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -52,14 +52,12 @@ public class MediaUploadController {
         || !files.containsKey("file")
         || files.get("file").size() != 1
         || !request.getParameterMap().isEmpty())
-      throw new MediaUploadException(
-          MediaUploadException.Kind.INVALID, "한 요청에는 file 파일 하나만 보내 주세요.");
+      throw new InvalidMediaRequestException(
+          InvalidMediaRequestException.Reason.SINGLE_FILE_REQUIRED);
     MultipartFile file = files.get("file").getFirst();
-    try (InputStream input = file.getInputStream()) {
+    try (var input = new MultipartMediaContent(file)) {
       return MediaUploadResponse.from(
           upload.upload(new UploadMediaContentCommand(memberId, petId, assetId, input)));
-    } catch (IOException e) {
-      throw new MediaUploadException(MediaUploadException.Kind.STORAGE, "파일을 읽지 못했어요.");
     }
   }
 

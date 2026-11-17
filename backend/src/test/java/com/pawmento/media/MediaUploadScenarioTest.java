@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.global.exception.StateConflictException;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.media.adapter.out.persistence.MediaValidationJobJpaRepository;
 import com.pawmento.media.application.port.in.*;
@@ -239,8 +240,7 @@ class MediaUploadScenarioTest {
                             3,
                             false));
                     return true;
-                  } catch (MediaUploadException e) {
-                    assertThat(e.kind()).isEqualTo(MediaUploadException.Kind.CONFLICT);
+                  } catch (StateConflictException e) {
                     return false;
                   }
                 }));

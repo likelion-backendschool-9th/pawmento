@@ -17,34 +17,49 @@ public class MediaAssetPersistenceAdapter
 
   @Override
   public MediaAsset save(MediaAsset asset) {
-    return repository.saveAndFlush(MediaAssetJpaEntity.from(asset)).toDomain();
+    return MediaPersistenceOperations.execute(
+        () -> {
+          return repository.saveAndFlush(MediaAssetJpaEntity.from(asset)).toDomain();
+        });
   }
 
   @Override
   public Optional<MediaAsset> findById(Long id) {
-    return repository.findById(id).map(MediaAssetJpaEntity::toDomain);
+    return MediaPersistenceOperations.execute(
+        () -> {
+          return repository.findById(id).map(MediaAssetJpaEntity::toDomain);
+        });
   }
 
   @Override
   public Optional<MediaAsset> findForUpdate(Long id) {
-    return repository.findForUpdate(id).map(MediaAssetJpaEntity::toDomain);
+    return MediaPersistenceOperations.execute(
+        () -> {
+          return repository.findForUpdate(id).map(MediaAssetJpaEntity::toDomain);
+        });
   }
 
   @Override
   public void lockMember(Long memberId) {
-    // PostgreSQL 트랜잭션 잠금: 같은 업로더의 동시 세션 생성이 건수 제한을 우회하지 못한다.
-    entityManager
-        .createNativeQuery(
-            "select 1 from (select pg_advisory_xact_lock(hashtextextended('media-upload:' ||"
-                + " cast(:memberId as text), 0))) as locked",
-            Integer.class)
-        .setParameter("memberId", memberId)
-        .getSingleResult();
+    MediaPersistenceOperations.execute(
+        () -> {
+          // PostgreSQL 트랜잭션 잠금: 같은 업로더의 동시 세션 생성이 건수 제한을 우회하지 못한다.
+          entityManager
+              .createNativeQuery(
+                  "select 1 from (select pg_advisory_xact_lock(hashtextextended('media-upload:' ||"
+                      + " cast(:memberId as text), 0))) as locked",
+                  Integer.class)
+              .setParameter("memberId", memberId)
+              .getSingleResult();
+        });
   }
 
   @Override
   public long countOpenUploads(Long memberId, Instant now) {
-    return repository.countOpen(
-        memberId, now, MediaUploadStatus.PENDING, MediaUploadStatus.REJECTED);
+    return MediaPersistenceOperations.execute(
+        () -> {
+          return repository.countOpen(
+              memberId, now, MediaUploadStatus.PENDING, MediaUploadStatus.REJECTED);
+        });
   }
 }

@@ -1,7 +1,6 @@
 package com.pawmento.media.domain;
 
-import static com.pawmento.media.domain.MediaViolation.Reason.*;
-
+import com.pawmento.media.domain.exception.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
@@ -54,29 +53,29 @@ public class MediaAsset {
       String key,
       Instant now) {
     if (memberId == null || memberId <= 0 || petId == null || petId <= 0)
-      throw new MediaViolation(INVALID, "회원과 반려동물 정보가 필요합니다.");
+      throw new InvalidMediaException(InvalidMediaException.Reason.IDENTITY_REQUIRED);
     if (filename == null
         || filename.isBlank()
         || filename.length() > 255
         || filename.indexOf('/') >= 0
         || filename.indexOf('\\') >= 0
         || filename.chars().anyMatch(Character::isISOControl))
-      throw new MediaViolation(INVALID, "올바른 파일 이름을 입력해 주세요.");
-    if (size <= 0) throw new MediaViolation(INVALID, "비어 있는 파일은 업로드할 수 없어요.");
-    if (size > MAX_FILE_BYTES) throw new MediaViolation(TOO_LARGE, "파일은 15MiB까지 업로드할 수 있어요.");
+      throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_FILENAME);
+    if (size <= 0) throw new InvalidMediaException(InvalidMediaException.Reason.EMPTY_FILE);
+    if (size > MAX_FILE_BYTES) throw new MediaSizeLimitExceededException();
     String normalized = mime == null ? "" : mime.split(";", 2)[0].strip().toLowerCase(Locale.ROOT);
     MediaType type;
     if (IMAGES.contains(normalized)) type = MediaType.IMAGE;
     else if (AUDIO.contains(normalized)) type = MediaType.AUDIO;
-    else throw new MediaViolation(UNSUPPORTED, "사진과 음성 녹음 파일만 업로드할 수 있어요.");
+    else throw new UnsupportedMediaFormatException();
     MediaPurpose target;
     try {
       target = MediaPurpose.valueOf(purpose);
     } catch (RuntimeException e) {
-      throw new MediaViolation(INVALID, "첨부 용도를 확인해 주세요.");
+      throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_PURPOSE);
     }
     if (key == null || !key.matches("[0-9a-f-]{36}"))
-      throw new MediaViolation(INVALID, "파일 저장 키가 올바르지 않아요.");
+      throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_STORAGE_KEY);
     MediaAsset a = new MediaAsset();
     a.uploaderMemberId = memberId;
     a.petId = petId;
@@ -146,16 +145,16 @@ public class MediaAsset {
 
   public void requireOwner(Long memberId, Long requestedPetId) {
     if (!petId.equals(requestedPetId))
-      throw new MediaViolation(FORBIDDEN, "다른 반려동물의 파일에 접근할 수 없어요.");
+      throw new MediaAccessDeniedException(MediaAccessDeniedException.Reason.WRONG_PET);
     if (!uploaderMemberId.equals(memberId))
-      throw new MediaViolation(FORBIDDEN, "본인이 올린 파일만 변경할 수 있어요.");
+      throw new MediaAccessDeniedException(MediaAccessDeniedException.Reason.NOT_UPLOADER);
   }
 
   public void requirePending(Instant now) {
     if (status != MediaUploadStatus.PENDING)
-      throw new MediaViolation(CONFLICT, "이미 파일을 받았거나 처리 중인 업로드예요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.ALREADY_RECEIVED);
     if (!now.isBefore(expiresAt))
-      throw new MediaViolation(CONFLICT, "업로드 시간이 지났어요. 새로 파일을 선택해 주세요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.SESSION_EXPIRED);
   }
 
   public void begin(Instant now) {
@@ -166,9 +165,9 @@ public class MediaAsset {
 
   public void received(StoredUpload upload, Instant now) {
     if (status != MediaUploadStatus.UPLOADING)
-      throw new MediaViolation(CONFLICT, "파일을 받을 수 없는 상태예요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.NOT_UPLOADING);
     if (upload.sizeBytes() != declaredSizeBytes)
-      throw new MediaViolation(INVALID, "요청한 크기와 실제 파일 크기가 달라요.");
+      throw new InvalidMediaException(InvalidMediaException.Reason.SIZE_MISMATCH);
     receivedSizeBytes = upload.sizeBytes();
     sha256 = upload.sha256();
     status = MediaUploadStatus.PROCESSING;
@@ -188,16 +187,17 @@ public class MediaAsset {
         && status != MediaUploadStatus.READY
         && status != MediaUploadStatus.DELETING
         && status != MediaUploadStatus.DELETED)
-      throw new MediaViolation(CONFLICT, "파일 정리 상태를 확인해 주세요.");
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.INVALID_CLEANUP_STATE);
     temporaryFileDeleted = true;
     updatedAt = now;
   }
 
   public void validated(VerifiedMedia result, Instant now) {
     if (status != MediaUploadStatus.PROCESSING)
-      throw new MediaViolation(CONFLICT, "검증 중인 파일이 아니에요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.NOT_PROCESSING);
     if ((mediaType == MediaType.IMAGE) != result.mimeType().startsWith("image/"))
-      throw new MediaViolation(CONFLICT, "검증한 파일의 종류가 달라요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.TYPE_CHANGED);
     verified = result;
     readyAt = now;
     unattachedExpiresAt = now.plus(UNATTACHED_TTL);
@@ -217,7 +217,7 @@ public class MediaAsset {
     if (status != MediaUploadStatus.READY
         || referenceCount != 0
         || !now.isBefore(unattachedExpiresAt))
-      throw new MediaViolation(CONFLICT, "미리보기를 할 수 없는 파일이에요.");
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.PREVIEW_UNAVAILABLE);
   }
 
   public boolean needsCleanup(Instant now) {
@@ -231,14 +231,16 @@ public class MediaAsset {
   }
 
   public void requestDeletion(Instant now) {
-    if (referenceCount != 0) throw new MediaViolation(CONFLICT, "글에 연결된 파일은 삭제할 수 없어요.");
+    if (referenceCount != 0)
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.FILE_REFERENCED);
     if (status == MediaUploadStatus.DELETING || status == MediaUploadStatus.DELETED) return;
     status = MediaUploadStatus.DELETING;
     updatedAt = now;
   }
 
   public void deleted(Instant now) {
-    if (status != MediaUploadStatus.DELETING) throw new MediaViolation(CONFLICT, "삭제 중인 파일이 아니에요.");
+    if (status != MediaUploadStatus.DELETING)
+      throw new MediaStateConflictException(MediaStateConflictException.Reason.NOT_DELETING);
     status = MediaUploadStatus.DELETED;
     temporaryFileDeleted = true;
     deletedAt = now;

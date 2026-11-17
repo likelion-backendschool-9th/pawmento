@@ -3,6 +3,7 @@ package com.pawmento.media.application.service;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
 import java.time.Instant;
@@ -60,12 +61,12 @@ class ProcessMediaWorkServiceTest {
         new VerifiedMedia(work.token(), "image/png", 3, "a".repeat(64), null, 1, 1, null),
         Instant.now());
     when(load.findById(1L)).thenReturn(Optional.of(a));
-    doThrow(new MediaStorageException(false, null))
+    doThrow(new MediaStorageUnavailableException())
         .when(temporary)
         .delete(a.getTemporaryStorageKey());
     service.processNext();
     verifyNoInteractions(validator);
-    verify(tx).retry(work, "MediaStorageException");
+    verify(tx).retry(work, "MediaStorageUnavailableException");
     verify(tx, never()).finished(work);
   }
 
@@ -77,11 +78,11 @@ class ProcessMediaWorkServiceTest {
     var w = new MediaWork(1L, work.token(), 1, "DELETE");
     when(tx.claim()).thenReturn(Optional.of(w));
     when(load.findById(1L)).thenReturn(Optional.of(a));
-    doThrow(new MediaStorageException(false, null))
+    doThrow(new MediaStorageUnavailableException())
         .when(deletion)
         .deleteAll(a.getTemporaryStorageKey(), null);
     service.processNext();
-    verify(tx).retry(w, "MediaStorageException");
+    verify(tx).retry(w, "MediaStorageUnavailableException");
     verify(tx, never()).deleted(w);
   }
 

@@ -1,5 +1,6 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.media.application.exception.MediaAssetNotFoundException;
 import com.pawmento.media.application.port.out.*;
 import java.time.Clock;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +18,7 @@ public class MediaCleanupTransactions {
 
   @Transactional
   public void schedule(Long id) {
-    var a = load.findForUpdate(id).orElseThrow();
+    var a = load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
     if (!a.needsCleanup(clock.instant())
         || a.getReferenceCount() != 0
         || references.isReferenced(id)) return;

@@ -1,5 +1,6 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.in.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
@@ -20,16 +21,8 @@ public class CheckMediaUploadService implements CheckMediaUploadUseCase {
   @Transactional(readOnly = true)
   public void check(CheckMediaUploadQuery q) {
     access.requireWriteAccess(q.memberId(), q.petId());
-    MediaAsset a =
-        load.findById(q.assetId())
-            .orElseThrow(
-                () ->
-                    new MediaUploadException(MediaUploadException.Kind.NOT_FOUND, "파일을 찾을 수 없어요."));
-    try {
-      a.requireOwner(q.memberId(), q.petId());
-      a.requirePending(clock.instant());
-    } catch (MediaViolation e) {
-      throw MediaUploadException.from(e);
-    }
+    MediaAsset a = load.findById(q.assetId()).orElseThrow(() -> new MediaAssetNotFoundException());
+    a.requireOwner(q.memberId(), q.petId());
+    a.requirePending(clock.instant());
   }
 }

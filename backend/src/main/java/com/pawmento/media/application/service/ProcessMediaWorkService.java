@@ -1,5 +1,7 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.media.application.exception.MediaAssetNotFoundException;
+import com.pawmento.media.application.exception.MediaValidationFailedException;
 import com.pawmento.media.application.port.in.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
@@ -22,7 +24,7 @@ public class ProcessMediaWorkService implements ProcessMediaWorkUseCase {
     if (next.isEmpty()) return false;
     var w = next.get();
     try {
-      var a = load.findById(w.assetId()).orElseThrow();
+      var a = load.findById(w.assetId()).orElseThrow(MediaAssetNotFoundException::new);
       if (w.kind().equals("DELETE")) {
         if (a.getStatus() != MediaUploadStatus.DELETING)
           throw new IllegalStateException("DELETE_STATE");
@@ -35,8 +37,8 @@ public class ProcessMediaWorkService implements ProcessMediaWorkUseCase {
           try {
             var v = validator.validate(a, w.token());
             if (!transactions.success(w, v)) return true;
-          } catch (MediaValidationException e) {
-            if (!transactions.rejected(w, e.getMessage())) return true;
+          } catch (MediaValidationFailedException e) {
+            if (!transactions.rejected(w, e.reason())) return true;
           }
         }
         // Deletion failure is retried without decoding again once READY/REJECTED is durable.

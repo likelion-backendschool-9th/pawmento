@@ -3,6 +3,7 @@ package com.pawmento.media.adapter.in.web;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.pawmento.media.application.exception.MediaRequestDeniedException;
 import com.pawmento.media.application.port.in.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.*;
@@ -25,10 +26,7 @@ class MediaUploadGuardFilterTest {
     var request = new MockHttpServletRequest("POST", "/api/v1/pets/%31/media/%32/content");
     filter.doFilter(
         request, new MockHttpServletResponse(), (r, s) -> fail("encoded path bypassed guard"));
-    assertThat(error.get())
-        .isInstanceOfSatisfying(
-            MediaUploadException.class,
-            e -> assertThat(e.kind()).isEqualTo(MediaUploadException.Kind.FORBIDDEN));
+    assertThat(error.get()).isInstanceOf(MediaRequestDeniedException.class);
     verifyNoInteractions(check);
   }
 }

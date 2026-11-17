@@ -1,5 +1,6 @@
 package com.pawmento.media.adapter.out.storage;
 
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.StoredUpload;
 import jakarta.annotation.PostConstruct;
@@ -94,7 +95,7 @@ public class VolumeMediaUploadAdapter
 
   private static Path filename(String key) {
     if (key == null || !key.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
-      throw new MediaStorageException(false, new IOException("잘못된 저장 키"));
+      throw new MediaStorageUnavailableException(new IOException("잘못된 저장 키"));
     return Path.of(key + ".upload");
   }
 
@@ -118,7 +119,7 @@ public class VolumeMediaUploadAdapter
         int n;
         while ((n = input.read(buffer)) != -1) {
           total += n;
-          if (total > maxBytes) throw new MediaStorageException(true, null);
+          if (total > maxBytes) throw new MediaContentLimitExceededException();
           digest.update(buffer, 0, n);
           ByteBuffer bytes = ByteBuffer.wrap(buffer, 0, n);
           while (bytes.hasRemaining()) output.write(bytes);
@@ -131,11 +132,11 @@ public class VolumeMediaUploadAdapter
           } catch (IOException cleanup) {
             e.addSuppressed(cleanup);
           }
-        if (e instanceof MediaStorageException storage) throw storage;
-        throw new MediaStorageException(false, e);
+        if (e instanceof RuntimeException failure) throw failure;
+        throw new MediaStorageUnavailableException(e);
       }
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
   }
 
@@ -148,7 +149,7 @@ public class VolumeMediaUploadAdapter
       } catch (NoSuchFileException ignored) {
       }
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
   }
 
@@ -171,7 +172,7 @@ public class VolumeMediaUploadAdapter
           dir.newByteChannel(name, Set.of(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS));
       return java.nio.channels.Channels.newInputStream(channel);
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
   }
 
@@ -194,7 +195,7 @@ public class VolumeMediaUploadAdapter
         int n;
         while ((n = input.read(buffer)) != -1) {
           total += n;
-          if (total > limit) throw new MediaStorageException(true, null);
+          if (total > limit) throw new MediaContentLimitExceededException();
           var bytes = ByteBuffer.wrap(buffer, 0, n);
           while (bytes.hasRemaining()) out.write(bytes);
         }
@@ -205,10 +206,11 @@ public class VolumeMediaUploadAdapter
           } catch (IOException cleanup) {
             e.addSuppressed(cleanup);
           }
-        throw new MediaStorageException(false, e);
+        if (e instanceof RuntimeException failure) throw failure;
+        throw new MediaStorageUnavailableException(e);
       }
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
   }
 
@@ -223,7 +225,7 @@ public class VolumeMediaUploadAdapter
         } catch (NoSuchFileException ignored) {
         }
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
   }
 
@@ -267,7 +269,7 @@ public class VolumeMediaUploadAdapter
     try {
       collectWork(cutoff);
     } catch (IOException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     }
     for (String folder : List.of("tmp/uploads", "files")) {
       try (var dir = directory(folder)) {
@@ -290,7 +292,7 @@ public class VolumeMediaUploadAdapter
             }
         }
       } catch (IOException e) {
-        throw new MediaStorageException(false, e);
+        throw new MediaStorageUnavailableException(e);
       }
     }
   }

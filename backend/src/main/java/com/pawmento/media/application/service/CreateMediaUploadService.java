@@ -1,5 +1,6 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.in.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
@@ -21,27 +22,20 @@ public class CreateMediaUploadService implements CreateMediaUploadUseCase {
   @Transactional
   public MediaUploadResult create(CreateMediaUploadCommand c) {
     access.requireWriteAccess(c.memberId(), c.petId());
-    if (c.locationConsent())
-      throw new MediaUploadException(
-          MediaUploadException.Kind.CONFLICT, "위치 사용 동의 절차가 준비되기 전에는 위치 수집을 사용할 수 없어요.");
-    try {
-      MediaAsset asset =
-          MediaAsset.create(
-              c.memberId(),
-              c.petId(),
-              c.purpose(),
-              c.filename(),
-              c.mimeType(),
-              c.sizeBytes(),
-              UUID.randomUUID().toString(),
-              clock.instant());
-      quota.lockMember(c.memberId());
-      if (quota.countOpenUploads(c.memberId(), clock.instant()) >= MediaAsset.MAX_OPEN_UPLOADS)
-        throw new MediaUploadException(
-            MediaUploadException.Kind.CONFLICT, "처리 중인 파일은 5개까지 보관할 수 있어요.");
-      return MediaUploadResult.from(save.save(asset));
-    } catch (MediaViolation e) {
-      throw MediaUploadException.from(e);
-    }
+    if (c.locationConsent()) throw new MediaLocationConsentUnavailableException();
+    MediaAsset asset =
+        MediaAsset.create(
+            c.memberId(),
+            c.petId(),
+            c.purpose(),
+            c.filename(),
+            c.mimeType(),
+            c.sizeBytes(),
+            UUID.randomUUID().toString(),
+            clock.instant());
+    quota.lockMember(c.memberId());
+    if (quota.countOpenUploads(c.memberId(), clock.instant()) >= MediaAsset.MAX_OPEN_UPLOADS)
+      throw new MediaUploadLimitException();
+    return MediaUploadResult.from(save.save(asset));
   }
 }

@@ -31,10 +31,6 @@ public class UploadMediaContentService implements UploadMediaContentUseCase {
       } catch (RuntimeException cleanup) {
         failure.addSuppressed(cleanup);
       }
-      if (failure instanceof MediaStorageException e)
-        throw new MediaUploadException(
-            e.tooLarge() ? MediaUploadException.Kind.TOO_LARGE : MediaUploadException.Kind.STORAGE,
-            e.tooLarge() ? "파일은 15MiB까지 업로드할 수 있어요." : "파일을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
       throw failure;
     }
   }

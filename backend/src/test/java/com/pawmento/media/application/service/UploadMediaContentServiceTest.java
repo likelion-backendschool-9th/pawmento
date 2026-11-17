@@ -3,6 +3,7 @@ package com.pawmento.media.application.service;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.in.*;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
@@ -36,13 +37,10 @@ class UploadMediaContentServiceTest {
   @Test
   @DisplayName("#33-S16 파일 I/O 실패는 실패 상태와 정리를 수행하고 503으로 안내한다")
   void failedStorage() {
-    when(store.store(anyString(), any(), anyLong()))
-        .thenThrow(new MediaStorageException(false, new IOException()));
+    var failure = new MediaStorageUnavailableException(new IOException());
+    when(store.store(anyString(), any(), anyLong())).thenThrow(failure);
     when(tx.reject(3L)).thenReturn(true);
-    assertThatThrownBy(() -> service.upload(command))
-        .isInstanceOfSatisfying(
-            MediaUploadException.class,
-            e -> assertThat(e.kind()).isEqualTo(MediaUploadException.Kind.STORAGE));
+    assertThatThrownBy(() -> service.upload(command)).isSameAs(failure);
     verify(delete).delete(asset.getTemporaryStorageKey());
     verify(tx).cleaned(3L);
     verify(tx, never()).complete(any(), any(), any(), any());

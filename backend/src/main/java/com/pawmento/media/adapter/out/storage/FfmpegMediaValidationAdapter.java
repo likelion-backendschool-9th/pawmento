@@ -1,5 +1,7 @@
 package com.pawmento.media.adapter.out.storage;
 
+import com.pawmento.media.application.exception.*;
+import com.pawmento.media.application.exception.MediaValidationFailedException;
 import com.pawmento.media.application.port.out.*;
 import com.pawmento.media.domain.*;
 import java.io.*;
@@ -178,13 +180,13 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
       return new VerifiedMedia(
           outputKey, mime, Files.size(service), checksum, durationMs, width, height, thumbnailSize);
     } catch (IOException | NoSuchAlgorithmException e) {
-      throw new MediaStorageException(false, e);
+      throw new MediaStorageUnavailableException(e);
     } finally {
       if (work != null)
         try (var paths = Files.walk(work)) {
           for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(p);
         } catch (IOException e) {
-          throw new MediaStorageException(false, e);
+          throw new MediaStorageUnavailableException(e);
         }
     }
   }
@@ -239,7 +241,7 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
     try {
       return json.readTree(text);
     } catch (RuntimeException e) {
-      throw new MediaValidationException("INVALID_MEDIA");
+      throw new MediaValidationFailedException("INVALID_MEDIA");
     }
   }
 
@@ -264,7 +266,7 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
   }
 
   private static void reject(String reason) {
-    throw new MediaValidationException(reason);
+    throw new MediaValidationFailedException(reason);
   }
 
   private static String signature(Path path, String mime) throws IOException {

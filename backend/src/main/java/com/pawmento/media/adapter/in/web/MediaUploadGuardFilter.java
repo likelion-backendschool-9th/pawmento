@@ -1,6 +1,7 @@
 package com.pawmento.media.adapter.in.web;
 
 import com.pawmento.global.web.ApiPaths;
+import com.pawmento.media.application.exception.*;
 import com.pawmento.media.application.port.in.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
@@ -33,13 +34,11 @@ class MediaUploadGuardFilter extends OncePerRequestFilter {
     }
     try {
       if (!"1".equals(request.getHeader("X-Pawmento-Upload")) || !sameOrigin(request))
-        throw new MediaUploadException(
-            MediaUploadException.Kind.FORBIDDEN, "허용된 화면에서 파일을 업로드해 주세요.");
+        throw new MediaRequestDeniedException(MediaRequestDeniedException.Reason.UNSAFE_ORIGIN);
       if (request.getContentLengthLong() > 16L * 1024 * 1024)
-        throw new MediaUploadException(
-            MediaUploadException.Kind.TOO_LARGE, "요청은 16MiB까지 보낼 수 있어요.");
+        throw new MediaRequestLimitExceededException();
       if (request.getUserPrincipal() == null)
-        throw new MediaUploadException(MediaUploadException.Kind.FORBIDDEN, "로그인이 필요합니다.");
+        throw new MediaRequestDeniedException(MediaRequestDeniedException.Reason.LOGIN_REQUIRED);
       check.check(
           new CheckMediaUploadQuery(
               Long.valueOf(request.getUserPrincipal().getName()),
@@ -58,7 +57,7 @@ class MediaUploadGuardFilter extends OncePerRequestFilter {
       if (id <= 0) throw new NumberFormatException();
       return id;
     } catch (NumberFormatException e) {
-      throw new MediaUploadException(MediaUploadException.Kind.INVALID, "파일 경로를 확인해 주세요.");
+      throw new InvalidMediaRequestException(InvalidMediaRequestException.Reason.INVALID_PATH);
     }
   }
 
