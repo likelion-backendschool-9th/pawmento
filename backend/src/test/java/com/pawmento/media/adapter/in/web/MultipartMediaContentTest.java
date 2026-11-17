@@ -3,7 +3,7 @@ package com.pawmento.media.adapter.in.web;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.pawmento.media.application.exception.MediaStorageUnavailableException;
+import com.pawmento.media.adapter.in.web.exception.MediaInputUnavailableException;
 import java.io.*;
 import org.junit.jupiter.api.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,7 +34,7 @@ class MultipartMediaContentTest {
     var content = new MultipartMediaContent(file);
     content.read();
     assertThatThrownBy(content::close)
-        .isInstanceOf(MediaStorageUnavailableException.class)
+        .isInstanceOf(MediaInputUnavailableException.class)
         .hasCause(cause)
         .hasMessageNotContaining("private path");
   }

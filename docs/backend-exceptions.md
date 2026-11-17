@@ -36,7 +36,7 @@
 - 400과 409는 "같은 입력을 언제 보내도 실패하는가"로 나눈다. 언제 보내도 실패하면 `RuleViolationException`(이름이 21자), 저장된 상태가 바뀌면 성공할 수 있으면 `StateConflictException`(이미 쓰는 이메일, 연결된 기록이 있어 삭제 불가, 다른 요청이 먼저 수정함)이다.
 - 이름은 HTTP 용어(`BadRequest`, `Forbidden`)가 아니라 뜻으로 짓는다. 도메인이 응답 형태를 알지 않게 하기 위해서다.
 - `PermissionDeniedException`은 Spring Security의 `AccessDeniedException`과 이름이 겹치지 않게 지었다.
-- 처음 정한 네 종류에 내용 크기·지원 형식·저장소 장애 세 종류를 더한다. 미디어의 기존 413·415·503 계약을 유지하기 위해 사용자와 합의한 확장이다. (고침 #33: #62 공통 예외 규칙 적용 시 기존 미디어 응답 유지)
+- 처음 정한 네 종류에 내용 크기·지원 형식·저장소 장애 세 종류를 더한다. 미디어의 기존 413·415·503 계약을 유지하기 위해 작성 요청자가 승인한 확장 제안이다. 팀 전체의 기존 확정 규칙이라는 뜻은 아니며, 이번 PR의 문서·코드 리뷰와 머지로 채택 여부를 결정한다. (고침 #33: #62 공통 예외 규칙 적용 시 기존 미디어 응답 유지)
 - `ContentLimitExceededException`, `UnsupportedFormatException`은 `RuleViolationException`을 상속한다. 전역 핸들러는 더 구체적인 예외를 골라 일반 400과 구분한다. `StorageUnavailableException`은 요청 규칙 위반과 구분해 `RuntimeException`을 직접 상속한다.
 - 이후 공통 예외를 더할 때도 이 문서를 고치는 PR에서 먼저 합의한다. 상태별·도메인별 예외를 공통 패키지에 계속 더하지 않는다.
 - 기본 예외는 `abstract`로 두며 최상위는 `RuntimeException`을 상속한다. 메시지는 하위 예외의 생성자가 정하고, 기술 실패의 원인은 cause로 보존한다. HTTP 상태·응답 코드는 예외에 넣지 않는다.
@@ -88,7 +88,7 @@ public void edit(Long requesterId, String name, ...) {
 | `domain` | 규칙 위반을 도메인 예외로 던진다 | `IllegalArgumentException` 등 자바 표준 예외로 규칙 위반을 알리기 |
 | `application.service` | 유스케이스 실패를 애플리케이션 예외로 던진다. 도메인 예외는 잡지 않고 그대로 올린다 | 도메인 예외를 잡아 다른 예외로 바꾸기 |
 | `adapter.out` (`persistence`와 외부 API 등 모든 출구) | JPA·외부 API 같은 기술 예외를 잡아 애플리케이션 예외로 바꾸거나, 포트 계약대로 값(예: `Optional.empty()`)으로 돌려준다 | 기술 예외를 서비스까지 올리기 |
-| `adapter.in.web` | 예외를 잡지 않는다 | 도메인별 `@RestControllerAdvice` 만들기 (로그인 실패 401과 커밋 시점 낙관적 락은 [아직 정하지 않은 것](#아직-정하지-않은-것) 참고) |
+| `adapter.in.web` | 업무 예외를 포장하지 않는다. 웹 입력 오류는 같은 어댑터의 `exception`에 두고 공통 기본 예외를 상속한다. MVC 전 필터는 resolver에 위임하고 입력 스트림 보조 객체는 자신의 I/O만 변환할 수 있다 | 도메인별 `@RestControllerAdvice` 만들기 (로그인 실패 401과 커밋 시점 낙관적 락은 [아직 정하지 않은 것](#아직-정하지-않은-것) 참고) |
 | `global.error` | 기본 예외와 공통 요청 오류(`@Valid` 실패, JSON 형식 오류)를 응답으로 바꾼다 | 개별 도메인 예외 import, `IllegalArgumentException`을 400으로 한꺼번에 바꾸기 |
 
 - `IllegalArgumentException`을 400으로 한꺼번에 바꾸지 않는 이유: 라이브러리나 프로그래밍 실수에서 나온 예외까지 사용자 입력 오류로 보이게 된다. 이런 예외는 500으로 남겨 로그에서 찾을 수 있게 한다.
@@ -127,3 +127,7 @@ public void edit(Long requesterId, String name, ...) {
 파일·DB 어댑터는 기술 실패를 애플리케이션 예외로 바꾸며, 낙관적 잠금은 충돌로 바꾼다. 임의의 프로그래밍 오류를 입력 오류나 저장소 장애로 일괄 포장하지 않는다. 트랜잭션 커밋 시점 낙관적 잠금 처리 위치는 여전히 위 미결 사항이다.
 
 기존 미디어 핸들러의 multipart 용량·파싱 오류 매핑은 전역 핸들러로 옮겨 413/400과 공통 본문을 유지한다. 필수 쿼리·경로 변수 타입 등 다른 MVC 오류의 통일 여부는 이번 전환에서 결정하지 않는다. 기존 회원·반려동물의 전용 핸들러 전환도 각 담당의 후속 작업이다.
+
+### HTTP 입력 경계 (#33)
+
+웹 전용 예외는 `media/adapter/in/web/exception`에 두며 application에 HTTP 파트·Origin·헤더 규칙을 넣지 않는다. 필터 단계의 catch는 전역 응답 처리 위임이고, 입력 스트림 보조 객체의 catch는 웹 I/O 실패 변환이다. 이 범위는 도메인/애플리케이션 업무 예외를 웹에서 다시 매핑하는 것을 허용하지 않는다. 저장소 내부 키·variant 같은 서버 계약 오류는 일시 저장소 장애로 포장하지 않으며 작업은 원본을 보존한 FAILED로 남긴다. 기술 장애는 원인 throwable과 작업 문맥을 ERROR로 기록하고 재시도한다.

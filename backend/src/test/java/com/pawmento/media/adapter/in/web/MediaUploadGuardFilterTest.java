@@ -3,7 +3,7 @@ package com.pawmento.media.adapter.in.web;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.pawmento.media.application.exception.MediaRequestDeniedException;
+import com.pawmento.media.adapter.in.web.exception.MediaRequestDeniedException;
 import com.pawmento.media.application.port.in.*;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.*;

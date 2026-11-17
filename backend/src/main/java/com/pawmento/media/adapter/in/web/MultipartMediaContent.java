@@ -1,6 +1,6 @@
 package com.pawmento.media.adapter.in.web;
 
-import com.pawmento.media.application.exception.MediaStorageUnavailableException;
+import com.pawmento.media.adapter.in.web.exception.MediaInputUnavailableException;
 import java.io.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,7 +33,7 @@ final class MultipartMediaContent extends InputStream {
       try {
         delegate.close();
       } catch (IOException e) {
-        throw new MediaStorageUnavailableException(e);
+        throw new MediaInputUnavailableException(e);
       }
   }
 }

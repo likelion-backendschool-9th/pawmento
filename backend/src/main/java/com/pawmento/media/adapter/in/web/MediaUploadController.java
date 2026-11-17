@@ -1,7 +1,7 @@
 package com.pawmento.media.adapter.in.web;
 
 import com.pawmento.global.security.LoginMember;
-import com.pawmento.media.application.exception.*;
+import com.pawmento.media.adapter.in.web.exception.*;
 import com.pawmento.media.application.port.in.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -68,24 +68,23 @@ public class MediaUploadController {
       @PathVariable Long assetId,
       jakarta.servlet.http.HttpServletRequest request) {
     boolean thumbnail = request.getRequestURI().endsWith("/thumbnail");
-    var r = preview.get(new GetMediaUploadQuery(memberId, petId, assetId), thumbnail);
+    var r = preview.get(new GetMediaPreviewQuery(memberId, petId, assetId, thumbnail));
     var response =
         ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(r.mimeType()))
-            .contentLength(r.sizeBytes())
             .header("X-Content-Type-Options", "nosniff")
             .header("Cache-Control", "private, no-store")
             .header("Accept-Ranges", "bytes")
             .header(
                 "Content-Disposition",
                 ContentDisposition.inline().filename(r.filename()).build().toString());
-    if (request.getMethod().equals("HEAD")) return response.build();
+    if (request.getMethod().equals("HEAD")) return response.contentLength(r.sizeBytes()).build();
     return response.body(new MediaPreviewResource(r));
   }
 
   @DeleteMapping("/{assetId}")
   @ResponseStatus(HttpStatus.ACCEPTED)
   void delete(@LoginMember Long memberId, @PathVariable Long petId, @PathVariable Long assetId) {
-    deletion.delete(new GetMediaUploadQuery(memberId, petId, assetId));
+    deletion.delete(new DeleteMediaUploadCommand(memberId, petId, assetId));
   }
 }

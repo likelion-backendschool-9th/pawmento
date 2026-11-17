@@ -47,9 +47,13 @@ class ProcessMediaWorkServiceTest {
   void uncertainCommit() {
     var result = new VerifiedMedia(work.token(), "image/png", 3, "a".repeat(64), null, 1, 1, 2L);
     when(validator.validate(any(), eq(work.token()))).thenReturn(result);
-    doThrow(new IllegalStateException("database")).when(tx).success(work, result);
+    doThrow(
+            new com.pawmento.media.application.exception.MediaPersistenceUnavailableException(
+                new java.io.IOException("database")))
+        .when(tx)
+        .success(work, result);
     assertThat(service.processNext()).isTrue();
-    verify(tx).retry(work, "IllegalStateException");
+    verify(tx).retry(work, "MediaPersistenceUnavailableException", true);
     verifyNoInteractions(deletion, temporary);
   }
 
@@ -66,7 +70,7 @@ class ProcessMediaWorkServiceTest {
         .delete(a.getTemporaryStorageKey());
     service.processNext();
     verifyNoInteractions(validator);
-    verify(tx).retry(work, "MediaStorageUnavailableException");
+    verify(tx).retry(work, "MediaStorageUnavailableException", true);
     verify(tx, never()).finished(work);
   }
 
@@ -82,7 +86,7 @@ class ProcessMediaWorkServiceTest {
         .when(deletion)
         .deleteAll(a.getTemporaryStorageKey(), null);
     service.processNext();
-    verify(tx).retry(w, "MediaStorageUnavailableException");
+    verify(tx).retry(w, "MediaStorageUnavailableException", true);
     verify(tx, never()).deleted(w);
   }
 
@@ -95,5 +99,26 @@ class ProcessMediaWorkServiceTest {
     service.processNext();
     verifyNoInteractions(temporary, deletion);
     verify(tx, never()).finished(work);
+  }
+
+  @Test
+  @DisplayName("#33-S16 파서 기술 장애는 원본을 보존하고 검증 거부로 바꾸지 않는다")
+  void parserInfrastructureFailure() {
+    when(validator.validate(any(), anyString()))
+        .thenThrow(new MediaStorageUnavailableException(new java.io.IOException("disk full")));
+    service.processNext();
+    verifyNoInteractions(temporary, deletion);
+    verify(tx, never()).rejected(any(), anyString());
+    verify(tx).retry(work, "MediaStorageUnavailableException", true);
+  }
+
+  @Test
+  @DisplayName("#33-S16 내부 계약 오류는 원본을 보존하고 자동 재시도하지 않는다")
+  void internalFailure() {
+    when(validator.validate(any(), anyString()))
+        .thenThrow(new IllegalArgumentException("invalid key"));
+    service.processNext();
+    verifyNoInteractions(temporary, deletion);
+    verify(tx).retry(work, "IllegalArgumentException", false);
   }
 }

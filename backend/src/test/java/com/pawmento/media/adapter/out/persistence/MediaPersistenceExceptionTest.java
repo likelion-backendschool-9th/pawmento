@@ -14,8 +14,12 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 class MediaPersistenceExceptionTest {
   private final MediaAssetJpaRepository repository = mock(MediaAssetJpaRepository.class);
-  private final MediaAssetPersistenceAdapter adapter =
-      new MediaAssetPersistenceAdapter(repository, mock(EntityManager.class));
+  private final MediaPersistenceAdapter adapter =
+      new MediaPersistenceAdapter(
+          repository,
+          mock(EntityManager.class),
+          mock(MediaValidationJobJpaRepository.class),
+          com.pawmento.media.domain.MediaPolicy.defaults());
 
   @Test
   @DisplayName("#33-S16 DB 장애는 어댑터에서 애플리케이션 예외로 바꾸고 원인을 보존한다")

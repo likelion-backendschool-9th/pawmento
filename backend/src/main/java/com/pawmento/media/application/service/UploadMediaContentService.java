@@ -15,7 +15,7 @@ public class UploadMediaContentService implements UploadMediaContentUseCase {
   private final DeleteMediaUploadPort deletion;
 
   @Override
-  public MediaUploadResult upload(UploadMediaContentCommand c) {
+  public GetMediaUploadResult upload(UploadMediaContentCommand c) {
     MediaAsset asset = transactions.claim(c.memberId(), c.petId(), c.assetId());
     try {
       StoredUpload receipt =

@@ -17,10 +17,11 @@ public class CreateMediaUploadService implements CreateMediaUploadUseCase {
   private final CheckMediaQuotaPort quota;
   private final SaveMediaAssetPort save;
   private final Clock clock;
+  private final com.pawmento.media.domain.MediaPolicy policy;
 
   @Override
   @Transactional
-  public MediaUploadResult create(CreateMediaUploadCommand c) {
+  public GetMediaUploadResult create(CreateMediaUploadCommand c) {
     access.requireWriteAccess(c.memberId(), c.petId());
     if (c.locationConsent()) throw new MediaLocationConsentUnavailableException();
     MediaAsset asset =
@@ -32,10 +33,10 @@ public class CreateMediaUploadService implements CreateMediaUploadUseCase {
             c.mimeType(),
             c.sizeBytes(),
             UUID.randomUUID().toString(),
-            clock.instant());
+            clock.instant(),
+            policy);
     quota.lockMember(c.memberId());
-    if (quota.countOpenUploads(c.memberId(), clock.instant()) >= MediaAsset.MAX_OPEN_UPLOADS)
-      throw new MediaUploadLimitException();
-    return MediaUploadResult.from(save.save(asset));
+    policy.requireUploadSlot(quota.countOpenUploads(c.memberId(), clock.instant()));
+    return GetMediaUploadResult.from(save.save(asset));
   }
 }

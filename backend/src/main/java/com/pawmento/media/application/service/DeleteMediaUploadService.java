@@ -20,7 +20,7 @@ public class DeleteMediaUploadService implements DeleteMediaUploadUseCase {
   private final Clock clock;
 
   @Transactional
-  public void delete(GetMediaUploadQuery q) {
+  public void delete(DeleteMediaUploadCommand q) {
     access.requireWriteAccess(q.memberId(), q.petId());
     var a = load.findForUpdate(q.assetId()).orElseThrow(() -> new MediaAssetNotFoundException());
     a.requireOwner(q.memberId(), q.petId());

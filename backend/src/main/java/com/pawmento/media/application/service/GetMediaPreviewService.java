@@ -18,7 +18,8 @@ public class GetMediaPreviewService implements GetMediaPreviewUseCase {
   private final Clock clock;
 
   @Transactional(readOnly = true)
-  public MediaPreviewResult get(GetMediaUploadQuery q, boolean thumbnail) {
+  public GetMediaPreviewResult get(GetMediaPreviewQuery q) {
+    boolean thumbnail = q.thumbnail();
     access.requireWriteAccess(q.memberId(), q.petId());
     var a = load.findById(q.assetId()).orElseThrow(() -> new MediaAssetNotFoundException());
     a.requireOwner(q.memberId(), q.petId());
@@ -29,7 +30,7 @@ public class GetMediaPreviewService implements GetMediaPreviewUseCase {
     String mime = thumbnail ? "image/jpeg" : v.mimeType();
     String extension = mime.equals("audio/mp4") ? "m4a" : mime.equals("image/jpeg") ? "jpg" : "png";
     // Extensions follow the normalized service file, not the untrusted upload name.
-    return new MediaPreviewResult(
+    return new GetMediaPreviewResult(
         "media-" + a.getId() + "." + extension,
         mime,
         thumbnail ? v.thumbnailSizeBytes() : v.sizeBytes(),

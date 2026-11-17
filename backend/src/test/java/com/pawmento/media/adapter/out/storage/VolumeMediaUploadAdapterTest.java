@@ -17,7 +17,7 @@ class VolumeMediaUploadAdapterTest {
 
   @BeforeEach
   void init() throws Exception {
-    storage = new VolumeMediaUploadAdapter(new MediaStorageProperties(root));
+    storage = new VolumeMediaUploadAdapter(new MediaStorageProperties(root), key -> true);
     storage.initialize();
   }
 
@@ -50,7 +50,7 @@ class VolumeMediaUploadAdapterTest {
   @DisplayName("#33-S17 경로 순회·파일/디렉터리 심볼릭 링크로 volume 밖에 쓰지 않는다")
   void paths() throws Exception {
     assertThatThrownBy(() -> storage.store("../escape", new ByteArrayInputStream(new byte[1]), 10))
-        .isInstanceOf(MediaStorageUnavailableException.class);
+        .isInstanceOf(IllegalArgumentException.class);
     Path outside = Files.createDirectory(root.resolve("outside"));
     Path target = Files.writeString(outside.resolve("kept"), "original");
     String key = UUID.randomUUID().toString();
@@ -131,7 +131,7 @@ class VolumeMediaUploadAdapterTest {
     assertThatThrownBy(() -> storage.open(linked, "content"))
         .isInstanceOf(MediaStorageUnavailableException.class);
     assertThatThrownBy(() -> storage.open("../escape", "content"))
-        .isInstanceOf(MediaStorageUnavailableException.class);
+        .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test

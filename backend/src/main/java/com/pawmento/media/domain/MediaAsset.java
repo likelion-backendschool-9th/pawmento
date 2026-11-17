@@ -1,7 +1,6 @@
 package com.pawmento.media.domain;
 
 import com.pawmento.media.domain.exception.*;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.Set;
@@ -10,8 +9,6 @@ import lombok.Getter;
 @Getter
 public class MediaAsset {
   public static final long MAX_FILE_BYTES = 15L * 1024 * 1024;
-  public static final int MAX_OPEN_UPLOADS = 5;
-  public static final Duration SESSION_TTL = Duration.ofMinutes(10);
   private static final Set<String> IMAGES = Set.of("image/jpeg", "image/png", "image/webp");
   private static final Set<String> AUDIO =
       Set.of("audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg");
@@ -38,8 +35,6 @@ public class MediaAsset {
   private Instant unattachedExpiresAt;
   private Instant deletedAt;
   private int referenceCount;
-  public static final Duration UNATTACHED_TTL = Duration.ofHours(24);
-  public static final Duration UPLOAD_TIMEOUT = Duration.ofMinutes(15);
 
   private MediaAsset() {}
 
@@ -52,6 +47,19 @@ public class MediaAsset {
       long size,
       String key,
       Instant now) {
+    return create(memberId, petId, purpose, filename, mime, size, key, now, MediaPolicy.defaults());
+  }
+
+  public static MediaAsset create(
+      Long memberId,
+      Long petId,
+      String purpose,
+      String filename,
+      String mime,
+      long size,
+      String key,
+      Instant now,
+      MediaPolicy policy) {
     if (memberId == null || memberId <= 0 || petId == null || petId <= 0)
       throw new InvalidMediaException(InvalidMediaException.Reason.IDENTITY_REQUIRED);
     if (filename == null
@@ -74,7 +82,7 @@ public class MediaAsset {
     } catch (RuntimeException e) {
       throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_PURPOSE);
     }
-    if (key == null || !key.matches("[0-9a-f-]{36}"))
+    if (key == null || !key.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
       throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_STORAGE_KEY);
     MediaAsset a = new MediaAsset();
     a.uploaderMemberId = memberId;
@@ -88,7 +96,7 @@ public class MediaAsset {
     a.status = MediaUploadStatus.PENDING;
     a.createdAt = now;
     a.updatedAt = now;
-    a.expiresAt = now.plus(SESSION_TTL);
+    a.expiresAt = now.plus(policy.sessionTtl());
     return a;
   }
 
@@ -140,7 +148,67 @@ public class MediaAsset {
     a.unattachedExpiresAt = unattachedExpiresAt;
     a.deletedAt = deletedAt;
     a.referenceCount = referenceCount;
+    a.requireValidSnapshot();
     return a;
+  }
+
+  private void requireValidSnapshot() {
+    if (id == null
+        || id <= 0
+        || uploaderMemberId == null
+        || uploaderMemberId <= 0
+        || petId == null
+        || petId <= 0
+        || purpose == null
+        || mediaType == null
+        || originalFilename == null
+        || originalFilename.isBlank()
+        || declaredMimeType == null
+        || declaredSizeBytes <= 0
+        || declaredSizeBytes > MAX_FILE_BYTES
+        || temporaryStorageKey == null
+        || !temporaryStorageKey.matches(
+            "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
+        || status == null
+        || createdAt == null
+        || expiresAt == null
+        || updatedAt == null
+        || !expiresAt.isAfter(createdAt)
+        || updatedAt.isBefore(createdAt)
+        || referenceCount < 0
+        || (referenceCount > 0 && status != MediaUploadStatus.READY)
+        || version == null
+        || version < 0) throw new InvalidMediaStateException();
+    if ((mediaType == MediaType.IMAGE && !IMAGES.contains(declaredMimeType))
+        || (mediaType == MediaType.AUDIO && !AUDIO.contains(declaredMimeType)))
+      throw new InvalidMediaStateException();
+    if ((receivedSizeBytes == null) != (sha256 == null)
+        || (receivedSizeBytes != null
+            && (receivedSizeBytes != declaredSizeBytes || !sha256.matches("[0-9a-f]{64}"))))
+      throw new InvalidMediaStateException();
+    if ((status == MediaUploadStatus.PROCESSING || status == MediaUploadStatus.READY)
+        && receivedSizeBytes == null) throw new InvalidMediaStateException();
+    if (status == MediaUploadStatus.READY
+        && (verified == null || readyAt == null || unattachedExpiresAt == null))
+      throw new InvalidMediaStateException();
+    if (verified != null
+        && (readyAt == null
+            || unattachedExpiresAt == null
+            || readyAt.isBefore(createdAt)
+            || updatedAt.isBefore(readyAt)
+            || !unattachedExpiresAt.isAfter(readyAt)
+            || (mediaType == MediaType.IMAGE) != verified.mimeType().startsWith("image/")))
+      throw new InvalidMediaStateException();
+    if (verified == null && (readyAt != null || unattachedExpiresAt != null))
+      throw new InvalidMediaStateException();
+    if ((status == MediaUploadStatus.PENDING
+            || status == MediaUploadStatus.UPLOADING
+            || status == MediaUploadStatus.PROCESSING
+            || status == MediaUploadStatus.REJECTED)
+        && verified != null) throw new InvalidMediaStateException();
+    if ((status == MediaUploadStatus.DELETED) != (deletedAt != null)
+        || (status == MediaUploadStatus.DELETED && (!temporaryFileDeleted || referenceCount != 0)))
+      throw new InvalidMediaStateException();
   }
 
   public void requireOwner(Long memberId, Long requestedPetId) {
@@ -194,13 +262,17 @@ public class MediaAsset {
   }
 
   public void validated(VerifiedMedia result, Instant now) {
+    validated(result, now, MediaPolicy.defaults());
+  }
+
+  public void validated(VerifiedMedia result, Instant now, MediaPolicy policy) {
     if (status != MediaUploadStatus.PROCESSING)
       throw new MediaStateConflictException(MediaStateConflictException.Reason.NOT_PROCESSING);
     if ((mediaType == MediaType.IMAGE) != result.mimeType().startsWith("image/"))
       throw new MediaStateConflictException(MediaStateConflictException.Reason.TYPE_CHANGED);
     verified = result;
     readyAt = now;
-    unattachedExpiresAt = now.plus(UNATTACHED_TTL);
+    unattachedExpiresAt = now.plus(policy.unattachedTtl());
     status = MediaUploadStatus.READY;
     failureReason = null;
     updatedAt = now;
@@ -221,9 +293,13 @@ public class MediaAsset {
   }
 
   public boolean needsCleanup(Instant now) {
+    return needsCleanup(now, MediaPolicy.defaults());
+  }
+
+  public boolean needsCleanup(Instant now, MediaPolicy policy) {
     return switch (status) {
       case PENDING -> !now.isBefore(expiresAt);
-      case UPLOADING -> !now.isBefore(updatedAt.plus(UPLOAD_TIMEOUT));
+      case UPLOADING -> !now.isBefore(updatedAt.plus(policy.uploadTimeout()));
       case READY -> referenceCount == 0 && !now.isBefore(unattachedExpiresAt);
       case REJECTED -> true;
       default -> false;

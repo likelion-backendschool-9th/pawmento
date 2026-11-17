@@ -7,7 +7,11 @@ public interface MediaWorkQueuePort {
 
   void complete(com.pawmento.media.domain.MediaWork work);
 
-  void retry(com.pawmento.media.domain.MediaWork work, java.time.Instant now, String error);
+  void fail(
+      com.pawmento.media.domain.MediaWork work,
+      java.time.Instant now,
+      String error,
+      boolean retryable);
 
   void enqueueDeletion(Long assetId, java.time.Instant now);
 }

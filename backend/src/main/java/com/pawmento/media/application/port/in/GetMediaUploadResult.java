@@ -3,7 +3,7 @@ package com.pawmento.media.application.port.in;
 import com.pawmento.media.domain.MediaAsset;
 import java.time.Instant;
 
-public record MediaUploadResult(
+public record GetMediaUploadResult(
     Long assetId,
     Long petId,
     String purpose,
@@ -20,8 +20,8 @@ public record MediaUploadResult(
     Integer width,
     Integer height,
     boolean thumbnailAvailable) {
-  public static MediaUploadResult from(MediaAsset a) {
-    return new MediaUploadResult(
+  public static GetMediaUploadResult from(MediaAsset a) {
+    return new GetMediaUploadResult(
         a.getId(),
         a.getPetId(),
         a.getPurpose().name(),

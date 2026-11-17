@@ -10,6 +10,11 @@ public class MediaValidationFailedException extends RuleViolationException {
     this.reason = reason;
   }
 
+  public MediaValidationFailedException(String reason, Throwable cause) {
+    super("파일 검증에 실패했어요.", cause);
+    this.reason = reason;
+  }
+
   public String reason() {
     return reason;
   }

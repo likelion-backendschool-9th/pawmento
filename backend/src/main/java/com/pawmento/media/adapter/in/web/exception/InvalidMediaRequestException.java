@@ -1,4 +1,4 @@
-package com.pawmento.media.application.exception;
+package com.pawmento.media.adapter.in.web.exception;
 
 import com.pawmento.global.exception.RuleViolationException;
 

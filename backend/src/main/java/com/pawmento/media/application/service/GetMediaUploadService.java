@@ -16,11 +16,11 @@ public class GetMediaUploadService implements GetMediaUploadUseCase {
 
   @Override
   @Transactional(readOnly = true)
-  public MediaUploadResult get(GetMediaUploadQuery q) {
+  public GetMediaUploadResult get(GetMediaUploadQuery q) {
     access.requireWriteAccess(q.memberId(), q.petId());
     MediaAsset asset =
         load.findById(q.assetId()).orElseThrow(() -> new MediaAssetNotFoundException());
     asset.requireOwner(q.memberId(), q.petId());
-    return MediaUploadResult.from(asset);
+    return GetMediaUploadResult.from(asset);
   }
 }

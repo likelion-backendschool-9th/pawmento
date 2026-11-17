@@ -52,6 +52,10 @@ class MediaUploadScenarioTest {
   @Autowired CreateMediaUploadUseCase createUseCase;
   @LocalServerPort int port;
   @Autowired ProcessMediaWorkUseCase worker;
+
+  @org.springframework.test.context.bean.override.mockito.MockitoSpyBean
+  com.pawmento.media.adapter.out.storage.BoundedMediaProcess parserProcess;
+
   @Autowired CleanupMediaUseCase cleanupUseCase;
   @Autowired com.pawmento.media.application.service.MediaWorkTransactions workTransactions;
   @Autowired org.springframework.jdbc.core.JdbcTemplate jdbc;
@@ -472,13 +476,15 @@ class MediaUploadScenarioTest {
     assertThat(state(ready)).isEqualTo("DELETED");
     mvc.perform(delete(path(a, ready)).cookie(a.cookie())).andExpect(status().isAccepted());
     jdbc.update(
-        "update media_assets set expires_at=? where id=?",
+        "update media_assets set created_at=created_at-interval '20 minutes',expires_at=? where"
+            + " id=?",
         java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
         pending);
     long expiredReady = received(a, "image/png", fixture("sample.png"));
     drain();
     jdbc.update(
-        "update media_assets set unattached_expires_at=? where id=?",
+        "update media_assets set created_at=created_at-interval '3"
+            + " seconds',ready_at=ready_at-interval '2 seconds',unattached_expires_at=? where id=?",
         java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
         expiredReady);
     long failed = received(a, "image/png", new byte[] {1, 2, 3});
@@ -582,7 +588,9 @@ class MediaUploadScenarioTest {
     long id = received(a, "image/png", fixture("sample.png"));
     drain();
     jdbc.update(
-        "update media_assets set reference_count=1,unattached_expires_at=? where id=?",
+        "update media_assets set created_at=created_at-interval '3"
+            + " seconds',ready_at=ready_at-interval '2"
+            + " seconds',reference_count=1,unattached_expires_at=? where id=?",
         java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
         id);
     mvc.perform(delete(path(a, id)).cookie(a.cookie())).andExpect(status().isConflict());
@@ -591,6 +599,107 @@ class MediaUploadScenarioTest {
     assertThat(state(id)).isEqualTo("READY");
     var a1 = assets.findById(id).orElseThrow();
     assertThat(ROOT.resolve("files").resolve(a1.getVerified().storageKey() + ".media")).exists();
+  }
+
+  @Test
+  @DisplayName("#33-S8 다중 Range의 실제 HTTP 본문 길이는 선언 길이와 일치하고 연결이 끝난다")
+  void multipleRanges() throws Exception {
+    Owner a = owner();
+    long id = received(a, "audio/ogg", fixture("sample.ogg"));
+    drain();
+    var client = HttpClient.newHttpClient();
+    var request =
+        HttpRequest.newBuilder(URI.create("http://localhost:" + port + path(a, id) + "/preview"))
+            .timeout(Duration.ofSeconds(10))
+            .header("Cookie", a.cookie().getName() + "=" + a.cookie().getValue())
+            .header("Range", "bytes=0-9,20-29")
+            .GET()
+            .build();
+    var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+    assertThat(response.statusCode()).isEqualTo(206);
+    assertThat(response.headers().firstValue("Content-Type").orElseThrow())
+        .startsWith("multipart/byteranges");
+    response
+        .headers()
+        .firstValue("Content-Length")
+        .ifPresent(value -> assertThat(Long.parseLong(value)).isEqualTo(response.body().length));
+    String body = new String(response.body(), java.nio.charset.StandardCharsets.ISO_8859_1);
+    assertThat(body).contains("Content-Range: bytes 0-9/", "Content-Range: bytes 20-29/");
+  }
+
+  @Test
+  @DisplayName("#33-S15 정리가 끝난 READY 5개 뒤에도 새 업로드를 만들 수 있다")
+  void readyDoesNotConsumeActiveQuota() throws Exception {
+    Owner a = owner();
+    for (int n = 0; n < 6; n++) {
+      long id = received(a, "image/png", fixture("sample.png"));
+      drain();
+      assertThat(state(id)).isEqualTo("READY");
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S3 다중 이미지·뒤따르는 데이터·손상 원본을 공개하지 않는다")
+  void staticImageContract() throws Exception {
+    byte[] jpg = fixture("sample.jpg"), png = fixture("sample.png"), webp = fixture("sample.webp");
+    for (var pair :
+        List.of(
+            new Object[] {
+              "image/jpeg", java.nio.ByteBuffer.allocate(jpg.length * 2).put(jpg).put(jpg).array()
+            },
+            new Object[] {"image/png", Arrays.copyOf(png, png.length + 1)},
+            new Object[] {"image/webp", Arrays.copyOf(webp, webp.length + 1)})) {
+      Owner a = owner();
+      long id = received(a, (String) pair[0], (byte[]) pair[1]);
+      drain();
+      assertThat(state(id)).isEqualTo("REJECTED");
+    }
+  }
+
+  @Test
+  @DisplayName("#33-S16 실제 FFmpeg 쓰기 실패 후 원본을 보존하고 재시도하면 READY로 복구한다")
+  void realParserOutputFailureRecovery() throws Exception {
+    var failFirst = new java.util.concurrent.atomic.AtomicBoolean(true);
+    org.mockito.Mockito.doAnswer(
+            invocation -> {
+              @SuppressWarnings("unchecked")
+              var args = (List<String>) invocation.getArgument(0);
+              if (args.getLast().endsWith("service.png") && failFirst.getAndSet(false)) {
+                var changed = new ArrayList<>(args);
+                changed.set(changed.size() - 1, "/dev/full");
+                return parserProcess.run(changed);
+              }
+              return invocation.callRealMethod();
+            })
+        .when(parserProcess)
+        .run(org.mockito.ArgumentMatchers.anyList());
+    Owner a = owner();
+    byte[] bytes = fixture("sample.png");
+    long id = received(a, "image/png", bytes);
+    var asset = assets.findById(id).orElseThrow();
+    drain();
+    assertThat(state(id)).isEqualTo("PROCESSING");
+    assertThat(jobs.findById(id).orElseThrow().getStatus()).isEqualTo("RETRY");
+    Path original = ROOT.resolve("tmp/uploads").resolve(asset.getTemporaryStorageKey() + ".upload");
+    assertThat(Files.readAllBytes(original)).isEqualTo(bytes);
+    jdbc.update(
+        "update media_validation_jobs set next_attempt_at=? where asset_id=?",
+        java.sql.Timestamp.from(Instant.now().minusSeconds(1)),
+        id);
+    drain();
+    assertThat(state(id)).isEqualTo("READY");
+    assertThat(original).doesNotExist();
+  }
+
+  @Test
+  @DisplayName("#33-S3 5분 경계 음성은 컨테이너 패딩 대신 서비스본의 실제 길이로 검증한다")
+  void audioDurationBoundary() throws Exception {
+    Owner a = owner();
+    long id = received(a, "audio/ogg", fixture("five-minutes.ogg"));
+    drain();
+    assertThat(state(id)).isEqualTo("READY");
+    assertThat(assets.findById(id).orElseThrow().getVerified().durationMs())
+        .isLessThanOrEqualTo(300000L);
   }
 
   String path(Owner a, long id) {

@@ -24,7 +24,7 @@ public class MediaWorkScheduler {
     try {
       for (int n = 0; n < 10 && worker.processNext(); n++) {}
     } catch (RuntimeException e) {
-      log.warn("Media worker temporarily unavailable: {}", e.getClass().getSimpleName());
+      log.error("Media worker temporarily unavailable", e);
     }
   }
 
@@ -33,7 +33,7 @@ public class MediaWorkScheduler {
     try {
       cleanup.cleanup();
     } catch (RuntimeException e) {
-      log.warn("Media cleanup temporarily unavailable: {}", e.getClass().getSimpleName());
+      log.error("Media cleanup temporarily unavailable", e);
     }
   }
 }

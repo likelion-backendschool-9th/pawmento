@@ -16,6 +16,7 @@ public class MediaWorkTransactions {
   private final LockMediaAssetPort load;
   private final SaveMediaAssetPort save;
   private final Clock clock;
+  private final com.pawmento.media.domain.MediaPolicy policy;
 
   @Transactional
   public Optional<MediaWork> claim() {
@@ -27,7 +28,7 @@ public class MediaWorkTransactions {
     var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
     if (!jobs.owns(work)) return false;
     if (a.getStatus() == MediaUploadStatus.PROCESSING) {
-      a.validated(result, clock.instant());
+      a.validated(result, clock.instant(), policy);
       save.save(a);
       return true;
     }
@@ -58,14 +59,9 @@ public class MediaWorkTransactions {
   }
 
   @Transactional
-  public void retry(MediaWork work, String error) {
-    var a = load.findForUpdate(work.assetId()).orElseThrow(MediaAssetNotFoundException::new);
+  public void retry(MediaWork work, String error, boolean retryable) {
     if (!jobs.owns(work)) return;
-    if (work.attempt() >= 5 && a.getStatus() == MediaUploadStatus.PROCESSING) {
-      a.invalidMedia("PROCESSING_FAILED", clock.instant());
-      save.save(a);
-    }
-    jobs.retry(work, clock.instant(), error);
+    jobs.fail(work, clock.instant(), error, retryable);
   }
 
   @Transactional

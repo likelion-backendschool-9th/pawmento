@@ -1,9 +1,7 @@
 package com.pawmento.media.adapter.out.persistence;
 
-import com.pawmento.media.domain.MediaWork;
 import jakarta.persistence.*;
 import java.time.*;
-import java.util.UUID;
 import lombok.*;
 
 @Entity
@@ -36,49 +34,26 @@ public class MediaValidationJobJpaEntity {
   @Column(length = 100)
   private String lastError;
 
-  public static MediaValidationJobJpaEntity pending(Long id, Instant now) {
+  public static MediaValidationJobJpaEntity from(com.pawmento.media.domain.MediaJob job) {
     var e = new MediaValidationJobJpaEntity();
-    e.assetId = id;
-    e.requestedAt = now;
-    e.status = "PENDING";
-    e.kind = "VALIDATE";
-    e.nextAttemptAt = now;
+    e.copy(job);
     return e;
   }
 
-  public void deletion(Instant now) {
-    kind = "DELETE";
-    status = "PENDING";
-    attempts = 0;
-    token = null;
-    leaseUntil = null;
-    nextAttemptAt = now;
-    lastError = null;
+  public void copy(com.pawmento.media.domain.MediaJob job) {
+    assetId = job.getAssetId();
+    requestedAt = job.getRequestedAt();
+    status = job.getStatus().name();
+    kind = job.getKind().name();
+    token = job.getToken();
+    leaseUntil = job.getLeaseUntil();
+    nextAttemptAt = job.getNextAttemptAt();
+    attempts = job.getAttempts();
+    lastError = job.getLastError();
   }
 
-  public MediaWork claim(Instant now) {
-    token = UUID.randomUUID().toString();
-    attempts++;
-    status = "RUNNING";
-    leaseUntil = now.plusSeconds(600);
-    if (kind == null) kind = "VALIDATE";
-    return new MediaWork(assetId, token, attempts, kind);
-  }
-
-  public boolean owns(MediaWork w) {
-    return java.util.Objects.equals(token, w.token()) && kind.equals(w.kind());
-  }
-
-  public void complete() {
-    status = "DONE";
-    leaseUntil = null;
-    lastError = null;
-  }
-
-  public void retry(Instant now, String error) {
-    status = "RETRY";
-    leaseUntil = null;
-    lastError = error;
-    nextAttemptAt = now.plusSeconds(Math.min(3600, 5L << Math.min(attempts, 9)));
+  public com.pawmento.media.domain.MediaJob toDomain() {
+    return com.pawmento.media.domain.MediaJob.restore(
+        assetId, requestedAt, status, kind, token, leaseUntil, nextAttemptAt, attempts, lastError);
   }
 }

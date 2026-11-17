@@ -5,7 +5,7 @@
 ## 실행 환경
 
 - Java 21, PostgreSQL, Linux의 SecureDirectoryStream·POSIX 권한을 지원하는 파일 시스템을 사용한다.
-- 로컬 실행과 미디어 테스트에는 `ffmpeg`, `ffprobe`, `prlimit`가 PATH에 있어야 한다. Ubuntu/Debian에서는 `apt-get install ffmpeg util-linux`로 준비한다. Docker 이미지와 CI는 이 도구를 설치한다.
+- 로컬 실행과 미디어 테스트에는 `ffmpeg`, `ffprobe`, `prlimit`가 PATH에 있어야 한다. Ubuntu/Debian에서는 `apt-get install ffmpeg util-linux`로 준비한다. Docker 이미지와 CI는 이 도구를 설치한다. 파서 자원 제한 단위 테스트는 Python 3도 사용한다(애플리케이션 실행에는 불필요).
 - `PAWMENTO_MEDIA_ROOT`는 Docker에서 `/var/lib/pawmento/media`, 로컬 기본값은 실행 폴더의 `.local/media`다. 공개 정적 경로로 연결하지 않는다.
 - `pawmento.media.parser.ffmpeg`, `.ffprobe`로 도구 경로를 지정할 수 있다. `.timeout-seconds`는 실행 1회의 벽시계 제한(기본 30초, 최대 60초)이다. 자식 프로세스에 가상 메모리 1GiB·CPU 25초·출력 파일 16MiB·열린 파일 64개 제한을 적용한다. 파서 표준 출력은 64KiB까지 읽는다.
 - 작업은 기본 2초, 정리는 60초 간격으로 확인한다. `pawmento.media.worker.enabled=false`로 자동 처리를 끄며, `.delay-ms`, `.cleanup-delay-ms`로 간격을 변경한다.
@@ -18,7 +18,9 @@
 2. 수신 크기·SHA-256·실제 시그니처·컨테이너·트랙·코덱과 전체 디코딩을 검사한다. 이미지 최대 4천만 픽셀, 음성 최대 5분, 입력·서비스본 최대 15MiB다. 영상·여러 트랙·미지원 코덱·손상 파일을 거부한다.
 3. JPEG는 JPEG, PNG/WebP는 PNG 서비스본과 최대 512px JPEG 썸네일을 만든다. EXIF 방향을 보정하고 원본 메타데이터를 복사하지 않는다. WebM/Ogg의 Opus, MP4의 AAC, MP3 음성은 메타데이터를 복사하지 않는 M4A/AAC 서비스본으로 변환한다.
 4. 서비스본은 서버 생성 키로 CREATE_NEW 저장한 뒤 실제 메타데이터와 함께 READY로 갱신한다. 원본은 제거하고 사용자에게 제공하지 않는다. 형식 오류는 REJECTED와 안전한 실패 코드로 기록한다.
-5. 원본 정리까지 마친 작업만 DONE이 된다. 재시작 시 임대 만료 후 처리하며, 일시 장애는 지수 간격(최대 1시간)으로 재시도한다. 시도 수·오류 종류를 DB에 남긴다. 처리 장애 5회 누적 시 검증은 실패 처리하고 원본 정리를 계속 재시도한다. READY는 정리 실패로 되돌리지 않는다.
+5. 원본 정리까지 마친 작업만 DONE이 된다. 재시작 시 임대 만료 후 처리하며, 일시 장애는 지수 간격(최대 1시간)으로 재시도한다. 시도 수·오류 종류를 DB에 남긴다. FFmpeg stderr는 최대 16KiB까지 보존하며, 식별된 형식 오류만 REJECTED로 분류한다. I/O·알 수 없는 종료·타임아웃은 원본을 보존해 계속 재시도한다. 내부 계약·프로그래밍 오류는 자동 재시도 없이 FAILED로 남기고 원본을 보존하며, 운영자가 원인을 확인하거나 사용자가 취소할 수 있다. READY는 정리 실패로 되돌리지 않는다.
+
+원본 이미지는 단일 프레임만 지원한다. PNG의 청크 길이·CRC·IEND 뒤 데이터와 APNG 청크, WebP의 RIFF 길이·애니메이션 청크, JPEG의 EOI 뒤 데이터를 검사하고 전체 원본 프레임 수와 디코딩을 확인한다. 다중 프레임과 뒤따르는 데이터는 거부하고 허용된 메타데이터는 서비스본에서 제거한다.
 
 입력은 `tmp/uploads`, 파서 작업 공간은 `tmp/work`, 서비스본·썸네일은 `files`에 둔다. 최종 저장 뒤 DB 갱신 결과가 불명확하면 파일을 즉시 지우지 않는다. 고아 정리 시 자산과 작업 토큰을 확인해 회수한다. 늦게 도착한 이전 임대 결과는 취소·새 임대 결과를 덮어쓰지 못한다.
 
@@ -48,3 +50,17 @@
 [#62 공통 예외 규칙](../backend-exceptions.md)을 적용한다. 도메인의 값·소유권·상태 오류는 `domain/exception`, 조회 실패·작업 흐름·저장소 장애는 `application/exception`에 둔다. 서비스는 도메인 예외를 다른 예외로 바꾸지 않으며, 파일·DB 기술 예외는 출력 어댑터에서 변환한다. 업로드 실패 정리와 검증 작업 재시도 catch는 유지한다.
 
 미디어 전용 HTTP 핸들러 없이 `GlobalExceptionHandler`가 공통 기본 예외를 변환한다. 기존 400/403/404/409와 413(용량)/415(형식)/503(저장소) 상태 및 `{code, message}` 계약을 유지한다. 입력 크기·형식과 저장소 장애 공통 예외 세 종류의 확장도 같은 문서에 반영했다. 회원·반려동물 예외 전환은 별도 범위다.
+
+## 경로·정책 설정 (#33 리뷰 반영)
+
+`POST /pets/{petId}/media/uploads`는 별도 세션 테이블 대신 업로드 세션 역할을 하는 PENDING 자산을 만든다. 반환된 assetId는 수신·검증·READY·삭제까지 같은 자산을 가리킨다. 이후 `/media/{assetId}` 경로는 그 자산에 대한 조회·삭제다. 이는 별개의 세션 ID와 자산 ID를 혼용한 것이 아니다. 반려동물 문맥이 필수인 하위 자원 경로는 공통 구조 문서에도 명시한다.
+
+- `pawmento.media.lifecycle.session-ttl=10m`: 세션 수명
+- `pawmento.media.lifecycle.unattached-ttl=24h`: READY 이후 미연결 수명
+- `pawmento.media.lifecycle.upload-timeout=15m`: 중단 수신 회수 기준
+- `pawmento.media.lifecycle.work-lease=10m`: 작업 임대
+- `pawmento.media.lifecycle.max-open-uploads=5`: 업로더별 미완료 수신·검증·정리 한도
+
+임대·재시도 간격·상태는 작업 도메인이 결정한다. 기본 재시도는 지수 간격, 최대 1시간이며 저장소 장애는 횟수만으로 원본을 거부하거나 삭제하지 않는다. 완료된 READY는 미완료 한도에서 제외한다. 원본 정리가 남은 READY·실패 파일·DELETING은 실제 정리 전까지 한도를 차지한다. READY 보관은 별도 24시간 수명으로 제한한다. 이것은 볼륨 전체 용량 제한을 대체하지 않는다.
+
+다중 Range GET은 길이를 Spring의 Resource 변환기에 맡기며 HEAD에만 전체 길이를 설정한다. 생성·수신·상태 조회는 동일 조회 스냅샷 `GetMediaUploadResult`를 재사용하고, 미리보기는 종류를 포함한 `GetMediaPreviewQuery` 하나, 삭제는 `DeleteMediaUploadCommand`를 받는다.

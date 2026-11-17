@@ -1,13 +1,13 @@
 package com.pawmento.media.adapter.in.web;
 
-import com.pawmento.media.application.port.in.MediaPreviewResult;
+import com.pawmento.media.application.port.in.GetMediaPreviewResult;
 import java.io.InputStream;
 import org.springframework.core.io.AbstractResource;
 
 final class MediaPreviewResource extends AbstractResource {
-  private final MediaPreviewResult media;
+  private final GetMediaPreviewResult media;
 
-  MediaPreviewResource(MediaPreviewResult media) {
+  MediaPreviewResource(GetMediaPreviewResult media) {
     this.media = media;
   }
 

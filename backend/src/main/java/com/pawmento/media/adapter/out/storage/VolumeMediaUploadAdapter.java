@@ -12,10 +12,12 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 // 파일 이름은 오직 서버가 발급한 키다. Linux volume의 SecureDirectoryStream으로 심볼릭 링크를 따라가지 않는다.
 @Component
+@RequiredArgsConstructor
 public class VolumeMediaUploadAdapter
     implements StoreMediaUploadPort,
         DeleteMediaUploadPort,
@@ -25,17 +27,6 @@ public class VolumeMediaUploadAdapter
         CollectMediaOrphansPort {
   private final MediaStorageProperties properties;
   private final CheckMediaStorageReferencePort references;
-
-  public VolumeMediaUploadAdapter(MediaStorageProperties properties) {
-    this(properties, key -> true);
-  }
-
-  @org.springframework.beans.factory.annotation.Autowired
-  public VolumeMediaUploadAdapter(
-      MediaStorageProperties properties, CheckMediaStorageReferencePort references) {
-    this.properties = properties;
-    this.references = references;
-  }
 
   @PostConstruct
   void initialize() throws IOException {
@@ -95,7 +86,7 @@ public class VolumeMediaUploadAdapter
 
   private static Path filename(String key) {
     if (key == null || !key.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
-      throw new MediaStorageUnavailableException(new IOException("잘못된 저장 키"));
+      throw new IllegalArgumentException("Invalid internal media storage key");
     return Path.of(key + ".upload");
   }
 

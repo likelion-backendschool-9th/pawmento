@@ -23,10 +23,12 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
   private final MediaParserProperties parser;
   private final BoundedMediaProcess process;
   private final JsonMapper json;
+  private final MediaWorkspaceCleanup cleanup;
 
   @Override
   public VerifiedMedia validate(MediaAsset asset, String outputKey) {
     Path work = null;
+    Throwable failure = null;
     try {
       Path parent = storage.root().toAbsolutePath().normalize().resolve("tmp/work");
       if (!Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS))
@@ -54,6 +56,8 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
           || !HexFormat.of().formatHex(digest.digest()).equals(asset.getSha256()))
         reject("CONTENT_CHANGED");
       String demux = signature(original, asset.getDeclaredMimeType());
+      if (asset.getMediaType() == MediaType.IMAGE)
+        StaticImageEnvelope.check(original, asset.getDeclaredMimeType());
       var info = probe(original, demux);
       var streams = info.path("streams");
       if (streams.size() != 1) reject("UNSUPPORTED_TRACKS");
@@ -73,10 +77,18 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
       if (!expected.equals(codec)
           || !(image ? "video" : "audio").equals(stream.path("codec_type").asText()))
         reject("UNSUPPORTED_CODEC");
-      if (image) checkDimensions(stream);
-      else {
+      if (image) {
+        checkDimensions(stream);
+        var frames = probeFrames(original, demux);
+        if (frames.path("streams").size() != 1
+            || frames.path("streams").get(0).path("nb_read_frames").asInt() != 1)
+          reject("MULTIPLE_OR_INVALID_FRAMES");
+        var full = decode(original, demux);
+        full.addAll(List.of("-f", "null", "-"));
+        process.run(full);
+      } else {
         double duration = duration(info);
-        if (Double.isFinite(duration) && duration > 300) reject("AUDIO_TOO_LONG");
+        if (Double.isFinite(duration) && duration > 301) reject("AUDIO_TOO_LONG");
         if (stream.path("channels").asInt() > 2 || stream.path("sample_rate").asInt() > 96000)
           reject("UNSUPPORTED_AUDIO");
       }
@@ -180,13 +192,21 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
       return new VerifiedMedia(
           outputKey, mime, Files.size(service), checksum, durationMs, width, height, thumbnailSize);
     } catch (IOException | NoSuchAlgorithmException e) {
-      throw new MediaStorageUnavailableException(e);
+      var mapped = new MediaStorageUnavailableException(e);
+      failure = mapped;
+      throw mapped;
+    } catch (RuntimeException | Error e) {
+      failure = e;
+      throw e;
     } finally {
       if (work != null)
-        try (var paths = Files.walk(work)) {
-          for (Path p : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(p);
-        } catch (IOException e) {
-          throw new MediaStorageUnavailableException(e);
+        try {
+          cleanup.remove(work);
+        } catch (IOException | RuntimeException | Error e) {
+          Throwable mapped = e instanceof IOException ? new MediaStorageUnavailableException(e) : e;
+          if (failure != null) failure.addSuppressed(mapped);
+          else if (mapped instanceof Error error) throw error;
+          else throw (RuntimeException) mapped;
         }
     }
   }
@@ -218,8 +238,16 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
   }
 
   private JsonNode probe(Path file, String demux) {
-    String text =
-        process.run(
+    return probe(file, demux, false);
+  }
+
+  private JsonNode probeFrames(Path file, String demux) {
+    return probe(file, demux, true);
+  }
+
+  private JsonNode probe(Path file, String demux, boolean countFrames) {
+    var args =
+        new ArrayList<>(
             List.of(
                 parser.ffprobe(),
                 "-v",
@@ -235,13 +263,15 @@ public class FfmpegMediaValidationAdapter implements ValidateMediaFilePort {
                 "-i",
                 file.toString(),
                 "-show_entries",
-                "stream=codec_type,codec_name,width,height,duration,sample_rate,channels:format=duration",
+                "stream=codec_type,codec_name,width,height,duration,sample_rate,channels,nb_read_frames:format=duration",
                 "-of",
                 "json"));
+    if (countFrames) args.add("-count_frames");
+    String text = process.run(args);
     try {
       return json.readTree(text);
-    } catch (RuntimeException e) {
-      throw new MediaValidationFailedException("INVALID_MEDIA");
+    } catch (tools.jackson.core.JacksonException e) {
+      throw new MediaValidationFailedException("INVALID_MEDIA", e);
     }
   }
 

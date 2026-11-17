@@ -3,5 +3,5 @@ package com.pawmento.media.application.port.in;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-public record MediaPreviewResult(
+public record GetMediaPreviewResult(
     String filename, String mimeType, long sizeBytes, Supplier<InputStream> content) {}

@@ -1,7 +1,7 @@
 package com.pawmento.media.adapter.in.web;
 
 import com.pawmento.global.web.ApiPaths;
-import com.pawmento.media.application.exception.*;
+import com.pawmento.media.adapter.in.web.exception.*;
 import com.pawmento.media.application.port.in.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;

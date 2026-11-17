@@ -1,6 +1,8 @@
 package com.pawmento.media.application.service;
 
+import com.pawmento.global.exception.StorageUnavailableException;
 import com.pawmento.media.application.exception.MediaAssetNotFoundException;
+import com.pawmento.media.application.exception.MediaConcurrentModificationException;
 import com.pawmento.media.application.exception.MediaValidationFailedException;
 import com.pawmento.media.application.port.in.*;
 import com.pawmento.media.application.port.out.*;
@@ -47,13 +49,17 @@ public class ProcessMediaWorkService implements ProcessMediaWorkUseCase {
         transactions.finished(w);
       }
     } catch (RuntimeException e) {
-      log.warn(
-          "Media work failed: assetId={}, kind={}, attempt={}, error={}",
+      log.error(
+          "Media work failed: assetId={}, kind={}, attempt={}",
           w.assetId(),
           w.kind(),
           w.attempt(),
-          e.getClass().getSimpleName());
-      transactions.retry(w, e.getClass().getSimpleName());
+          e);
+      transactions.retry(
+          w,
+          e.getClass().getSimpleName(),
+          e instanceof StorageUnavailableException
+              || e instanceof MediaConcurrentModificationException);
     }
     return true;
   }

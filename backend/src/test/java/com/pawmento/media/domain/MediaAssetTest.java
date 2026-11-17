@@ -78,7 +78,10 @@ class MediaAssetTest {
     var a = asset(3);
     a.begin(NOW);
     assertThatThrownBy(() -> a.begin(NOW)).isInstanceOf(MediaStateConflictException.class);
-    assertThatThrownBy(() -> asset(3).begin(NOW.plus(MediaAsset.SESSION_TTL)))
+    assertThatThrownBy(
+            () ->
+                asset(3)
+                    .begin(NOW.plus(com.pawmento.media.domain.MediaPolicy.defaults().sessionTtl())))
         .isInstanceOf(MediaStateConflictException.class);
   }
 

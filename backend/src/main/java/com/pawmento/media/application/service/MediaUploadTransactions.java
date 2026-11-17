@@ -28,14 +28,14 @@ public class MediaUploadTransactions {
   }
 
   @Transactional
-  public MediaUploadResult complete(Long memberId, Long petId, Long id, StoredUpload receipt) {
+  public GetMediaUploadResult complete(Long memberId, Long petId, Long id, StoredUpload receipt) {
     access.requireWriteAccess(memberId, petId);
     MediaAsset a = locked(id);
     a.requireOwner(memberId, petId);
     a.received(receipt, clock.instant());
     a = save.save(a);
     jobs.enqueue(id, clock.instant());
-    return MediaUploadResult.from(a);
+    return GetMediaUploadResult.from(a);
   }
 
   @Transactional

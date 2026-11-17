@@ -15,11 +15,12 @@ public class MediaCleanupTransactions {
   private final MediaWorkQueuePort jobs;
   private final InspectMediaReferencesPort references;
   private final Clock clock;
+  private final com.pawmento.media.domain.MediaPolicy policy;
 
   @Transactional
   public void schedule(Long id) {
     var a = load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
-    if (!a.needsCleanup(clock.instant())
+    if (!a.needsCleanup(clock.instant(), policy)
         || a.getReferenceCount() != 0
         || references.isReferenced(id)) return;
     a.requestDeletion(clock.instant());

@@ -1,7 +1,7 @@
 package com.pawmento.media.adapter.in.web;
 
 import com.pawmento.global.web.ApiPaths;
-import com.pawmento.media.application.port.in.MediaUploadResult;
+import com.pawmento.media.application.port.in.GetMediaUploadResult;
 import java.time.Instant;
 
 public record MediaUploadResponse(
@@ -24,7 +24,7 @@ public record MediaUploadResponse(
     Integer height,
     String previewPath,
     String thumbnailPath) {
-  public static MediaUploadResponse from(MediaUploadResult r) {
+  public static MediaUploadResponse from(GetMediaUploadResult r) {
     String path = ApiPaths.V1 + "/pets/" + r.petId() + "/media/" + r.assetId();
     return new MediaUploadResponse(
         r.assetId(),
