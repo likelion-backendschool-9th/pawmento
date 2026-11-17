@@ -73,9 +73,15 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 
 | 값 | 위치 | 이유 |
 | --- | --- | --- |
-| 서버 접속 정보 (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PORT`) | GitHub 환경 `develop`의 Secrets | 배포 작업만 읽는다 |
+| 서버 접속 정보 (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PORT`, `DEPLOY_HOST_FINGERPRINT`) | GitHub 환경 `develop`의 Secrets | 배포 작업만 읽는다 |
 | 앱 비밀값 (DB 비밀번호, 인증 키 등) | 서버의 `.env` (`.env.prod.example` 참고) | 워크플로 로그와 이미지에 남지 않는다 |
 | 알림 웹훅 (`CAMPFIRE_WEBHOOK_URL`) | 저장소 Secrets | 노출돼도 피해가 적고, 환경 지정 없이 읽어야 한다 |
+
+서버 접속 정보를 넣을 때 주의할 것:
+
+- `DEPLOY_HOST`는 GitHub Actions 러너가 인터넷에서 SSH로 닿는 주소(도메인이나 공인 IP)를 넣는다. 내 PC의 `~/.ssh/config` 별칭이나 사설 IP를 넣으면 러너가 찾지 못한다(`lookup ... no such host`). 별칭의 실제 주소는 `ssh -G <별칭>`의 `hostname`·`port`로 확인한다.
+- `DEPLOY_HOST_FINGERPRINT`는 서버 호스트 키의 `SHA256:...` 지문이다. 배포 액션(Go SSH)은 ECDSA 키를 ED25519보다 먼저 고르므로 `ssh-keygen -lf /etc/ssh/ssh_host_ecdsa_key.pub`의 값을 넣는다. 비어 있으면 호스트 키 확인을 건너뛴다.
+- 배포 키는 배포 전용으로 따로 만들어 서버 계정의 `authorized_keys`에 한 줄로 넣는다. 문제가 생기면 그 줄만 지운다.
 
 백엔드가 서버에서 받는 값은 `compose.prod.yaml`의 backend 환경 변수에 있다. 로그인 서명 키 `JWT_SECRET`(#14)은 없으면 재배포할 때마다 로그인이 풀려서 필수로 받고, 네이버 지도 키 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`(#23)은 비어 있으면 주소 조회만 건너뛴다. 새 값이 생기면 `compose.prod.yaml`, `.env.prod.example`, 서버 `.env` 세 곳에 더한다.
 
