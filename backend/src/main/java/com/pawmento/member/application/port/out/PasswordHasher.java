@@ -5,6 +5,7 @@ public interface PasswordHasher {
 
 	String hash(String rawPassword);
 
+	// 저장된 해시가 없으면(null) 회원 부재를 숨기기 위한 비교만 수행한다.
 	boolean matches(String rawPassword, String passwordHash);
 
 }

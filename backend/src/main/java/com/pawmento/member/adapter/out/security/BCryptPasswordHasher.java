@@ -15,6 +15,8 @@ class BCryptPasswordHasher implements PasswordHasher {
 
 	private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
+	private final String absentMemberPasswordHash = encoder.encode("absent-member-password");
+
 	@Override
 	public String hash(String rawPassword) {
 		return encoder.encode(rawPassword);
@@ -25,7 +27,7 @@ class BCryptPasswordHasher implements PasswordHasher {
 		if (rawPassword.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
 			return false;
 		}
-		return encoder.matches(rawPassword, passwordHash);
+		return encoder.matches(rawPassword, passwordHash == null ? absentMemberPasswordHash : passwordHash);
 	}
 
 }

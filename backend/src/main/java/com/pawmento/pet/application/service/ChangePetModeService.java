@@ -9,19 +9,18 @@ import com.pawmento.pet.application.port.in.ChangePetModeUseCase;
 import com.pawmento.pet.application.port.in.PetResult;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.SavePetPort;
+import com.pawmento.pet.domain.InvalidPetProfileException;
 import com.pawmento.pet.domain.Pet;
 import com.pawmento.pet.domain.PetMode;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class ChangePetModeService implements ChangePetModeUseCase {
 
 	private final LoadPetPort loadPetPort;
 	private final SavePetPort savePetPort;
-
-	public ChangePetModeService(LoadPetPort loadPetPort, SavePetPort savePetPort) {
-		this.loadPetPort = loadPetPort;
-		this.savePetPort = savePetPort;
-	}
 
 	@Override
 	@Transactional
@@ -31,8 +30,8 @@ public class ChangePetModeService implements ChangePetModeUseCase {
 		try {
 			pet.changeMode(mode);
 		}
-		catch (IllegalArgumentException e) {
-			throw InvalidPetException.from(e);
+		catch (InvalidPetProfileException e) {
+			throw new InvalidPetException(e.getMessage());
 		}
 		savePetPort.save(pet);
 		return PetResult.from(pet);

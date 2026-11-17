@@ -1,4 +1,5 @@
 import { createId } from "../shared/id.ts";
+import { createApiClient } from "../shared/http/apiClient.ts";
 import { SharedWorkspaceRepository } from "../life/adapters/outbound/SharedWorkspaceRepository.ts";
 import { BrowserLifeRepository } from "../life/adapters/outbound/BrowserLifeRepository.ts";
 import { DemoPostcardGenerator } from "../life/adapters/outbound/DemoPostcardGenerator.ts";
@@ -9,9 +10,12 @@ import { createGetTodayQuestion } from "../workspace/application/questions.ts";
 import { createWorkspaceUseCases } from "../workspace/application/useCases.ts";
 import { BrowserWorkspaceRepository } from "../workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
 import { createAuthUseCases } from "../auth/application/auth.ts";
-import { DemoAuthRepository } from "../auth/adapters/outbound/DemoAuthRepository.ts";
+import { SessionAuthRepository } from "../auth/adapters/outbound/SessionAuthRepository.ts";
+import { createPetUseCases } from "../pets/application/useCases.ts";
+import { HttpPetListRepository } from "../pets/adapters/outbound/HttpPetListRepository.ts";
 
 export function createDependencies() {
+  const http = createApiClient();
   const lifeRepository = new BrowserLifeRepository();
   const runtime = {
     id: () => createId(),
@@ -36,7 +40,8 @@ export function createDependencies() {
         now: () => new Date().toISOString(),
       },
     ),
-    auth: createAuthUseCases(new DemoAuthRepository()),
+    auth: createAuthUseCases(new SessionAuthRepository(http)),
+    pets: createPetUseCases(new HttpPetListRepository(http)),
   };
 }
 export type Dependencies = ReturnType<typeof createDependencies>;

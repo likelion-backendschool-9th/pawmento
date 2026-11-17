@@ -15,3 +15,12 @@ export function validateNickname(nickname: string) {
   if (!nickname.trim() || nickname.trim().length > 20)
     throw Error("닉네임은 1~20자로 입력해 주세요.");
 }
+
+export function isDemoAccount(account: Account | null | undefined) {
+  if (!account) return false;
+  return (
+    account.id === "demo" ||
+    account.id.startsWith("demo-") ||
+    account.email.endsWith("@pawmento.local")
+  );
+}
