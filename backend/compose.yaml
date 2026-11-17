@@ -1,0 +1,17 @@
+# 로컬 개발용 DB. `./gradlew bootRun`을 실행하면 Spring Boot가 이 파일로 DB를 띄우고 접속 정보를 자동으로 연결한다.
+# 호스트 포트는 Docker가 비어 있는 포트로 정한다. 이미 5432를 쓰는 PostgreSQL이 있어도 충돌하지 않는다.
+services:
+  postgres:
+    image: 'postgres:18-alpine'
+    environment:
+      - 'POSTGRES_DB=pawmento'
+      - 'POSTGRES_USER=pawmento'
+      - 'POSTGRES_PASSWORD=pawmento'
+    ports:
+      - '5432'
+    volumes:
+      # postgres 18부터 데이터 위치가 /var/lib/postgresql/<버전>/docker로 바뀌어 상위 폴더를 마운트한다
+      - 'postgres-data:/var/lib/postgresql'
+
+volumes:
+  postgres-data:

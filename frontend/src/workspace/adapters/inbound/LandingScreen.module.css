@@ -1,0 +1,425 @@
+.page {
+  min-height: 100dvh;
+  background: #fafbf6;
+}
+.header {
+  max-width: 1200px;
+  margin: auto;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  border-bottom: 1px solid #e7ebdc;
+}
+.header nav {
+  display: flex;
+  gap: 30px;
+  align-items: center;
+  font-size: 13px;
+  color: #77866b;
+}
+.header :global(.button) {
+  font-size: 12px;
+  min-height: 39px;
+  border-radius: 7px;
+  padding: 9px 15px;
+}
+.hero {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.13fr 1fr;
+  align-items: center;
+  gap: 70px;
+  min-height: 610px;
+  padding: 65px 0 70px;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #6f7d62;
+  background: #edf2e4;
+  border: 1px solid #dfe8d0;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+.copy h1 {
+  font-size: 47px;
+  font-weight: 550;
+  line-height: 1.55;
+  letter-spacing: -2px;
+  color: #35462c;
+  margin: 22px 0;
+}
+.copy h1 em {
+  font-style: normal;
+  color: #708e4c;
+}
+.copy > p {
+  font-size: 15px;
+  line-height: 2;
+  color: #6f7d62;
+  margin-bottom: 28px;
+}
+.actions {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.actions > :global(.button) {
+  font-size: 13px;
+  min-height: 46px;
+  border-radius: 8px;
+  padding: 11px 21px;
+}
+.actions > :global(.text-link) {
+  font-size: 12px;
+}
+.copy > small {
+  display: block;
+  font-size: 10px;
+  color: #6f7d62;
+  margin-top: 18px;
+}
+.preview {
+  border: 1px solid #dce6cd;
+  background: white;
+  border-radius: 13px;
+  overflow: hidden;
+  box-shadow: 0 18px 65px #4d683318;
+  transform: rotate(1.5deg);
+}
+.previewBar {
+  height: 43px;
+  border-bottom: 1px solid #e9eedf;
+  background: #f6f8f0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 15px;
+}
+.previewBar > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d8e1ca;
+}
+.previewBar strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #6f7d62;
+  margin-left: 9px;
+}
+.previewBar small {
+  font-size: 9px;
+  color: #6f7d62;
+  margin-left: auto;
+}
+.previewContent {
+  padding: 22px;
+}
+.previewPhoto {
+  height: 200px !important;
+  border-radius: 8px;
+  margin-bottom: 21px;
+}
+.previewSaved {
+  margin-top: 19px;
+  padding-top: 14px;
+  border-top: 1px solid #e8eedc;
+  font-size: 10px;
+  color: #6f7d62;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.features {
+  background: #f1f5e9;
+  border-top: 1px solid #e6ebdc;
+  border-bottom: 1px solid #e6ebdc;
+  padding: 53px max(calc((100% - 1200px) / 2), 32px) 58px;
+}
+.features > header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+.features > header > span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #6f7d62;
+}
+.features h2 {
+  font-size: 27px;
+  font-weight: 500;
+  color: #596f41;
+  margin: 13px 0;
+}
+.features > header > p {
+  font-size: 13px;
+  color: #6f7d62;
+}
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+.featureGrid > article {
+  background: #fcfdf9;
+  border: 1px solid #e1e8d5;
+  padding: 25px;
+  border-radius: 10px;
+}
+.featureGrid > article > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #edf3e2;
+  color: #6f7d62;
+  margin-bottom: 16px;
+}
+.featureGrid h3 {
+  font-size: 16px;
+  font-weight: 550;
+  color: #6f8851;
+  margin: 0 0 11px;
+}
+.featureGrid p {
+  font-size: 12px;
+  color: #6f7d62;
+  line-height: 1.9;
+  margin: 0;
+}
+.footer {
+  max-width: 1200px;
+  margin: auto;
+  display: flex;
+  gap: 25px;
+  align-items: center;
+  padding: 28px 0;
+}
+.footer > p {
+  font-size: 12px;
+  color: #6f7d62;
+  margin: 0;
+}
+.footer > small {
+  font-size: 10px;
+  color: #6f7d62;
+  margin-left: auto;
+}
+@media (max-width: 1279px) {
+  .header,
+  .hero,
+  .footer {
+    margin-left: 35px;
+    margin-right: 35px;
+  }
+  .hero {
+    gap: 40px;
+    min-height: 570px;
+  }
+  .copy h1 {
+    font-size: 41px;
+  }
+  .copy > p {
+    font-size: 14px;
+  }
+  .previewPhoto {
+    height: 185px !important;
+  }
+}
+@media (max-width: 1023px) {
+  .hero {
+    gap: 30px;
+  }
+  .copy h1 {
+    font-size: 34px;
+  }
+  .copy > p {
+    font-size: 13px;
+  }
+  .header nav {
+    gap: 22px;
+  }
+  .previewContent {
+    padding: 18px;
+  }
+  .previewPhoto {
+    height: 155px !important;
+  }
+  .featureGrid {
+    gap: 15px;
+  }
+  .featureGrid > article {
+    padding: 22px;
+  }
+  .featureGrid p {
+    font-size: 11px;
+  }
+  .footer > small {
+    font-size: 9px;
+  }
+}
+@media (max-width: 767px) {
+  .header,
+  .hero,
+  .footer {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .header {
+    height: 83px;
+    gap: 10px;
+  }
+  .header nav {
+    gap: 13px;
+  }
+  .header nav > a:first-child,
+  .header nav > :global(.button) {
+    display: none;
+  }
+  .header nav > a {
+    font-size: 12px;
+  }
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 35px;
+    padding: 37px 0 40px;
+    min-height: 0;
+  }
+  .tag {
+    font-size: 10px;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+  .copy h1 {
+    font-size: 35px;
+    line-height: 1.55;
+    letter-spacing: -1.5px;
+    margin: 20px 0;
+  }
+  .copy > p {
+    font-size: 13px;
+    line-height: 1.95;
+    margin-bottom: 23px;
+  }
+  .actions {
+    gap: 15px;
+  }
+  .actions > :global(.button) {
+    font-size: 12px;
+    min-height: 43px;
+    padding: 10px 17px;
+  }
+  .actions > :global(.text-link) {
+    font-size: 11px;
+  }
+  .copy > small {
+    font-size: 9px;
+  }
+  .preview {
+    transform: rotate(0);
+    max-width: 460px;
+    width: 100%;
+    margin: auto;
+  }
+  .previewPhoto {
+    height: 185px !important;
+  }
+  .previewContent {
+    padding: 19px;
+  }
+  .previewBar strong {
+    font-size: 10px;
+  }
+  .previewBar small {
+    font-size: 9px;
+  }
+  .features {
+    padding: 35px 20px 40px;
+  }
+  .features > header {
+    text-align: left;
+    margin-bottom: 25px;
+  }
+  .features h2 {
+    font-size: 23px;
+    line-height: 1.6;
+    letter-spacing: -0.6px;
+  }
+  .features > header > p {
+    font-size: 12px;
+    line-height: 1.9;
+  }
+  .featureGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 13px;
+  }
+  .featureGrid > article {
+    padding: 20px 16px;
+  }
+  .featureGrid > article > span {
+    height: 35px;
+    width: 35px;
+    margin-bottom: 14px;
+  }
+  .featureGrid > article > span > svg {
+    width: 20px;
+  }
+  .featureGrid h3 {
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 9px;
+  }
+  .featureGrid p {
+    font-size: 11px;
+    line-height: 1.9;
+  }
+  .footer {
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 24px 0;
+  }
+  .footer > small {
+    font-size: 9px;
+    width: 100%;
+    margin: 0;
+  }
+  .footer > p {
+    font-size: 10px;
+  }
+  .features > header > span {
+    font-size: 8px;
+  }
+}
+@media (max-width: 374px) {
+  .copy h1 {
+    font-size: 32px;
+  }
+  .actions {
+    gap: 11px;
+  }
+  .actions > :global(.button) {
+    font-size: 11px;
+    padding: 10px 15px;
+  }
+  .actions > :global(.text-link) {
+    font-size: 10px;
+  }
+  .featureGrid > article {
+    padding: 18px 13px;
+  }
+  .featureGrid h3 {
+    font-size: 13px;
+  }
+  .featureGrid p {
+    font-size: 10px;
+  }
+}

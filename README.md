@@ -59,12 +59,33 @@
 
 ## 실행과 확인
 
-필요한 도구: Java 21, Node.js 24
+필요한 도구: Java 21, Node.js 24, Docker
+
+백엔드는 PostgreSQL을 씁니다. DB는 따로 띄우지 않아도 됩니다. Docker만 켜 두면 실행할 때는 `backend/compose.yaml`의 DB를, 테스트할 때는 Testcontainers가 만든 DB를 Spring Boot가 자동으로 연결합니다.
 
 | 대상 | 명령 (각 폴더에서 실행) | 하는 일 |
 | --- | --- | --- |
-| 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행 |
-| 백엔드 테스트 | `./gradlew test` | CI의 `Backend test`와 같음 |
+| 백엔드 실행 | `./gradlew bootRun` | `backend/`를 http://localhost:8080 에서 실행. 로컬 DB를 함께 띄우고, 앱을 꺼도 DB는 켜 둠 (끌 때는 `docker compose down`) |
+| 백엔드 테스트 | `./gradlew test` | 테스트용 DB 컨테이너를 띄워 실행. CI의 `Backend test`와 같음 |
 | 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
 | 프론트엔드 실행 | `npm run dev` | http://localhost:3000 에서 개발 서버 실행 |
 | 프론트엔드 검사 | `npm run lint`, `npm run build` | CI의 `Frontend lint·build`와 같음 |
+| 전체 구성 확인 | `docker compose up --build` (저장소 루트) | Dockerfile로 이미지를 빌드해 서버와 같은 구성(DB·백엔드·프론트엔드·nginx)을 http://localhost:8000 에서 실행. 머지 전에 이미지 빌드와 nginx 경로를 확인할 때 씀. 끌 때는 `docker compose down` |
+
+### Docker Compose 파일
+
+| 파일 | 쓰는 곳 | 하는 일 |
+| --- | --- | --- |
+| `backend/compose.yaml` | 로컬 개발 | 로컬 개발용 PostgreSQL. 백엔드를 실행하면 Spring Boot가 자동으로 띄움 (#5) |
+| `compose.yaml` | 공통 | 전체 구성(DB·백엔드·프론트엔드·nginx)의 공통 정의. 혼자 쓰지 않고 아래 둘 중 하나와 합쳐 씀 |
+| `compose.override.yaml` | 로컬 | Dockerfile로 직접 빌드, `localhost:8000`. 루트에서 `docker compose up`을 하면 자동으로 합쳐짐 |
+| `compose.prod.yaml` | 서버 | GHCR 이미지(`IMAGE_TAG`), 팀 포트, `restart`, `.env` 필수 값. `docker compose -f compose.yaml -f compose.prod.yaml`로 실행 |
+
+백엔드는 `backend/`에서 실행한다. IDE에서 실행할 때도 작업 폴더를 `backend/`로 둔다. 저장소 루트에서 실행하면 Spring Boot가 `backend/compose.yaml` 대신 루트의 `compose.yaml`(전체 구성)을 읽어 실패한다.
+
+## 배포
+
+| 브랜치 | 서버 | 배포 |
+| --- | --- | --- |
+| `develop` | 개발 서버 (다른 팀과 함께 쓰는 공용 서버) | 머지하면 검사 → 이미지를 GHCR에 올림 → 서버에 compose 파일·nginx 설정을 복사하고 새 이미지로 실행 |
+| `main` | 운영 서버 (나중에 클라우드) | 아직 없음 |

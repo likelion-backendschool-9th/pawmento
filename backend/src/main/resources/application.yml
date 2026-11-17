@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: backend
+  # 로컬 실행(bootRun)에서는 compose.yaml의 DB가 자동으로 연결된다. 앱을 꺼도 DB는 켜 둔다.
+  # 배포 환경에서는 SPRING_DATASOURCE_URL·SPRING_DATASOURCE_USERNAME·SPRING_DATASOURCE_PASSWORD 환경 변수로 넘긴다.
+  docker:
+    compose:
+      lifecycle-management: start-only
+  jpa:
+    hibernate:
+      # 임시. 엔티티에 맞춰 테이블을 만들고 컬럼을 더한다(데이터는 지우지 않는다).
+      # 스키마 관리 방식(ddl-auto, Flyway 등)은 백엔드 구조 작업에서 정한다 (docs/member/README.md)
+      ddl-auto: update
+
+pawmento:
+  auth:
+    # JWT 서명 키. 32바이트 이상. 저장소에 두지 않고 환경 변수 JWT_SECRET으로만 받는다.
+    # 비어 있으면 시작할 때 임시 키를 만든다(재시작하면 로그인이 풀린다). 개발 서버·운영 서버에서는 반드시 설정한다.
+    jwt-secret: ${JWT_SECRET:}
+    # 액세스 토큰과 쿠키의 유효 시간
+    access-token-ttl: 1h
+  map:
+    naver:
+      # 네이버 클라우드 플랫폼 Maps 애플리케이션 키. 저장소에 두지 않고 환경 변수로만 받는다.
+      # 비어 있으면 주소 조회를 건너뛴다(저장은 주소 없이 이어간다)
+      client-id: ${NAVER_MAP_CLIENT_ID:}
+      client-secret: ${NAVER_MAP_CLIENT_SECRET:}

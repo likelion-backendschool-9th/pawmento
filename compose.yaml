@@ -1,0 +1,52 @@
+# 전체 구성(DB, 백엔드, 프론트엔드, nginx). 로컬과 서버가 함께 쓰는 공통 정의다
+# - 로컬: compose.override.yaml이 자동으로 합쳐진다. Dockerfile로 직접 빌드해 서버와 같은 구성을 띄운다
+#     docker compose up --build        → http://localhost:8000
+# - 서버: compose.prod.yaml을 지정한다. 빌드하지 않고 GHCR 이미지를 받아 띄운다 (-f를 쓰면 override는 읽지 않는다)
+#     docker compose -f compose.yaml -f compose.prod.yaml up -d --no-build
+#
+# 매일 개발은 backend/에서 ./gradlew bootRun(DB는 backend/compose.yaml), frontend/에서 npm run dev로 한다
+# 이 파일은 머지 전에 서버와 같은 구성(이미지, nginx 경로)으로 확인할 때 쓴다
+
+services:
+  db:
+    # backend/compose.yaml, Testcontainers와 같은 버전을 쓴다
+    image: postgres:18-alpine
+    # 로컬 기본값. 서버에서는 compose.prod.yaml이 .env 값을 필수로 받는다
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pawmento}
+      POSTGRES_USER: ${POSTGRES_USER:-pawmento}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pawmento}
+    volumes:
+      # postgres 18부터 데이터 위치가 /var/lib/postgresql/<버전>/docker로 바뀌어 상위 폴더를 마운트한다
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    # 로컬에서 빌드한 이미지 이름. 서버에서는 compose.prod.yaml이 GHCR 주소로 바꾼다
+    image: pawmento-backend:local
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-pawmento}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-pawmento}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-pawmento}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: pawmento-frontend:local
+
+  # 포트 하나로 받아 경로에 따라 프론트엔드와 백엔드로 나눈다 (nginx/proxy.conf)
+  nginx:
+    image: nginx:stable-alpine
+    volumes:
+      - ./nginx/proxy.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  db-data:
