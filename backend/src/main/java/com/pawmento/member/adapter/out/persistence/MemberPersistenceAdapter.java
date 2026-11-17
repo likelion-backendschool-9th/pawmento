@@ -10,6 +10,7 @@ import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
+import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
 
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,12 @@ class MemberPersistenceAdapter implements SaveMemberPort, LoadMemberPort, Exists
 	@Override
 	public Optional<Member> loadByEmail(String email) {
 		return memberJpaRepository.findByEmail(email).map(MemberJpaEntity::toDomain);
+	}
+
+	@Override 
+	public Optional<Member> loadByProvider(AuthProvider provider, String providerUserId) {
+		return memberJpaRepository.findByProviderAndProviderUserId(provider, providerUserId)
+			.map(MemberJpaEntity::toDomain);
 	}
 
 	@Override
