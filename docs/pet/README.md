@@ -23,7 +23,8 @@
 
 ## 정한 것
 
-- 패키지는 `com.pawmento.pet`이고 [백엔드 구조](../backend-architecture.md)의 헥사고날을 따른다. 도메인 객체는 순수 자바(Spring·JPA·웹 DTO import 없음). 샘플은 `com.pawmento.record.domain.Record`다. (#46)
+- 패키지는 `com.pawmento.pet`이고 [백엔드 구조](../backend-architecture.md)의 헥사고날을 따른다. 도메인 객체는 순수 자바(Spring·JPA·웹 DTO import 없음). 샘플 `com.pawmento.record`는 쓰지 않는다. (#46)
+- 삭제 시 연관 기록 여부는 pet 출력 포트 `HasPetRecordsPort`로 확인한다. diary 등 실제 기록 도메인이 어댑터로 연결한다. (#46)
 - API 경로는 `/api/v1/pets…`이다. 컨트롤러에는 `/pets`만 쓰고 `/api/v1`은 `WebConfig`가 붙인다. (#22, #46)
 - 로그인 회원 id는 `@LoginMember`로 받아 Command·Query의 `memberId`로 넘긴다. (#14, #46)
 - MVP 범위는 **등록과 관리**까지다. 실소유 인증·인가는 범위 밖이다. (회의 2026-11-16)

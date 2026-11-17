@@ -84,7 +84,7 @@
 연관 기록이 없는 프로필만 삭제한다. 기록이 있으면 삭제하지 않는다.
 
 #46-S10 삭제 [테스트]
-- Given 회원 A의 콩이(`petId=1`)에는 기록이 없고, 보리(`petId=2`)에는 자유 기록(또는 합의한 기록)이 하나 있다
+- Given 회원 A의 콩이(`petId=1`)에는 연관 기록이 없고, 보리(`petId=2`)에는 연관 기록이 있다(`HasPetRecordsPort`가 true)
 - When  A가 `DELETE /api/v1/pets/1`을 보낸다
 - Then  204이다
 - Then  `GET /api/v1/pets/1`은 404이다
@@ -117,7 +117,7 @@
    - 파일: `ChangePetModeService`, 소유 검사
    - 확인: 같은 명령
 6. 삭제를 붙인다 — S10
-   - 파일: `DeletePetService`, 기록 존재 확인 포트(record/diary와 합의)
+   - 파일: `DeletePetService`, `HasPetRecordsPort`(diary 등 실제 기록 도메인이 어댑터로 연결. 샘플 `com.pawmento.record`는 쓰지 않음)
    - 확인: 같은 명령
 
 ## 정한 것
@@ -128,7 +128,7 @@
 - 기록이 있으면 삭제하지 않음(정책 확정 전). (데모)
 - 생일은 Asia/Seoul 기준 **오늘보다 뒤면 거절**(400 `VALIDATION`). 비우거나 오늘·과거는 허용
 - 연관 기록이 있어 삭제를 거절하면 **409 `CONFLICT`**. (요청은 이해했지만 현재 상태와 충돌. member 중복 이메일도 409)
-- 패키지 `com.pawmento.pet`, 순수 자바 domain([백엔드 구조](../backend-architecture.md), `Record` 샘플). `Member` 도메인 JPA 패턴은 따르지 않음
+- 패키지 `com.pawmento.pet`, 순수 자바 domain([백엔드 구조](../backend-architecture.md)). `Member` 도메인 JPA 패턴·샘플 `com.pawmento.record`는 따르지 않음
 - 컨트롤러 경로는 `/pets`만. `/api/v1`은 `WebConfig`(#22)
 - `@LoginMember`로 `memberId`를 Command·Query에 담음. (#14)
 
@@ -140,13 +140,13 @@
 - 1차 “내 것” 기준은 `owner_member_id == memberId`. 가족 역할은 후속
 - 태그 유니크는 `(owner_member_id, tag)`로 두고, 서버가 소유자 범위에서 짧은 태그를 발급한다(팀 확인 전 가정)
 - 1차 목록은 페이지 없이 내 소유 전체. 프로필 사진 필드는 생략 가능
-- 기록 존재 확인은 record/diary 입력 포트(또는 합의한 방식)로 한다. 포트가 없으면 삭제 단계를 뒤로 미룬다
+- 기록 존재 확인은 pet 출력 포트 `HasPetRecordsPort`로 한다. diary 등 실제 기록 도메인이 어댑터로 연결하고, 샘플 `com.pawmento.record`는 쓰지 않는다. 어댑터가 없으면 기록이 없다고 본다
 - API 확인은 통합 테스트(쿠키 로그인)로 한다. 프론트 프록시·화면은 이번 범위에 넣지 않는다
 
 ## 참고
 - 양식·Given/When/Then 규칙: [plan-template.md](../plan-template.md)
 - 인증·에러 JSON: [member](../member/README.md), [auth-base](../member/auth-base.md)
 - 필드·검증 참고(제품 규칙 출처, 이번 PR에서 FE를 구현하지 않음): [models.ts](../../frontend/src/workspace/domain/models.ts), [useCases.ts](../../frontend/src/workspace/application/useCases.ts)
-- 구조: [backend-architecture.md](../backend-architecture.md), 샘플 `com.pawmento.record`
+- 구조: [backend-architecture.md](../backend-architecture.md)
 - question/diary가 기대하는 pet 모드·멤버십: 원격 설계 #30
 - 회의: [2026-11-16](../meetings/2026-11-16.md)
