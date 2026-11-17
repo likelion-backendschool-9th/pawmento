@@ -9,7 +9,7 @@ import com.pawmento.member.application.dto.MemberResponse;
 import com.pawmento.member.application.port.in.MemberUseCase;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/members")
 class MemberController {
 
 	private final MemberUseCase memberUseCase;

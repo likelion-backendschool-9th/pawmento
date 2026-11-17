@@ -70,8 +70,9 @@ com.pawmento
 
 ## API 경로
 
-- 모든 API 경로는 `/api/<도메인 복수형>`으로 시작한다. 예: `/api/records`. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다.
-- 컨트롤러 클래스에 `@RequestMapping("/api/<복수형>")`을 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다.
+- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/records`. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #22: 버전을 붙임)
+- 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 `@RequestMapping("/<복수형>")`만 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. 나중에 Spring의 API 버전 기능으로 옮겨도 컨트롤러는 고치지 않는다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
+- Spring Security 경로(`PublicEndpoints`)는 접두어가 붙기 전의 실제 요청 경로를 보므로 `ApiPaths.V1`을 붙인 전체 경로로 쓴다. (#22)
 
 ## 이름 규칙
 
@@ -228,7 +229,7 @@ public interface SaveRecordPort {
 
 ```java
 @RestController
-@RequestMapping("/api/records")
+@RequestMapping("/records")
 @RequiredArgsConstructor
 public class RecordController {
     private final CreateRecordUseCase createRecordUseCase;
@@ -274,7 +275,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 요청 흐름
 
-`POST /api/records` 하나가 지나가는 순서다. 새 기능도 같은 순서로 흐르게 만든다.
+`POST /api/v1/records` 하나가 지나가는 순서다. 새 기능도 같은 순서로 흐르게 만든다.
 
 1. 서버를 켤 때 Spring이 `JpaRepository → PersistenceAdapter → Service → Controller` 순서로 객체를 만들어 생성자에 넣는다.
 2. 컨트롤러: JSON → Request(`@Valid`로 형식 검증) → Command, 유스케이스 호출
@@ -305,7 +306,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - [ ] 형식 검증은 Request, 업무 규칙은 도메인에 있고 컨트롤러·어댑터·서비스에 중복이 없다
 - [ ] Request가 서비스까지 넘어가지 않고, 도메인 객체가 응답으로 나가지 않는다
 - [ ] Command·Query·Result·Request·Response가 `record`다
-- [ ] API 경로가 `/api/`로 시작한다
+- [ ] 컨트롤러 경로에 `/api`를 쓰지 않는다 (`WebConfig`가 `/api/v1`을 붙인다)
 - [ ] 의존 객체가 `private final` 필드이고 `@RequiredArgsConstructor`로 주입된다
 - [ ] `@Data`, `@Setter`가 없고, 도메인에는 롬복 `@Getter` 말고 다른 롬복이 없다
 - [ ] 이름이 [이름 규칙](#이름-규칙)과 맞는다
@@ -320,7 +321,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - 입력 포트 인터페이스(`UseCase`)를 모든 기능에 둔다. 컨트롤러는 서비스 클래스를 직접 받지 않는다.
 - 유스케이스 입력은 Command(변경)·Query(조회)로 받고, 결과는 id나 `Result`로 돌려준다. 도메인 객체를 돌려주지 않는다.
 - 여러 도메인이 함께 쓰는 코드는 `com.pawmento.common`에 두고, 하위에 `security`, `error`를 둔다.
-- API 경로는 `/api/<복수형>`으로 시작한다.
+- API 경로는 `/api/v1/<복수형>`이다. 컨트롤러에는 `/<복수형>`만 쓴다.
 - 로그인한 회원 id는 Command·Query의 `memberId`로 넘긴다. 서비스는 Spring Security를 모른다.
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
 - Command·Query·Result·Request·Response는 자바 `record`로 만든다.
