@@ -73,5 +73,5 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 - 웹 서비스 URL은 호스트만 등록한다. `http://localhost:8080`이면 `http://localhost`로 등록한다.
 - 앱 설정에서 Geocoding에 체크하지 않으면 주소 검색 요청이 429로 실패한다.
 - 요청 주소가 문서 버전에 따라 `maps.apigw.ntruss.com`과 `naveropenapi.apigw.ntruss.com`으로 나뉘어 있다. 구현할 때 최신 문서로 확인한다. 무료 한도와 결제수단 요건도 콘솔에서 확인한다.
-- 환경 변수 이름은 서버 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`, 프론트엔드 `NEXT_PUBLIC_NAVER_MAP_CLIENT_ID`로 시작한다. `NEXT_PUBLIC_` 변수는 빌드할 때 값이 고정된다. 개발 서버 배포(#10)의 `.env.develop.example`과 이름을 맞춘다.
+- 환경 변수 이름은 서버 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`, 프론트엔드 `NEXT_PUBLIC_NAVER_MAP_CLIENT_ID`로 시작한다. `NEXT_PUBLIC_` 변수는 빌드할 때 값이 고정된다. 개발 서버 배포(#10)의 `.env.prod.example`과 이름을 맞춘다.
 - 외부 문서: [Maps 개요](https://api.ncloud-docs.com/docs/application-maps-overview), [Maps 문제 해결](https://guide.ncloud-docs.com/docs/en/application-maps-troubleshoot)
