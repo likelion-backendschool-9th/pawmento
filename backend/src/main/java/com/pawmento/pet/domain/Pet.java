@@ -13,6 +13,8 @@ public class Pet {
 	private String breed;
 	private LocalDate birthday;
 	private PetMode mode;
+	// 낙관적 잠금용. DB에서 읽은 버전을 저장까지 그대로 나른다
+	private Long version;
 
 	private Pet(Long ownerMemberId, String name, String tag, PetSpecies species, String breed, LocalDate birthday,
 			PetMode mode) {
@@ -37,9 +39,10 @@ public class Pet {
 
 	// DB에서 꺼낸 값을 도메인으로 되돌릴 때 쓴다. 이미 저장된 값이므로 생성 규칙을 다시 검사하지 않는다
 	public static Pet restore(Long id, Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
-			LocalDate birthday, PetMode mode) {
+			LocalDate birthday, PetMode mode, Long version) {
 		Pet pet = new Pet(ownerMemberId, name, tag, species, breed, birthday, mode);
 		pet.id = id;
+		pet.version = version;
 		return pet;
 	}
 
@@ -143,6 +146,10 @@ public class Pet {
 
 	public PetMode getMode() {
 		return mode;
+	}
+
+	public Long getVersion() {
+		return version;
 	}
 
 }

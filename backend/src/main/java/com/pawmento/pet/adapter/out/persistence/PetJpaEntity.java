@@ -15,6 +15,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "pets", uniqueConstraints = @UniqueConstraint(name = "uk_pets_owner_tag",
@@ -47,6 +48,9 @@ public class PetJpaEntity {
 	@Column(nullable = false, length = 16)
 	private PetMode mode;
 
+	@Version
+	private Long version;
+
 	protected PetJpaEntity() {
 	}
 
@@ -60,11 +64,12 @@ public class PetJpaEntity {
 		entity.breed = pet.getBreed();
 		entity.birthday = pet.getBirthday();
 		entity.mode = pet.getMode();
+		entity.version = pet.getVersion();
 		return entity;
 	}
 
 	public Pet toDomain() {
-		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode);
+		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version);
 	}
 
 	public Long getId() {
