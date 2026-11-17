@@ -79,7 +79,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 - 이메일은 앞뒤 공백을 지우고 소문자로 바꿔 저장·조회한다. 대소문자만 다른 이메일로 두 번 가입할 수 없다. (#14)
 - 로그인 실패는 이메일이 없는 경우와 비밀번호가 틀린 경우에 같은 응답을 준다. 가입된 이메일인지 알려 주지 않기 위해서다. (#14)
 - 가입 검증 규칙과 회원 응답 모양은 프론트엔드 데모(#12)에 맞췄다. (#14)
-- 패키지는 `member/`(`domain`, `application`, `adapter`)와 여러 도메인이 함께 쓰는 `global/security`, `global/error`로 나눴다. 애플리케이션 계층은 포트(`MemberRepository`, `PasswordHasher`, `TokenIssuer`)만 알고 JPA·BCrypt·JWT 구현은 어댑터에 있다. (#14)
+- 패키지는 `member/`(`domain`, `application`, `adapter`)와 여러 도메인이 함께 쓰는 `global/security`, `global/error`로 나눴다. 애플리케이션 계층은 출력 포트(`SaveMemberPort`, `LoadMemberPort`, `HashPasswordPort`, `IssueTokenPort` 등)만 알고 JPA·BCrypt·JWT 구현은 어댑터에 있다. (#14)
 
 ## 데이터 구조 요약
 

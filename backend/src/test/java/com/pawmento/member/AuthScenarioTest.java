@@ -34,7 +34,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.member.application.exception.DuplicateEmailException;
-import com.pawmento.member.application.port.out.MemberRepository;
+import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 
 import jakarta.servlet.http.Cookie;
@@ -55,7 +55,7 @@ class AuthScenarioTest {
 	private JwtEncoder jwtEncoder;
 
 	@Autowired
-	private MemberRepository memberRepository;
+	private SaveMemberPort saveMemberPort;
 
 	@Test
 	@DisplayName("#14-S1 가입하고 로그인하면 쿠키로 내 정보를 조회할 수 있다")
@@ -142,9 +142,9 @@ class AuthScenarioTest {
 	void saveDuplicateEmailAfterCheck() {
 		// 두 가입 요청이 동시에 중복 확인을 통과한 상황. 저장소가 유니크 제약 위반을 중복 가입으로 바꿔 준다
 		String email = uniqueEmail();
-		memberRepository.save(Member.register(email, "hash", "먼저 가입", Instant.now()));
+		saveMemberPort.save(Member.register(email, "hash", "먼저 가입", Instant.now()));
 
-		assertThatThrownBy(() -> memberRepository.save(Member.register(email, "hash", "나중 가입", Instant.now())))
+		assertThatThrownBy(() -> saveMemberPort.save(Member.register(email, "hash", "나중 가입", Instant.now())))
 			.isInstanceOf(DuplicateEmailException.class);
 	}
 
