@@ -27,7 +27,7 @@
 
 ## 범위 밖
 
-- 사진 속 위치(EXIF) 자동 연결과 공개용 파일의 위치 정보 제거
+- 사진 속 위치(EXIF) 자동 연결은 이 #19 범위 밖이며 [#44](photo-location.md)에서 별도 설계한다. (고침 #44: 사진 기반 지도 연동을 별도 확장으로 연결)
 - 반려동물·기간 필터, GARDEN의 "함께 걸었던 곳" 보기
 - 커뮤니티 글에 장소 붙이기, 주변 동물병원 보기
 - 산책 경로 기록·공유, 장소 이름 검색
@@ -73,5 +73,5 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 - 웹 서비스 URL은 호스트만 등록한다. `http://localhost:8080`이면 `http://localhost`로 등록한다.
 - 앱 설정에서 Geocoding에 체크하지 않으면 주소 검색 요청이 429로 실패한다.
 - 요청 주소가 문서 버전에 따라 `maps.apigw.ntruss.com`과 `naveropenapi.apigw.ntruss.com`으로 나뉘어 있다. 구현할 때 최신 문서로 확인한다. 무료 한도와 결제수단 요건도 콘솔에서 확인한다.
-- 환경 변수 이름은 서버 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`, 프론트엔드 `NEXT_PUBLIC_NAVER_MAP_CLIENT_ID`로 시작한다. `NEXT_PUBLIC_` 변수는 빌드할 때 값이 고정된다. 개발 서버 배포(#10)의 `.env.develop.example`과 이름을 맞춘다.
+- 환경 변수 이름은 서버 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`, 프론트엔드 `NEXT_PUBLIC_NAVER_MAP_CLIENT_ID`로 시작한다. `NEXT_PUBLIC_` 변수는 빌드할 때 값이 고정된다. 개발 서버 배포(#10)의 `.env.prod.example`과 이름을 맞춘다.
 - 외부 문서: [Maps 개요](https://api.ncloud-docs.com/docs/application-maps-overview), [Maps 문제 해결](https://guide.ncloud-docs.com/docs/en/application-maps-troubleshoot)

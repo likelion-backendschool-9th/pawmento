@@ -1,0 +1,14 @@
+# 로컬 전용. compose.yaml과 같은 폴더에 있어 docker compose up을 하면 자동으로 합쳐진다
+# 서버는 -f compose.yaml -f compose.prod.yaml로 실행하므로 이 파일을 읽지 않는다
+
+services:
+  backend:
+    build: ./backend
+
+  frontend:
+    build: ./frontend
+
+  nginx:
+    # 로컬 bootRun(8080)·npm run dev(3000)와 겹치지 않는 포트. LOCAL_PORT로 바꿀 수 있다
+    ports:
+      - "127.0.0.1:${LOCAL_PORT:-8000}:80"
