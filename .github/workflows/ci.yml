@@ -18,10 +18,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# job마다 timeout-minutes를 둔다. 없으면 멈춘 job(예: Testcontainers 대기)이 기본값 360분 동안 러너를 잡는다.
+# 값은 평소 실행 시간(1~2분)의 여러 배로 잡는다.
 jobs:
+  # 필수 검사는 job 이름으로 걸려 있다. 이름을 바꾸면 develop·main 보호 규칙의 필수 검사도 같이 바꿔야 한다
   frontend:
     name: Frontend lint·build
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -34,6 +38,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
@@ -41,6 +46,7 @@ jobs:
   backend:
     name: Backend test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
@@ -52,6 +58,33 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew test
+      # 실패하면 어떤 테스트가 왜 실패했는지 HTML 리포트로 볼 수 있게 남긴다 (Actions 실행 화면의 Artifacts)
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: backend-test-report
+          path: backend/build/reports/tests/test
+          retention-days: 7
+
+  # PR에서 Dockerfile로 이미지를 만들어 보기만 하고 올리지는 않는다.
+  # 없으면 Dockerfile이나 next.config.ts의 standalone 설정이 깨져도 머지한 뒤 배포에서야 알게 된다
+  image-build:
+    name: Image build (${{ matrix.service }})
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        service: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      # develop push가 쌓은 캐시를 읽기만 한다. PR 캐시는 다른 PR이 쓸 수 없으므로 쓰지 않는다
+      - uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.service }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.service }}
 
   # ---- 개발 서버 배포 (develop push에서만) ----
 
@@ -61,6 +94,7 @@ jobs:
     needs: [frontend, backend]
     if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
       # GITHUB_TOKEN으로 GHCR에 이미지를 올린다
@@ -102,6 +136,7 @@ jobs:
     name: Deploy to develop server
     needs: build-push
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Actions 화면에 배포 이력이 남는다
     environment: develop
     steps:
