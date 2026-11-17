@@ -19,10 +19,12 @@
 com.pawmento
  ├─ global/
  │   ├─ security/                         로그인 회원 정보(@LoginMember 등)
- │   └─ error/                            공통 에러 응답, 예외 → HTTP 응답 변환
+ │   ├─ error/                            공통 에러 응답, 예외 → HTTP 응답 변환
+ │   └─ exception/                        기본 예외 (도메인·애플리케이션 예외가 상속)
  └─ <도메인>/
      ├─ domain/
-     │   └─ <Domain>                      도메인 객체 (데이터 + 규칙)
+     │   ├─ <Domain>                      도메인 객체 (데이터 + 규칙)
+     │   └─ exception/                    도메인 예외 (규칙 위반)
      ├─ application/
      │   ├─ port/
      │   │   ├─ in/
@@ -32,8 +34,9 @@ com.pawmento
      │   │   │   └─ <Action><Domain>Result     유스케이스 결과 (record)
      │   │   └─ out/
      │   │       └─ <Verb><Domain>Port          출력 포트 (인터페이스)
-     │   └─ service/
-     │       └─ <Action><Domain>Service        입력 포트 구현
+     │   ├─ service/
+     │   │   └─ <Action><Domain>Service        입력 포트 구현
+     │   └─ exception/                         애플리케이션 예외 (찾을 수 없음, 충돌 등)
      └─ adapter/
          ├─ in/
          │   └─ web/
@@ -47,7 +50,7 @@ com.pawmento
                  └─ <Domain>JpaRepository       Spring Data JPA
 ```
 
-- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.global` 아래에 역할별로 둔다(`security`, `error`). 특정 도메인에만 쓰는 코드는 `global`에 두지 않는다.
+- 여러 도메인이 함께 쓰는 코드는 `com.pawmento.global` 아래에 역할별로 둔다(`security`, `error`, `exception`). 특정 도메인에만 쓰는 코드는 `global`에 두지 않는다.
 - 객체 스토리지, 외부 API처럼 DB가 아닌 출구는 `adapter/out/<역할>`로 폴더를 더한다. 예: `adapter/out/storage`. 폴더 이름은 기술(`jpa`, `s3`)이 아니라 역할로 짓는다.
 
 ## 의존 규칙
@@ -56,16 +59,18 @@ com.pawmento
 
 | 패키지 | import 가능 | import 금지 |
 | --- | --- | --- |
-| `domain` | 자바 표준 라이브러리, `lombok.Getter` | `application`, `adapter`, `global`, Spring, `jakarta.persistence` |
+| `domain` | 자바 표준 라이브러리, `lombok.Getter`, `global.exception` | `application`, `adapter`, `global`(`global.exception` 제외), Spring, `jakarta.persistence` |
+| `application.exception` | 자바 표준 라이브러리, `global.exception` | `domain`, `application.port`, `application.service`, `adapter`, `global`(`global.exception` 제외), Spring |
 | `application.port` | `domain`, 같은 도메인의 `port` | `adapter`, `global`, Spring, `jakarta.persistence` |
-| `application.service` | `domain`, `application.port`, `global.error`, `org.springframework.stereotype`, `org.springframework.transaction`, `lombok` | `adapter`, `global.security`, Spring Security, `jakarta.persistence`, 웹 DTO |
+| `application.service` | `domain`, `application.port`, `application.exception`, `global.exception`, `org.springframework.stereotype`, `org.springframework.transaction`, `lombok` | `adapter`, `global.security`, Spring Security, `jakarta.persistence`, 웹 DTO |
 | `adapter.in.web` | `application.port.in`, `global`, Spring Web, `jakarta.validation`, `lombok` | `domain`, `application.service`, `adapter.out` |
-| `adapter.out.persistence` | `domain`, `application.port.out`, Spring Data JPA, `jakarta.persistence`, `lombok` | `application.service`, `application.port.in`, `adapter.in` |
+| `adapter.out.persistence` | `domain`, `application.port.out`, `application.exception`, Spring Data JPA, `jakarta.persistence`, `lombok` | `application.service`, `application.port.in`, `adapter.in` |
 
 - 컨트롤러는 서비스 클래스가 아니라 유스케이스 인터페이스를 받는다.
 - 컨트롤러는 도메인 객체를 다루지 않는다. 유스케이스는 도메인 객체 대신 id나 `Result`를 돌려준다.
 - 서비스는 영속성 어댑터나 JpaRepository가 아니라 출력 포트를 받는다.
 - 서비스는 Spring Security를 모른다. 로그인한 회원 id는 컨트롤러가 꺼내서 Command·Query에 `memberId`로 담아 넘긴다.
+- 예외는 [백엔드 예외 처리](backend-exceptions.md)를 따른다. 도메인 예외와 애플리케이션 예외는 `global.exception`의 기본 예외를 상속하고, `global.error.GlobalExceptionHandler`가 응답으로 바꾼다. 컨트롤러와 서비스는 예외를 잡아 바꾸지 않는다. (#60)
 - 다른 도메인의 기능이 필요하면 그 도메인의 `port/in`을 부른다. 자세한 방식은 [아직 정하지 않은 것](#아직-정하지-않은-것)에서 정한다.
 
 ## API 경로
@@ -147,6 +152,7 @@ com.pawmento
 - 상태를 바꾸는 동작은 메서드로 둔다(`edit()`, `changeMode()`). 바꿀 때도 규칙을 검사한다.
 - 영속성 어댑터가 값을 꺼낼 수 있게 `@Getter`를 붙인다. setter는 두지 않는다.
 - 새로 만든 객체의 `id`는 `null`이다. DB에 저장한 뒤 생긴다.
+- 규칙 위반은 `IllegalArgumentException`이 아니라 `domain/exception`의 도메인 예외로 던진다. ([백엔드 예외 처리](backend-exceptions.md))
 
 ```java
 @Getter
@@ -162,7 +168,7 @@ public class Record {
 
     public static Record create(Long petId, String content) {
         if (content == null || content.isBlank()) {
-            throw new IllegalArgumentException("내용이 비었습니다.");
+            throw new EmptyRecordContentException(); // RuleViolationException 상속
         }
         return new Record(petId, content);
     }
@@ -299,7 +305,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 리뷰 체크리스트
 
-- [ ] `domain` 파일에 Spring·JPA 어노테이션이나 `application`·`adapter`·`global` import가 없다
+- [ ] `domain` 파일에 Spring·JPA 어노테이션이나 `application`·`adapter`·`global`(`global.exception` 제외) import가 없다
 - [ ] `application` 파일에 `adapter`·JPA·Spring Security·웹 DTO import가 없다
 - [ ] 컨트롤러가 서비스 클래스가 아니라 유스케이스를 받고, 도메인 객체를 import하지 않는다
 - [ ] 서비스가 어댑터나 JpaRepository가 아니라 출력 포트를 받는다
@@ -310,6 +316,7 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - [ ] 의존 객체가 `private final` 필드이고 `@RequiredArgsConstructor`로 주입된다
 - [ ] `@Data`, `@Setter`가 없고, 도메인에는 롬복 `@Getter` 말고 다른 롬복이 없다
 - [ ] 이름이 [이름 규칙](#이름-규칙)과 맞는다
+- [ ] 새 예외가 `global.exception`의 기본 예외를 상속하고, 도메인별 `@RestControllerAdvice`나 서비스의 예외 변환 `try/catch`가 없다 ([백엔드 예외 처리](backend-exceptions.md))
 
 ## 함정
 
@@ -326,11 +333,11 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
 - Command·Query·Result·Request·Response는 자바 `record`로 만든다.
 - 롬복을 쓴다. 범위는 [롬복 사용 범위](#롬복-사용-범위)를 따른다.
+- 예외는 공통 기본 예외를 상속하고 `GlobalExceptionHandler` 한 곳에서 응답으로 바꾼다. 자세한 것은 [백엔드 예외 처리](backend-exceptions.md)를 따른다. (#60)
 
 ## 아직 정하지 않은 것
 
 - 도메인 객체와 JpaEntity를 계속 분리할지 (#16은 분리)
 - 도메인 클래스 이름 `Record` 유지 여부. 프론트엔드가 이 개념을 `Memory`로 쓰고 있어 `Memory`로 맞추자는 의견이 있다. 바꾸면 패키지(`com.pawmento.memory`), 문서 폴더, 프론트엔드 경로를 함께 바꾼다
-- 도메인 예외를 `global.error`의 공통 에러 응답(400)으로 연결하는 방식
 - 다른 도메인 기능을 부르는 방식
 - 테스트를 계층별로 어디에 어떻게 둘지
