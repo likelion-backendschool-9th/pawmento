@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 // 로그인 없이 부르는 경로다 (global.security.PublicEndpoints)
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 class AuthController {
 

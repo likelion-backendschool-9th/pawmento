@@ -12,7 +12,7 @@ import com.pawmento.member.application.port.in.GetMemberUseCase;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/members")
+@RequestMapping("/members")
 @RequiredArgsConstructor
 class MemberController {
 

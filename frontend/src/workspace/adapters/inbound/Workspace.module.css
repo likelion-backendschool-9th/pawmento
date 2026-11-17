@@ -1,0 +1,1587 @@
+.pageHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 25px;
+  margin: 5px 0 30px;
+}
+.pageHeading h1 {
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0 0 10px;
+  letter-spacing: -1px;
+}
+.pageHeading p:not([class]) {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin: 0;
+}
+.pageHeading :global(.eyebrow) {
+  font-size: 10px;
+  margin-bottom: 10px;
+}
+/* Archive */
+.recordGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+}
+.recordCard {
+  display: block;
+  background: var(--mode-card, #fffdf8);
+  border: 1px solid #fffcf7;
+  border-radius: 25px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.18s;
+}
+.recordCard:hover {
+  transform: translateY(-3px);
+}
+.recordPhoto {
+  height: 225px;
+  position: relative;
+  margin: 10px 10px 0;
+  border-radius: 19px;
+  overflow: hidden;
+}
+.recordBadge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  border-radius: 30px;
+  background: #fffdf7e8;
+  color: var(--brand-primary);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.recordInfo {
+  padding: 18px 22px 22px;
+}
+.recordInfo > time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.recordInfo > p {
+  font-size: 15px;
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 54px;
+  margin: 9px 0 14px;
+  word-break: keep-all;
+}
+.recordInfo > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--brand-primary);
+  font-size: 12px;
+}
+
+.calendarArchive {
+  display: grid;
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 30px;
+  align-items: start;
+}
+.fullCalendar {
+  background: #fffdf7e0;
+  border: 1px solid #fffdfa;
+  border-radius: 28px;
+  padding: 26px;
+  box-shadow: var(--shadow-card);
+}
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.calendarHeader strong {
+  font-size: 16px;
+  font-weight: 550;
+}
+.calendarHeader > div {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.calendarHeader button {
+  font-size: 12px;
+}
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+.weekday {
+  text-align: center;
+  padding: 7px 0 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.weekday:first-child {
+  color: var(--text-danger);
+}
+.calendarDay {
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 44px;
+  font-size: 14px;
+  aspect-ratio: 1;
+  color: var(--text-primary);
+}
+.calendarDay:hover {
+  background: var(--surface-subtle);
+}
+.calendarDay > i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-sage-600);
+}
+.today {
+  background: #e9eed7;
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+.selectedDay {
+  background: var(--brand-primary) !important;
+  color: white;
+}
+.selectedDay > i {
+  background: white;
+}
+.calendarLegend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 20px 0 0;
+}
+.calendarLegend > i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-sage-600);
+}
+.calendarRecords {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.calendarRecords .recordPhoto {
+  height: 175px;
+}
+.dayHeading {
+  font-size: 19px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+.endNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 38px 0 10px;
+}
+.loadMore {
+  text-align: center;
+  margin: 30px 0;
+}
+.empty {
+  padding: 52px 28px;
+  text-align: center;
+  background: #fffdf7d9;
+  border: 1px solid #fffdfa;
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+}
+.empty > span {
+  display: block;
+  color: var(--mode-muted, #6f7d62);
+  margin-bottom: 18px;
+}
+.empty h2 {
+  font-size: 25px;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.empty > p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 25px;
+}
+/* Pet profiles and account */
+.petSummary {
+  position: relative;
+  text-align: center;
+  border: 1px solid #fffdfa;
+  border-radius: 30px;
+  background: #fffcf7e6;
+  padding: 30px 24px 23px;
+  box-shadow: var(--shadow-card);
+}
+.petEdit {
+  position: absolute;
+  top: 17px;
+  right: 17px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  color: var(--mode-muted, #6f7d62);
+  background: #f0f0e2;
+  border-radius: 50%;
+}
+.petAvatar {
+  width: 103px !important;
+  height: 103px !important;
+  border: 4px solid #fffefa;
+  border-radius: 50%;
+  box-shadow: 0 4px 15px #78603916;
+  margin: 0 auto 17px;
+}
+.petAvatar :global(.photo-placeholder > span) {
+  display: none;
+}
+.petSummary h2 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 25px;
+  margin: 0 0 8px;
+}
+.petSummary h2 > span {
+  font-size: 10px;
+  font-weight: 400;
+  padding: 4px 9px;
+  border-radius: 30px;
+  background: var(--surface-subtle);
+  color: var(--brand-primary);
+}
+.petSummary > p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 23px;
+}
+.petStats {
+  display: flex;
+  justify-content: space-evenly;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-default);
+}
+.petStats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 50%;
+}
+.petStats > div + div {
+  border-left: 1px solid var(--border-default);
+}
+.petStats strong {
+  font-size: 22px;
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+.petStats span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.petList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 25px;
+}
+.petList > article > .button {
+  margin-top: 14px;
+}
+.accountGrid {
+  display: grid;
+  grid-template-columns: 390px minmax(0, 1fr);
+  gap: 40px;
+  max-width: 970px;
+  margin: auto;
+}
+.accountCard {
+  background: var(--mode-card, #fffdf8);
+  border: 1px solid #fffdfa;
+  border-radius: 30px;
+  padding: 35px;
+  box-shadow: var(--shadow-card);
+}
+.largeAvatar {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  background: #e7ecd5;
+  color: var(--brand-primary);
+  font-size: 30px;
+  border-radius: 50%;
+  margin: 0 auto;
+}
+.accountCard > h2 {
+  text-align: center;
+  margin: 17px 0 5px;
+  font-size: 25px;
+}
+.accountCard > p {
+  text-align: center;
+  font-size: 13px;
+  margin-bottom: 27px;
+}
+.logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-top: 1px solid var(--border-default);
+  margin-top: 25px;
+  padding: 22px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.accountInfo {
+  padding: 30px 5px;
+}
+.accountInfo h2 {
+  font-size: 24px;
+  font-weight: 500;
+}
+.accountStats {
+  display: flex;
+  gap: 65px;
+  margin: 30px 0;
+}
+.accountStats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.accountStats strong {
+  font:
+    45px Georgia,
+    serif;
+  color: var(--brand-primary);
+}
+.accountStats span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+/* Diary */
+.editor {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 35px;
+  max-width: 1010px;
+  margin: 0 auto;
+  padding: 33px;
+  background: #fffdf6e8;
+  border: 1px solid var(--mode-card, #fffdf8);
+  border-radius: 38px;
+  box-shadow: 0 8px 28px #755e3810;
+  position: relative;
+}
+.editorPhoto {
+  align-self: start;
+}
+.editorFields {
+  min-width: 0;
+}
+.editorFields h2 {
+  font-size: 25px;
+  font-weight: 550;
+  line-height: 1.65;
+  color: #475c2d;
+  letter-spacing: -0.7px;
+  margin: 17px 0 22px;
+}
+.editorFields > label {
+  margin: 18px 0 10px;
+}
+.editorFields > label:first-child {
+  margin-top: 0;
+}
+.editorFields > textarea {
+  width: 100%;
+  min-height: 190px;
+}
+.characterCount {
+  display: block;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 7px;
+}
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 23px;
+}
+.editorActions > .button:last-child {
+  flex: 1;
+}
+.localNote {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-muted);
+  margin: 15px 0 0;
+}
+.detailWrap {
+  max-width: 780px;
+  margin: auto;
+}
+.detailHeading {
+  text-align: center;
+  margin: 25px 0 30px;
+}
+.detailHeading h1 {
+  font-size: 31px;
+  font-weight: 500;
+  line-height: 1.65;
+  color: #42582d;
+  margin: 17px 0 10px;
+}
+.detailHeading > p {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+.detail {
+  background: var(--mode-card, #fffdf8);
+  border: 1px solid #fffdfa;
+  border-radius: 30px;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.detailPhoto {
+  display: block;
+  width: calc(100% - 26px);
+  height: 430px;
+  position: relative;
+  padding: 0;
+  border: 0;
+  border-radius: 23px;
+  background: #e9ecd9;
+  overflow: hidden;
+  margin: 13px;
+}
+.detailPhoto > span:last-child {
+  position: absolute;
+  right: 15px;
+  bottom: 15px;
+  background: #3e512bbb;
+  color: white;
+  border-radius: 30px;
+  padding: 7px 12px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.detailBody {
+  padding: 27px 35px 30px;
+}
+.detailBody h2 {
+  font-size: 23px;
+  font-weight: 500;
+  line-height: 1.7;
+  color: #526936;
+  margin-bottom: 22px;
+}
+.detailBody > p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 17px;
+  line-height: 2;
+}
+.detailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-default);
+  padding-top: 20px;
+  margin-top: 28px;
+}
+.detailActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 24px;
+}
+.notFound {
+  position: relative;
+  text-align: center;
+  padding: 85px 25px;
+}
+.notFound h1 {
+  margin-top: 60px;
+  font-size: 30px;
+}
+.notFound > p {
+  color: var(--text-secondary);
+}
+/* Welcome */
+@media (max-width: 1279px) {
+  .recordPhoto {
+    height: 200px;
+  }
+  .calendarArchive {
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+}
+@media (max-width: 1023px) {
+  .recordGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .calendarArchive {
+    grid-template-columns: 1fr;
+  }
+  .fullCalendar {
+    width: 100%;
+    max-width: 590px;
+    margin: auto;
+  }
+  .calendarRecords {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .calendarRecords .recordPhoto {
+    height: 160px;
+  }
+  .calendarRecords .recordInfo {
+    padding: 15px;
+  }
+  .calendarRecords .recordInfo > p {
+    font-size: 13px;
+  }
+  .petList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .accountGrid {
+    grid-template-columns: 330px 1fr;
+    gap: 25px;
+  }
+  .accountCard {
+    padding: 27px;
+  }
+  .accountInfo h2 {
+    font-size: 22px;
+  }
+  .editor {
+    gap: 25px;
+    padding: 25px;
+  }
+  .editorFields h2 {
+    font-size: 22px;
+  }
+  .editorActions {
+    gap: 8px;
+  }
+  .editorActions > .button {
+    padding: 11px 14px;
+  }
+}
+@media (max-width: 767px) {
+  .pageHeading {
+    display: block;
+    margin-bottom: 23px;
+  }
+  .pageHeading h1 {
+    font-size: 26px;
+    letter-spacing: -0.9px;
+    margin-bottom: 8px;
+  }
+  .pageHeading p:not([class]) {
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .pageHeading :global(.eyebrow) {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    margin-bottom: 9px;
+  }
+  .pageHeading > .button {
+    margin-top: 16px;
+  }
+  .recordGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .recordPhoto {
+    height: 152px;
+    margin: 7px 7px 0;
+    border-radius: 16px;
+  }
+  .recordCard {
+    border-radius: 22px;
+  }
+  .recordBadge {
+    left: 7px;
+    bottom: 8px;
+    font-size: 9px;
+    padding: 3px 7px;
+    gap: 4px;
+  }
+  .recordInfo {
+    padding: 12px 13px 16px;
+  }
+  .recordInfo > time {
+    font-size: 10px;
+  }
+  .recordInfo > p {
+    font-size: 13px;
+    line-height: 1.8;
+    min-height: 47px;
+    margin: 7px 0 11px;
+  }
+  .recordInfo > span {
+    font-size: 10px;
+    gap: 5px;
+  }
+
+  .calendarArchive {
+    gap: 25px;
+  }
+  .fullCalendar {
+    padding: 22px 17px;
+    border-radius: 25px;
+  }
+  .calendarRecords {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .calendarRecords .recordPhoto {
+    height: 150px;
+  }
+  .calendarRecords .recordInfo {
+    padding: 12px;
+  }
+  .calendarHeader strong {
+    font-size: 15px;
+  }
+  .calendarHeader button {
+    min-width: 35px;
+  }
+  .calendarDay {
+    min-height: 41px;
+    font-size: 13px;
+  }
+  .weekday {
+    font-size: 11px;
+  }
+  .dayHeading {
+    font-size: 18px;
+    margin-bottom: 18px;
+  }
+  .empty {
+    padding: 40px 20px;
+    border-radius: 26px;
+  }
+  .empty h2 {
+    font-size: 23px;
+  }
+  .empty > p {
+    font-size: 14px;
+  }
+  .editor {
+    grid-template-columns: 1fr;
+    border-radius: 32px;
+    padding: 20px;
+    gap: 25px;
+    background: #fffcf4eb;
+  }
+  .editorFields h2 {
+    font-size: 23px;
+    line-height: 1.65;
+    text-align: center;
+    margin: 16px 0 24px;
+  }
+  .editorFields > textarea {
+    min-height: 190px;
+  }
+  .editorFields > label {
+    font-size: 13px;
+  }
+  .editorActions > .button {
+    font-size: 13px;
+    min-height: 48px;
+  }
+  .localNote {
+    font-size: 10px;
+  }
+  .detailHeading h1 {
+    font-size: 28px;
+  }
+  .detailHeading > p {
+    font-size: 13px;
+  }
+  .detail {
+    border-radius: 27px;
+  }
+  .detailPhoto {
+    height: 285px;
+    width: calc(100% - 18px);
+    margin: 9px;
+    border-radius: 20px;
+  }
+  .detailBody {
+    padding: 20px 24px 25px;
+  }
+  .detailBody > h2 {
+    font-size: 21px;
+  }
+  .detailBody > p {
+    font-size: 16px;
+    line-height: 1.95;
+  }
+  .detailMeta {
+    font-size: 10px;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .detailActions {
+    margin-top: 18px;
+  }
+  .petList {
+    gap: 16px;
+  }
+  .petSummary {
+    padding: 26px 12px 20px;
+    border-radius: 27px;
+  }
+  .petAvatar {
+    width: 85px !important;
+    height: 85px !important;
+  }
+  .petSummary h2 {
+    font-size: 23px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .petSummary > p {
+    font-size: 12px;
+  }
+  .petSummary h2 > span {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+  .petEdit {
+    top: 11px;
+    right: 11px;
+    width: 29px;
+    height: 29px;
+  }
+  .petEdit svg {
+    width: 14px;
+  }
+  .petStats {
+    padding-top: 17px;
+  }
+  .petStats strong {
+    font-size: 20px;
+  }
+  .petStats span {
+    font-size: 10px;
+  }
+  .petList > article > .button {
+    font-size: 11px;
+    padding: 10px 7px;
+    gap: 5px;
+    margin-top: 11px;
+  }
+  .accountGrid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  .accountCard {
+    padding: 27px;
+    border-radius: 29px;
+  }
+  .accountInfo {
+    padding: 20px 8px;
+  }
+  .accountInfo > h2 {
+    font-size: 22px;
+  }
+  .accountStats {
+    gap: 60px;
+  }
+}
+@media (max-width: 374px) {
+  .editor {
+    padding: 17px;
+    border-radius: 27px;
+  }
+  .editorFields h2 {
+    font-size: 21px;
+  }
+  .petList {
+    grid-template-columns: 1fr;
+  }
+  .recordGrid {
+    gap: 11px;
+  }
+  .recordPhoto {
+    height: 136px;
+  }
+  .recordInfo {
+    padding: 11px;
+  }
+  .calendarDay {
+    min-height: 38px;
+  }
+}
+
+.diaryEditor {
+  display: block;
+  max-width: 800px;
+  padding: 35px 38px;
+  border-radius: 40px;
+}
+.diaryEditor > .editorPhoto {
+  margin-top: 0;
+}
+.diaryEditor > .editorFields {
+  margin-top: 28px;
+}
+.diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+  height: 400px;
+  border-radius: 25px;
+}
+.editorQuestion {
+  text-align: center;
+  position: relative;
+  margin: 0 0 28px;
+  padding: 0 10px 17px;
+}
+.editorQuestion > p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #858269;
+  margin: 0 0 20px;
+}
+.editorQuestion > p > span {
+  width: 1px;
+  height: 14px;
+  background: #d4d0bc;
+}
+.editorQuestion > h2 {
+  font-size: 34px;
+  font-weight: 550;
+  line-height: 1.65;
+  color: #42582c;
+  letter-spacing: -1px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.editorQuestion:after {
+  content: "";
+  position: absolute;
+  left: 32%;
+  right: 32%;
+  bottom: 0;
+  height: 6px;
+  border-top: 3px solid #c4b26a;
+  border-radius: 50%;
+  transform: rotate(-2deg);
+}
+@media (max-width: 767px) {
+  .diaryEditor {
+    padding: 25px 20px;
+    border-radius: 32px;
+  }
+  .editorQuestion {
+    padding: 0 0 17px;
+    margin-bottom: 24px;
+  }
+  .editorQuestion > p {
+    font-size: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 17px;
+  }
+  .editorQuestion > p > svg {
+    width: 16px;
+  }
+  .editorQuestion > h2 {
+    font-size: 25px;
+    line-height: 1.65;
+    letter-spacing: -0.9px;
+  }
+  .diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+    height: 250px;
+    border-radius: 20px;
+  }
+  .diaryEditor > .editorFields {
+    margin-top: 24px;
+  }
+}
+
+/* Desktop working surfaces */
+.pageHeading h1 {
+  font-size: 28px;
+  color: #3d4c2f;
+}
+.pageHeading p:not([class]) {
+  font-size: 13px;
+  color: var(--mode-muted, #6f7d62);
+}
+.pageHeading :global(.eyebrow) {
+  font-size: 9px;
+  color: var(--mode-muted, #6f7d62);
+}
+.pageHeading > .button {
+  font-size: 12px;
+  min-height: 40px;
+  border-radius: 7px;
+}
+.recordCard {
+  border: 1px solid #e2e9d5;
+  border-radius: 11px;
+  background: var(--mode-card, #fffefb);
+  box-shadow: none;
+}
+.recordPhoto {
+  border-radius: 7px;
+  height: 190px;
+  margin: 9px 9px 0;
+}
+.recordInfo {
+  padding: 17px 19px;
+}
+.recordInfo > p {
+  font-size: 14px;
+  color: #768f59;
+}
+.recordInfo > time {
+  font-size: 11px;
+  color: var(--mode-muted, #6f7d62);
+}
+.recordInfo > span {
+  font-size: 11px;
+  color: var(--mode-muted, #6f7d62);
+  margin-top: 13px;
+}
+.recordBadge {
+  border-radius: 5px;
+  font-size: 10px;
+}
+.recordGrid {
+  gap: 20px;
+}
+
+.calendarArchive {
+  grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr);
+  gap: 23px;
+}
+.fullCalendar {
+  max-width: none;
+  padding: 25px 22px;
+  background: var(--mode-card, #fffefb);
+  border: 1px solid #e2e9d5;
+  border-radius: 12px;
+  box-shadow: none;
+}
+.calendarHeader {
+  margin-bottom: 22px;
+}
+.calendarHeader strong {
+  font-size: 18px;
+  color: #708b4d;
+}
+.calendarHeader button {
+  min-height: 32px;
+  min-width: 32px;
+  color: var(--mode-muted, #6f7d62);
+  font-size: 11px;
+}
+.calendarGrid {
+  gap: 5px;
+}
+.calendarDay {
+  border-radius: 7px;
+  min-height: 84px;
+  aspect-ratio: auto;
+  border: 1px solid #edf1e4;
+  background: var(--mode-card, #fcfdf8);
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 9px;
+  position: relative;
+  font-size: 12px;
+  gap: 5px;
+  color: var(--mode-muted, #6f7d62);
+}
+.calendarDay > i {
+  position: absolute;
+  right: 8px;
+  top: 12px;
+  width: 4px;
+  height: 4px;
+}
+.calendarDay.today {
+  border-color: #c2d69f;
+  background: #f0f6e5;
+  color: var(--mode-muted, #6f7d62);
+}
+.calendarDay.selectedDay {
+  background: #e7f0d9 !important;
+  border-color: #a7c47d;
+  color: #608c2f !important;
+}
+.calendarDay.selectedDay > i {
+  background: #6e9e36;
+}
+.cellDiary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
+}
+.cellDiary > strong,
+.cellDiary > span {
+  font-size: 8px;
+  line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 400;
+  color: var(--mode-muted, #6f7d62);
+}
+.cellDiary > strong {
+  font-weight: 550;
+  color: var(--mode-muted, #6f7d62);
+}
+.calendarRecords {
+  grid-template-columns: 1fr;
+}
+.calendarRecords .recordPhoto {
+  height: 150px;
+}
+.dayHeading {
+  font-size: 15px;
+  color: var(--mode-muted, #6f7d62);
+  margin: 0 0 17px;
+}
+.calendarLegend {
+  font-size: 10px;
+  color: var(--mode-muted, #6f7d62);
+}
+.weekday {
+  font-size: 11px;
+  color: var(--mode-muted, #6f7d62);
+}
+.compactCalendar .calendarGrid {
+  gap: 1px;
+}
+.compactCalendar .calendarDay {
+  min-height: 29px;
+  padding: 4px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  aspect-ratio: 1;
+  font-size: 10px;
+}
+.compactCalendar .calendarDay.today {
+  background: #eff5e5;
+}
+.compactCalendar .calendarDay > i {
+  position: static;
+  width: 3px;
+  height: 3px;
+}
+.compactCalendar .calendarHeader {
+  margin-bottom: 10px;
+}
+.compactCalendar .calendarLegend {
+  font-size: 9px;
+}
+.editor {
+  background: var(--mode-card, #fffefb);
+  border: 1px solid #e1e9d3;
+  border-radius: 13px;
+  box-shadow: none;
+  padding: 27px;
+  gap: 30px;
+  max-width: 1200px;
+}
+.editorFields h2 {
+  font-size: 24px;
+  color: var(--mode-muted, #6f7d62);
+}
+.editorFields > label {
+  font-size: 12px;
+  color: var(--mode-muted, #6f7d62);
+}
+.editorFields > textarea {
+  font-size: 14px;
+  border-radius: 9px;
+}
+.diaryEditor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  max-width: 1200px;
+  border-radius: 13px;
+  padding: 28px;
+}
+.editorQuestion {
+  grid-column: 1/-1;
+  text-align: left;
+  margin: 0 0 0;
+  padding: 0 0 19px;
+  border-bottom: 1px solid #e6eddc;
+}
+.editorQuestion > p {
+  justify-content: flex-start;
+  font-size: 12px;
+  color: var(--mode-muted, #6f7d62);
+  margin-bottom: 15px;
+}
+.editorQuestion > h2 {
+  font-size: 27px;
+  max-width: none;
+  margin: 0;
+  color: var(--mode-muted, #6f7d62);
+  line-height: 1.65;
+}
+.editorQuestion:after {
+  display: none;
+}
+.diaryEditor > .editorFields {
+  margin-top: 0;
+}
+.diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+  height: 340px;
+  border-radius: 10px;
+}
+.diaryEditor .editorPhoto :global(.upload-placeholder) {
+  height: 340px;
+  min-height: 340px;
+}
+.editorActions > .button {
+  border-radius: 7px;
+  min-height: 42px;
+  font-size: 12px;
+}
+.detailWrap {
+  max-width: 1100px;
+}
+.detailHeading {
+  text-align: left;
+  margin: 20px 0 25px;
+}
+.detailHeading h1 {
+  font-size: 28px;
+  color: var(--mode-muted, #6f7d62);
+  line-height: 1.6;
+}
+.detailHeading h1 > br {
+  display: none;
+}
+.detailHeading > p {
+  font-size: 12px;
+  color: var(--mode-muted, #6f7d62);
+}
+.detail {
+  border-radius: 13px;
+  border: 1px solid #e2e9d5;
+  box-shadow: none;
+  background: var(--mode-card, #fffefb);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr);
+  align-items: start;
+}
+.detail:not(:has(.detailPhoto)) .detailBody {
+  grid-column: 1/-1;
+}
+.detailPhoto {
+  height: 400px;
+  border-radius: 9px;
+  width: calc(100% - 26px);
+  margin: 13px;
+}
+.detailBody {
+  padding: 27px 27px 25px;
+}
+.detailMeta {
+  font-size: 10px;
+  color: var(--mode-muted, #6f7d62);
+  gap: 7px 15px;
+  border-color: #e8eedd;
+}
+.detailActions {
+  margin-top: 20px;
+}
+.detailActions > .button {
+  border-radius: 7px;
+  font-size: 12px;
+  min-height: 40px;
+}
+.petSummary {
+  border-color: #e1e8d4;
+  border-radius: 13px;
+  box-shadow: none;
+  background: var(--mode-card, #fffefb);
+}
+.petSummary h2 {
+  font-size: 24px;
+  color: var(--mode-muted, #6f7d62);
+}
+.petList {
+  gap: 20px;
+}
+.petEdit {
+  border-radius: 6px;
+  background: #f0f5e7;
+}
+.petStats strong {
+  color: var(--mode-muted, #6f7d62);
+}
+.accountCard {
+  border-radius: 13px;
+  border-color: #e1e8d4;
+  box-shadow: none;
+  background: var(--mode-card, #fffefb);
+}
+.largeAvatar {
+  background: #edf4e1;
+  color: var(--mode-muted, #6f7d62);
+}
+.accountCard > h2 {
+  font-size: 24px;
+  color: var(--mode-muted, #6f7d62);
+}
+.accountInfo h2 {
+  font-size: 22px;
+  color: var(--mode-muted, #6f7d62);
+}
+.accountStats strong {
+  font-size: 38px;
+  color: var(--mode-muted, #6f7d62);
+}
+.accountStats span {
+  font-size: 11px;
+  color: var(--mode-muted, #6f7d62);
+}
+.empty {
+  border-radius: 12px;
+  border-color: #e0e8d1;
+  box-shadow: none;
+  background: #fcfef7;
+}
+.empty h2 {
+  font-size: 22px;
+  color: var(--mode-muted, #6f7d62);
+}
+.empty > p {
+  font-size: 13px;
+  color: var(--mode-muted, #6f7d62);
+}
+.empty > .button {
+  font-size: 12px;
+  border-radius: 7px;
+}
+.notFound {
+  color: var(--mode-muted, #6f7d62);
+}
+.localNote {
+  color: var(--mode-muted, #6f7d62);
+  font-size: 10px;
+}
+.characterCount {
+  color: var(--mode-muted, #6f7d62);
+  font-size: 10px;
+}
+@media (max-width: 1279px) {
+  .calendarArchive {
+    grid-template-columns: minmax(0, 1.45fr) minmax(260px, 1fr);
+  }
+  .fullCalendar {
+    padding: 21px 16px;
+  }
+  .calendarDay {
+    min-height: 75px;
+    padding: 7px;
+  }
+  .cellDiary > strong,
+  .cellDiary > span {
+    font-size: 7px;
+  }
+  .detailPhoto {
+    height: 330px;
+  }
+  .editor {
+    gap: 23px;
+    padding: 24px;
+  }
+  .editorQuestion > h2 {
+    font-size: 25px;
+  }
+  .diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+    height: 310px;
+  }
+}
+@media (max-width: 1023px) {
+  .calendarArchive {
+    grid-template-columns: 1fr;
+  }
+  .fullCalendar {
+    padding: 25px;
+  }
+  .calendarDay {
+    min-height: 76px;
+  }
+  .cellDiary > strong,
+  .cellDiary > span {
+    font-size: 8px;
+  }
+  .calendarRecords {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .diaryEditor {
+    grid-template-columns: 1fr;
+  }
+  .editorQuestion {
+    margin-bottom: 0;
+  }
+  .diaryEditor > .editorFields {
+    margin-top: 0;
+  }
+  .diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+    height: 300px;
+  }
+  .detail {
+    grid-template-columns: 1fr;
+  }
+  .detailPhoto {
+    height: 350px;
+  }
+  .detailBody {
+    padding: 25px;
+  }
+  .accountGrid {
+    grid-template-columns: 1fr;
+  }
+  .accountInfo {
+    padding: 15px 5px;
+  }
+}
+@media (max-width: 767px) {
+  .pageHeading h1 {
+    font-size: 25px;
+  }
+  .pageHeading p:not([class]) {
+    font-size: 12px;
+  }
+  .calendarArchive {
+    gap: 22px;
+  }
+  .fullCalendar {
+    padding: 20px 13px;
+    border-radius: 10px;
+  }
+  .calendarDay {
+    min-height: 60px;
+    padding: 7px 5px;
+    font-size: 11px;
+  }
+  .cellDiary {
+    display: none;
+  }
+  .calendarDay > i {
+    top: auto;
+    bottom: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .calendarHeader strong {
+    font-size: 16px;
+  }
+  .calendarGrid {
+    gap: 4px;
+  }
+  .calendarRecords {
+    grid-template-columns: 1fr;
+  }
+  .calendarRecords .recordPhoto {
+    height: 155px;
+  }
+  .calendarHeader {
+    margin-bottom: 17px;
+  }
+  .calendarHeader button {
+    min-height: 30px;
+    min-width: 29px;
+    font-size: 10px;
+  }
+  .weekday {
+    font-size: 10px;
+  }
+  .calendarLegend {
+    font-size: 9px;
+  }
+  .compactCalendar .calendarDay > i {
+    position: static;
+    transform: none;
+  }
+  .compactCalendar .calendarDay {
+    padding: 3px;
+  }
+
+  .recordPhoto {
+    height: 150px;
+  }
+  .recordInfo {
+    padding: 13px 14px;
+  }
+  .recordInfo > p {
+    font-size: 13px;
+  }
+  .recordInfo > time {
+    font-size: 10px;
+  }
+  .recordInfo > span {
+    font-size: 10px;
+  }
+  .editor {
+    padding: 21px 18px;
+    border-radius: 11px;
+    gap: 23px;
+  }
+  .diaryEditor {
+    padding: 22px 19px;
+    border-radius: 11px;
+  }
+  .editorQuestion > h2 {
+    font-size: 23px;
+    line-height: 1.65;
+  }
+  .editorQuestion > p {
+    font-size: 11px;
+  }
+  .diaryEditor .editorPhoto :global(.photo-picker > .photo) {
+    height: 250px;
+    border-radius: 9px;
+  }
+  .diaryEditor .editorPhoto :global(.upload-placeholder) {
+    height: 245px;
+    min-height: 245px;
+  }
+  .editorFields > label {
+    font-size: 12px;
+  }
+  .detailHeading h1 {
+    font-size: 25px;
+  }
+  .detailHeading > p {
+    font-size: 11px;
+  }
+  .detailPhoto {
+    height: 280px;
+  }
+  .detailBody {
+    padding: 22px;
+  }
+  .detail {
+    border-radius: 11px;
+  }
+  .detailActions > .button {
+    font-size: 11px;
+  }
+  .accountCard {
+    border-radius: 11px;
+  }
+  .accountInfo h2 {
+    font-size: 21px;
+  }
+  .petSummary {
+    border-radius: 11px;
+  }
+  .empty {
+    border-radius: 11px;
+    padding: 35px 20px;
+  }
+  .empty h2 {
+    font-size: 21px;
+  }
+  .empty > p {
+    font-size: 12px;
+  }
+}
+
+.petList > article,
+.petSummary,
+.pageHeading > div {
+  min-width: 0;
+}
+.petSummary h2 {
+  flex-direction: column;
+}
+.petSummary h2 > strong {
+  max-width: 100%;
+  font: inherit;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.pageHeading h1 {
+  overflow-wrap: anywhere;
+}
+
+.editor,
+.editor > section,
+.editorQuestion {
+  min-width: 0;
+}
+.editorQuestion > h2 {
+  overflow-wrap: anywhere;
+}
+.editorQuestion > p {
+  flex-wrap: wrap;
+}
+
+.petActions {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+.petActions > a,
+.petActions > button {
+  min-width: 0;
+  white-space: normal;
+}
+.petActions > p {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+}

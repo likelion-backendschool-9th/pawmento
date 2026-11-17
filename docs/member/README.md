@@ -17,7 +17,8 @@
 ```java
 import com.pawmento.global.security.LoginMember;
 
-@GetMapping("/api/pets")
+// 실제 경로는 GET /api/v1/pets. /api/v1은 WebConfig가 붙인다
+@GetMapping("/pets")
 List<PetResponse> myPets(@LoginMember Long memberId) {
     return petUseCase.findByOwner(memberId);
 }
@@ -37,19 +38,21 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 
 아래 경로만 로그인 없이 부를 수 있다. 나머지는 모두 로그인이 필요하다. 새 경로를 공개하려면 [`PublicEndpoints`](../../backend/src/main/java/com/pawmento/global/security/PublicEndpoints.java)와 이 표를 함께 고친다. (#14)
 
+`PublicEndpoints`에는 `ApiPaths.V1`을 붙인 전체 경로를 쓴다. Spring Security는 컨트롤러 접두어가 붙기 전의 실제 요청 경로를 보기 때문이다. (#22)
+
 | 경로 | 용도 |
 | --- | --- |
-| `POST /api/auth/signup`, `POST /api/auth/login`, `POST /api/auth/logout` | 가입, 로그인, 로그아웃 |
+| `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` | 가입, 로그인, 로그아웃 |
 | `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /swagger-ui.html` | API 문서 (Springdoc 기본 경로. 도구는 백엔드 구조 작업에서 더한다) |
 
 ### API
 
 | 요청 | 본문 | 성공 응답 |
 | --- | --- | --- |
-| `POST /api/auth/signup` | `email`, `password`(8~72자), `nickname`(1~20자) | 201, 회원 정보 |
-| `POST /api/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
-| `POST /api/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
-| `GET /api/members/me` | 없음 | 200, 회원 정보 |
+| `POST /api/v1/auth/signup` | `email`, `password`(8~72자), `nickname`(1~20자) | 201, 회원 정보 |
+| `POST /api/v1/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
+| `POST /api/v1/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
+| `GET /api/v1/members/me` | 없음 | 200, 회원 정보 |
 
 회원 정보는 `{ "id": 1, "email": "…", "nickname": "…", "role": "USER" }`이다. 가입은 로그인 상태를 만들지 않는다. 가입한 뒤 로그인을 부른다.
 
