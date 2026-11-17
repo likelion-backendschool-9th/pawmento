@@ -1,0 +1,69 @@
+.app {
+  min-height: 100dvh;
+}
+.navGroup {
+  margin-top: 19px;
+}
+.navGroup > p {
+  font-size: 10px;
+  letter-spacing: 0.7px;
+  color: #6f7d62;
+  margin: 0 0 7px;
+  padding: 0 13px;
+}
+.navGroup a {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  padding: 10px 13px;
+  min-height: 42px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #686e5f;
+  margin-bottom: 3px;
+  transition: background 0.15s;
+}
+.navGroup a:hover {
+  background: #f4f5ed;
+}
+.navGroup .active {
+  background: #e9efde;
+  color: #4e6633;
+  font-weight: 600;
+}
+.navGroup a svg {
+  color: #6f7d62;
+}
+.navGroup .active svg {
+  color: #607b40;
+}
+.app[data-mode="GARDEN"] {
+  color: var(--text-primary);
+}
+.app[data-mode="GARDEN"] :global(.primary) {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  color: #fff;
+}
+.app[data-mode="GARDEN"] :global(.primary:hover) {
+  background: var(--brand-hover);
+}
+.app[data-mode="GARDEN"] :global(.secondary) {
+  background: #fffaf6;
+  border-color: #ded5e3;
+  color: #7a6c88;
+}
+.app[data-mode="GARDEN"] :global(.badge) {
+  background: #ece6f1;
+  color: #796b87;
+}
+.app[data-mode="GARDEN"] :global(h1) {
+  color: #62586e;
+}
+.app[data-mode="GARDEN"] :global(input:not([type="checkbox"])),
+.app[data-mode="GARDEN"] :global(textarea),
+.app[data-mode="GARDEN"] :global(select) {
+  background: #fffcf8;
+  border-color: #ded5df;
+  color: #62596c;
+}
