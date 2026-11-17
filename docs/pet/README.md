@@ -6,7 +6,7 @@
 
 | 이슈 | 내용 | 문서 |
 | --- | --- | --- |
-| [#45](https://github.com/likelion-backendschool-9th/pawmento/issues/45) | 설계 문서 작업(반려동물 본문 + 마이·관리자 골격) | 이 README, [manage.md](manage.md), [admin](../admin/README.md), [me](../me/README.md) |
+| [#45](https://github.com/likelion-backendschool-9th/pawmento/issues/45) | 설계 문서 작업(반려동물 본문 + 마이·관리자 골격) | 이 README, [manage.md](manage.md), [admin](../admin/README.md), [mypage](../mypage/README.md) |
 | [#46](https://github.com/likelion-backendschool-9th/pawmento/issues/46) | 반려동물 등록·관리(MVP, **백엔드 API**) | [manage.md](manage.md) |
 
 ## 도메인 담당이 쓰는 방법

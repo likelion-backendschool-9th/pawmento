@@ -98,7 +98,7 @@
 - 가족 초대·역할 API — 계정/가족 담당. 멤버십 포트는 후속
 - 프로필 사진 media 업로드 — media 초기 용도는 diary/question 첨부
 - 기록이 있는 프로필의 보관·내보내기 정책 — 삭제 거절만 이번 범위
-- 관리자·마이페이지 본문 — [admin](../admin/README.md), [me](../me/README.md) 골격
+- 관리자·마이페이지 본문 — [admin](../admin/README.md), [mypage](../mypage/README.md) 골격
 
 ## 작업 순서
 1. 도메인·등록·목록·상세를 가장 얇게 연결한다 — S1, S3
