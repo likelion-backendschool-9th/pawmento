@@ -6,9 +6,9 @@
 양식: [계획 문서 양식](../plan-template.md). 도메인 요약: [README](README.md).
 
 ## 한눈에
-- 끝나면: 로그인한 보호자가 반려동물을 등록·수정하고, 목록에서 내 아이만 보며, 관리 화면에서 ACTIVE/GARDEN 모드를 바꾼다.
+- 끝나면: 백엔드 `/api/v1/pets`로 등록·조회·수정·모드 변경·삭제가 동작하고, 시나리오 테스트로 확인한다.
 - 결정 필요: 없음
-- 규모: 6단계
+- 규모: 6단계 (이번 계획은 **백엔드만**. 프론트 연동은 후속)
 
 ## 1. 등록 (#46-R1)
 로그인한 보호자가 이름·종으로 반려동물을 등록한다. 품종·생일은 선택이다.
@@ -92,15 +92,8 @@
 - Then  409와 `code: "CONFLICT"`를 받는다
 - Then  `GET /api/v1/pets/2`에 보리가 남아 있다
 
-## 7. 화면 연동 (직접 확인)
-프론트가 등록·수정·모드 전환 화면을 API에 연결한다.
-
-#46-S11 화면 [직접]
-- Given 로컬에서 프론트·백엔드가 같은 출처(또는 `/api` 프록시)로 떠 있고 회원 A로 로그인했다
-- When  `/pets/new`에서 등록하고 `/pets`, `/pets/:petId`에서 수정·모드를 바꾼다
-- Then  목록·상세·모드가 API 응답과 같다
-
 ## 범위 밖
+- **프론트엔드 화면·HTTP 어댑터 연동** — 이번 계획·#46 구현 범위 밖. API가 준비된 뒤 후속 이슈에서 다룬다
 - 실소유 인증·인가 — 회의상 MVP 밖, 추후 설계
 - 가족 초대·역할 API — 계정/가족 담당. 멤버십 포트는 후속
 - 프로필 사진 media 업로드 — media 초기 용도는 diary/question 첨부
@@ -109,7 +102,7 @@
 
 ## 작업 순서
 1. 도메인·등록·목록·상세를 가장 얇게 연결한다 — S1, S3
-   - 파일: `pet/domain/Pet.java`, `PetMode.java`, `CreatePetService`, `PetController`, `PetPersistenceAdapter`, …
+   - 파일: `backend/.../pet/domain/Pet.java`, `PetMode.java`, `CreatePetService`, `PetController`, `PetPersistenceAdapter`, …
    - 확인: `./gradlew test --tests '*PetScenarioTest'`
 2. 입력 검증을 더한다 — S2
    - 파일: `CreatePetRequest` 등 Request Bean Validation
@@ -121,19 +114,17 @@
    - 파일: `Pet` 생성 규칙, 저장소 유니크(소유자+tag 가정)
    - 확인: 같은 명령
 5. 모드 API와 권한을 붙인다 — S6, S7, S8, S9
-   - 파일: `ChangePetModeService`, Security·소유 검사
+   - 파일: `ChangePetModeService`, 소유 검사
    - 확인: 같은 명령
 6. 삭제를 붙인다 — S10
    - 파일: `DeletePetService`, 기록 존재 확인 포트(record/diary와 합의)
    - 확인: 같은 명령
-7. 프론트 연동 — S11
-   - 파일: frontend HTTP 어댑터·pets 화면
-   - 확인: [직접] S11
 
 ## 정한 것
-- MVP는 등록·관리·모드까지. 실소유 인증은 밖. (회의 2026-11-16)
+- 이번 계획(#46)은 **백엔드 API·도메인·테스트만** 다룬다. 프론트는 후속
+- MVP 기능 범위는 등록·관리·모드까지. 실소유 인증은 밖. (회의 2026-11-16)
 - 이름 중복은 태그로 구분. (회의)
-- 모드 변경은 소유자·`PATCH /pets/{id}/mode`만. 헤더 아이 선택은 모드를 바꾸지 않음. (데모·디자인 토큰)
+- 모드 변경은 소유자·`PATCH /pets/{id}/mode`만. (제품 규칙·데모와 맞춤; 화면 구현은 후속)
 - 기록이 있으면 삭제하지 않음(정책 확정 전). (데모)
 - 생일은 Asia/Seoul 기준 **오늘보다 뒤면 거절**(400 `VALIDATION`). 비우거나 오늘·과거는 허용
 - 연관 기록이 있어 삭제를 거절하면 **409 `CONFLICT`**. (요청은 이해했지만 현재 상태와 충돌. member 중복 이메일도 409)
@@ -150,12 +141,12 @@
 - 태그 유니크는 `(owner_member_id, tag)`로 두고, 서버가 소유자 범위에서 짧은 태그를 발급한다(팀 확인 전 가정)
 - 1차 목록은 페이지 없이 내 소유 전체. 프로필 사진 필드는 생략 가능
 - 기록 존재 확인은 record/diary 입력 포트(또는 합의한 방식)로 한다. 포트가 없으면 삭제 단계를 뒤로 미룬다
-- 프론트·백엔드는 같은 출처(또는 로컬 `/api` 프록시)로 쿠키 인증이 동작한다. (#14)
+- API 확인은 통합 테스트(쿠키 로그인)로 한다. 프론트 프록시·화면은 이번 범위에 넣지 않는다
 
 ## 참고
 - 양식·Given/When/Then 규칙: [plan-template.md](../plan-template.md)
 - 인증·에러 JSON: [member](../member/README.md), [auth-base](../member/auth-base.md)
-- FE 필드·검증·모드·삭제 거부: [models.ts](../../frontend/src/workspace/domain/models.ts), [useCases.ts](../../frontend/src/workspace/application/useCases.ts)
-- 모드 UI: [디자인 토큰](../Frontend/PawMento_Design_Tokens_Hexagonal.md)
+- 필드·검증 참고(제품 규칙 출처, 이번 PR에서 FE를 구현하지 않음): [models.ts](../../frontend/src/workspace/domain/models.ts), [useCases.ts](../../frontend/src/workspace/application/useCases.ts)
+- 구조: [backend-architecture.md](../backend-architecture.md), 샘플 `com.pawmento.record`
 - question/diary가 기대하는 pet 모드·멤버십: 원격 설계 #30
 - 회의: [2026-11-16](../meetings/2026-11-16.md)
