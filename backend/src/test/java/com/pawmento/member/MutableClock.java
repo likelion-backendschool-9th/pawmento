@@ -3,19 +3,24 @@ package com.pawmento.member;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.concurrent.atomic.AtomicReference;
 
 final class MutableClock extends Clock {
 
 	private final ZoneId zone;
-	private volatile Instant instant;
+	private final AtomicReference<Instant> instant;
 
 	MutableClock(Instant instant, ZoneId zone) {
+		this(new AtomicReference<>(instant), zone);
+	}
+
+	private MutableClock(AtomicReference<Instant> instant, ZoneId zone) {
 		this.instant = instant;
 		this.zone = zone;
 	}
 
 	void setInstant(Instant instant) {
-		this.instant = instant;
+		this.instant.set(instant);
 	}
 
 	@Override
@@ -30,7 +35,7 @@ final class MutableClock extends Clock {
 
 	@Override
 	public Instant instant() {
-		return instant;
+		return instant.get();
 	}
 
 }

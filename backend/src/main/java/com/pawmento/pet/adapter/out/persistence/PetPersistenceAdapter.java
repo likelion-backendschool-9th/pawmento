@@ -12,14 +12,13 @@ import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.SavePetPort;
 import com.pawmento.pet.domain.Pet;
 
+import lombok.RequiredArgsConstructor;
+
 @Component
+@RequiredArgsConstructor
 public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePetPort {
 
 	private final PetJpaRepository petJpaRepository;
-
-	public PetPersistenceAdapter(PetJpaRepository petJpaRepository) {
-		this.petJpaRepository = petJpaRepository;
-	}
 
 	@Override
 	public Long save(Pet pet) {
@@ -42,10 +41,8 @@ public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePe
 
 	@Override
 	public List<Pet> findByOwnerMemberId(Long ownerMemberId) {
-		return petJpaRepository.findByOwnerMemberIdOrderByIdAsc(ownerMemberId)
-			.stream()
-			.map(PetJpaEntity::toDomain)
-			.toList();
+		return petJpaRepository.findByOwnerMemberIdOrderByIdAsc(ownerMemberId).stream().map(PetJpaEntity::toDomain)
+				.toList();
 	}
 
 	@Override

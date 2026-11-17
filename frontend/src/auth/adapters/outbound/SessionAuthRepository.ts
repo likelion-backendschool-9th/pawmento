@@ -1,5 +1,5 @@
 import type { AuthRepository } from "../../application/auth.ts";
-import type { Account, Credentials } from "../../domain/account.ts";
+import type { Credentials } from "../../domain/account.ts";
 import { DemoAuthRepository } from "./DemoAuthRepository.ts";
 import { HttpAuthRepository } from "./HttpAuthRepository.ts";
 import type { ApiClient } from "../../../shared/http/apiClient.ts";
@@ -84,13 +84,4 @@ export class SessionAuthRepository implements AuthRepository {
   sessionSource() {
     return this.source;
   }
-}
-
-export function isDemoAccount(account: Account | null | undefined) {
-  if (!account) return false;
-  return (
-    account.id === "demo" ||
-    account.id.startsWith("demo-") ||
-    account.email.endsWith("@pawmento.local")
-  );
 }

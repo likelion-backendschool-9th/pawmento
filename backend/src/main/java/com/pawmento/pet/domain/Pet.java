@@ -2,7 +2,10 @@ package com.pawmento.pet.domain;
 
 import java.time.LocalDate;
 
+import lombok.Getter;
+
 // 반려동물 프로필. Spring·JPA를 모른다. 생성·수정·모드 규칙을 여기서 지킨다
+@Getter
 public class Pet {
 
 	private Long id;
@@ -65,9 +68,21 @@ public class Pet {
 
 	public void changeMode(PetMode mode) {
 		if (mode == null) {
-			throw new IllegalArgumentException("모드를 선택해 주세요.");
+			throw new InvalidPetProfileException("모드를 선택해 주세요.");
 		}
 		this.mode = mode;
+	}
+
+	public void requireOwnedBy(Long memberId) {
+		if (!ownedBy(memberId)) {
+			throw new PetOwnershipViolationException();
+		}
+	}
+
+	public void requireDeletable(boolean hasRecords) {
+		if (hasRecords) {
+			throw new PetDeletionBlockedException();
+		}
 	}
 
 	public boolean ownedBy(Long memberId) {
@@ -76,36 +91,36 @@ public class Pet {
 
 	private static void requireOwner(Long ownerMemberId) {
 		if (ownerMemberId == null) {
-			throw new IllegalArgumentException("소유자가 필요합니다.");
+			throw new InvalidPetProfileException("소유자가 필요합니다.");
 		}
 	}
 
 	private static String requireName(String name) {
 		if (name == null || name.isBlank()) {
-			throw new IllegalArgumentException("이름은 1~20자로 입력해 주세요.");
+			throw new InvalidPetProfileException("이름은 1~20자로 입력해 주세요.");
 		}
 		String trimmed = name.strip();
 		if (trimmed.isEmpty() || trimmed.length() > 20) {
-			throw new IllegalArgumentException("이름은 1~20자로 입력해 주세요.");
+			throw new InvalidPetProfileException("이름은 1~20자로 입력해 주세요.");
 		}
 		return trimmed;
 	}
 
 	private static void requireTag(String tag) {
 		if (tag == null || tag.isBlank()) {
-			throw new IllegalArgumentException("태그가 필요합니다.");
+			throw new InvalidPetProfileException("태그가 필요합니다.");
 		}
 	}
 
 	private static void requireSpecies(PetSpecies species) {
 		if (species == null) {
-			throw new IllegalArgumentException("반려동물의 종류를 선택해 주세요.");
+			throw new InvalidPetProfileException("반려동물의 종류를 선택해 주세요.");
 		}
 	}
 
 	private static void requireBirthdayNotFuture(LocalDate birthday, LocalDate today) {
 		if (birthday != null && birthday.isAfter(today)) {
-			throw new IllegalArgumentException("생일은 오늘 이전으로 입력해 주세요.");
+			throw new InvalidPetProfileException("생일은 오늘 이전으로 입력해 주세요.");
 		}
 	}
 
@@ -114,42 +129,6 @@ public class Pet {
 			return null;
 		}
 		return breed.strip();
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public Long getOwnerMemberId() {
-		return ownerMemberId;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public String getTag() {
-		return tag;
-	}
-
-	public PetSpecies getSpecies() {
-		return species;
-	}
-
-	public String getBreed() {
-		return breed;
-	}
-
-	public LocalDate getBirthday() {
-		return birthday;
-	}
-
-	public PetMode getMode() {
-		return mode;
-	}
-
-	public Long getVersion() {
-		return version;
 	}
 
 }

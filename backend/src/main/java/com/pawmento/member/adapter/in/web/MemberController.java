@@ -8,29 +8,30 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.LoginMember;
 import com.pawmento.member.adapter.in.web.dto.UpdateNicknameRequest;
-import com.pawmento.member.application.dto.MemberResponse;
-import com.pawmento.member.application.port.in.MemberUseCase;
+import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
+import com.pawmento.member.application.port.in.ChangeMemberNicknameUseCase;
+import com.pawmento.member.application.port.in.GetMemberQuery;
+import com.pawmento.member.application.port.in.GetMemberUseCase;
 
 import jakarta.validation.Valid;
 
+import lombok.RequiredArgsConstructor;
+
 @RestController
 @RequestMapping("/members")
+@RequiredArgsConstructor
 class MemberController {
-
-	private final MemberUseCase memberUseCase;
-
-	MemberController(MemberUseCase memberUseCase) {
-		this.memberUseCase = memberUseCase;
-	}
+	private final GetMemberUseCase getMemberUseCase;
+	private final ChangeMemberNicknameUseCase changeMemberNicknameUseCase;
 
 	@GetMapping("/me")
 	MemberResponse me(@LoginMember Long memberId) {
-		return memberUseCase.getMember(memberId);
+		return MemberResponse.from(getMemberUseCase.get(new GetMemberQuery(memberId)));
 	}
 
 	@PatchMapping("/me")
 	MemberResponse changeNickname(@LoginMember Long memberId, @Valid @RequestBody UpdateNicknameRequest request) {
-		return memberUseCase.changeNickname(memberId, request.nickname());
+		return MemberResponse.from(changeMemberNicknameUseCase
+				.changeNickname(new ChangeMemberNicknameCommand(memberId, request.nickname())));
 	}
-
 }

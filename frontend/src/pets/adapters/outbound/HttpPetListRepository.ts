@@ -1,8 +1,6 @@
 import type { ApiClient } from "../../../shared/http/apiClient.ts";
-import type {
-  PetListRepository,
-  PetSummary,
-} from "../../application/ports.ts";
+import type { PetListRepository } from "../../application/ports.ts";
+import type { PetSummary } from "../../domain/PetSummary.ts";
 
 type PetDto = {
   petId: number | string;

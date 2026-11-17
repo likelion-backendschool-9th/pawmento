@@ -3,8 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { isDemoAccount } from "@/auth/adapters/outbound/SessionAuthRepository";
-import { ApiError } from "@/shared/http/apiClient";
+import { isDemoAccount } from "@/auth/domain/account";
+import { ApplicationError } from "@/shared/application/ApplicationError";
 import { Icon } from "@/shared/ui/Icon";
 import styles from "./Workspace.module.css";
 import { PageHeading } from "./WorkspaceUi";
@@ -49,7 +49,7 @@ export function AccountScreen() {
       setNickname(next.nickname);
       app.notify("닉네임을 변경했어요.");
     } catch (cause) {
-      if (cause instanceof ApiError && cause.code === "CONFLICT") {
+      if (cause instanceof ApplicationError && cause.code === "CONFLICT") {
         setError("닉네임은 한 달에 한 번만 바꿀 수 있어요.");
       } else {
         setError(messageOf(cause));

@@ -1,17 +1,17 @@
+import { ApplicationError } from "../application/ApplicationError.ts";
+
 export type ApiErrorBody = {
   code?: string;
   message?: string;
 };
 
-export class ApiError extends Error {
+export class ApiError extends ApplicationError {
   readonly status: number;
-  readonly code: string;
 
   constructor(status: number, code: string, message: string) {
-    super(message);
+    super(code, message);
     this.name = "ApiError";
     this.status = status;
-    this.code = code;
   }
 }
 

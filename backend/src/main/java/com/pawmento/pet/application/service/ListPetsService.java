@@ -10,14 +10,13 @@ import com.pawmento.pet.application.port.in.ListPetsUseCase;
 import com.pawmento.pet.application.port.in.PetResult;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 
+import lombok.RequiredArgsConstructor;
+
 @Service
+@RequiredArgsConstructor
 public class ListPetsService implements ListPetsUseCase {
 
 	private final LoadPetPort loadPetPort;
-
-	public ListPetsService(LoadPetPort loadPetPort) {
-		this.loadPetPort = loadPetPort;
-	}
 
 	@Override
 	@Transactional(readOnly = true)

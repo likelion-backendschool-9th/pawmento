@@ -11,6 +11,7 @@ import { createWorkspaceUseCases } from "../workspace/application/useCases.ts";
 import { BrowserWorkspaceRepository } from "../workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
 import { createAuthUseCases } from "../auth/application/auth.ts";
 import { SessionAuthRepository } from "../auth/adapters/outbound/SessionAuthRepository.ts";
+import { createPetUseCases } from "../pets/application/useCases.ts";
 import { HttpPetListRepository } from "../pets/adapters/outbound/HttpPetListRepository.ts";
 
 export function createDependencies() {
@@ -40,7 +41,7 @@ export function createDependencies() {
       },
     ),
     auth: createAuthUseCases(new SessionAuthRepository(http)),
-    pets: new HttpPetListRepository(http),
+    pets: createPetUseCases(new HttpPetListRepository(http)),
   };
 }
 export type Dependencies = ReturnType<typeof createDependencies>;

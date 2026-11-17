@@ -13,6 +13,7 @@ import java.time.ZoneId;
 import java.util.UUID;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -31,10 +32,7 @@ import com.pawmento.global.security.AccessTokenCookie;
 import jakarta.servlet.http.Cookie;
 
 @Import({ TestcontainersConfiguration.class, NicknameScenarioTest.ClockConfig.class })
-@SpringBootTest(properties = {
-		"pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
-		"spring.main.allow-bean-definition-overriding=true"
-})
+@SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
 @AutoConfigureMockMvc
 class NicknameScenarioTest {
 
@@ -52,10 +50,15 @@ class NicknameScenarioTest {
 
 		@Bean
 		@Primary
-		Clock clock() {
+		Clock nicknameClock() {
 			return new MutableClock(Instant.parse("2026-11-17T03:00:00Z"), SEOUL);
 		}
 
+	}
+
+	@BeforeEach
+	void resetClock() {
+		((MutableClock) clock).setInstant(Instant.parse("2026-11-17T03:00:00Z"));
 	}
 
 	@Test
