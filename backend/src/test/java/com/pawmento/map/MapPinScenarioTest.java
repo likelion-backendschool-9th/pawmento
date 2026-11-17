@@ -170,10 +170,21 @@ class MapPinScenarioTest {
 	void petIdIsNotANumber() throws Exception {
 		Guardian me = signUpAndLogin();
 
-		mockMvc.perform(get("/api/v1/pets/abc/map-pins?" + AREA).cookie(me.cookie()))
+		mockMvc.perform(get("/api/v1/maps/pins?petId=abc&" + AREA).cookie(me.cookie()))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"))
 			.andExpect(jsonPath("$.message").value("petId 값의 형식이 올바르지 않습니다."));
+	}
+
+	@Test
+	@DisplayName("#19-S5 반려동물 id가 없으면 JSON 에러를 받는다")
+	void petIdIsMissing() throws Exception {
+		Guardian me = signUpAndLogin();
+
+		mockMvc.perform(get("/api/v1/maps/pins?" + AREA).cookie(me.cookie()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("petId를 입력해 주세요."));
 	}
 
 	@Test
@@ -214,7 +225,7 @@ class MapPinScenarioTest {
 	@Test
 	@DisplayName("#19-S7 로그인 없이 부르면 401과 JSON 에러를 받는다")
 	void withoutLogin() throws Exception {
-		mockMvc.perform(get("/api/v1/pets/" + PET + "/map-pins?" + AREA))
+		mockMvc.perform(get("/api/v1/maps/pins?petId=" + PET + "&" + AREA))
 			.andExpect(status().isUnauthorized())
 			.andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
 	}
@@ -244,7 +255,7 @@ class MapPinScenarioTest {
 	}
 
 	private RequestBuilder pins(Guardian guardian, long petId, String query) {
-		return get("/api/v1/pets/" + petId + "/map-pins" + (query.isEmpty() ? "" : "?" + query))
+		return get("/api/v1/maps/pins?petId=" + petId + (query.isEmpty() ? "" : "&" + query))
 			.cookie(guardian.cookie());
 	}
 
