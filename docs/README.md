@@ -33,7 +33,7 @@
 
 - [질문 관리와 가족 질문·답변](question/README.md) — #31
 - [다이어리](diary/README.md) — #32
-- [이미지·영상·음성 파일 업로드](media/README.md) — #33
+- [사진·음성 파일 업로드](media/README.md) — #33
 
 - [다이어리 사진 위치와 지도 핀 자동 연결](map/photo-location.md) — #44
 
