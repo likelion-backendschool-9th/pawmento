@@ -41,16 +41,12 @@ class RecordLocationPersistenceAdapter
 			}
 			entity.updateLocation(location);
 		}
-		return saveEntity(entity, location);
-	}
-
-	// 기록당 위치는 하나다. 처음 저장하는 요청이 겹치면 DB의 유일 제약이 막으므로, 도메인이 아는 예외로 바꾼다
-	private Long saveEntity(RecordLocationJpaEntity entity, RecordLocation location) {
 		try {
 			return recordLocationJpaRepository.save(entity).getId();
 		}
 		catch (DataIntegrityViolationException e) {
-			// 기록당 위치 하나라는 유일 제약을 어긴 경우만 "이미 있는 위치"로 본다. 다른 무결성 오류는 그대로 던진다
+			// 기록당 위치는 하나다. 처음 저장하는 요청이 겹치면 DB의 유일 제약이 막는다.
+			// 그 제약을 어긴 경우만 "이미 있는 위치"로 보고, 다른 무결성 오류는 그대로 던진다
 			if (isRecordUniqueViolation(e)) {
 				throw new RecordLocationAlreadyExistsException(location.getRecordId(), e);
 			}
