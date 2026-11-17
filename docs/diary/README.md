@@ -75,7 +75,7 @@
 - 이미지·영상 선택 및 음성 녹음 → 업로드 세션 → 바이너리 업로드 → 서버 검증 READY → 일기 JSON의 `attachmentIds` 연결 순서다. blob/data URL을 DB에 저장하지 않는다.
 - 새 첨부는 본인 업로드·해당 아이·`DIARY_ATTACHMENT` 용도·READY를 검사한다. 수정 시 기존 첨부 유지와 새 첨부 추가를 구분한다. `attachmentIds`는 전체 교체 목록이고 중복 ID는 거부한다.
 - 일기·첨부 행·media 참조 수 변경은 같은 DB 트랜잭션이다. 연결 실패 시 전체를 롤백하고 입력·기존 첨부를 보존한다. 본문이 비어 있으면 READY 첨부가 반드시 하나 이상 남아야 한다.
-- 상세의 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 부모 첨부 access-url API로 현재 열람 권한을 확인한 뒤 임시 재생 주소를 받는다.
+- 상세의 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 부모 첨부 content API에서 현재 열람 권한을 확인한 뒤 파일을 스트리밍한다. 파일당 15MiB 추천안·Docker volume 저장은 media 문서를 따른다.
 - 썸네일은 첫 이미지로 제안한다. 파일 종류가 섞여도 일기 개체를 PHOTO/VIDEO/VOICE로 나누지 않는다. 영상 썸네일은 media가 제공하고 오디오 자동 재생은 하지 않는다.
 - 첨부 제거·일기 삭제 시 연결 해제·참조 수 변경·삭제 작업 등록까지 트랜잭션에 포함한다. 실제 저장소 삭제는 비동기 재시도하고, 다른 글에서 쓰는 자산은 지우지 않는다.
 
