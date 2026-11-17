@@ -51,9 +51,10 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 
   | 요청 | 본문·쿼리 | 성공 응답 |
   | --- | --- | --- |
-  | `GET /pets/{petId}/map-pins` | `minLatitude`, `minLongitude`, `maxLatitude`, `maxLongitude` | 200, `pins`(`recordId`, `latitude`, `longitude`, `placeName`)와 `truncated` |
+  | `GET /maps/pins` | `petId`, `minLatitude`, `minLongitude`, `maxLatitude`, `maxLongitude` | 200, `pins`(`recordId`, `latitude`, `longitude`, `placeName`)와 `truncated` |
 
 - **별도 위치 PUT/DELETE API는 만들지 않는다.** 위치 쓰기는 diary body 하나로 통일하고 map 내부 포트는 [#44 계약](photo-location.md)을 따른다. (고침 #53: 수동/자동 쓰기 경로 중복 제거)
+- 핀 조회 경로는 `/maps/pins`이고 반려동물은 쿼리 `petId`로 받는다. 경로에 `pets`를 두면 반려동물 도메인의 경로와 책임이 섞여 보인다는 리뷰에 따랐다. (고침 #19: `GET /pets/{petId}/map-pins`에서 `GET /maps/pins?petId=`로)
 - 핀 응답에는 `petId`를 포함하지 않고 요청한 `petId`가 곧 그 핀의 반려동물이다. 핀 모양은 프론트엔드가 반려동물의 모드로 정한다. (#19)
 - 핀 조회의 기준은 요청한 회원이 만든 기록이다. (#19)
 - 외부 서비스 호출에는 짧은 타임아웃을 둔다. 값은 구현할 때 정한다. (#19)
@@ -61,7 +62,7 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 
 ## 가정
 
-- 공통 접두사 `/api/v1`은 설정(`WebConfig`, #22)으로 붙여 컨트롤러 경로에 쓰지 않는다. 위 경로의 실제 주소는 `/api/v1/...`이다(예: `GET /api/v1/pets/{petId}/map-pins`). 개발 서버의 nginx는 `/api/`로 시작하는 경로를 백엔드로 넘긴다.
+- 공통 접두사 `/api/v1`은 설정(`WebConfig`, #22)으로 붙여 컨트롤러 경로에 쓰지 않는다. 위 경로의 실제 주소는 `/api/v1/...`이다(예: `GET /api/v1/maps/pins`). 개발 서버의 nginx는 `/api/`로 시작하는 경로를 백엔드로 넘긴다.
 - diary가 원 작성자·아이·권한을 확인하고 map 내부 포트에 `recordId`, `petId`, `createdBy`, `revision`, nullable 위치를 넘긴다. map은 diary 저장 트랜잭션에 참여하고 원자적 revision 조건으로 반영한다. (고침 #53: 작성자 역조회 포트 제거)
 - 지도 화면과 위치 선택은 프론트엔드가 지도 SDK로 처리한다. 서버는 좌표 저장과 조회, 주소 변환만 맡는다.
 
