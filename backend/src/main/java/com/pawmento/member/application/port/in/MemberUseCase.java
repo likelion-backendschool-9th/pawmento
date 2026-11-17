@@ -15,4 +15,7 @@ public interface MemberUseCase {
 	// 회원이 없으면 MemberNotFoundException
 	MemberResponse getMember(Long memberId);
 
+	// 달력월(Asia/Seoul) 한도 초과면 NicknameChangeLimitException
+	MemberResponse changeNickname(Long memberId, String nickname);
+
 }

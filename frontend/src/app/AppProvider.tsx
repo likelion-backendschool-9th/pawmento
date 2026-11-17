@@ -14,6 +14,7 @@ import { demoQuestionInputs } from "./demoQuestions";
 type Context = {
   dependencies: Dependencies;
   account: Account | null;
+  sessionReady: boolean;
   state: Workspace;
   loading: boolean;
   error: string;
@@ -28,6 +29,7 @@ const AppContext = createContext<Context | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dependencies] = useState(createDependencies);
   const [account, setAccount] = useState<Account | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const [state, setState] = useState<Workspace>({
     pets: [],
     records: [],
@@ -146,6 +148,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     notify("로그아웃했어요.");
   };
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const current = await dependencies.auth.current();
+        if (!cancelled && current) await authenticate(current);
+      } catch {
+        /* 부트스트랩 실패 시 비로그인으로 둔다 */
+      } finally {
+        if (!cancelled) setSessionReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // 최초 쿠키 세션만 복구한다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dependencies]);
+  useEffect(() => {
     if (!message) return;
     const timer = setTimeout(() => notify(""), 6000);
     return () => clearTimeout(timer);
@@ -155,6 +175,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         dependencies,
         account,
+        sessionReady,
         state,
         loading,
         error,

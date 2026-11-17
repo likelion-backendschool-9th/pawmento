@@ -41,6 +41,10 @@ public class Member {
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
+	// Asia/Seoul 달력월 한도 판정용. 한 번도 안 바꿨으면 null
+	@Column
+	private Instant nicknameChangedAt;
+
 	protected Member() {
 	}
 
@@ -54,6 +58,33 @@ public class Member {
 
 	public static Member register(String email, String passwordHash, String nickname, Instant now) {
 		return new Member(normalizeEmail(email), passwordHash, nickname.strip(), MemberRole.USER, now);
+	}
+
+	public void changeNickname(String nickname, Instant now, java.time.ZoneId zone) {
+		String trimmed = requireNickname(nickname);
+		if (trimmed.equals(this.nickname)) {
+			return;
+		}
+		if (nicknameChangedAt != null) {
+			java.time.YearMonth last = java.time.YearMonth.from(nicknameChangedAt.atZone(zone));
+			java.time.YearMonth current = java.time.YearMonth.from(now.atZone(zone));
+			if (last.equals(current)) {
+				throw new IllegalStateException("닉네임은 한 달에 한 번만 바꿀 수 있어요.");
+			}
+		}
+		this.nickname = trimmed;
+		this.nicknameChangedAt = now;
+	}
+
+	private static String requireNickname(String nickname) {
+		if (nickname == null || nickname.isBlank()) {
+			throw new IllegalArgumentException("닉네임은 1~20자로 입력해 주세요.");
+		}
+		String trimmed = nickname.strip();
+		if (trimmed.isEmpty() || trimmed.length() > 20) {
+			throw new IllegalArgumentException("닉네임은 1~20자로 입력해 주세요.");
+		}
+		return trimmed;
 	}
 
 	// 같은 이메일이 대소문자·공백 차이로 두 번 가입되지 않게, 저장과 조회에 같은 형태를 쓴다
@@ -83,6 +114,10 @@ public class Member {
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public Instant getNicknameChangedAt() {
+		return nicknameChangedAt;
 	}
 
 }

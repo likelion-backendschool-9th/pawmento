@@ -2,6 +2,7 @@
 import { usePathname, useSearchParams } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
 import { AuthScreen } from "@/auth/adapters/inbound/AuthScreen";
+import { resolveProtectedAccess } from "@/auth/application/sessionView";
 import { Shell } from "./AppShell";
 import { useCurrentPet } from "./PetContext";
 
@@ -15,7 +16,15 @@ export function AuthenticatedLayout({
   const search = useSearchParams();
   const pet = useCurrentPet();
   const query = search.toString();
-  if (!app.account)
+  const access = resolveProtectedAccess(app.sessionReady, app.account);
+  if (access === "loading") {
+    return (
+      <main className="route-loading" role="status">
+        로그인 상태를 확인하고 있어요…
+      </main>
+    );
+  }
+  if (access === "login-required" || !app.account)
     return <AuthScreen returnTo={pathname + (query ? `?${query}` : "")} />;
   return (
     <Shell key={app.account.id} pet={pet} route={pathname}>

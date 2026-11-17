@@ -9,7 +9,9 @@ import com.pawmento.global.error.ErrorCode;
 import com.pawmento.global.error.ErrorResponse;
 import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.exception.InvalidCredentialsException;
+import com.pawmento.member.application.exception.InvalidNicknameException;
 import com.pawmento.member.application.exception.MemberNotFoundException;
+import com.pawmento.member.application.exception.NicknameChangeLimitException;
 
 // 회원 도메인의 예외를 HTTP 응답으로 바꾼다
 @RestControllerAdvice
@@ -28,6 +30,16 @@ class MemberExceptionHandler {
 	@ExceptionHandler(MemberNotFoundException.class)
 	ResponseEntity<ErrorResponse> handle(MemberNotFoundException e) {
 		return response(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, e);
+	}
+
+	@ExceptionHandler(InvalidNicknameException.class)
+	ResponseEntity<ErrorResponse> handle(InvalidNicknameException e) {
+		return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, e);
+	}
+
+	@ExceptionHandler(NicknameChangeLimitException.class)
+	ResponseEntity<ErrorResponse> handle(NicknameChangeLimitException e) {
+		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
 	}
 
 	private ResponseEntity<ErrorResponse> response(HttpStatus status, ErrorCode code, RuntimeException e) {
