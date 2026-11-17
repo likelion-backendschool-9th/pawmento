@@ -2,7 +2,6 @@ package com.pawmento.pet.adapter.in.web;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,12 +36,9 @@ class PetExceptionHandler {
 		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
 	}
 
-	@ExceptionHandler({ PetConcurrentModificationException.class, ObjectOptimisticLockingFailureException.class })
-	ResponseEntity<ErrorResponse> handleConcurrentModification(RuntimeException e) {
-		PetConcurrentModificationException conflict = e instanceof PetConcurrentModificationException petConflict
-				? petConflict
-				: new PetConcurrentModificationException();
-		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, conflict);
+	@ExceptionHandler(PetConcurrentModificationException.class)
+	ResponseEntity<ErrorResponse> handleConcurrentModification(PetConcurrentModificationException e) {
+		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
 	}
 
 	private ResponseEntity<ErrorResponse> response(HttpStatus status, ErrorCode code, RuntimeException e) {

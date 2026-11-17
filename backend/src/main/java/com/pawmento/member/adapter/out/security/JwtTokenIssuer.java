@@ -11,18 +11,20 @@ import org.springframework.stereotype.Component;
 
 import com.pawmento.global.security.AuthProperties;
 import com.pawmento.global.security.JwtClaims;
-import com.pawmento.member.application.port.out.IssueTokenPort;
+import com.pawmento.member.application.port.out.TokenIssuer;
 import com.pawmento.member.domain.MemberRole;
 
-import lombok.RequiredArgsConstructor;
-
 @Component
-@RequiredArgsConstructor
-class JwtTokenIssuer implements IssueTokenPort {
+class JwtTokenIssuer implements TokenIssuer {
 
 	private final JwtEncoder jwtEncoder;
 
 	private final AuthProperties properties;
+
+	JwtTokenIssuer(JwtEncoder jwtEncoder, AuthProperties properties) {
+		this.jwtEncoder = jwtEncoder;
+		this.properties = properties;
+	}
 
 	@Override
 	public String issue(Long memberId, MemberRole role) {

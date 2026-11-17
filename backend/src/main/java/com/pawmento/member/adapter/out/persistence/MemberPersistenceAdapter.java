@@ -4,28 +4,26 @@ import java.util.Optional;
 
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
-import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
-import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
 
 import lombok.RequiredArgsConstructor;
 
-@Component
+@Repository
 @RequiredArgsConstructor
-class MemberPersistenceAdapter implements SaveMemberPort, LoadMemberPort, ExistsMemberPort {
+class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort {
 
-	private final MemberJpaRepository memberJpaRepository;
+	private final MemberJpaRepository jpaRepository;
 
 	@Override
 	public Member save(Member member) {
 		try {
 			// 유니크 제약 위반을 여기서 받도록 바로 flush한다
-			return memberJpaRepository.saveAndFlush(MemberJpaEntity.from(member)).toDomain();
+			return jpaRepository.saveAndFlush(MemberJpaEntity.from(member)).toDomain();
 		}
 		catch (DataIntegrityViolationException e) {
 			// 중복 확인과 저장 사이에 같은 이메일로 가입이 끼어든 경우
@@ -37,24 +35,23 @@ class MemberPersistenceAdapter implements SaveMemberPort, LoadMemberPort, Exists
 	}
 
 	@Override
-	public Optional<Member> loadById(Long id) {
-		return memberJpaRepository.findById(id).map(MemberJpaEntity::toDomain);
+	public Optional<Member> findById(Long id) {
+		return jpaRepository.findById(id).map(MemberJpaEntity::toDomain);
 	}
 
 	@Override
-	public Optional<Member> loadByEmail(String email) {
-		return memberJpaRepository.findByEmail(email).map(MemberJpaEntity::toDomain);
-	}
-
-	@Override 
-	public Optional<Member> loadByProvider(AuthProvider provider, String providerUserId) {
-		return memberJpaRepository.findByProviderAndProviderUserId(provider, providerUserId)
-			.map(MemberJpaEntity::toDomain);
+	public Optional<Member> findByEmail(String email) {
+		return jpaRepository.findByEmail(email).map(MemberJpaEntity::toDomain);
 	}
 
 	@Override
 	public boolean existsByEmail(String email) {
-		return memberJpaRepository.existsByEmail(email);
+		return jpaRepository.existsByEmail(email);
+	}
+
+	@Override
+	public Optional<Member> findForNicknameChange(Long memberId) {
+		return jpaRepository.findForNicknameChange(memberId).map(MemberJpaEntity::toDomain);
 	}
 
 	private boolean isEmailUniqueViolation(DataIntegrityViolationException e) {

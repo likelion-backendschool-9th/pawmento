@@ -2,9 +2,15 @@ package com.pawmento.pet.application.service;
 
 import java.security.SecureRandom;
 
+import org.springframework.stereotype.Component;
+
 import com.pawmento.pet.application.port.out.LoadPetPort;
 
+import lombok.RequiredArgsConstructor;
+
 // 소유자 범위에서 짧은 태그를 발급한다. (owner_member_id, tag) 유니크 가정
+@Component
+@RequiredArgsConstructor
 final class PetTagGenerator {
 
 	private static final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789".toCharArray();
@@ -13,10 +19,6 @@ final class PetTagGenerator {
 
 	private final LoadPetPort loadPetPort;
 	private final SecureRandom random = new SecureRandom();
-
-	PetTagGenerator(LoadPetPort loadPetPort) {
-		this.loadPetPort = loadPetPort;
-	}
 
 	String nextTag(Long ownerMemberId) {
 		for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {

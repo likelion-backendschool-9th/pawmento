@@ -1,5 +1,9 @@
 package com.pawmento.member.adapter.in.web;
 
-// 회원 정보 응답. 비밀번호 해시는 담지 않는다
+import com.pawmento.member.application.port.in.MemberResult;
+
 public record MemberResponse(Long id, String email, String nickname, String role) {
+	static MemberResponse from(MemberResult result) {
+		return new MemberResponse(result.id(), result.email(), result.nickname(), result.role());
+	}
 }

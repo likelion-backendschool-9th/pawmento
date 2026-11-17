@@ -1,4 +1,4 @@
-package com.pawmento.member.adapter.in.web;
+package com.pawmento.member.adapter.in.web.dto;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;

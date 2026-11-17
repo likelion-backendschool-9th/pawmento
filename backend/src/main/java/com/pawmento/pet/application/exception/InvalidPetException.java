@@ -7,8 +7,4 @@ public class InvalidPetException extends RuntimeException {
 		super(message);
 	}
 
-	public static InvalidPetException from(IllegalArgumentException e) {
-		return new InvalidPetException(e.getMessage());
-	}
-
 }
