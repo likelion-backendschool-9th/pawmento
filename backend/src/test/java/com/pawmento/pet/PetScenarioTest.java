@@ -12,7 +12,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,13 +34,12 @@ import org.springframework.test.web.servlet.ResultActions;
 import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
-import com.pawmento.record.application.port.in.CreateRecordCommand;
-import com.pawmento.record.application.port.in.CreateRecordUseCase;
+import com.pawmento.pet.application.port.out.HasPetRecordsPort;
 
 import jakarta.servlet.http.Cookie;
 
 // 시나리오는 docs/pet/manage.md 에 있다
-@Import({ TestcontainersConfiguration.class, PetScenarioTest.FixedClockConfig.class })
+@Import({ TestcontainersConfiguration.class, PetScenarioTest.PetTestConfig.class })
 @SpringBootTest(properties = {
 		"pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
 		"spring.main.allow-bean-definition-overriding=true"
@@ -53,16 +54,38 @@ class PetScenarioTest {
 	private MockMvc mockMvc;
 
 	@Autowired
-	private CreateRecordUseCase createRecordUseCase;
+	private StubHasPetRecordsPort hasPetRecordsPort;
 
 	@TestConfiguration
-	static class FixedClockConfig {
+	static class PetTestConfig {
 
 		@Bean
 		@Primary
 		Clock clock() {
 			// #46-S2 Given: 오늘(Asia/Seoul)이 2026-11-17
 			return Clock.fixed(Instant.parse("2026-11-16T15:00:00Z"), SEOUL);
+		}
+
+		@Bean
+		@Primary
+		StubHasPetRecordsPort hasPetRecordsPort() {
+			// 샘플 com.pawmento.record 대신 기록 존재만 흉내 낸다. diary 등이 붙으면 그 어댑터로 교체한다
+			return new StubHasPetRecordsPort();
+		}
+
+	}
+
+	static final class StubHasPetRecordsPort implements HasPetRecordsPort {
+
+		private final Set<Long> petIdsWithRecords = ConcurrentHashMap.newKeySet();
+
+		void markHasRecords(Long petId) {
+			petIdsWithRecords.add(petId);
+		}
+
+		@Override
+		public boolean existsByPetId(Long petId) {
+			return petIdsWithRecords.contains(petId);
 		}
 
 	}
@@ -290,7 +313,7 @@ class PetScenarioTest {
 		Long withRecords = createPetId(cookie, """
 				{"name":"보리","species":"DOG"}
 				""");
-		createRecordUseCase.create(new CreateRecordCommand(withRecords, "보리의 하루"));
+		hasPetRecordsPort.markHasRecords(withRecords);
 
 		mockMvc.perform(delete("/api/v1/pets/{petId}", withoutRecords).cookie(cookie))
 			.andExpect(status().isNoContent());
