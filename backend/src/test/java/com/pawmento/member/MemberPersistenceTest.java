@@ -43,12 +43,12 @@ class MemberPersistenceTest {
 		Instant changedAt = Instant.parse("2026-11-17T03:00:00Z");
 		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", createdAt);
 		Member saved = saveMemberPort.save(original);
-		Member loaded = loadMemberPort.findById(saved.getId()).orElseThrow();
+		Member loaded = loadMemberPort.loadById(saved.getId()).orElseThrow();
 		loaded.changeNickname("콩이 보호자", changedAt, ZoneId.of("Asia/Seoul"));
 		// 순수 도메인을 바꾸는 것만으로 DB가 더티 체킹되지 않는다.
-		assertThat(loadMemberPort.findById(saved.getId()).orElseThrow().getNickname()).isEqualTo("보호자");
+		assertThat(loadMemberPort.loadById(saved.getId()).orElseThrow().getNickname()).isEqualTo("보호자");
 		saveMemberPort.save(loaded);
-		Member restored = loadMemberPort.findByEmail(saved.getEmail()).orElseThrow();
+		Member restored = loadMemberPort.loadByEmail(saved.getEmail()).orElseThrow();
 		assertThat(restored.getNickname()).isEqualTo("콩이 보호자");
 		assertThat(restored.getNicknameChangedAt()).isEqualTo(changedAt);
 		assertThat(restored.getPasswordHash()).isEqualTo("password-hash");
@@ -70,7 +70,7 @@ class MemberPersistenceTest {
 			assertThat(List.of(a.get(10, TimeUnit.SECONDS), b.get(10, TimeUnit.SECONDS)))
 					.containsExactlyInAnyOrder(true, false);
 		}
-		assertThat(loadMemberPort.findById(id).orElseThrow().getNickname()).isIn("첫번째", "두번째");
+		assertThat(loadMemberPort.loadById(id).orElseThrow().getNickname()).isIn("첫번째", "두번째");
 	}
 
 	private boolean attempt(CyclicBarrier start, Long id, String nickname) throws Exception {

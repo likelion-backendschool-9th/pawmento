@@ -9,8 +9,8 @@ import com.pawmento.member.application.port.in.LoginMemberResult;
 import com.pawmento.member.application.port.in.LoginMemberUseCase;
 import com.pawmento.member.application.port.in.MemberResult;
 import com.pawmento.member.application.port.out.LoadMemberPort;
-import com.pawmento.member.application.port.out.PasswordHasher;
-import com.pawmento.member.application.port.out.TokenIssuer;
+import com.pawmento.member.application.port.out.HashPasswordPort;
+import com.pawmento.member.application.port.out.IssueTokenPort;
 import com.pawmento.member.domain.Member;
 
 import lombok.RequiredArgsConstructor;
@@ -19,13 +19,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class LoginMemberService implements LoginMemberUseCase {
 	private final LoadMemberPort loadMemberPort;
-	private final PasswordHasher passwordHasher;
-	private final TokenIssuer tokenIssuer;
+	private final HashPasswordPort passwordHasher;
+	private final IssueTokenPort tokenIssuer;
 
 	@Override
 	@Transactional(readOnly = true)
 	public LoginMemberResult login(LoginMemberCommand command) {
-		Member member = loadMemberPort.findByEmail(Member.normalizeEmail(command.email())).orElse(null);
+		Member member = loadMemberPort.loadByEmail(Member.normalizeEmail(command.email())).orElse(null);
 		if (member == null) {
 			passwordHasher.matches(command.rawPassword(), null);
 			throw new InvalidCredentialsException();
