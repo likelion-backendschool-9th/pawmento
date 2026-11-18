@@ -3,6 +3,7 @@ package com.pawmento.media.adapter.in.web;
 import com.pawmento.global.security.LoginMember;
 import com.pawmento.media.adapter.in.web.exception.*;
 import com.pawmento.media.application.port.in.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -24,15 +25,16 @@ public class MediaUploadController {
   @ResponseStatus(HttpStatus.CREATED)
   MediaUploadResponse create(
       @LoginMember Long memberId,
-      @Valid @ModelAttribute MediaPetRequest pet,
+      HttpServletRequest request,
       @Valid @RequestBody CreateMediaUploadRequest r) {
+    Long petId = MediaPetRequest.fromQuery(request.getQueryString()).petId();
     boolean consent =
         r.locationConsent() != null && Boolean.TRUE.equals(r.locationConsent().granted());
     return MediaUploadResponse.from(
         create.create(
             new CreateMediaUploadCommand(
                 memberId,
-                pet.petId(),
+                petId,
                 r.purpose(),
                 r.filename(),
                 r.mimeType(),
@@ -42,20 +44,18 @@ public class MediaUploadController {
 
   @GetMapping("/{assetId}")
   MediaUploadResponse get(
-      @LoginMember Long memberId,
-      @Valid @ModelAttribute MediaPetRequest pet,
-      @PathVariable Long assetId) {
-    return MediaUploadResponse.from(
-        get.get(new GetMediaUploadQuery(memberId, pet.petId(), assetId)));
+      @LoginMember Long memberId, HttpServletRequest request, @PathVariable Long assetId) {
+    Long petId = MediaPetRequest.fromQuery(request.getQueryString()).petId();
+    return MediaUploadResponse.from(get.get(new GetMediaUploadQuery(memberId, petId, assetId)));
   }
 
   @PostMapping(path = "/{assetId}/content", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @ResponseStatus(HttpStatus.ACCEPTED)
   MediaUploadResponse content(
       @LoginMember Long memberId,
-      @Valid @ModelAttribute MediaPetRequest pet,
       @PathVariable Long assetId,
       MultipartHttpServletRequest request) {
+    Long petId = MediaPetRequest.fromQuery(request.getQueryString()).petId();
     var files = request.getMultiFileMap();
     if (files.size() != 1
         || !files.containsKey("file")
@@ -67,18 +67,18 @@ public class MediaUploadController {
     MultipartFile file = files.get("file").getFirst();
     try (var input = new MultipartMediaContent(file)) {
       return MediaUploadResponse.from(
-          upload.upload(new UploadMediaContentCommand(memberId, pet.petId(), assetId, input)));
+          upload.upload(new UploadMediaContentCommand(memberId, petId, assetId, input)));
     }
   }
 
   @GetMapping({"/{assetId}/preview", "/{assetId}/thumbnail"})
   ResponseEntity<org.springframework.core.io.Resource> preview(
       @LoginMember Long memberId,
-      @Valid @ModelAttribute MediaPetRequest pet,
       @PathVariable Long assetId,
-      jakarta.servlet.http.HttpServletRequest request) {
+      HttpServletRequest request) {
+    Long petId = MediaPetRequest.fromQuery(request.getQueryString()).petId();
     boolean thumbnail = request.getRequestURI().endsWith("/thumbnail");
-    var r = preview.get(new GetMediaPreviewQuery(memberId, pet.petId(), assetId, thumbnail));
+    var r = preview.get(new GetMediaPreviewQuery(memberId, petId, assetId, thumbnail));
     var response =
         ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(r.mimeType()))
@@ -95,9 +95,8 @@ public class MediaUploadController {
   @DeleteMapping("/{assetId}")
   @ResponseStatus(HttpStatus.ACCEPTED)
   void delete(
-      @LoginMember Long memberId,
-      @Valid @ModelAttribute MediaPetRequest pet,
-      @PathVariable Long assetId) {
-    deletion.delete(new DeleteMediaUploadCommand(memberId, pet.petId(), assetId));
+      @LoginMember Long memberId, HttpServletRequest request, @PathVariable Long assetId) {
+    Long petId = MediaPetRequest.fromQuery(request.getQueryString()).petId();
+    deletion.delete(new DeleteMediaUploadCommand(memberId, petId, assetId));
   }
 }
