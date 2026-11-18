@@ -85,26 +85,42 @@ class WalkTest {
 	}
 
 	@Test
-	@DisplayName("#73-S4 좌표를 받으면 마지막 활동 시각이 갱신되어 중단 시각이 뒤로 밀린다")
-	void acceptPointsRefreshesActivity() {
+	@DisplayName("#73-S4 좌표를 받았다고 기록하면 마지막 활동 시각이 갱신되어 중단 시각이 뒤로 밀린다")
+	void markPointsReceivedRefreshesActivity() {
 		Walk walk = startedAt(START);
 		Instant later = START.plusSeconds(240);
 
-		walk.acceptPoints(later, 4);
+		walk.requireAcceptingPoints(later, 4);
+		walk.markPointsReceived(later);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(later);
 		assertThat(walk.status(later.plusSeconds(300))).isEqualTo(WalkStatus.IN_PROGRESS);
 	}
 
 	@Test
-	@DisplayName("#73-S3 끝난 산책이나 중단된 산책에는 좌표를 쌓을 수 없다")
-	void acceptPointsRejectedWhenNotInProgress() {
+	@DisplayName("#73-S4 받아도 되는지 검사만 하는 메서드는 마지막 활동 시각을 바꾸지 않는다")
+	void requireMethodsDoNotChangeState() {
+		Walk walk = startedAt(START);
+		Instant later = START.plusSeconds(120);
+
+		walk.requireAcceptingPoints(later, 4);
+		walk.requireCapacity(0, 4);
+
+		assertThat(walk.getLastActivityAt()).isEqualTo(START);
+		assertThat(walk.getEndedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#73-S3 끝난 산책이나 중단된 산책에는 좌표를 쌓을 수 없고 마지막 활동 시각은 그대로다")
+	void rejectedWhenNotInProgress() {
 		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
 		Walk interrupted = restored(null, START);
 		Instant now = START.plusSeconds(600);
 
-		assertThatThrownBy(() -> ended.acceptPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
-		assertThatThrownBy(() -> interrupted.acceptPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
+		assertThatThrownBy(() -> ended.requireAcceptingPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
+		assertThatThrownBy(() -> interrupted.requireAcceptingPoints(now, 1))
+			.isInstanceOf(WalkNotInProgressException.class);
+		assertThat(ended.getLastActivityAt()).isEqualTo(START.plusSeconds(60));
 		assertThat(interrupted.getLastActivityAt()).isEqualTo(START);
 	}
 
@@ -113,11 +129,11 @@ class WalkTest {
 	void batchLimitComesFirst() {
 		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
 
-		assertThatThrownBy(() -> startedAt(START).acceptPoints(START, 101))
+		assertThatThrownBy(() -> startedAt(START).requireAcceptingPoints(START, 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
-		assertThatThrownBy(() -> ended.acceptPoints(START.plusSeconds(61), 101))
+		assertThatThrownBy(() -> ended.requireAcceptingPoints(START.plusSeconds(61), 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
-		startedAt(START).acceptPoints(START, 100);
+		startedAt(START).requireAcceptingPoints(START, 100);
 	}
 
 	@Test
@@ -125,7 +141,7 @@ class WalkTest {
 	void emptyBatchIsRejected() {
 		Walk walk = startedAt(START);
 
-		assertThatThrownBy(() -> walk.acceptPoints(START.plusSeconds(60), 0))
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(START.plusSeconds(60), 0))
 			.isInstanceOf(InvalidWalkPointBatchException.class)
 			.hasMessage("좌표를 한 개 이상 보내 주세요.");
 
@@ -133,11 +149,11 @@ class WalkTest {
 	}
 
 	@Test
-	@DisplayName("#73-S14 거절된 요청은 마지막 활동 시각을 바꾸지 않는다")
-	void rejectedRequestKeepsActivity() {
+	@DisplayName("#73-S14 한 요청이 너무 커서 거절돼도 마지막 활동 시각을 바꾸지 않는다")
+	void tooLargeBatchKeepsActivity() {
 		Walk walk = startedAt(START);
 
-		assertThatThrownBy(() -> walk.acceptPoints(START.plusSeconds(60), 101))
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(START.plusSeconds(60), 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
@@ -151,6 +167,19 @@ class WalkTest {
 		assertThatThrownBy(() -> walk.requireCapacity(4950, 51)).isInstanceOf(WalkPointLimitExceededException.class);
 		walk.requireCapacity(4950, 50);
 		walk.requireCapacity(4900, 100);
+	}
+
+	@Test
+	@DisplayName("#73-S14 누적 한도를 넘겨 거절돼도 마지막 활동 시각을 바꾸지 않는다(활동 시각은 두 검사를 통과한 뒤에만 기록한다)")
+	void capacityRejectionKeepsActivity() {
+		Walk walk = startedAt(START);
+		Instant later = START.plusSeconds(60);
+
+		// 서비스가 하는 순서: 크기·상태 검사 → 새로 쌓인 개수 검사 → 통과했을 때만 활동 시각 기록
+		walk.requireAcceptingPoints(later, 100);
+		assertThatThrownBy(() -> walk.requireCapacity(4950, 100)).isInstanceOf(WalkPointLimitExceededException.class);
+
+		assertThat(walk.getLastActivityAt()).isEqualTo(START);
 	}
 
 	@Test

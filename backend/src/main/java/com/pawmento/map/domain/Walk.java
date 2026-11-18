@@ -84,13 +84,14 @@ public class Walk {
 	}
 
 	/**
-	 * 좌표 묶음을 받아도 되는지 검사하고, 받으면 마지막 활동 시각을 갱신한다.
+	 * 좌표 묶음을 받아도 되는지 검사한다. 값은 바꾸지 않는다.
 	 * 요청 하나의 크기(재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태만 본다.
 	 * 산책 전체의 개수 한도는 실제로 새로 쌓이는 개수를 알아야 해서 {@link #requireCapacity}가 따로 본다.
+	 * 마지막 활동 시각은 두 검사를 모두 통과한 뒤에 {@link #markPointsReceived}로 바꾼다.
 	 *
 	 * @param requestedCount 이번 요청에 담긴 좌표 개수
 	 */
-	public void acceptPoints(Instant now, int requestedCount) {
+	public void requireAcceptingPoints(Instant now, int requestedCount) {
 		if (requestedCount < 1) {
 			throw InvalidWalkPointBatchException.empty();
 		}
@@ -100,7 +101,6 @@ public class Walk {
 		if (status(now) != WalkStatus.IN_PROGRESS) {
 			throw new WalkNotInProgressException();
 		}
-		this.lastActivityAt = now;
 	}
 
 	/**
@@ -118,6 +118,14 @@ public class Walk {
 		if (currentCount + newCount > MAX_POINTS_PER_WALK) {
 			throw new WalkPointLimitExceededException(MAX_POINTS_PER_WALK);
 		}
+	}
+
+	/**
+	 * 좌표를 받았음을 기록해 마지막 활동 시각을 갱신한다. 이 시각이 중단 판정의 기준이라 중단 시각이 뒤로 밀린다.
+	 * 개수와 상태 검사를 모두 통과한 요청에서만 부른다. 거절된 요청은 마지막 활동 시각을 바꾸지 않는다.
+	 */
+	public void markPointsReceived(Instant now) {
+		this.lastActivityAt = now;
 	}
 
 }
