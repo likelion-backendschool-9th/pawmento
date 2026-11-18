@@ -34,13 +34,13 @@ class RecordLocationJpaEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "record_id", nullable = false)
+	@Column(nullable = false)
 	private Long recordId;
 
-	@Column(name = "pet_id", nullable = false)
+	@Column(nullable = false)
 	private Long petId;
 
-	@Column(name = "created_by", nullable = false)
+	@Column(nullable = false)
 	private Long createdBy;
 
 	@Column(nullable = false)
@@ -49,13 +49,13 @@ class RecordLocationJpaEntity {
 	@Column(nullable = false)
 	private double longitude;
 
-	@Column(name = "place_name", length = RecordLocation.PLACE_NAME_MAX_LENGTH)
+	@Column(length = RecordLocation.PLACE_NAME_MAX_LENGTH)
 	private String placeName;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
-	@Column(name = "updated_at", nullable = false)
+	@Column(nullable = false)
 	private Instant updatedAt;
 
 	protected RecordLocationJpaEntity() {

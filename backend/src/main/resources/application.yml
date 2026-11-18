@@ -17,6 +17,9 @@ spring:
       # 임시. 엔티티에 맞춰 테이블을 만들고 컬럼을 더한다(데이터는 지우지 않는다).
       # 스키마 관리 방식(ddl-auto, Flyway 등)은 백엔드 구조 작업에서 정한다 (docs/member/README.md)
       ddl-auto: update
+      # 컬럼·테이블 이름은 필드명을 snake_case로 바꿔 쓴다(PostgreSQL 관례). 엔티티에서 @Column(name)은 쓰지 않는다.
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
 
 pawmento:
   media:
