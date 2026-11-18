@@ -7,17 +7,16 @@ import lombok.*;
 @Embeddable
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class VerifiedMediaColumns {
-  @Column(name = "storage_key", length = 36, unique = true)
-  private String key;
+  @Column(length = 36, unique = true)
+  private String storageKey;
 
-  @Column(name = "mime_type", length = 100)
-  private String mime;
+  @Column(length = 100)
+  private String mimeType;
 
-  @Column(name = "size_bytes")
-  private Long size;
+  private Long sizeBytes;
 
-  @Column(name = "service_sha256", length = 64)
-  private String checksum;
+  @Column(length = 64)
+  private String serviceSha256;
 
   private Long durationMs;
   private Integer width;
@@ -27,10 +26,10 @@ public class VerifiedMediaColumns {
   static VerifiedMediaColumns from(VerifiedMedia v) {
     if (v == null) return null;
     var e = new VerifiedMediaColumns();
-    e.key = v.storageKey();
-    e.mime = v.mimeType();
-    e.size = v.sizeBytes();
-    e.checksum = v.sha256();
+    e.storageKey = v.storageKey();
+    e.mimeType = v.mimeType();
+    e.sizeBytes = v.sizeBytes();
+    e.serviceSha256 = v.sha256();
     e.durationMs = v.durationMs();
     e.width = v.width();
     e.height = v.height();
@@ -40,6 +39,6 @@ public class VerifiedMediaColumns {
 
   VerifiedMedia toDomain() {
     return new VerifiedMedia(
-        key, mime, size, checksum, durationMs, width, height, thumbnailSizeBytes);
+        storageKey, mimeType, sizeBytes, serviceSha256, durationMs, width, height, thumbnailSizeBytes);
   }
 }

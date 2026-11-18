@@ -10,10 +10,9 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class MediaValidationJobJpaEntity {
   @Id
-  @Column(name = "asset_id")
   private Long assetId;
 
-  @Column(name = "requested_at", nullable = false)
+  @Column(nullable = false)
   private Instant requestedAt;
 
   @Column(nullable = false, length = 20)
