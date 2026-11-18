@@ -69,8 +69,8 @@
 | 백엔드 테스트 | `./gradlew test` | 테스트용 DB 컨테이너를 띄워 실행. CI의 `Backend test`와 같음 |
 | 프론트엔드 설치 | `npm ci` | `frontend/` 의존성 설치 |
 | 프론트엔드 실행 | `npm run dev` | http://localhost:3000 에서 개발 서버 실행 |
-| 프론트엔드 검사 | `npm run lint`, `npm run build` | CI의 `Frontend lint·build`와 같음 |
-| 전체 구성 확인 | `docker compose up --build` (저장소 루트) | Dockerfile로 이미지를 빌드해 서버와 같은 구성(DB·백엔드·프론트엔드·nginx)을 http://localhost:8000 에서 실행. 머지 전에 이미지 빌드와 nginx 경로를 확인할 때 씀. 끌 때는 `docker compose down` |
+| 프론트엔드 검사 | `npm run lint`, `npm test`, `npm run build` | CI의 `Frontend lint·build`와 같음 |
+| 전체 구성 확인 | `docker compose up --build` (저장소 루트) | Dockerfile로 이미지를 빌드해 서버와 같은 구성(DB·백엔드·프론트엔드·nginx)을 http://localhost:8000 에서 실행. 머지 전에 nginx 경로를 확인할 때 씀(이미지 빌드는 PR의 CI `Image build`도 확인함). 끌 때는 `docker compose down` |
 
 ### Docker Compose 파일
 
