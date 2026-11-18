@@ -20,6 +20,13 @@ final class PublicEndpoints {
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/login"),
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/logout"));
 
+	// 누구나 보는 읽기 경로. 이 경로에서도 쿠키의 토큰을 읽지 않는다 (CookieBearerTokenResolver).
+	// 만료된 쿠키가 남은 사람도 공개 목록을 볼 수 있어야 하기 때문이다.
+	// 커뮤니티 글 목록, 글 상세(/posts/{id}), 카테고리 목록(/posts/categories)
+	static final RequestMatcher PUBLIC_READ = new OrRequestMatcher(
+			PATH.matcher(HttpMethod.GET, ApiPaths.V1 + "/posts"),
+			PATH.matcher(HttpMethod.GET, ApiPaths.V1 + "/posts/*"));
+
 	// API 문서 (Springdoc 기본 경로)
 	static final RequestMatcher API_DOCS = new OrRequestMatcher(
 			PATH.matcher(HttpMethod.GET, "/v3/api-docs/**"),
