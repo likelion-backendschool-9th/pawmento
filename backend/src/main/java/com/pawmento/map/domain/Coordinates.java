@@ -13,13 +13,13 @@ final class Coordinates {
 
 	static void requireLatitude(double latitude) {
 		if (!Double.isFinite(latitude) || Math.abs(latitude) > MAX_LATITUDE) {
-			throw new InvalidCoordinatesException("위도는 -90 이상 90 이하여야 합니다.");
+			throw InvalidCoordinatesException.latitudeOutOfRange();
 		}
 	}
 
 	static void requireLongitude(double longitude) {
 		if (!Double.isFinite(longitude) || Math.abs(longitude) > MAX_LONGITUDE) {
-			throw new InvalidCoordinatesException("경도는 -180 이상 180 이하여야 합니다.");
+			throw InvalidCoordinatesException.longitudeOutOfRange();
 		}
 	}
 

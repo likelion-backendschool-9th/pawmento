@@ -2,6 +2,7 @@ package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
 
+import com.pawmento.global.exception.RuleViolationException;
 import com.pawmento.map.domain.RecordLocation;
 
 import jakarta.persistence.Column;
@@ -83,8 +84,15 @@ class RecordLocationJpaEntity {
 				&& createdBy.equals(location.getCreatedBy());
 	}
 
+	// 저장된 행이 도메인 규칙에 맞지 않으면 요청 입력 오류(400)가 아니라 저장 데이터 오류(500)다.
+	// 예: DB의 varchar(255)에는 들어가지만 Java String.length()로는 255를 넘는 이모지 이름
 	RecordLocation toDomain() {
-		return RecordLocation.restore(id, recordId, petId, createdBy, latitude, longitude, placeName);
+		try {
+			return RecordLocation.restore(id, recordId, petId, createdBy, latitude, longitude, placeName);
+		}
+		catch (RuleViolationException e) {
+			throw new IllegalStateException("저장된 위치가 도메인 규칙에 맞지 않습니다. id=" + id, e);
+		}
 	}
 
 	@PrePersist

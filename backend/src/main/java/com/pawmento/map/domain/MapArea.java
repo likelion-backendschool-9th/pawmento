@@ -19,7 +19,7 @@ public class MapArea {
 		Coordinates.requireLongitude(minLongitude);
 		Coordinates.requireLongitude(maxLongitude);
 		if (minLatitude > maxLatitude || minLongitude > maxLongitude) {
-			throw new InvalidMapAreaException("영역의 최솟값은 최댓값보다 클 수 없습니다.");
+			throw new InvalidMapAreaException();
 		}
 		this.minLatitude = minLatitude;
 		this.minLongitude = minLongitude;

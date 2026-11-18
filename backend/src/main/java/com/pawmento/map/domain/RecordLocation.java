@@ -66,7 +66,7 @@ public class RecordLocation {
 		}
 		String trimmed = placeName.strip();
 		if (trimmed.length() > PLACE_NAME_MAX_LENGTH) {
-			throw new InvalidRecordLocationException("장소 이름은 " + PLACE_NAME_MAX_LENGTH + "자 이하여야 합니다.");
+			throw InvalidRecordLocationException.placeNameTooLong(PLACE_NAME_MAX_LENGTH);
 		}
 		return trimmed;
 	}
