@@ -10,6 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+import com.pawmento.pet.domain.exception.PetOwnershipViolationException;
 
 class PetTest {
 	private Pet pet() {

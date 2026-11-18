@@ -29,7 +29,7 @@ class HexagonalArchitectureTest {
 						if (relative.contains("/domain/")) {
 							String allowed = "java\\..*|lombok\\.Getter|com\\.pawmento\\." + domain + "\\.domain\\..*";
 							if (domain.equals("pet")) {
-								allowed += "|com\\.pawmento\\.global\\.exception\\.RuleViolationException";
+								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|PermissionDeniedException)";
 							}
 							assertThat(dependency).as("%s -> %s", relative, dependency).matches(allowed);
 						} else if (relative.contains("/application/")) {

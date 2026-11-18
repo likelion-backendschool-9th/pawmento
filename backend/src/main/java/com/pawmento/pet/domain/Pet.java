@@ -3,6 +3,7 @@ package com.pawmento.pet.domain;
 import java.time.LocalDate;
 
 import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+import com.pawmento.pet.domain.exception.PetOwnershipViolationException;
 
 import lombok.Getter;
 

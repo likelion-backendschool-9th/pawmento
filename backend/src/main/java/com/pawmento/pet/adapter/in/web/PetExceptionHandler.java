@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.pawmento.global.error.ErrorCode;
 import com.pawmento.global.error.ErrorResponse;
 import com.pawmento.pet.application.exception.InvalidPetException;
-import com.pawmento.pet.application.exception.PetAccessDeniedException;
 import com.pawmento.pet.application.exception.PetConcurrentModificationException;
 import com.pawmento.pet.application.exception.PetHasRecordsException;
 import com.pawmento.pet.application.exception.PetNotFoundException;
@@ -19,11 +18,6 @@ class PetExceptionHandler {
 	@ExceptionHandler(InvalidPetException.class)
 	ResponseEntity<ErrorResponse> handle(InvalidPetException e) {
 		return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, e);
-	}
-
-	@ExceptionHandler(PetAccessDeniedException.class)
-	ResponseEntity<ErrorResponse> handle(PetAccessDeniedException e) {
-		return response(HttpStatus.FORBIDDEN, ErrorCode.FORBIDDEN, e);
 	}
 
 	@ExceptionHandler(PetNotFoundException.class)
