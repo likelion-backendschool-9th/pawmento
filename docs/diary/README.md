@@ -12,6 +12,7 @@
 | 지도와 기록 ID 연계 | [지도 설계](../map/README.md), [장소 붙이기](../map/memory-location.md), #19 |
 | 공통 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 폐기된 샘플 정리 | [#80](https://github.com/likelion-backendschool-9th/pawmento/issues/80), PR #64 |
+| 텍스트 CRUD 첫 구현 계획 | [basic-crud.md](basic-crud.md), #32 |
 | 개발 이슈 | [#32](https://github.com/likelion-backendschool-9th/pawmento/issues/32) |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
