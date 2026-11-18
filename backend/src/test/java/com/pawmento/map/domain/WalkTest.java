@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.pawmento.map.domain.exception.InvalidWalkPointBatchException;
+import com.pawmento.map.domain.exception.NotWalkOwnerException;
 import com.pawmento.map.domain.exception.WalkNotInProgressException;
 import com.pawmento.map.domain.exception.WalkPointLimitExceededException;
 
@@ -65,8 +66,8 @@ class WalkTest {
 		Walk walk = startedAt(START);
 		Instant endedAt = START.plusSeconds(120);
 
-		walk.end(endedAt);
-		walk.end(endedAt.plusSeconds(30));
+		walk.end(1L, endedAt);
+		walk.end(1L, endedAt.plusSeconds(30));
 
 		assertThat(walk.getEndedAt()).isEqualTo(endedAt);
 		assertThat(walk.status(endedAt.plusSeconds(3600))).isEqualTo(WalkStatus.ENDED);
@@ -78,10 +79,33 @@ class WalkTest {
 		Walk walk = startedAt(START);
 		Instant later = START.plusSeconds(600);
 
-		walk.end(later);
+		walk.end(1L, later);
 
 		assertThat(walk.getEndedAt()).isNull();
 		assertThat(walk.status(later)).isEqualTo(WalkStatus.INTERRUPTED);
+	}
+
+	@Test
+	@DisplayName("#73-S9 다른 회원은 산책을 끝낼 수 없고 산책은 바뀌지 않는다")
+	void otherMemberCannotEnd() {
+		Walk walk = startedAt(START);
+
+		assertThatThrownBy(() -> walk.end(2L, START.plusSeconds(60))).isInstanceOf(NotWalkOwnerException.class);
+
+		assertThat(walk.getEndedAt()).isNull();
+		assertThat(walk.status(START.plusSeconds(60))).isEqualTo(WalkStatus.IN_PROGRESS);
+	}
+
+	@Test
+	@DisplayName("#73-S9 소유자 확인이 상태 확인보다 먼저라서 이미 끝났거나 중단된 산책도 다른 회원에게는 거절한다")
+	void ownerCheckComesBeforeStateCheck() {
+		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
+		Walk interrupted = restored(null, START);
+		Instant now = START.plusSeconds(600);
+
+		assertThatThrownBy(() -> ended.end(2L, now)).isInstanceOf(NotWalkOwnerException.class);
+		assertThatThrownBy(() -> interrupted.end(2L, now)).isInstanceOf(NotWalkOwnerException.class);
+		assertThat(interrupted.getEndedAt()).isNull();
 	}
 
 	@Test
