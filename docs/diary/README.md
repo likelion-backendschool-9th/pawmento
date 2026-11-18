@@ -89,12 +89,14 @@
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `POST /pets/{petId}/diaries` | `content`, `recordedDate`, `attachmentIds`, 선택 `location` | 201, 자유 기록 상세 |
-| `GET /pets/{petId}/diaries` | `date` 또는 `from/to`, `page`, `size` | 200, 자유 기록 목록 |
-| `GET /pets/{petId}/diaries/calendar` | `month=YYYY-MM` | 200, 해당 월 날짜별 건수 |
-| `GET /pets/{petId}/diaries/{recordId}` | 없음 | 200, 자유 기록 상세 |
-| `PATCH /pets/{petId}/diaries/{recordId}` | `content`, `recordedDate`, `attachmentIds`, `location`, `version` | 200, 변경 상세 |
-| `DELETE /pets/{petId}/diaries/{recordId}` | 없음 | 204 |
+| `POST /diaries?petId={petId}` | `content`, `recordedDate`, `attachmentIds`, 선택 `location` | 201, 자유 기록 상세 |
+| `GET /diaries?petId={petId}` | `date` 또는 `from/to`, `page`, `size` | 200, 자유 기록 목록 |
+| `GET /diaries/calendar?petId={petId}` | `month=YYYY-MM` | 200, 해당 월 날짜별 건수 |
+| `GET /diaries/{recordId}?petId={petId}` | 없음 | 200, 자유 기록 상세 |
+| `PATCH /diaries/{recordId}?petId={petId}` | `content`, `recordedDate`, `attachmentIds`, `location`, `version` | 200, 변경 상세 |
+| `DELETE /diaries/{recordId}?petId={petId}&version={version}` | 필수 쿼리 `version` | 204 |
+
+위 표는 [공통 API 경로 규칙](../backend-architecture.md#api-경로)에 맞춘 목표 계약이다. petId는 모든 API의 필수 양의 Long 쿼리이며 헤더·본문으로 대신하지 않는다. PR #89의 중첩 CRUD 경로는 아직 코드에 남아 있으므로 [다음 구현의 선행 작업](list-calendar.md#crud-경로-전환을-먼저-수행)에서 웹/경합 테스트와 함께 전환하고, 이전 경로를 호환 별칭으로 남기지 않는다. (고침 #32: PR #94 경로 리뷰 반영)
 
 생성·수정의 `location`은 [지도와의 단일 위치 저장](#지도와의-단일-위치-저장)의 AUTO/MANUAL/NONE 계약을 따른다. 생략 시 생성은 NONE, 수정은 기존 모드 유지이며 별도 위치 쓰기 API를 두지 않는다. (고침 #80: 기존 #53 위치 계약을 API 입력 표에도 반영)
 
