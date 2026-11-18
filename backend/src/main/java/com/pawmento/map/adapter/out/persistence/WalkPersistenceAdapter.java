@@ -4,10 +4,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import com.pawmento.map.application.port.out.LoadWalkPointsPort;
 import com.pawmento.map.application.port.out.LoadWalkPort;
+import com.pawmento.map.application.port.out.LockPetWalksPort;
 import com.pawmento.map.application.port.out.SaveWalkPointsPort;
 import com.pawmento.map.application.port.out.SaveWalkPort;
 import com.pawmento.map.domain.Walk;
@@ -17,10 +19,15 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-class WalkPersistenceAdapter implements SaveWalkPort, LoadWalkPort, SaveWalkPointsPort, LoadWalkPointsPort {
+class WalkPersistenceAdapter
+		implements SaveWalkPort, LoadWalkPort, SaveWalkPointsPort, LoadWalkPointsPort, LockPetWalksPort {
+
+	// 다른 용도의 advisory lock과 키가 겹치지 않도록 산책 전용 값을 더한다
+	private static final long WALK_LOCK_NAMESPACE = 7_300_000_000_000L;
 
 	private final WalkJpaRepository walkJpaRepository;
 	private final WalkPointJpaRepository walkPointJpaRepository;
+	private final JdbcTemplate jdbcTemplate;
 
 	@Override
 	public Long save(Walk walk) {
@@ -84,6 +91,13 @@ class WalkPersistenceAdapter implements SaveWalkPort, LoadWalkPort, SaveWalkPoin
 	@Override
 	public long countByWalkId(Long walkId) {
 		return walkPointJpaRepository.countByWalkId(walkId);
+	}
+
+	// 반려동물 단위로 잠근다. 트랜잭션이 끝나면 자동으로 풀리므로 호출하는 쪽에 트랜잭션이 있어야 한다
+	@Override
+	public void lock(Long petId) {
+		jdbcTemplate.query("select pg_advisory_xact_lock(?)", resultSet -> {
+		}, WALK_LOCK_NAMESPACE + petId);
 	}
 
 }

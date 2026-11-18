@@ -64,6 +64,11 @@ public class Walk {
 		return new Walk(id, petId, createdBy, startedAt, endedAt, lastActivityAt);
 	}
 
+	// 이 회원이 시작한 산책인지
+	public boolean isOwnedBy(Long memberId) {
+		return createdBy.equals(memberId);
+	}
+
 	// 지금 시각 기준의 상태
 	public WalkStatus status(Instant now) {
 		if (endedAt != null) {
