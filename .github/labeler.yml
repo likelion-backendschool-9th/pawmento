@@ -1,0 +1,9 @@
+# PR에서 바뀐 경로로 붙일 라벨. 워크플로는 .github/workflows/labeler.yml
+# 라벨은 붙이기만 한다. 해당 경로의 변경이 빠져도 떼지 않는다 (sync-labels: false)
+backend:
+  - changed-files:
+      - any-glob-to-any-file: 'backend/**'
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'frontend/**'
