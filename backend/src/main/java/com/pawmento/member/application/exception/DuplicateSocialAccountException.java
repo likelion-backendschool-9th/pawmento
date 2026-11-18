@@ -1,9 +1,11 @@
 package com.pawmento.member.application.exception;
 
-public class DuplicateSocialAccountException extends RuntimeException {
+import com.pawmento.global.exception.StateConflictException;
 
-    public DuplicateSocialAccountException() {
-        super("이미 가입된 소셜 계정입니다.");
-    }
-    
+public class DuplicateSocialAccountException extends StateConflictException {
+
+	public DuplicateSocialAccountException() {
+		super("이미 가입된 소셜 계정입니다.");
+	}
+
 }
