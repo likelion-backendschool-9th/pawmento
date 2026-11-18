@@ -9,6 +9,9 @@ import java.time.ZoneId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.member.domain.exception.InvalidMemberNicknameException;
+import com.pawmento.member.domain.exception.MemberNicknameLimitException;
+
 class MemberTest {
 	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
 	private static final Instant NOW = Instant.parse("2026-11-17T03:00:00Z");

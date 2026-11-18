@@ -3,6 +3,9 @@ package com.pawmento.member.domain;
 import java.time.Instant;
 import java.util.Locale;
 
+import com.pawmento.member.domain.exception.InvalidMemberNicknameException;
+import com.pawmento.member.domain.exception.MemberNicknameLimitException;
+
 import lombok.Getter;
 
 // 로그인에 필요한 최소 회원 정보. 프로필 등 나머지 필드는 스프린트 1의 member 설계에서 더한다
@@ -86,7 +89,7 @@ public class Member {
 			java.time.YearMonth last = java.time.YearMonth.from(nicknameChangedAt.atZone(zone));
 			java.time.YearMonth current = java.time.YearMonth.from(now.atZone(zone));
 			if (last.equals(current)) {
-				throw new MemberNicknameLimitException("닉네임은 한 달에 한 번만 바꿀 수 있어요.");
+				throw new MemberNicknameLimitException();
 			}
 		}
 		this.nickname = trimmed;
@@ -95,11 +98,11 @@ public class Member {
 
 	private static String requireNickname(String nickname) {
 		if (nickname == null || nickname.isBlank()) {
-			throw new InvalidMemberNicknameException("닉네임은 1~20자로 입력해 주세요.");
+			throw new InvalidMemberNicknameException();
 		}
 		String trimmed = nickname.strip();
 		if (trimmed.isEmpty() || trimmed.length() > 20) {
-			throw new InvalidMemberNicknameException("닉네임은 1~20자로 입력해 주세요.");
+			throw new InvalidMemberNicknameException();
 		}
 		return trimmed;
 	}

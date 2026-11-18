@@ -29,7 +29,7 @@ class SecurityConfig {
 			.authorizeHttpRequests(authorize -> authorize
 				// 처리 중 오류로 넘어가는 내부 요청(/error)이 401로 가려지지 않게 한다
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
-				.requestMatchers(PublicEndpoints.AUTH, PublicEndpoints.API_DOCS).permitAll()
+				.requestMatchers(PublicEndpoints.AUTH, PublicEndpoints.PUBLIC_READ, PublicEndpoints.API_DOCS).permitAll()
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(resourceServer -> resourceServer
 				.bearerTokenResolver(new CookieBearerTokenResolver())

@@ -1,6 +1,12 @@
 package com.pawmento.pet;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.reset;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
@@ -30,7 +36,11 @@ import com.pawmento.pet.domain.PetMode;
 // #46 이름 수정과 모드 변경이 겹칠 때 완료된 모드가 덮이지 않는지 확인한다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 class PetConcurrentUpdateTest {
+
+	@Autowired
+	private org.springframework.test.web.servlet.MockMvc mvc;
 
 	@Autowired
 	private CreatePetUseCase createPetUseCase;
@@ -38,7 +48,7 @@ class PetConcurrentUpdateTest {
 	@Autowired
 	private ChangePetModeUseCase changePetModeUseCase;
 
-	@Autowired
+	@org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 	private LoadPetPort loadPetPort;
 
 	@Autowired
@@ -118,6 +128,29 @@ class PetConcurrentUpdateTest {
 		Pet saved = loadPetPort.findById(petId).orElseThrow();
 		assertThat(saved.getMode()).isEqualTo(PetMode.GARDEN);
 		assertThat(saved.getName()).isEqualTo("보리");
+	}
+
+	@Test
+	@DisplayName("#72-S5 오래된 DB 버전의 HTTP 수정은 409·CONFLICT·기존 문구이며 완료된 모드를 보존한다")
+	void staleHttpEditReturnsConflict() throws Exception {
+		Long memberId = 9003L;
+		Long petId = createPetUseCase.create(new CreatePetCommand(memberId, "콩이", "DOG", null, null)).petId();
+		Pet stale = loadPetPort.findById(petId).orElseThrow();
+		changePetModeUseCase.changeMode(new ChangePetModeCommand(memberId, petId, "GARDEN"));
+		// 먼저 읽은 스냅샷을 서비스에 제공한다. 저장·flush·DB 버전 검사·웹 예외 처리는 실제 경로다.
+		doReturn(java.util.Optional.of(stale)).when(loadPetPort).findById(petId);
+		try {
+			mvc.perform(patch("/api/v1/pets/" + petId).with(jwt().jwt(token -> token.subject(memberId.toString())))
+				.contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"name\":\"늦은수정\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("CONFLICT"))
+				.andExpect(jsonPath("$.message").value("다른 요청에서 반려동물을 먼저 수정했습니다. 다시 불러와 주세요."));
+		} finally {
+			reset(loadPetPort);
+		}
+		Pet saved = loadPetPort.findById(petId).orElseThrow();
+		assertThat(saved.getMode()).isEqualTo(PetMode.GARDEN);
+		assertThat(saved.getName()).isEqualTo("콩이");
 	}
 
 	private static void await(CountDownLatch latch) {

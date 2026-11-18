@@ -26,6 +26,8 @@
 
 첫 단계에서는 `attachmentIds` 생략 또는 빈 배열, `location` 생략 또는 `{mode: "NONE"}`만 허용한다. 비어 있지 않은 첨부나 AUTO/MANUAL 요청은 아직 지원하지 않는 상태를 409로 알리고 저장하지 않는다. 잘못된 타입·모드·명시적 null은 400이다. 이 요청들을 성공처럼 무시하지 않는다. 첨부·위치의 완전한 계약은 상위 설계를 유지하며 후속 구현에서 확장한다.
 
+미지원 기능의 거부는 애플리케이션 정책으로 관리한다. 웹은 JSON 타입·모드 등의 형식만 검사한 뒤 첨부·위치 요청 여부를 `DiaryWriteFeatures`로 Command에 전달한다. 생성·수정 서비스는 이 값을 검사해 `application/exception/DiaryFeatureUnavailableException`으로 409를 반환하며, 웹을 거치지 않은 입력 포트 호출에도 같은 정책을 적용한다. `InvalidDiaryRequestException`은 HTTP 형식 오류로 웹 어댑터에 유지한다. 첨부·위치 값 자체를 저장하거나 원본 JSON을 핵심 계층에 전달하지 않는다. (고침 #32: PR #89 리뷰에 따라 임시 웹 가드를 애플리케이션 정책으로 이동)
+
 상세는 `recordId`, `petId`, `createdBy`, `content`, `recordedDate`, `createdAt`, `updatedAt`, `version`을 반환한다. `createdBy`는 인증 회원 ID다. 가족용 `author.displayName` 계약과 회원 탈퇴 후 표시 정책은 후속 가족/작성자 표시 단위에서 연결하며, 현재 ID를 닉네임처럼 표시하지 않는다. ID는 현재 공통 API와 동일하게 Long을 사용한다.
 
 ## 데이터와 도메인 규칙
