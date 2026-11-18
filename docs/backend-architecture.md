@@ -1,8 +1,8 @@
 # 백엔드 구조 (헥사고날 아키텍처)
 
-백엔드 코드를 어떤 패키지에 어떤 클래스로 나누는지 정한 규칙이다. 사람과 AI 모두 새 기능을 만들 때 이 문서대로 만든다. 예시는 이슈 #16 `record` 도메인의 "기록 작성하기"다.
+백엔드 코드를 어떤 패키지에 어떤 클래스로 나누는지 정한 규칙이다. 사람과 AI 모두 새 기능을 만들 때 이 문서대로 만든다.
 
-> 이 문서는 #16 샘플과 그 리뷰를 기준으로 쓴 초안이다. 팀이 정한 것은 [정한 것](#정한-것)에, 남은 것은 [아직 정하지 않은 것](#아직-정하지-않은-것)에 둔다.
+> 팀이 정한 것은 [정한 것](#정한-것)에, 남은 것은 [아직 정하지 않은 것](#아직-정하지-않은-것)에 둔다. 임시 record 샘플은 실제 도메인·API의 기준으로 사용하지 않는다.
 
 ## 핵심 원칙
 
@@ -75,7 +75,7 @@ com.pawmento
 
 ## API 경로
 
-- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/records`. 반려동물 범위는 해당 도메인의 입력(`petId`)으로 받는다. 지도는 `/maps/pins?petId=`, 미디어는 `/media/uploads?petId=`와 `/media/{assetId}?petId=`를 사용한다. 상위 도메인 접두어를 공유하는 예외를 추가하지 않는다. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #33: #63의 도메인별 루트와 동일 기준 적용)
+- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/maps/pins`, `/api/v1/media/uploads`. 반려동물 범위는 해당 도메인의 입력(`petId`)으로 받는다. 지도는 `/maps/pins?petId=`, 미디어는 `/media/uploads?petId=`와 `/media/{assetId}?petId=`를 사용한다. 상위 도메인 접두어를 공유하는 예외를 추가하지 않는다. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #33: #63의 도메인별 루트와 동일 기준 적용)
 - 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 `@RequestMapping("/<복수형>")`만 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
 - Spring Security 경로(`PublicEndpoints`)는 접두어가 붙기 전의 실제 요청 경로를 보므로 `ApiPaths.V1`을 붙인 전체 경로로 쓴다. (#22)
 
@@ -83,18 +83,18 @@ com.pawmento
 
 | 종류 | 형식 | 예 |
 | --- | --- | --- |
-| 입력 포트 | `<Action><Domain>UseCase` | `CreateRecordUseCase` |
-| 서비스 | `<Action><Domain>Service` | `CreateRecordService` |
-| 변경 입력 (생성·수정·삭제) | `<Action><Domain>Command` | `CreateRecordCommand` |
-| 조회 입력 | `<Action><Domain>Query` | `GetRecordQuery` |
-| 유스케이스 결과 | `<Action><Domain>Result` | `GetRecordResult` |
-| 출력 포트 | `<Verb><Domain>Port` | `SaveRecordPort`, `LoadRecordPort` |
-| 요청 DTO | `<Action><Domain>Request` | `CreateRecordRequest` |
-| 응답 DTO | `<Domain>Response` | `RecordResponse` |
-| 컨트롤러 | `<Domain>Controller` | `RecordController` |
-| 영속성 어댑터 | `<Domain>PersistenceAdapter` | `RecordPersistenceAdapter` |
-| JPA 엔티티 | `<Domain>JpaEntity` | `RecordJpaEntity` |
-| JPA 리포지토리 | `<Domain>JpaRepository` | `RecordJpaRepository` |
+| 입력 포트 | `<Action><Domain>UseCase` | `CreatePetUseCase` |
+| 서비스 | `<Action><Domain>Service` | `CreatePetService` |
+| 변경 입력 (생성·수정·삭제) | `<Action><Domain>Command` | `CreatePetCommand` |
+| 조회 입력 | `<Action><Domain>Query` | `GetPetQuery` |
+| 유스케이스 결과 | `<Action><Domain>Result` | `GetMediaUploadResult` |
+| 출력 포트 | `<Verb><Domain>Port` | `SavePetPort`, `LoadPetPort` |
+| 요청 DTO | `<Action><Domain>Request` | `CreatePetRequest` |
+| 응답 DTO | `<Domain>Response` | `PetResponse` |
+| 컨트롤러 | `<Domain>Controller` | `PetController` |
+| 영속성 어댑터 | `<Domain>PersistenceAdapter` | `PetPersistenceAdapter` |
+| JPA 엔티티 | `<Domain>JpaEntity` | `PetJpaEntity` |
+| JPA 리포지토리 | `<Domain>JpaRepository` | `PetJpaRepository` |
 
 - `<Action>`은 사용자 기준 동작이다: `Create`, `Edit`, `Delete`, `Get`, `List`.
 - `<Verb>`는 저장소 기준 동작이다: `Save`, `Load`, `Update`, `Delete`.
@@ -155,42 +155,12 @@ com.pawmento
 - 새로 만든 객체의 `id`는 `null`이다. DB에 저장한 뒤 생긴다.
 - 규칙 위반은 `IllegalArgumentException`이 아니라 `domain/exception`의 도메인 예외로 던진다. ([백엔드 예외 처리](backend-exceptions.md))
 
-```java
-@Getter
-public class Record {
-    private Long id;
-    private Long petId;
-    private String content;
-
-    private Record(Long petId, String content) {
-        this.petId = petId;
-        this.content = content;
-    }
-
-    public static Record create(Long petId, String content) {
-        if (content == null || content.isBlank()) {
-            throw new EmptyRecordContentException(); // RuleViolationException 상속
-        }
-        return new Record(petId, content);
-    }
-}
-```
-
 ### 입력 포트, Command·Query·Result (`application/port/in`)
 
 - 유스케이스는 메서드 하나짜리 인터페이스다.
 - 입력은 Command(변경) 또는 Query(조회) 하나로 받는다. 값이 하나뿐이어도 감싼다. 웹 DTO(Request)를 받지 않는다.
 - 로그인한 회원이 필요한 기능은 Command·Query에 `memberId`를 둔다.
 - 반환값은 새로 만든 id(`Long`)나 `Result`다. 도메인 객체를 그대로 돌려주지 않는다.
-
-```java
-public interface CreateRecordUseCase {
-    Long create(CreateRecordCommand command);
-}
-
-public record CreateRecordCommand(Long petId, String content) {
-}
-```
 
 ### 서비스 (`application/service`)
 
@@ -200,31 +170,10 @@ public record CreateRecordCommand(Long petId, String content) {
 - 조회 결과는 도메인 객체에서 필요한 값을 꺼내 `Result`로 만들어 돌려준다.
 - 출력 포트는 `private final` 필드로 두고 `@RequiredArgsConstructor`로 생성자 주입을 받는다.
 
-```java
-@Service
-@RequiredArgsConstructor
-public class CreateRecordService implements CreateRecordUseCase {
-    private final SaveRecordPort saveRecordPort;
-
-    @Override
-    @Transactional
-    public Long create(CreateRecordCommand command) {
-        Record record = Record.create(command.petId(), command.content());
-        return saveRecordPort.save(record);
-    }
-}
-```
-
 ### 출력 포트 (`application/port/out`)
 
 - 핵심이 바깥에 부탁할 일을 인터페이스로 정한다.
 - 매개변수와 반환값에는 도메인 객체나 자바 기본 타입만 쓴다. `JpaEntity`를 쓰지 않는다.
-
-```java
-public interface SaveRecordPort {
-    Long save(Record record);
-}
-```
 
 ### 컨트롤러와 웹 DTO (`adapter/in/web`)
 
@@ -234,30 +183,6 @@ public interface SaveRecordPort {
 - Request는 `record`로 만들고 Bean Validation 어노테이션을 붙인다. 컨트롤러 매개변수에 `@Valid`를 붙인다.
 - 로그인 정보는 `global.security`의 방식(예: `@LoginMember`)으로 받아 Command·Query에 담는다.
 
-```java
-@RestController
-@RequestMapping("/records")
-@RequiredArgsConstructor
-public class RecordController {
-    private final CreateRecordUseCase createRecordUseCase;
-
-    @PostMapping
-    public RecordResponse create(@Valid @RequestBody CreateRecordRequest request) {
-        CreateRecordCommand command = new CreateRecordCommand(request.petId(), request.content());
-        Long id = createRecordUseCase.create(command);
-        return new RecordResponse(id);
-    }
-}
-
-public record CreateRecordRequest(
-        @NotNull Long petId,
-        @NotBlank String content) {
-}
-
-public record RecordResponse(Long recordId) {
-}
-```
-
 ### 영속성 어댑터와 JPA (`adapter/out/persistence`)
 
 - 영속성 어댑터는 출력 포트를 구현한다. `@Component`, `@RequiredArgsConstructor`를 붙이고 JpaRepository를 `private final` 필드로 받는다.
@@ -266,23 +191,9 @@ public record RecordResponse(Long recordId) {
 - JpaEntity는 DB 테이블 모양만 가진다. `@Entity`, `@Table(name = "<복수형>")`, `@Id`, `@GeneratedValue(strategy = GenerationType.IDENTITY)`를 쓴다.
 - JpaEntity에는 `@Getter`, `@NoArgsConstructor(access = AccessLevel.PROTECTED)`를 붙이고, 도메인 객체를 받아 만드는 `static from()`을 둔다. DB에서 꺼낸 값을 도메인 객체로 바꾸는 메서드는 조회 기능을 만들 때 정한다.
 
-```java
-@Component
-@RequiredArgsConstructor
-public class RecordPersistenceAdapter implements SaveRecordPort {
-    private final RecordJpaRepository recordJpaRepository;
-
-    @Override
-    public Long save(Record record) {
-        RecordJpaEntity saved = recordJpaRepository.save(RecordJpaEntity.from(record));
-        return saved.getId();
-    }
-}
-```
-
 ## 요청 흐름
 
-`POST /api/v1/records` 하나가 지나가는 순서다. 새 기능도 같은 순서로 흐르게 만든다.
+하나의 API 요청이 지나가는 순서다. 실제 경로 예시는 `/api/v1/media/uploads`이며 새 기능도 같은 의존 방향으로 흐르게 만든다.
 
 1. 서버를 켤 때 Spring이 `JpaRepository → PersistenceAdapter → Service → Controller` 순서로 객체를 만들어 생성자에 넣는다.
 2. 컨트롤러: JSON → Request(`@Valid`로 형식 검증) → Command, 유스케이스 호출
@@ -321,7 +232,6 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 함정
 
-- 자바에는 `java.lang.Record`가 있고 `java.lang`은 자동으로 import된다. 도메인 클래스 이름이 `Record`이면, import를 빠뜨려도 컴파일 에러 없이 자바 내장 `Record`로 컴파일된다. `Record`를 쓰는 파일은 `import com.pawmento.record.domain.Record;`를 확인한다.
 - 에디터 자동 import로 `domain`에 `application` 클래스가 들어가는 일이 있다. 쓰지 않는 import라도 지운다.
 
 ## 정한 것
@@ -338,15 +248,13 @@ public class RecordPersistenceAdapter implements SaveRecordPort {
 
 ## 아직 정하지 않은 것
 
-- 도메인 객체와 JpaEntity를 계속 분리할지 (#16은 분리)
-- 도메인 클래스 이름 `Record` 유지 여부. 프론트엔드가 이 개념을 `Memory`로 쓰고 있어 `Memory`로 맞추자는 의견이 있다. 바꾸면 패키지(`com.pawmento.memory`), 문서 폴더, 프론트엔드 경로를 함께 바꾼다
+- 도메인 객체와 JpaEntity의 분리 기준을 확장 기능에서도 유지할지
 - 다른 도메인 기능을 부르는 방식
 - 테스트를 계층별로 어디에 어떻게 둘지
 
 ## 이번 PR에서 제안하는 공통 규칙 변경 (#33, PR #64)
 
 이 절의 **불변 record 허용·동일 조회 결과 재사용·웹 경계의 제한된 처리 허용**은 기존 확정 규칙을 그대로 적용했다는 설명이 아니다. 이번 PR에서 채택 여부와 공통 적용 범위를 검토하는 변경 제안이다. 아래 표·본문의 관련 표기는 제안이 채택되는 경우의 기준을 일관되게 표현한다. 공통 기본 예외 3종 확장도 [예외 처리 문서](backend-exceptions.md)의 별도 제안이며 팀의 기존 합의와 구분한다.
-
 
 - 웹 전용 형식·파트·Origin·헤더·요청 크기 오류는 `adapter/in/web/exception`에서 공통 기본 예외를 상속한다. 업무 오류를 웹 예외로 다시 포장하지 않는다. 필터는 MVC 이전 실패를 전역 resolver로 넘길 수 있고, HTTP 입력 스트림 보조 어댑터는 자신의 I/O 실패만 공통 저장소 예외 하위 타입으로 바꿀 수 있다. 컨트롤러에 도메인/애플리케이션 예외 처리 catch를 추가하는 예외는 아니다.
 - 식별자와 변경 가능한 생명주기가 있는 도메인(자산·작업)은 `class`로 두고 정책을 가진다. 불변 값·작업 전달값·정책 값은 `record`를 사용할 수 있다. 미디어의 `VerifiedMedia`, `StoredUpload`, `MediaWork`, `MediaPolicy`가 해당한다. 복원 경로도 필수 값·상태 간 관계 등 불변 조건을 검사한다.

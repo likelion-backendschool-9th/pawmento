@@ -764,6 +764,50 @@ class MediaUploadScenarioTest {
     mvc.perform(get("/api/v1/media/" + id).cookie(a.cookie())).andExpect(status().isBadRequest());
   }
 
+  @Test
+  @DisplayName("#33-S17 petId 누락·범위·타입 오류는 생성·조회·미리보기·삭제에서 공통 400이다")
+  void petQueryErrorsHaveCommonBody() throws Exception {
+    Owner a = owner();
+    long id = session(a, "image/png", 3);
+    String base = "/api/v1/media/" + id;
+    for (String query : new String[] {"", "?petId=0", "?petId=abc"}) {
+      mvc.perform(
+              post("/api/v1/media/uploads" + query)
+                  .cookie(a.cookie())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(body("image/png", 3)))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("VALIDATION"))
+          .andExpect(jsonPath("$.message").isNotEmpty());
+      for (String suffix : new String[] {"", "/preview", "/thumbnail"})
+        mvc.perform(get(base + suffix + query).cookie(a.cookie()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION"));
+      mvc.perform(delete(base + query).cookie(a.cookie()))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("VALIDATION"));
+      mvc.perform(
+              multipart(base + "/content" + query)
+                  .file(new MockMultipartFile("file", "a.png", "image/png", new byte[] {1, 2, 3}))
+                  .cookie(a.cookie())
+                  .header("Origin", "http://localhost")
+                  .header("X-Pawmento-Upload", "1"))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+    assertThat(state(id)).isEqualTo("PENDING");
+  }
+
+  @Test
+  @DisplayName("#33-S1 폐기된 임시 record 샘플 경로는 실제 API로 노출하지 않는다")
+  void retiredPlaceholderNotRouted() throws Exception {
+    Owner a = owner();
+    for (String url : new String[] {"/api/v1/records", "/api/v1/memories"})
+      mvc.perform(
+              post(url).cookie(a.cookie()).contentType(MediaType.APPLICATION_JSON).content("{}"))
+          .andExpect(status().isNotFound());
+  }
+
   String path(Owner a, long id) {
     return path(a, id, "");
   }

@@ -69,7 +69,7 @@ class PetScenarioTest {
 		@Bean
 		@Primary
 		StubHasPetRecordsPort hasPetRecordsPort() {
-			// 샘플 com.pawmento.record 대신 기록 존재만 흉내 낸다. diary 등이 붙으면 그 어댑터로 교체한다
+			// 기록 존재만 흉내 낸다. diary 등이 붙으면 그 어댑터로 교체한다
 			return new StubHasPetRecordsPort();
 		}
 
