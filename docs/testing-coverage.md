@@ -59,4 +59,4 @@
 | 기존 기준 | 새 확인 위치 | 남는 확인 범위 |
 | --- | --- | --- |
 | #21-S14 수정 중 삭제: 수정 스레드는 트랜잭션 안에서 `LoadPostPort`로 읽고 `Post.edit` 뒤 `UpdatePostPort.update`를 직접 부르고, 삭제 스레드는 그 사이에 유스케이스로 삭제를 커밋한다. 수정 쪽 예외가 `PostConcurrentModificationException`인지 확인 | `PostConcurrentUpdateTest.editAfterDeleteIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 삭제를 커밋하고, PUT 응답이 409 `CONFLICT`인지와 DB에 원래 제목·본문과 `deleted_at`이 남았는지 확인 | 예외 타입은 직접 보지 않고 HTTP 응답 코드로 확인한다. 끼어드는 삭제는 HTTP가 아니라 유스케이스 호출이다 |
-| #21-S14 겹친 수정: 먼저 읽은 글로 `UpdatePostPort.update`를 불러 예외 타입을 확인 | `PostConcurrentUpdateTest.laterEditIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 수정을 커밋하고, PUT 응답이 409 `CONFLICT`인지와 먼저 저장된 값이 남았는지 확인 | 영속성 어댑터만 따로 부르는 검사는 없다. 끼어드는 수정은 HTTP가 아니라 유스케이스 호출이다 |
+| #21-S14 겹친 수정: 먼저 읽은 글로 `UpdatePostPort.update`를 불러 예외 타입을 확인 | `PostConcurrentUpdateTest.laterEditIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 수정을 커밋하고, PUT 응답이 409 `CONFLICT`인지와 먼저 저장된 값이 남았는지 확인 | 영속성 어댑터를 직접 부르는 검사는 `conflictKeepsCause` 하나로, 409 예외가 저장소의 충돌 예외를 cause로 남기는지만 본다(#84 리뷰). 끼어드는 수정은 HTTP가 아니라 유스케이스 호출이다 |
