@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | [#45](https://github.com/likelion-backendschool-9th/pawmento/issues/45) | 설계 문서 작업(반려동물 본문 + 마이·관리자 골격) | 이 README, [manage.md](manage.md), [admin](../admin/README.md), [mypage](../mypage/README.md) |
 | [#46](https://github.com/likelion-backendschool-9th/pawmento/issues/46) | 반려동물 등록·관리(MVP, **백엔드 API**) | [manage.md](manage.md) |
+| [#72](https://github.com/likelion-backendschool-9th/pawmento/issues/72) | pet 예외의 공통 기본 예외 전환 계획 | [exception-migration.md](exception-migration.md) |
 
 ## 도메인 담당이 쓰는 방법
 
@@ -31,6 +32,7 @@
 - 이름이 같아도 가입할 수 있고, **태그로 구분**한다. (회의 2026-11-16) 태그 생성 규칙은 [manage.md](manage.md) 가정을 팀 확인 후 확정한다.
 - 기록이 있으면 삭제하지 않고 409 `CONFLICT`로 거절한다. 보관·내보내기는 미정. (#46)
 - 생일은 Asia/Seoul 기준 오늘보다 뒤면 거절한다. (#46)
+- 예외는 [공통 예외 문서](../backend-exceptions.md)의 기본 예외를 상속하고 `GlobalExceptionHandler`로 연결한다. pet 전환 범위와 작은 작업 단위는 [#72 계획](exception-migration.md)을 따른다. (고침 #72: #62로 결정된 처리 방식을 미정 항목에서 구분)
 
 ## 데이터 구조 요약
 
@@ -57,4 +59,4 @@
 - 프로필 사진 업로드(media 초기 용도는 diary/question 첨부. 프로필은 별도 정책)
 - 가족 멤버십·역할 입력 포트의 최종 위치와 시그니처(question/diary #30 설계가 기대)
 - 기록이 있는 프로필의 보관·내보내기
-- 도메인 예외 → `global.error` 공통 에러 응답 연결 방식(구조 문서 미정과 동일)
+- pet 예외 전환의 공용 아키텍처 검사 변경 범위 — [#72 계획의 Q2](exception-migration.md#질문)에서 합의한다. 삭제 불가의 애플리케이션 분류와 기본 예외 4종 사용은 [확인된 결정](exception-migration.md#확인된-결정)을 따른다.

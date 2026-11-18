@@ -49,6 +49,7 @@ class MediaUploadGuardFilterTest {
           }
         };
     request.setQueryString(query);
+    request.addHeader("petId", "1");
     request.setUserPrincipal(() -> "3");
     request.addHeader("Origin", "http://localhost");
     request.addHeader("X-Pawmento-Upload", "1");

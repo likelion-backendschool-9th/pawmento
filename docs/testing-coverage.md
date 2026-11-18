@@ -16,6 +16,25 @@
 
 구현 PR에서는 위 자동/직접 검사를 실제 테스트 클래스·메서드와 매핑하고, 아직 자동화하지 못한 범위를 확인 방법에 적는다. 설계 문서: [지도 1단계](map/memory-location.md), [위치 연결](map/photo-location.md), [다이어리](diary/README.md), [미디어](media/README.md).
 
+## 산책 좌표 한도와 마지막 활동 시각 (#73)
+
+산책 도메인과 저장소 PR(#76)의 리뷰로 좌표 개수 검사를 둘로 나눴다. 요청 하나의 크기와 상태는 `Walk.requireAcceptingPoints`가, 산책 전체의 누적 한도는 실제로 새로 쌓인 개수로 `Walk.requireCapacity`가 보고, 마지막 활동 시각은 두 검사를 통과한 뒤에 `Walk.markPointsReceived`로만 바꾼다. 아래는 이 변경으로 검증 위치가 옮겨지거나 아직 자동으로 확인하지 못하는 범위다.
+
+| 기존 기준 | 새 확인 위치 | 남는 확인 범위 |
+| --- | --- | --- |
+| #73-S14: 누적 5,000개를 넘기는 요청이 거절되어도 마지막 활동 시각이 그대로 (`WalkTest`가 `acceptPoints` 하나로 확인) | `WalkTest`의 `capacityRejectionKeepsActivity`(검사 메서드가 값을 바꾸지 않고 누적 한도 거절 뒤에도 활동 시각이 그대로), `requireMethodsDoNotChangeState` | **자동으로 확인하지 않는 부분:** 한도를 넘긴 요청에서 새로 쌓은 좌표와 활동 시각 저장이 함께 롤백되는지. 서비스가 `requireCapacity`를 쌓은 뒤에 부르고 예외로 트랜잭션을 되돌리는 순서는 도메인·저장소 테스트로 확인할 수 없다 |
+| #73-S14: 한 요청 101개 거절 | `WalkTest`의 `batchLimitComesFirst`, `tooLargeBatchKeepsActivity`. 빈 묶음은 `emptyBatchIsRejected` | 요청 형식 검사(`@Size`)와 400 응답은 API를 연결하는 PR에서 확인 |
+| #73-S6: 한도를 채운 마지막 요청의 재전송 | `WalkTest`의 `resendAtLimitIsNotRejected`(새로 쌓인 개수 0이면 통과) | 같은 묶음을 실제로 다시 보내 204를 받고 좌표가 늘지 않는 요청 수준 확인은 API를 연결하는 PR |
+| #73-S14: 동시 요청에서도 누적 한도를 지킴 | `WalkRowLockTest`(두 트랜잭션으로 행 잠금 확인) | 한도 직전에서 여러 요청이 동시에 와도 합계가 5,000개를 넘지 않는지는 서비스 수준 확인이 필요 |
+
+후속 검증 위치: 좌표 쌓기 API PR의 시나리오 테스트(`#73-S14`, `#73-S6`)에서 실제 DB와 요청으로 아래를 확인한다.
+
+- 누적 한도를 넘긴 요청 뒤에 `walk_points` 개수와 `walks.last_activity_at`이 요청 전과 같다(새 좌표와 활동 시각이 함께 롤백된다).
+- 5,000개를 채운 뒤 같은 요청을 다시 보내면 204이고 좌표가 늘지 않는다.
+- 한도 직전의 산책에 좌표를 쌓는 요청이 동시에 여러 개 와도 합계가 5,000개를 넘지 않는다.
+
+설계 문서: [산책로](map/walk-route.md)
+
 ## 커뮤니티 글 목록 조건 (#21)
 
 #83 리뷰를 반영해 목록의 `size`·`cursor` 범위 검사를 서비스에서 웹 요청(`ListPostsRequest`의 Bean Validation)으로 옮겼다. 시나리오 번호는 그대로 둔다.
