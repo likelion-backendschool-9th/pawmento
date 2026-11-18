@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44) | 다이어리 사진 GPS로 지도 핀 자동 연결 | [photo-location.md](photo-location.md) |
 | [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19) | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [memory-location.md](memory-location.md) |
+| [#73](https://github.com/likelion-backendschool-9th/pawmento/issues/73) | 산책로 기록과 날짜별 보기 | [walk-route.md](walk-route.md) |
 
 ## 정한 것
 
@@ -19,6 +20,7 @@
 - 위치는 좌표(위도·경도)가 필수이고 장소 이름·주소는 선택이다. 주소 조회가 실패해도 위치 저장은 성공한다. 외부 서비스 장애 때문에 기록을 못 남기게 하지 않기 위해서다. (#19)
 - 한 기록에는 위치를 하나만 붙인다. 위치 쓰기는 diary body의 AUTO/MANUAL/NONE 한 경로로 받고 map은 내부 입력 포트·핀 조회만 제공한다. (고침 #53: 위치 쓰기 책임 통일)
 - #19의 수동 위치 1단계 범위는 유지한다. 사진 GPS 자동 연결은 [별도 확장 #44](photo-location.md)로 설계한다. 업로드 전 동의한 사진만 EXIF 제거 전에 후보를 추출하고 다이어리와 같은 DB 트랜잭션에서 지도에 연결한다. 서비스 이미지에는 GPS를 남기지 않는다. (고침 #44: 사진 장소가 있으면 지도 핀으로 연동하는 사용자 요구 반영)
+- 산책로는 날짜별 산책 경로를 지도에 그리는 기능이다. 좌표가 시간순으로 쌓이는 데이터라서 `record_location`과 따로 저장하고, 경로 데이터는 지도 도메인에서만 관리해 다이어리와 겹치지 않게 한다. 산책의 시작과 끝은 보호자가 직접 누르고, 화면을 켠 상태에서 일정 간격으로 좌표를 보낸다. 집 위치는 기기에만 저장하고 서버에는 보내지 않는다. ([계획](walk-route.md)) (#73)
 
 ## 데이터 구조 요약
 
@@ -36,6 +38,8 @@
 | `source_revision` | 존재하는 위치 행의 높은 revision만 갱신. 위치 없음/일기 삭제 시 행을 실제 삭제하며 삭제 표시는 없음 (고침 #53: 부모 트랜잭션으로 동시성 보호) |
 | `created_at`, `updated_at` | 저장·수정 시각 |
 
+산책로는 `walks`와 `walk_points` 두 테이블에 따로 저장한다. 필드와 제약은 [walk-route.md](walk-route.md#데이터-구조)에 있다.
+
 핀 조회에 쓰는 인덱스는 `(created_by, pet_id, latitude, longitude)`로 시작하고, 데이터를 쌓아 실행 계획을 확인한 뒤 바꾼다. 이 인덱스가 최선이라는 뜻은 아니다.
 
 ## 아직 정하지 않은 것
@@ -48,6 +52,5 @@
 - **기록 삭제**: diary가 부모 존재/권한·버전을 검사하고 같은 트랜잭션에서 null 위치를 전달해 map 행을 실제 삭제한다. 없으면 무시하며 map에는 tombstone을 두지 않는다. (고침 #53: 동기 저장과 부모 버전 검사로 보호)
 - **핀이 많을 때의 묶음 표시(클러스터)를 서버와 프론트엔드 중 어디서 할지**
 - **사진 GPS 자동 연결**: [#44 설계](photo-location.md)에서 media #33·diary #32와 함께 다룬다. 업로드 전 동의 형식·대표 사진 선택·가족 지도 공유 범위는 그 문서의 제안을 검토한다. (고침 #44: 연동 범위 구체화)
-- **산책로**: 날짜별 산책 경로를 지도에 그린다. 별도 이슈에서 계획하고, 회의에서는 경로 데이터를 지도 쪽에서만 관리해 다이어리와 겹치지 않게 하는 방향으로 얘기했다. 이슈를 만들면 번호를 붙여 "정한 것"으로 옮긴다.
 - **테이블·컬럼·제약 이름**: `record_location`의 이름은 네이밍 통일([#29](https://github.com/likelion-backendschool-9th/pawmento/issues/29))의 결과에 맞춘다.
 - **지도 화면의 프론트엔드 담당과 일정**
