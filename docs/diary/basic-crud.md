@@ -17,10 +17,12 @@
 
 | 요청 | 입력 | 성공 응답 |
 | --- | --- | --- |
-| `POST /pets/{petId}/diaries` | `content`, `recordedDate` | 201, 생성 상세 |
-| `GET /pets/{petId}/diaries/{recordId}` | 없음 | 200, 상세 |
-| `PATCH /pets/{petId}/diaries/{recordId}` | `content` 또는 `recordedDate` 중 하나 이상, 필수 `version` | 200, 변경 상세 |
-| `DELETE /pets/{petId}/diaries/{recordId}?version={version}` | 필수 쿼리 `version` | 204, 본문 없음 |
+| `POST /diaries?petId={petId}` | `content`, `recordedDate` | 201, 생성 상세 |
+| `GET /diaries/{recordId}?petId={petId}` | 없음 | 200, 상세 |
+| `PATCH /diaries/{recordId}?petId={petId}` | `content` 또는 `recordedDate` 중 하나 이상, 필수 `version` | 200, 변경 상세 |
+| `DELETE /diaries/{recordId}?petId={petId}&version={version}` | 필수 쿼리 `petId`, `version` | 204, 본문 없음 |
+
+경로 표는 [목록·달력 단계의 전환 계약](list-calendar.md#crud-경로-전환을-먼저-수행)에 맞춘 목표다. PR #89의 실제 코드는 아직 중첩 경로이며, 후속 구현에서 CRUD·테스트를 함께 전환한다. 모든 API의 petId는 쿼리에서만 양의 Long 하나로 받고 기존 작성자·아이·버전 규칙은 유지한다. (고침 #32: PR #94 공통 경로 규칙 반영)
 
 수정은 제공된 필드만 바꾼다. 필드 누락과 명시적 null을 구분하며 `content: null`, `recordedDate: null`은 400이다. `version`만 있는 PATCH와 음수·누락 버전도 400이다. 삭제 버전은 URL 쿼리로만 받고 HTTP 헤더로 대체하지 않는다.
 

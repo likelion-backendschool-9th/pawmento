@@ -7,17 +7,14 @@ import java.time.ZoneId;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.pawmento.member.application.exception.InvalidNicknameException;
+
 import com.pawmento.member.application.exception.MemberNotFoundException;
-import com.pawmento.member.application.exception.NicknameChangeLimitException;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameUseCase;
 import com.pawmento.member.application.port.in.MemberResult;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
-import com.pawmento.member.domain.InvalidMemberNicknameException;
 import com.pawmento.member.domain.Member;
-import com.pawmento.member.domain.MemberNicknameLimitException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -34,15 +31,7 @@ public class ChangeMemberNicknameService implements ChangeMemberNicknameUseCase 
 	public MemberResult changeNickname(ChangeMemberNicknameCommand command) {
 		Member member = loadMemberPort.loadForNicknameChange(command.memberId())
 				.orElseThrow(MemberNotFoundException::new);
-		try {
-			member.changeNickname(command.nickname(), Instant.now(clock), SEOUL);
-		}
-		catch (InvalidMemberNicknameException e) {
-			throw new InvalidNicknameException(e.getMessage());
-		}
-		catch (MemberNicknameLimitException e) {
-			throw new NicknameChangeLimitException();
-		}
+		member.changeNickname(command.nickname(), Instant.now(clock), SEOUL);
 		return MemberResult.from(saveMemberPort.save(member));
 	}
 }
