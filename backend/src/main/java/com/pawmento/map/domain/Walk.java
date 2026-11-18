@@ -3,8 +3,8 @@ package com.pawmento.map.domain;
 import java.time.Duration;
 import java.time.Instant;
 
+import com.pawmento.map.domain.exception.InvalidWalkPointBatchException;
 import com.pawmento.map.domain.exception.WalkNotInProgressException;
-import com.pawmento.map.domain.exception.WalkPointBatchTooLargeException;
 import com.pawmento.map.domain.exception.WalkPointLimitExceededException;
 
 import lombok.Getter;
@@ -84,26 +84,40 @@ public class Walk {
 	}
 
 	/**
-	 * 좌표를 받아도 되는지 검사하고, 받으면 마지막 활동 시각을 갱신한다.
-	 * 한 요청의 개수 한도는 입력 규칙이라 먼저 보고, 그다음에 산책의 상태와 누적 개수를 본다.
+	 * 좌표 묶음을 받아도 되는지 검사하고, 받으면 마지막 활동 시각을 갱신한다.
+	 * 요청 하나의 크기(재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태만 본다.
+	 * 산책 전체의 개수 한도는 실제로 새로 쌓이는 개수를 알아야 해서 {@link #requireCapacity}가 따로 본다.
 	 *
-	 * @param currentCount 이 산책에 이미 쌓인 좌표 개수
-	 * @param incomingCount 이번 요청의 좌표 개수
+	 * @param requestedCount 이번 요청에 담긴 좌표 개수
 	 */
-	public void acceptPoints(Instant now, long currentCount, int incomingCount) {
-		if (incomingCount < 1) {
-			throw new IllegalArgumentException("좌표는 한 개 이상이어야 합니다.");
+	public void acceptPoints(Instant now, int requestedCount) {
+		if (requestedCount < 1) {
+			throw InvalidWalkPointBatchException.empty();
 		}
-		if (incomingCount > MAX_POINTS_PER_REQUEST) {
-			throw new WalkPointBatchTooLargeException(MAX_POINTS_PER_REQUEST);
+		if (requestedCount > MAX_POINTS_PER_REQUEST) {
+			throw InvalidWalkPointBatchException.tooLarge(MAX_POINTS_PER_REQUEST);
 		}
 		if (status(now) != WalkStatus.IN_PROGRESS) {
 			throw new WalkNotInProgressException();
 		}
-		if (currentCount + incomingCount > MAX_POINTS_PER_WALK) {
+		this.lastActivityAt = now;
+	}
+
+	/**
+	 * 한 산책에 쌓을 수 있는 좌표의 최대 개수를 넘지 않는지 검사한다.
+	 * 이미 쌓인 좌표를 다시 보낸 재전송은 개수를 늘리지 않으므로, 요청의 크기가 아니라 실제로 새로 쌓인 개수로 센다.
+	 * 산책 행을 잠근 상태에서 부르고, 넘으면 호출한 트랜잭션을 되돌려 이번 요청의 좌표를 쌓지 않아야 한다.
+	 *
+	 * @param currentCount 이번 요청 전에 이 산책에 쌓여 있던 좌표 개수
+	 * @param newCount 이번 요청으로 실제로 새로 쌓인 좌표 개수
+	 */
+	public void requireCapacity(long currentCount, int newCount) {
+		if (newCount < 0) {
+			throw new IllegalArgumentException("새로 쌓인 좌표 개수는 0 이상이어야 합니다.");
+		}
+		if (currentCount + newCount > MAX_POINTS_PER_WALK) {
 			throw new WalkPointLimitExceededException(MAX_POINTS_PER_WALK);
 		}
-		this.lastActivityAt = now;
 	}
 
 }

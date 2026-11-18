@@ -63,8 +63,12 @@ class WalkJpaEntity {
 		return entity;
 	}
 
-	// 끝낸 시각과 마지막 활동 시각만 바꾼다. 반려동물·작성자·시작 시각은 바뀌지 않는다
+	// 끝낸 시각과 마지막 활동 시각만 바꾼다. 반려동물·작성자·시작 시각은 바뀌지 않는다.
+	// 이미 정해진 끝낸 시각은 바꾸지 않는다. 잠그지 않고 읽은 값으로 저장하다가 먼저 끝낸 시각을 덮는 일을 막는 마지막 안전장치다
 	void updateState(Walk walk) {
+		if (this.endedAt != null && !this.endedAt.equals(walk.getEndedAt())) {
+			throw new IllegalStateException("이미 끝난 산책의 끝낸 시각은 바꿀 수 없습니다. id=" + id);
+		}
 		this.endedAt = walk.getEndedAt();
 		this.lastActivityAt = walk.getLastActivityAt();
 	}

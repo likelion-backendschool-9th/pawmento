@@ -8,8 +8,8 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.map.domain.exception.InvalidWalkPointBatchException;
 import com.pawmento.map.domain.exception.WalkNotInProgressException;
-import com.pawmento.map.domain.exception.WalkPointBatchTooLargeException;
 import com.pawmento.map.domain.exception.WalkPointLimitExceededException;
 
 // 시나리오는 docs/map/walk-route.md에 있다. 산책 객체가 스스로 지키는 규칙만 확인한다
@@ -90,7 +90,7 @@ class WalkTest {
 		Walk walk = startedAt(START);
 		Instant later = START.plusSeconds(240);
 
-		walk.acceptPoints(later, 0, 4);
+		walk.acceptPoints(later, 4);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(later);
 		assertThat(walk.status(later.plusSeconds(300))).isEqualTo(WalkStatus.IN_PROGRESS);
@@ -103,8 +103,8 @@ class WalkTest {
 		Walk interrupted = restored(null, START);
 		Instant now = START.plusSeconds(600);
 
-		assertThatThrownBy(() -> ended.acceptPoints(now, 0, 1)).isInstanceOf(WalkNotInProgressException.class);
-		assertThatThrownBy(() -> interrupted.acceptPoints(now, 0, 1)).isInstanceOf(WalkNotInProgressException.class);
+		assertThatThrownBy(() -> ended.acceptPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
+		assertThatThrownBy(() -> interrupted.acceptPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
 		assertThat(interrupted.getLastActivityAt()).isEqualTo(START);
 	}
 
@@ -113,21 +113,22 @@ class WalkTest {
 	void batchLimitComesFirst() {
 		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
 
-		assertThatThrownBy(() -> startedAt(START).acceptPoints(START, 0, 101))
-			.isInstanceOf(WalkPointBatchTooLargeException.class);
-		assertThatThrownBy(() -> ended.acceptPoints(START.plusSeconds(61), 0, 101))
-			.isInstanceOf(WalkPointBatchTooLargeException.class);
-		startedAt(START).acceptPoints(START, 0, 100);
+		assertThatThrownBy(() -> startedAt(START).acceptPoints(START, 101))
+			.isInstanceOf(InvalidWalkPointBatchException.class);
+		assertThatThrownBy(() -> ended.acceptPoints(START.plusSeconds(61), 101))
+			.isInstanceOf(InvalidWalkPointBatchException.class);
+		startedAt(START).acceptPoints(START, 100);
 	}
 
 	@Test
-	@DisplayName("#73-S14 누적이 5,000개를 넘기면 거절하고, 딱 5,000개까지는 받는다")
-	void totalLimit() {
+	@DisplayName("#73-S14 빈 묶음은 입력 규칙 위반으로 거절하고 마지막 활동 시각을 바꾸지 않는다")
+	void emptyBatchIsRejected() {
 		Walk walk = startedAt(START);
 
-		assertThatThrownBy(() -> walk.acceptPoints(START, 4950, 100))
-			.isInstanceOf(WalkPointLimitExceededException.class);
-		walk.acceptPoints(START, 4900, 100);
+		assertThatThrownBy(() -> walk.acceptPoints(START.plusSeconds(60), 0))
+			.isInstanceOf(InvalidWalkPointBatchException.class)
+			.hasMessage("좌표를 한 개 이상 보내 주세요.");
+
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
 	}
 
@@ -135,19 +136,38 @@ class WalkTest {
 	@DisplayName("#73-S14 거절된 요청은 마지막 활동 시각을 바꾸지 않는다")
 	void rejectedRequestKeepsActivity() {
 		Walk walk = startedAt(START);
-		Instant later = START.plusSeconds(60);
 
-		assertThatThrownBy(() -> walk.acceptPoints(later, 4950, 100))
-			.isInstanceOf(WalkPointLimitExceededException.class);
+		assertThatThrownBy(() -> walk.acceptPoints(START.plusSeconds(60), 101))
+			.isInstanceOf(InvalidWalkPointBatchException.class);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
 	}
 
 	@Test
-	@DisplayName("#73-S4 좌표 개수가 1보다 작으면 거절한다")
-	void emptyRequest() {
-		assertThatThrownBy(() -> startedAt(START).acceptPoints(START, 0, 0))
-			.isInstanceOf(IllegalArgumentException.class);
+	@DisplayName("#73-S14 새로 쌓인 좌표가 누적 5,000개를 넘기면 거절하고, 딱 5,000개까지는 받는다")
+	void totalLimit() {
+		Walk walk = startedAt(START);
+
+		assertThatThrownBy(() -> walk.requireCapacity(4950, 51)).isInstanceOf(WalkPointLimitExceededException.class);
+		walk.requireCapacity(4950, 50);
+		walk.requireCapacity(4900, 100);
+	}
+
+	@Test
+	@DisplayName("#73-S6 5,000개를 채운 뒤 같은 묶음을 다시 보내도 새로 쌓인 개수가 0이라 거절하지 않는다")
+	void resendAtLimitIsNotRejected() {
+		Walk walk = startedAt(START);
+
+		// 4,999개에서 1개를 쌓아 5,000개가 된 뒤, 같은 요청을 다시 보내면 새로 쌓이는 좌표는 0개다
+		walk.requireCapacity(4999, 1);
+		walk.requireCapacity(5000, 0);
+		assertThatThrownBy(() -> walk.requireCapacity(5000, 1)).isInstanceOf(WalkPointLimitExceededException.class);
+	}
+
+	@Test
+	@DisplayName("#73-S14 새로 쌓인 개수가 음수이면 잘못된 호출이다")
+	void negativeNewCount() {
+		assertThatThrownBy(() -> startedAt(START).requireCapacity(0, -1)).isInstanceOf(IllegalArgumentException.class);
 	}
 
 }

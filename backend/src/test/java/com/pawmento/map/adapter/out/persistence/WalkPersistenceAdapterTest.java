@@ -113,7 +113,7 @@ class WalkPersistenceAdapterTest {
 		Long id = saveWalk(PET, MEMBER, NOW);
 		Walk walk = adapter.loadById(id).orElseThrow();
 		Instant later = NOW.plusSeconds(200);
-		walk.acceptPoints(later, 0, 4);
+		walk.acceptPoints(later, 4);
 
 		adapter.save(walk);
 		flushAndClear();
@@ -132,6 +132,44 @@ class WalkPersistenceAdapterTest {
 			.isInstanceOf(IllegalStateException.class);
 		flushAndClear();
 		assertThat(adapter.loadById(id).orElseThrow().getPetId()).isEqualTo(PET);
+	}
+
+	@Test
+	@DisplayName("#73-S2 먼저 정해진 끝낸 시각은 오래된 값을 가진 산책이 다시 저장해도 덮이지 않는다")
+	void savedEndedAtIsNotOverwritten() {
+		Long id = saveWalk(PET, MEMBER, NOW);
+		// 두 요청이 잠그지 않고 같은 산책을 읽은 상황이다. 둘 다 아직 끝나지 않은 상태를 들고 있다
+		Walk first = adapter.loadById(id).orElseThrow();
+		Walk second = adapter.loadById(id).orElseThrow();
+		Instant firstEndedAt = NOW.plusSeconds(60);
+		first.end(firstEndedAt);
+		adapter.save(first);
+		flushAndClear();
+		second.end(NOW.plusSeconds(90));
+
+		assertThatThrownBy(() -> {
+			adapter.save(second);
+			flushAndClear();
+		}).isInstanceOf(IllegalStateException.class);
+
+		entityManager.clear();
+		assertThat(adapter.loadById(id).orElseThrow().getEndedAt()).isEqualTo(firstEndedAt);
+	}
+
+	@Test
+	@DisplayName("#73-S2 같은 끝낸 시각으로 다시 저장하는 것은 허용한다")
+	void savingSameEndedAtIsAllowed() {
+		Long id = saveWalk(PET, MEMBER, NOW);
+		Walk walk = adapter.loadById(id).orElseThrow();
+		walk.end(NOW.plusSeconds(60));
+		adapter.save(walk);
+		flushAndClear();
+
+		Walk again = adapter.loadById(id).orElseThrow();
+		adapter.save(again);
+		flushAndClear();
+
+		assertThat(adapter.loadById(id).orElseThrow().getEndedAt()).isEqualTo(NOW.plusSeconds(60));
 	}
 
 	@Test
@@ -202,23 +240,38 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#73-S7 날짜 구간에는 시작한 시각이 구간에 드는 산책만 시작 시각 순으로 나오고, 자정을 넘긴 산책도 시작한 날에 나온다")
+	@DisplayName("#73-S7 날짜 구간에는 시작한 시각이 구간에 드는 산책만 시작 시각 순으로 나온다")
 	void loadStartedBetweenByStartDate() {
 		Instant dayStart = seoul(11, 17, 0, 0);
 		Instant nextDayStart = seoul(11, 18, 0, 0);
 		Long morning = saveWalk(PET, MEMBER, seoul(11, 17, 10, 0));
-		Long beforeMidnight = saveWalk(PET, MEMBER, seoul(11, 17, 23, 50));
+		Long evening = saveWalk(PET, MEMBER, seoul(11, 17, 23, 50));
 		saveWalk(PET, MEMBER, seoul(11, 16, 23, 59));
 		saveWalk(PET, MEMBER, seoul(11, 18, 9, 0));
-		// 자정을 넘겨 끝난 산책도 시작한 날의 산책이다
-		Walk crossing = adapter.loadById(beforeMidnight).orElseThrow();
-		crossing.end(seoul(11, 17, 23, 55));
-		adapter.save(crossing);
-		flushAndClear();
 
 		List<Walk> walks = adapter.loadStartedBetween(MEMBER, PET, dayStart, nextDayStart);
 
-		assertThat(walks).extracting(Walk::getId).containsExactly(morning, beforeMidnight);
+		assertThat(walks).extracting(Walk::getId).containsExactly(morning, evening);
+	}
+
+	@Test
+	@DisplayName("#73-S7 자정을 넘겨 중단된 산책은 시작한 날에만 조회되고 다음 날에는 나오지 않는다")
+	void walkCrossingMidnightBelongsToStartDay() {
+		Long crossing = saveWalk(PET, MEMBER, seoul(11, 17, 23, 50));
+		// 11월 18일 00:20에 마지막 좌표를 받고 끊긴 산책이다. 끝내지 않았다
+		jdbcTemplate.update("update walks set last_activity_at = ? where id = ?",
+				java.sql.Timestamp.from(seoul(11, 18, 0, 20)), crossing);
+		flushAndClear();
+
+		List<Walk> onStartDay = adapter.loadStartedBetween(MEMBER, PET, seoul(11, 17, 0, 0), seoul(11, 18, 0, 0));
+		List<Walk> nextDay = adapter.loadStartedBetween(MEMBER, PET, seoul(11, 18, 0, 0), seoul(11, 19, 0, 0));
+
+		assertThat(onStartDay).extracting(Walk::getId).containsExactly(crossing);
+		assertThat(nextDay).isEmpty();
+		Walk walk = onStartDay.get(0);
+		assertThat(walk.getEndedAt()).isNull();
+		assertThat(walk.getLastActivityAt()).isEqualTo(seoul(11, 18, 0, 20));
+		assertThat(walk.status(seoul(11, 18, 9, 0))).isEqualTo(WalkStatus.INTERRUPTED);
 	}
 
 	@Test

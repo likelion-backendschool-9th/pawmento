@@ -8,11 +8,13 @@ import com.pawmento.map.domain.Walk;
 
 public interface LoadWalkPort {
 
+	// 읽기만 하는 용도다. 읽은 산책을 바꿔 저장하려면 loadByIdForUpdate를 쓴다
 	Optional<Walk> loadById(Long walkId);
 
 	/**
-	 * 산책을 읽으면서 행을 잠근다. 같은 산책에 좌표를 쌓는 요청이 동시에 와도 개수 한도를 지키려는 용도이고,
-	 * 잠금은 호출한 트랜잭션이 끝날 때까지 유지된다.
+	 * 산책을 읽으면서 행을 잠근다. 같은 산책에 좌표를 쌓거나 끝내는 요청이 동시에 와도 개수 한도와 먼저 정해진
+	 * 끝낸 시각을 지키려는 용도이고, 잠금은 호출한 트랜잭션이 끝날 때까지 유지된다.
+	 * 산책의 상태를 바꾸는 모든 요청(좌표 쌓기, 끝내기)은 이 메서드로 읽고, 같은 트랜잭션에서 {@link SaveWalkPort#save}까지 끝낸다.
 	 */
 	Optional<Walk> loadByIdForUpdate(Long walkId);
 
