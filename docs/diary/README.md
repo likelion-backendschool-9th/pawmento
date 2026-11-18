@@ -12,6 +12,7 @@
 | 지도와 기록 ID 연계 | [지도 설계](../map/README.md), [장소 붙이기](../map/memory-location.md), #19 |
 | 공통 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 폐기된 샘플 정리 | [#80](https://github.com/likelion-backendschool-9th/pawmento/issues/80), PR #64 |
+| 텍스트 CRUD 첫 구현 계획 | [basic-crud.md](basic-crud.md), #32 |
 | 개발 이슈 | [#32](https://github.com/likelion-backendschool-9th/pawmento/issues/32) |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
@@ -186,6 +187,6 @@ ID는 서버에서 Long으로 발급하되 JavaScript의 정수 범위를 넘을
 
 - 한 일기를 가족이 공동 편집하는 기능, 지도 SDK 자체 구현(사진 핀 연동은 #44와 연결), 커뮤니티 공개, AI 엽서, 정원 쪽지·편지, 음성 전사, 전문 검색, 휴지통 복원은 이 범위 밖이다.
 - 파일 업로드는 이번 구현 범위다. 형식·용량·TTL·저장소·검증 도구의 세부 제안은 media 문서에서 확정한다. 미래 날짜·작성 가능한 과거 범위와 일기 삭제 경합 정책은 별도 확인한다.
-- 반려동물·회원 삭제 시 기록 보존 정책, 위치 연관 삭제 방식과 FK 책임을 담당자끼리 합의해야 한다.
+- 반려동물 삭제와 첫 일기 생성의 경합 보호는 [텍스트 CRUD 첫 계획](basic-crud.md#반려동물-삭제와-첫-일기-생성의-경합)에 포함한다. 이름 있는 비지연 FK·ON DELETE RESTRICT와 pet/diary의 flush·오류 매핑을 pet 담당과 확인하고 #32-S22의 PostgreSQL 양방향 경합 테스트를 완료해야 한다. 이를 단순 존재 조회나 후속 작업으로 대체하지 않는다. 회원 삭제 시 기록 보존 정책과 위치 연관 삭제는 각 담당과 별도로 합의한다. (고침 #32: PR #87 리뷰의 첫 생성/아이 삭제 경합 보호 반영)
 - 프론트 자유 기록의 TEXT/PHOTO/VOICE는 `DiaryEntry`와 첨부 메타데이터로 정리하고 새 VIDEO 생성·첨부 UI는 제거한다. 기존 데모 VIDEO는 자동 삭제하거나 사진/음성으로 오인 변환하지 않고 이전 데모 자료로 분리해 보존한다. 서버로 자동 이관하지 않는다. 잘못 이름 붙은 `type=DIARY`는 `QuestionAnswer` 저장소로 이관하며 자유 일기로 취급하지 않는다. 프론트의 저장소·URL·상세·검증도 함께 분리한다.
 - `/records`·`/memories` 샘플 API는 PR #64에서 제거했으며 호환 API로 복구하지 않는다. 새 일기 API는 위 diary 계약으로 구현한다. (고침 #80: 샘플 제거 시점 미결 항목 해소)
