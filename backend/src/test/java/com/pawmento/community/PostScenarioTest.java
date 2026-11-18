@@ -185,7 +185,7 @@ class PostScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#21-S13 size=0, size=51, cursor=0이면 400 VALIDATION이다")
+	@DisplayName("#21-S13 size=0, size=51, cursor=0, size=abc이면 400 VALIDATION이다")
 	void listOutOfRange() throws Exception {
 		mockMvc.perform(get(POSTS).param("category", "LIFE").param("size", "0"))
 			.andExpect(status().isBadRequest())
@@ -199,6 +199,10 @@ class PostScenarioTest {
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"))
 			.andExpect(jsonPath("$.message").value("cursor는 1 이상으로 보내 주세요."));
+		mockMvc.perform(get(POSTS).param("category", "LIFE").param("size", "abc"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("size 값의 형식이 올바르지 않습니다."));
 	}
 
 	@Test
