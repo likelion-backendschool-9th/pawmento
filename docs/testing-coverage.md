@@ -15,3 +15,12 @@
 | media 물리 파일 삭제·검증 작업 | 기존 #33 검증·참조·삭제 재시도 검사 유지 | DB 밖 파일 I/O는 동기 지도 반영과 별개이며 삭제 작업/재시도를 제거하지 않음 |
 
 구현 PR에서는 위 자동/직접 검사를 실제 테스트 클래스·메서드와 매핑하고, 아직 자동화하지 못한 범위를 확인 방법에 적는다. 설계 문서: [지도 1단계](map/memory-location.md), [위치 연결](map/photo-location.md), [다이어리](diary/README.md), [미디어](media/README.md).
+
+## 커뮤니티 글 목록 조건 (#21)
+
+#83 리뷰를 반영해 목록의 `size`·`cursor` 범위 검사를 서비스에서 웹 요청(`ListPostsRequest`의 Bean Validation)으로 옮겼다. 시나리오 번호는 그대로 둔다.
+
+| 기존 기준 | 새 확인 위치 | 남는 확인 범위 |
+| --- | --- | --- |
+| #21-S13 `ListPostsServiceTest.outOfRangePageIsRejected`: 서비스가 `size` 0·51, `cursor` 0을 `InvalidPostPageException`으로 거절 | `PostScenarioTest.listOutOfRange`: 같은 값을 HTTP로 보내 400 `VALIDATION`과 오류 문구 확인 | 서비스는 범위를 다시 검사하지 않는다. 웹 요청을 거치지 않고 서비스를 부르는 경로는 없다 |
+| #21-S4 `ListPostsServiceTest.defaultSizeIsTwenty`: `size`가 없으면 서비스가 20개씩 읽음 | `PostScenarioTest.listWithCursor`: 첫 요청에 `size`를 보내지 않고 20개와 `nextCursor`를 받는지 확인 | 기본값은 `ListPostsRequest`가 채운다. 서비스 단위 테스트는 기본값을 보지 않는다 |

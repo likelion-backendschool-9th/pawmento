@@ -44,7 +44,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | 경로 | 용도 |
 | --- | --- |
 | `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` | 가입, 로그인, 로그아웃 |
-| `GET /api/v1/posts`, `GET /api/v1/posts/*` | 커뮤니티 글 목록, 글 상세, 카테고리 목록(`/posts/categories`). 쿠키의 토큰을 읽지 않는다 (#21) |
+| `GET /api/v1/posts`, `GET /api/v1/posts/categories`, `GET /api/v1/posts/{숫자 id}` | 커뮤니티 글 목록, 카테고리 목록, 글 상세. 쿠키의 토큰을 읽지 않는다. 와일드카드로 열지 않아 `/posts/me` 같은 다른 경로는 로그인이 필요하다 (#21) |
 | `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /swagger-ui.html` | API 문서 (Springdoc 기본 경로. 도구는 백엔드 구조 작업에서 더한다) |
 
 ### API
