@@ -19,7 +19,7 @@ public class GetMemberService implements GetMemberUseCase {
 	@Override
 	@Transactional(readOnly = true)
 	public MemberResult get(GetMemberQuery query) {
-		return loadMemberPort.findById(query.memberId()).map(MemberResult::from)
+		return loadMemberPort.loadById(query.memberId()).map(MemberResult::from)
 				.orElseThrow(MemberNotFoundException::new);
 	}
 }

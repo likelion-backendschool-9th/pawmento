@@ -32,7 +32,7 @@ public class ChangeMemberNicknameService implements ChangeMemberNicknameUseCase 
 	@Override
 	@Transactional
 	public MemberResult changeNickname(ChangeMemberNicknameCommand command) {
-		Member member = loadMemberPort.findForNicknameChange(command.memberId())
+		Member member = loadMemberPort.loadForNicknameChange(command.memberId())
 				.orElseThrow(MemberNotFoundException::new);
 		try {
 			member.changeNickname(command.nickname(), Instant.now(clock), SEOUL);

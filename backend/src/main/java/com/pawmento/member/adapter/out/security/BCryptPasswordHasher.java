@@ -5,10 +5,10 @@ import java.nio.charset.StandardCharsets;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.pawmento.member.application.port.out.PasswordHasher;
+import com.pawmento.member.application.port.out.HashPasswordPort;
 
 @Component
-class BCryptPasswordHasher implements PasswordHasher {
+class BCryptPasswordHasher implements HashPasswordPort {
 
 	// BCrypt는 72바이트까지만 해시에 쓴다. 그보다 긴 비밀번호는 가입 요청 검증에서 막는다
 	static final int MAX_PASSWORD_BYTES = 72;

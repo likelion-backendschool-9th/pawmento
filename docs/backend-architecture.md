@@ -244,6 +244,7 @@ com.pawmento
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
 - Command·Query·Result·Request·Response는 자바 `record`로 만든다.
 - 롬복을 쓴다. 범위는 [롬복 사용 범위](#롬복-사용-범위)를 따른다.
+- 기록 개념의 이름을 `Memory`로 맞춘 #66의 명명 결정은 유지한다. 이 결정과 임시 memory 샘플 구현의 삭제는 별개다.
 - 예외는 공통 기본 예외를 상속하고 `GlobalExceptionHandler` 한 곳에서 응답으로 바꾼다. 자세한 것은 [백엔드 예외 처리](backend-exceptions.md)를 따른다. (#60)
 
 ## 아직 정하지 않은 것

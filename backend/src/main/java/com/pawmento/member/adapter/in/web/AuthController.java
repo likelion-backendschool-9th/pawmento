@@ -10,8 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.AccessTokenCookie;
-import com.pawmento.member.adapter.in.web.dto.LoginRequest;
-import com.pawmento.member.adapter.in.web.dto.SignUpRequest;
 import com.pawmento.member.application.port.in.LoginMemberCommand;
 import com.pawmento.member.application.port.in.LoginMemberResult;
 import com.pawmento.member.application.port.in.LoginMemberUseCase;
@@ -37,7 +35,7 @@ class AuthController {
 
 	// 가입만 하고 로그인 상태로 만들지는 않는다. 이어서 로그인을 부른다
 	@PostMapping("/signup")
-	ResponseEntity<MemberResponse> signUp(@Valid @RequestBody SignUpRequest request) {
+	ResponseEntity<MemberResponse> signUp(@Valid @RequestBody SignUpMemberRequest request) {
 		MemberResponse member = MemberResponse.from(signUpMemberUseCase
 				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname())));
 		return ResponseEntity.status(HttpStatus.CREATED).body(member);
@@ -45,7 +43,7 @@ class AuthController {
 
 	// 토큰은 응답 본문에 싣지 않고 HttpOnly 쿠키로만 내린다
 	@PostMapping("/login")
-	ResponseEntity<MemberResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+	ResponseEntity<MemberResponse> login(@Valid @RequestBody LoginMemberRequest request, HttpServletRequest httpRequest) {
 		LoginMemberResult result = loginMemberUseCase
 				.login(new LoginMemberCommand(request.email(), request.password()));
 		return ResponseEntity.ok()

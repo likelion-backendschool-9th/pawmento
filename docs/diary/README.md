@@ -9,7 +9,7 @@
 | 화면 기준 | [앱 데모 설계](../app-demo/full-demo.md), 기존 #12 |
 | 공통 파일 업로드 | [미디어 설계](../media/README.md). 사진·음성 녹음 업로드 포함 |
 | 질문 관리·질문 답변 | [질문 설계](../question/README.md) |
-| 지도와 기록 ID 연계 | [지도 설계](../map/README.md), [장소 붙이기](../map/record-location.md), #19 |
+| 지도와 기록 ID 연계 | [지도 설계](../map/README.md), [장소 붙이기](../map/memory-location.md), #19 |
 | 공통 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 기존 기록 샘플 | #17·PR #16의 `com.pawmento.record` |
 | 개발 이슈 | [#32](https://github.com/likelion-backendschool-9th/pawmento/issues/32) |

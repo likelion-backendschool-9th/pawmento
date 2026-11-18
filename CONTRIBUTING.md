@@ -132,3 +132,13 @@ PR 본문은 [PR 템플릿](.github/pull_request_template.md)을 따릅니다. �
 | `Refactor` | `refactor` |
 | `Chore`, `Style` | `chore` |
 | `!BREAKING CHANGE` | `breaking change` |
+
+PR은 [PR path labels 워크플로](.github/workflows/labeler.yml)가 바뀐 경로를 보고 라벨을 더 붙입니다. 규칙은 [.github/labeler.yml](.github/labeler.yml)에 있습니다.
+
+- PR을 열 때와 커밋을 추가할 때마다 다시 확인합니다.
+- 붙이기만 하고 지우지 않습니다. 해당 경로의 변경을 모두 되돌렸다면 라벨은 직접 지웁니다.
+
+| 바뀐 경로 | 라벨 |
+| --- | --- |
+| `backend/**` | `backend` |
+| `frontend/**` | `frontend` |

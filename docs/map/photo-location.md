@@ -1,6 +1,6 @@
 # 다이어리 위치와 지도 핀 연결
 
-관련 이슈: [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44). 선행/연계: 지도 조회 [#19](record-location.md), [다이어리 #32](../diary/README.md), [파일 업로드 #33](../media/README.md). 이 문서는 #34의 설계를 [후속 검토 #53](https://github.com/likelion-backendschool-9th/pawmento/issues/53)에서 수정한다.
+관련 이슈: [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44). 선행/연계: 지도 조회 [#19](memory-location.md), [다이어리 #32](../diary/README.md), [파일 업로드 #33](../media/README.md). 이 문서는 #34의 설계를 [후속 검토 #53](https://github.com/likelion-backendschool-9th/pawmento/issues/53)에서 수정한다.
 
 사진 GPS 자동 연결과 수동 위치·위치 해제를 **다이어리 저장 한 경로**로 받는다. 같은 앱·같은 DB의 지도 입력 포트를 다이어리 저장 트랜잭션에서 호출한다. 문서 수정이며 실제 기능 구현 완료를 뜻하지 않는다.
 

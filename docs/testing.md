@@ -8,7 +8,7 @@ AI가 검증하면서 읽는 코드·로그와 반복 호출을 줄이는 기준
 - 문서만 바꾸면 `git diff --check`로 끝낸다. 커밋·PR 생성이나 커밋 합치기 자체는 통과한 검사를 다시 실행하는 이유가 아니다.
 - 주석, 이름 정리처럼 실행 결과가 바뀌지 않는 코드 변경은 컴파일·타입 검사만 한다. 백엔드는 `./gradlew compileJava compileTestJava`, 프론트엔드는 `npx tsc --noEmit`이다. 로직·쿼리·매핑·제약을 바꿨을 때만 관련 테스트를 돌린다.
 - 전체 테스트는 PR의 CI에 맡긴다. 로컬에서는 바꾼 범위만 확인한다.
-  - 프론트엔드: `npm run lint`와 `npx tsc --noEmit`. `npm run build`는 설정·의존성(`next.config.ts`, `package.json`)을 바꿨을 때만 로컬에서 돌린다.
+  - 프론트엔드: `npm run lint`와 `npx tsc --noEmit`. 로직을 바꿨으면 관련 테스트만 `node --experimental-strip-types --test tests/<파일>.test.ts`로 돌린다. `npm run build`는 설정·의존성(`next.config.ts`, `package.json`)을 바꿨을 때만 로컬에서 돌린다.
   - 백엔드: 바꾼 범위의 테스트만 `./gradlew test --tests '<클래스>'`로 돌린다.
 - 테스트 대상, 호출되는 코드, 설정·의존성, 실행 환경이 그대로면 앞서 통과한 결과를 재사용한다. 이 중 하나가 바뀌었거나 결과가 없거나 실패 원인 확인이 필요하면 해당 검사만 다시 실행한다. rebase로 이 조건이 바뀌면 영향을 받은 검사를 확인한다.
 - 테스트 목록 수집(`--list`, Gradle은 `--tests` 필터)은 테스트 추가·삭제, 검색 조건 또는 수집 설정을 바꿨을 때 선택 범위를 확인하는 용도로 쓴다. 이미 확인한 목록과 개수는 그대로 재사용한다.
