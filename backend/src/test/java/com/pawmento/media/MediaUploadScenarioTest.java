@@ -110,7 +110,9 @@ class MediaUploadScenarioTest {
                 .cookie(other.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body("image/png", 3)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+        .andExpect(jsonPath("$.message").value("권한이 없습니다."));
     mvc.perform(get(path(a, id)).cookie(other.cookie())).andExpect(status().isForbidden());
     mvc.perform(get("/api/v1/media/" + id + "?petId=" + other.petId()).cookie(other.cookie()))
         .andExpect(status().isForbidden());
@@ -122,6 +124,8 @@ class MediaUploadScenarioTest {
                 .header("X-Pawmento-Upload", "1"))
         .andExpect(status().isForbidden());
     assertThat(jobs.findById(id)).isEmpty();
+    mvc.perform(get(path(a, id)).cookie(a.cookie()))
+        .andExpect(jsonPath("$.status").value("PENDING"));
   }
 
   @Test
@@ -264,16 +268,20 @@ class MediaUploadScenarioTest {
     long id = session(a, "image/png", 3);
     String url = "http://localhost:" + port + path(a, id, "/content");
     // 이 본문은 multipart로 파싱하면 400이어야 한다. 앞단 거부가 먼저 나와야 한다.
-    assertThat(raw(url, null, null, null)).isEqualTo(401);
-    assertThat(raw(url, a.cookie(), null, "http://localhost:" + port)).isEqualTo(403);
-    assertThat(raw(url, a.cookie(), "1", "http://elsewhere.invalid")).isEqualTo(403);
-    assertThat(raw(url, other.cookie(), "1", "http://localhost:" + port)).isEqualTo(403);
-    assertThat(raw(url, a.cookie(), "1", "http://localhost:" + port)).isEqualTo(400);
+    assertThat(raw(url, null, null, null).statusCode()).isEqualTo(401);
+    assertThat(raw(url, a.cookie(), null, "http://localhost:" + port).statusCode()).isEqualTo(403);
+    assertThat(raw(url, a.cookie(), "1", "http://elsewhere.invalid").statusCode()).isEqualTo(403);
+    var rejected = raw(url, other.cookie(), "1", "http://localhost:" + port);
+    assertThat(rejected.statusCode()).isEqualTo(403);
+    assertThat(JsonPath.<String>read(rejected.body(), "$.code")).isEqualTo("FORBIDDEN");
+    assertThat(JsonPath.<String>read(rejected.body(), "$.message")).isEqualTo("권한이 없습니다.");
+    assertThat(jobs.findById(id)).isEmpty();
+    assertThat(raw(url, a.cookie(), "1", "http://localhost:" + port).statusCode()).isEqualTo(400);
     mvc.perform(get(path(a, id)).cookie(a.cookie()))
         .andExpect(jsonPath("$.status").value("PENDING"));
   }
 
-  int raw(String url, Cookie cookie, String header, String origin) throws Exception {
+  HttpResponse<String> raw(String url, Cookie cookie, String header, String origin) throws Exception {
     var builder =
         HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofSeconds(15))
@@ -283,8 +291,7 @@ class MediaUploadScenarioTest {
     if (header != null) builder.header("X-Pawmento-Upload", header);
     if (origin != null) builder.header("Origin", origin);
     return HttpClient.newHttpClient()
-        .send(builder.build(), HttpResponse.BodyHandlers.discarding())
-        .statusCode();
+        .send(builder.build(), HttpResponse.BodyHandlers.ofString(java.nio.charset.StandardCharsets.UTF_8));
   }
 
   long fileCount() throws Exception {

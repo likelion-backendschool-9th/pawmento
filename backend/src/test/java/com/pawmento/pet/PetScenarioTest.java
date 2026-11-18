@@ -255,7 +255,8 @@ class PetScenarioTest {
 						{"mode":"PARK"}
 						"""))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("모드를 선택해 주세요."));
 
 		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(cookie))
 			.andExpect(status().isOk())
@@ -280,22 +281,30 @@ class PetScenarioTest {
 				""");
 		Cookie other = loginAsNewMember();
 
-		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden());
+		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
 		mockMvc
 			.perform(patch("/api/v1/pets/{petId}", petId).cookie(other)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"name":"훔친콩"}
 						"""))
-			.andExpect(status().isForbidden());
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
 		mockMvc
 			.perform(patch("/api/v1/pets/{petId}/mode", petId).cookie(other)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{"mode":"GARDEN"}
 						"""))
-			.andExpect(status().isForbidden());
-		mockMvc.perform(delete("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden());
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
+		mockMvc.perform(delete("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
 
 		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(owner))
 			.andExpect(status().isOk())
@@ -322,10 +331,57 @@ class PetScenarioTest {
 
 		mockMvc.perform(delete("/api/v1/pets/{petId}", withRecords).cookie(cookie))
 			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.code").value("CONFLICT"));
+			.andExpect(jsonPath("$.code").value("CONFLICT"))
+			.andExpect(jsonPath("$.message").value("기록이 있는 반려동물은 삭제할 수 없습니다."));
 		mockMvc.perform(get("/api/v1/pets/{petId}", withRecords).cookie(cookie))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.name").value("보리"));
+	}
+
+	@Test
+	@DisplayName("#72-S1 도메인 입력 오류는 공통 처리로 400과 기존 메시지를 반환한다")
+	void domainValidationUsesCommonHandler() throws Exception {
+		Cookie cookie = loginAsNewMember();
+		createPet(cookie, """
+				{"name":"콩이","species":"DOG","birthday":"2026-12-15"}
+				""")
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("생일은 오늘 이전으로 입력해 주세요."));
+		Long petId = createPetId(cookie, """
+				{"name":"콩이","species":"DOG"}
+				""");
+		for (String invalid : java.util.List.of(
+			"{\"name\":\" \"}",
+			"{\"name\":\"" + "가".repeat(21) + "\"}",
+			"{\"name\":\"바뀌면안됨\",\"birthday\":\"2026-12-15\"}",
+			"{\"species\":\"BIRD\"}")) {
+			String message = invalid.contains("birthday") ? "생일은 오늘 이전으로 입력해 주세요."
+				: invalid.contains("species") ? "반려동물의 종류를 선택해 주세요." : "이름은 1~20자로 입력해 주세요.";
+			mockMvc.perform(patch("/api/v1/pets/" + petId).cookie(cookie)
+				.contentType(MediaType.APPLICATION_JSON).content(invalid))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION"))
+				.andExpect(jsonPath("$.message").value(message));
+			mockMvc.perform(get("/api/v1/pets/" + petId).cookie(cookie))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("콩이"))
+				.andExpect(jsonPath("$.mode").value("ACTIVE"));
+		}
+	}
+
+	@Test
+	@DisplayName("#72-S3 없는 반려동물의 조회·수정·모드·삭제는 동일한 404 응답이다")
+	void missingPetResponses() throws Exception {
+		Cookie cookie = loginAsNewMember();
+		for (var request : java.util.List.of(
+			get("/api/v1/pets/9223372036854775807"),
+			patch("/api/v1/pets/9223372036854775807").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"콩이\"}"),
+			patch("/api/v1/pets/9223372036854775807/mode").contentType(MediaType.APPLICATION_JSON).content("{\"mode\":\"GARDEN\"}"),
+			delete("/api/v1/pets/9223372036854775807"))) {
+			mockMvc.perform(request.cookie(cookie)).andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("NOT_FOUND"))
+				.andExpect(jsonPath("$.message").value("반려동물을 찾을 수 없습니다."));
+		}
 	}
 
 	private Cookie loginAsNewMember() throws Exception {
