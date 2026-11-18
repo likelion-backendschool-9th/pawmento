@@ -1,0 +1,51 @@
+package com.pawmento.media.adapter.in.web;
+
+import com.pawmento.global.web.ApiPaths;
+import com.pawmento.media.application.port.in.GetMediaUploadResult;
+import java.time.Instant;
+
+public record MediaUploadResponse(
+    Long assetId,
+    Long petId,
+    String purpose,
+    String type,
+    String filename,
+    String declaredMimeType,
+    long declaredSizeBytes,
+    String status,
+    Instant expiresAt,
+    String contentPath,
+    String statusPath,
+    String failureReason,
+    String mimeType,
+    Long sizeBytes,
+    Long durationMs,
+    Integer width,
+    Integer height,
+    String previewPath,
+    String thumbnailPath) {
+  public static MediaUploadResponse from(GetMediaUploadResult r) {
+    String path = ApiPaths.V1 + "/media/" + r.assetId();
+    String query = "?petId=" + r.petId();
+    return new MediaUploadResponse(
+        r.assetId(),
+        r.petId(),
+        r.purpose(),
+        r.type(),
+        r.filename(),
+        r.declaredMimeType(),
+        r.declaredSizeBytes(),
+        r.status(),
+        r.expiresAt(),
+        path + "/content" + query,
+        path + query,
+        r.failureReason(),
+        r.mimeType(),
+        r.sizeBytes(),
+        r.durationMs(),
+        r.width(),
+        r.height(),
+        r.status().equals("READY") ? path + "/preview" + query : null,
+        r.status().equals("READY") && r.thumbnailAvailable() ? path + "/thumbnail" + query : null);
+  }
+}

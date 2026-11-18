@@ -99,6 +99,8 @@ PR 제목은 커밋 메시지와 같은 `유형: 변경 내용` 형식으로 작
 - 본인 외 팀원 1명이 승인해야 합니다. 승인 뒤 커밋을 더 올리면 다시 승인을 받습니다.
 - 필수 CI 검사: `Frontend lint·build`, `Backend test`. 빈 프로젝트 PR에서 CI가 한 번 통과한 뒤 지정합니다. Docker 이미지 빌드는 PR 검사에 넣지 않고 `develop`에 머지한 뒤 배포 단계에서 실행합니다. 빌드가 실패하면 그 배포만 멈추고, 고친 커밋을 머지하면 다시 배포됩니다.
 - "머지 전 최신 상태 요구(Require branches to be up to date)"는 켜지 않습니다. 켜면 누가 머지할 때마다 열려 있는 PR을 모두 갱신하고 CI를 다시 돌려야 합니다.
+- 급한 PR은 저장소 관리자(Admin)가 승인 없이 머지할 수 있습니다. PR 화면에서 "Merge without waiting for requirements to be met (bypass rules)"를 체크해 머지합니다. 이 우회는 필수 CI 검사도 함께 건너뛰므로, 가능하면 CI가 통과한 것을 보고 머지하고 PR 본문에 급하게 머지한 이유를 적습니다. 직접 push는 관리자도 막혀 있습니다.
+- PR이 머지되면 작업 브랜치는 GitHub에서 자동으로 삭제됩니다. 로컬 브랜치는 각자 지웁니다(`git fetch --prune` 후 `git branch -d 브랜치`).
 
 ### PR 본문
 
@@ -132,3 +134,13 @@ PR 본문은 [PR 템플릿](.github/pull_request_template.md)을 따릅니다. �
 | `Refactor` | `refactor` |
 | `Chore`, `Style` | `chore` |
 | `!BREAKING CHANGE` | `breaking change` |
+
+PR은 [PR path labels 워크플로](.github/workflows/labeler.yml)가 바뀐 경로를 보고 라벨을 더 붙입니다. 규칙은 [.github/labeler.yml](.github/labeler.yml)에 있습니다.
+
+- PR을 열 때와 커밋을 추가할 때마다 다시 확인합니다.
+- 붙이기만 하고 지우지 않습니다. 해당 경로의 변경을 모두 되돌렸다면 라벨은 직접 지웁니다.
+
+| 바뀐 경로 | 라벨 |
+| --- | --- |
+| `backend/**` | `backend` |
+| `frontend/**` | `frontend` |

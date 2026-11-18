@@ -12,6 +12,8 @@ public enum ErrorCode {
 	// 이미 있는 값과 충돌 (409)
 	CONFLICT,
 	// 입력값이 규칙에 맞지 않음 (400)
-	VALIDATION
+	VALIDATION,
+	// 파일 저장소를 사용할 수 없음 (503)
+	STORAGE_UNAVAILABLE
 
 }

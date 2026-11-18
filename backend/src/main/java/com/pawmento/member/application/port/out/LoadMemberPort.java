@@ -16,5 +16,4 @@ public interface LoadMemberPort {
 		// 소셜 회원을 제공자와 제공자 사용자 id로 찾는다
 	Optional<Member> loadByProvider(AuthProvider provider, String providerUserId);
 
-	
 }
