@@ -53,7 +53,7 @@ volumes:
   media-data:
 ```
 
-볼륨은 #47의 배포 결정에 따라 external이 아닌 일반 `media-data`로 한다. `COMPOSE_PROJECT_NAME`으로 이름이 구분되며 서버에서는 `pawmento-develop_media-data`를 사용한다. 로컬에서 볼륨을 미리 만들 필요가 없다. `backend/Dockerfile`에서 저장 폴더를 `app` 사용자 소유로 만들어 새 볼륨이 이 소유권을 이어받도록 한다. 기존 볼륨의 권한 이관은 별도로 확인한다. 공개 static/nginx alias로 이 경로를 노출하지 않는다. (고침 #47: 공용 서버의 프로젝트별 볼륨 분리와 로컬 자동 생성 정책 반영) `tmp/`, `files/`, `thumbnails/`를 서버 생성 상대 키로 구분한다.
+볼륨은 #47의 배포 결정에 따라 external이 아닌 일반 `media-data`로 한다. `COMPOSE_PROJECT_NAME`으로 이름이 구분되며 서버에서는 `pawmento-develop_media-data`를 사용한다. 로컬에서 볼륨을 미리 만들 필요가 없다. `backend/Dockerfile`에서 저장 폴더를 `app` 사용자 소유로 만들어 새 볼륨이 이 소유권을 이어받도록 한다. 기존 볼륨의 권한 이관은 별도로 확인한다. 공개 static/nginx alias로 이 경로를 노출하지 않는다. (고침 #47: 공용 서버의 프로젝트별 볼륨 분리와 로컬 자동 생성 정책 반영) 현재 구현은 `tmp/uploads`(수신), `tmp/work`(파서 작업), `files`(서비스본·썸네일)를 서버 생성 상대 키로 구분한다. 파일 배치와 실행 경계는 [실행 문서](runtime.md)를 따른다.
 
 Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 서버 디스크 자체의 유실을 막아주는 백업은 아니다. 이 앱은 우선 **단일 호스트**를 전제로 한다. 개발 서버는 현재 백업하지 않으며 데이터가 사라질 수 있음을 팀에 알린다. **외부 테스터를 받기 전에 DB와 volume을 함께 백업·복구하는 절차를 만들고 복구를 확인한다.** (고침 #47: 개발 서버 백업 준비 시점 명시) 여러 서버로 확장할 때는 이 volume이 자동 공유되지 않으므로 저장 어댑터/인프라를 다시 정한다. [Docker 공식 문서](https://docs.docker.com/engine/storage/volumes/)
 
@@ -108,7 +108,8 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 | `POST /media/uploads?petId={petId}` | JSON: `purpose`, `filename`, `mimeType`, `sizeBytes`, 선택 `locationConsent: {granted, policyVersion}` | 201: `assetId`, `status=PENDING`, `expiresAt`, 인증 업로드 경로 |
 | `POST /media/{assetId}/content?petId={petId}` | multipart, 파일 파트 `file` **한 개만** | 202: PROCESSING과 검증 상태 경로 |
 | `GET /media/{assetId}?petId={petId}` | 없음 | 200: 상태·검증된 메타데이터·실패 사유. 업로더만 조회 |
-| `GET /media/{assetId}/preview?petId={petId}` | 없음 | 미연결 READY의 업로더용 파일 응답 |
+| `GET/HEAD /media/{assetId}/preview?petId={petId}` | 없음 | 미연결 READY의 업로더용 파일 응답 |
+| `GET/HEAD /media/{assetId}/thumbnail?petId={petId}` | 없음 | 같은 권한의 이미지 썸네일 |
 | `DELETE /media/{assetId}?petId={petId}` | 없음 | 미연결 파일 취소/정리 예약 202. 연결 파일은 409 |
 
 가족의 파일 열람 경로는 다음과 같은 후속 제안이며 각 부모 도메인 구현에서 최종 계약을 확정한다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
@@ -122,7 +123,9 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 - 업로드 세션 10분·미연결 READY 24시간은 제안값이며 설정으로 관리한다.
 - multipart는 JSON 전용이라는 기존 CSRF 전제와 다르다. 업로드 요청에 `X-Pawmento-Upload: 1`을 필수로 요구하고, 허용된 같은 출처의 요청만 받는다. 서버는 누락 헤더·다른 Origin을 거부하며 인증/헤더 검사를 multipart 파싱 전에 수행하도록 필터 순서를 검증한다. credential CORS를 임의 출처에 허용하지 않는다. 인증 담당과 이 변경을 함께 구현한다.
-- 공통 `{code, message}` 에러를 유지한다. 미디어의 필수 `petId` 누락·범위 오류도 전용 요청 DTO 검증으로 400 `VALIDATION`을 반환한다. multipart 수신은 파싱 전 필터에서 같은 형식으로 거부한다. 다른 도메인의 필수 쿼리 오류 형식에 대한 공통 결정을 변경하지 않는다. 401 로그인 없음, 403 쓰기/업로더/출처 거부, 404 비가족·없는 자원·무관한 첨부, 400 입력/파트 수 오류, 409 상태·용도·참조 충돌, 413 파일/요청 크기 초과, 415 형식 미지원이다. 비동기 검증 실패는 REJECTED로 조회한다.
+- 필수 `petId`는 URL 쿼리에서만 받는다. 생성·상태 조회·GET/HEAD 미리보기·썸네일·삭제 컨트롤러와 파일 수신 필터가 `MediaPetRequest.fromQuery` 공통 파서로 raw query를 직접 검증한다. `@ModelAttribute`나 요청 DTO의 `@Valid` 바인딩으로 읽지 않으며, 같은 이름의 HTTP 헤더·JSON 본문·multipart 필드는 쿼리를 대신할 수 없다. 유효한 쿼리와 상충하는 헤더가 함께 와도 쿼리 값을 사용한다. (고침 #79: 헤더로 필수 쿼리 검증을 우회하지 못하도록 입력 경로 고정)
+- `petId`의 누락·빈 값·0 이하·숫자가 아닌 값·Long 범위 초과·잘못된 인코딩·중복은 400 `VALIDATION`과 공통 `{code, message}`로 거부한다. URL 디코딩 후 같은 키인 `%70etId`도 중복으로 검사한다. 파일 수신 필터는 `getParameter*`를 호출하지 않고 multipart 본문 파싱 전에 쿼리·소유권을 검사한다. 컨트롤러에서도 같은 파서를 사용하며 파일 파트 수·추가 폼 필드 검사는 유지한다. 다른 도메인의 필수 쿼리 오류 형식에 대한 공통 결정을 변경하지 않는다. (고침 #79: 공통 파서의 오류·실행 경계 명시)
+- 공통 `{code, message}` 에러를 유지한다. 401 로그인 없음, 403 쓰기/업로더/출처 거부, 404 비가족·없는 자원·무관한 첨부, 400 입력/파트 수 오류, 409 상태·용도·참조 충돌, 413 파일/요청 크기 초과, 415 형식 미지원, 503 저장소 장애다. 비동기 검증 실패는 REJECTED로 조회한다. 가족 권한과 부모 첨부 API는 설계 범위이며 현재 구현 경계는 [실행 문서](runtime.md)를 따른다.
 
 ### 요청 크기 설정안
 
@@ -216,6 +219,11 @@ media에서 부모 참조 확인이 필요하면 출력 포트와 각 도메인�
 | 테스트 | #33-S17 multipart 헤더/출처 누락 거부·인증 필터 순서·경로 순회/심볼릭 링크 거부 |
 | 직접 | #33-S18 컨테이너를 다시 만든 뒤 볼륨 파일 유지·프록시 요청 크기·실제 Range 재생 확인 (고침 #47: 개발 서버는 현재 백업하지 않으며 백업·복구 검증은 외부 테스터 수용 전 별도 준비) |
 | 직접 | #33-S19 업로드 전 위치 사용 선택, 미동의 GPS 제거본 전송·제거 실패 시 중단, 서버 세션 동의와 파일 대응 확인 |
+
+### 필수 쿼리 회귀 확인 (#79)
+
+- #79-S1 [테스트] 헤더·JSON 본문·multipart 필드만으로 필수 `petId` 쿼리를 대체할 수 없고, 각 미디어 API의 누락·빈 값·잘못된 값·인코딩된 중복은 공통 400으로 거부한다. 미리보기·썸네일의 HEAD도 같은 상태로 거부하며 파일 수신은 본문 파싱 전에 검사한다.
+- #79-S2 [테스트] 유효한 쿼리와 상충하는 헤더가 함께 와도 쿼리를 기준으로 업로드·상태 조회·GET/HEAD 미리보기·썸네일·삭제가 동작한다.
 
 ## 아직 정하지 않은 것과 범위 밖
 
