@@ -100,10 +100,13 @@ pet의 입력·정상 결과 형식을 바꾸지 않고, 미디어가 사용하�
 #72-S8 호출자 회귀 [테스트]
 - Given media가 pet의 `GetPetUseCase`로 소유를 확인하고 회원 A·B가 서로 다른 반려동물을 갖는다
 - When B가 A의 petId로 미디어 업로드 세션을 만들거나 A의 파일 수신을 시도한다
-- Then 기존 미디어 #33-S2·S17과 같이 403이며, 파일 수신은 multipart 파싱 전에 거절된다
+- Then 두 경로 모두 403과 `code: "FORBIDDEN"`, `message: "권한이 없습니다."`를 받는다. 파일 수신은 multipart 파싱 전에 거절된다. (고침 #72: #86 리뷰에 따라 상태뿐 아니라 code·기존 안내 문구 회귀도 확인)
+- 세션 생성은 B의 로그인 쿠키로 A의 petId에 요청한다. 파싱 전 거절은 유효한 Origin·`X-Pawmento-Upload: 1`·A의 petId/assetId와 B의 쿠키를 사용하고 본문은 잘못된 multipart로 보낸다. 인증·Origin·헤더 오류가 아니라 pet 소유권 거절 경로를 확인한다.
 - When A의 정상 `GetPetQuery`와 존재하지 않는 petId의 Query를 pet 입력 포트에 전달한다
 - Then 정상 결과 구조는 유지되고 없는 대상은 `ResourceNotFoundException` 계열로 실패한다
-- pet 포트의 정상·실패 계약은 pet 소유 테스트에서 검사한다. 실제 미디어 요청 회귀는 기존 `MediaUploadScenarioTest.access`·`guardBeforeParsing`을 실행해 확인하며 미디어 테스트를 임의 수정하지 않는다. 없는 petId의 미디어 404 HTTP 검사까지 기존 두 테스트가 검증한다고 주장하지 않는다. 추가 미디어 검사가 필요하면 미디어 담당과 범위를 맞춘다.
+- pet 포트의 정상·실패 계약은 pet 소유 테스트에서 검사한다. 기존 `MediaUploadScenarioTest.access`·`guardBeforeParsing`은 소유권 거절의 HTTP 상태만 확인하며, `raw` 보조 메서드는 본문을 버린다. **기존 두 메서드 재실행만으로 S8의 code·message 검증이 완료됐다고 표시하지 않는다.**
+- 미디어 담당과 협의해 세션 생성 응답의 JSON 본문 검사 및 실제 HTTP 필터 경로의 응답 본문 읽기/검사를 추가한다. 필터 검사는 현재 본문을 버리는 응답 처리 대신 본문을 읽어 JSON의 code·message를 확인하도록 보완한다. 구체 테스트 파일·담당·변경 범위를 합의하기 전에는 미디어 테스트를 임의 수정하지 않는다. 실제 미디어 요청을 두지 않고 만든 모의 컨트롤러 검사만으로 대체하지 않는다.
+- 두 경로에서 403·code·message와 기존 검증 작업 미생성/자산 PENDING 보존 검사를 함께 확인한다. 없는 petId의 미디어 404 HTTP 검사까지 이 두 소유권 검사가 검증한다고 주장하지 않는다.
 
 ## 범위 밖
 - `member`, 마이페이지(`/me`, `/me/activity`, 내 정보·닉네임·세션·친구 수), 관리자 기능 및 모든 프론트 코드·테스트·리팩터링. 마이페이지는 당분간 다윗 담당이다.
@@ -122,8 +125,8 @@ pet의 입력·정상 결과 형식을 바꾸지 않고, 미디어가 사용하�
    - 파일: 위 예외, 세 서비스, `Pet`의 import, `PetModeParser`·`PetSpeciesParser`의 문구 생성 호출, 관련 pet 테스트. Q2 합의가 필요한 최소 경계 검사를 먼저 준비한다.
    - 확인: backend에서 `./gradlew test --tests '*PetTest' --tests '*PetScenarioTest' --tests '*PetExceptionPropagationTest' --tests '*HexagonalArchitectureTest'` (새 전파 테스트는 구현 PR에서 추가).
 3. 권한·미존재 전환 — S2·S3·S6: `PetOwnershipViolationException`을 domain/exception의 `PermissionDeniedException` 하위로 옮긴다. `PetOwnership`은 조회·도메인 호출만 유지하고 중복 `PetAccessDeniedException`은 참조 확인 후 제거한다. `PetNotFoundException`은 application의 `ResourceNotFoundException`을 상속한다. `GetPetUseCase`, Query, Result의 시그니처는 바꾸지 않는다.
-   - 파일: 해당 예외·보조 객체·도메인 import·pet 단위/요청 테스트와 포트 계약 검사. media/map 호출자는 오류가 공통 기본 예외로 바뀐다는 영향만 공유하고 해당 코드는 수정하지 않는다.
-   - 확인: 2단계 검사로 소유자·타인·없는 대상의 요청 결과와 전파를 확인한다. S8의 기존 미디어 권한·필터 검사도 실행한다.
+   - 파일: 해당 예외·보조 객체·도메인 import·pet 단위/요청 테스트와 포트 계약 검사. media/map 구현 코드는 수정하지 않는다. S8의 미디어 테스트 보완은 미디어 담당과 사전 협의해 담당·최소 파일 범위를 정하고, 그 확인 전 해당 검증 완료나 단계 완료로 표시하지 않는다.
+   - 확인: 2단계 검사로 소유자·타인·없는 대상의 요청 결과와 전파를 확인한다. S8의 본문 검사가 보완된 미디어 세션 생성·필터 거절 검사에서 403·`FORBIDDEN`·`권한이 없습니다.`를 모두 확인한다.
 4. 삭제·동시성 전환 — S4·S5·S6: `DeletePetService`가 `HasPetRecordsPort`의 true 결과에서 `PetHasRecordsException`을 직접 던진다. 중복 도메인 예외·`Pet.requireDeletable`·재포장을 제거한다. `PetHasRecordsException`과 `PetConcurrentModificationException`은 application의 `StateConflictException`을 상속한다. 기술 예외를 바꾸는 어댑터 catch와 flush는 유지한다.
    - 파일: 삭제 예외·서비스·`Pet`의 해당 메서드/기존 단위 검사, 새 `DeletePetServiceTest`·충돌 예외·관련 pet 테스트. 도메인에서 서비스로 옮긴 삭제 거절 검사를 검증 범위 대응표에 최소 기록한다.
    - 확인: `./gradlew test --tests '*PetTest' --tests '*DeletePetServiceTest' --tests '*PetScenarioTest' --tests '*PetExceptionPropagationTest' --tests '*PetConcurrentUpdateTest' --tests '*HexagonalArchitectureTest'`.
@@ -134,7 +137,7 @@ pet의 입력·정상 결과 형식을 바꾸지 않고, 미디어가 사용하�
 ### 선택 검사와 실행 환경
 
 - 입력·권한·삭제 PR에서는 바뀐 pet 단위/포트/요청 검사만, 동시성 PR에서는 `PetConcurrentUpdateTest`까지 실행한다. 마지막 핸들러 제거에서 네 상태 코드와 호출자 경로를 다시 확인한다. 새 전파·포트 테스트는 pet 패키지 안에 둔다.
-- 미디어 호출자 회귀 명령(backend에서): `./gradlew test --tests '*MediaUploadScenarioTest.access' --tests '*MediaUploadScenarioTest.guardBeforeParsing'`.
+- 미디어 호출자 회귀 명령(backend에서): `./gradlew test --tests '*MediaUploadScenarioTest.access' --tests '*MediaUploadScenarioTest.guardBeforeParsing'`. 이 명령은 **S8의 code·message 검사를 담당자와 협의해 추가한 뒤** 완료 근거로 사용한다. 별도 테스트 메서드에 보완하면 해당 선택 명령도 함께 갱신한다. 현재 상태만 확인하는 두 메서드의 통과를 본문 계약 검증으로 간주하지 않는다.
 - #64 이후 pet 요청 검사도 전체 Spring 컨텍스트에서 media 설정을 함께 올린다. [미디어 실행 환경](../media/runtime.md#실행-환경)의 Linux·PostgreSQL Testcontainers·도구 요구를 먼저 확인한다. macOS에서 환경 실패가 나면 pet 소스 오류나 권한 정책 회귀로 단정하지 않고 지원되는 Linux 컨테이너/CI에서 필요한 검사만 확인한다. 도구 설치·공유 설정 변경을 pet 전환에 묶지 않는다.
 - 다른 도메인의 실패를 피하려고 전체 테스트를 끄거나 기존 검증을 삭제하지 않는다. 미디어 테스트를 보완해야 한다면 담당자에게 필요한 검증 계약을 남기고 합의 전 수정하지 않는다.
 
