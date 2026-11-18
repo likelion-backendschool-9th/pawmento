@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import com.pawmento.map.application.exception.RecordLocationAlreadyExistsException;
+import com.pawmento.map.application.exception.RecordLocationPersistenceUnavailableException;
 import com.pawmento.map.domain.RecordLocation;
 
 // DB 없이 어댑터가 무결성 오류를 가려서 변환하는지만 확인한다. 진짜 유일 제약 위반은 저장소 테스트(uniquePerRecord)가 맡는다
@@ -50,21 +51,25 @@ class RecordLocationPersistenceAdapterConstraintTest {
 	}
 
 	@Test
-	@DisplayName("#19-S1 다른 제약을 어긴 무결성 오류는 이미 있는 위치로 바꾸지 않고 그대로 던진다")
-	void keepsOtherConstraintViolation() {
+	@DisplayName("#19-S1 다른 제약을 어긴 무결성 오류는 이미 있는 위치로 바꾸지 않고 저장소 오류로 바꾸며 원인을 보존한다")
+	void otherConstraintViolationIsStorageError() {
 		DataIntegrityViolationException other = violationOf("some_other_constraint");
 		when(repository.save(any())).thenThrow(other);
 
-		assertThatThrownBy(() -> adapter.save(newLocation())).isSameAs(other);
+		assertThatThrownBy(() -> adapter.save(newLocation()))
+			.isInstanceOf(RecordLocationPersistenceUnavailableException.class)
+			.hasCause(other);
 	}
 
 	@Test
-	@DisplayName("#19-S1 제약 정보 없이 온 무결성 오류도 그대로 던진다")
-	void keepsViolationWithoutConstraintInfo() {
+	@DisplayName("#19-S1 제약 정보 없이 온 무결성 오류도 이미 있는 위치로 보지 않고 저장소 오류로 바꾼다")
+	void violationWithoutConstraintInfoIsStorageError() {
 		DataIntegrityViolationException plain = new DataIntegrityViolationException("원인 불명");
 		when(repository.save(any())).thenThrow(plain);
 
-		assertThatThrownBy(() -> adapter.save(newLocation())).isSameAs(plain);
+		assertThatThrownBy(() -> adapter.save(newLocation()))
+			.isInstanceOf(RecordLocationPersistenceUnavailableException.class)
+			.hasCause(plain);
 		assertThat(plain).isNotInstanceOf(RecordLocationAlreadyExistsException.class);
 	}
 
