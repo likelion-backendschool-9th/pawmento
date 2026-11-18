@@ -1,8 +1,9 @@
 package com.pawmento.map.domain.exception;
 
+import com.pawmento.global.exception.RuleViolationException;
+
 // 한 요청의 좌표 묶음이 비었거나 한 번에 너무 많다. 입력값의 규칙 위반이라 응답은 400이다.
-// 공통 기본 예외(#72)가 develop에 들어오면 RuleViolationException을 상속하게 바꾼다
-public class InvalidWalkPointBatchException extends RuntimeException {
+public class InvalidWalkPointBatchException extends RuleViolationException {
 
 	private InvalidWalkPointBatchException(String message) {
 		super(message);

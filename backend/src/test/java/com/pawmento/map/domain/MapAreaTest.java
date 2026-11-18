@@ -6,6 +6,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.map.domain.exception.InvalidCoordinatesException;
+import com.pawmento.map.domain.exception.InvalidMapAreaException;
+
 class MapAreaTest {
 
 	@Test
@@ -28,18 +31,18 @@ class MapAreaTest {
 	@Test
 	@DisplayName("#19-S5 최솟값이 최댓값보다 크면 만들 수 없다")
 	void rejectsMinGreaterThanMax() {
-		assertThatThrownBy(() -> MapArea.of(37.6, 126.9, 37.4, 127.1)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> MapArea.of(37.4, 127.1, 37.6, 126.9)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> MapArea.of(37.6, 126.9, 37.4, 127.1)).isInstanceOf(InvalidMapAreaException.class);
+		assertThatThrownBy(() -> MapArea.of(37.4, 127.1, 37.6, 126.9)).isInstanceOf(InvalidMapAreaException.class);
 	}
 
 	@Test
 	@DisplayName("#19-S5 위도·경도 범위를 벗어난 영역은 만들 수 없다")
 	void rejectsOutOfRange() {
-		assertThatThrownBy(() -> MapArea.of(-91.0, 0.0, 0.0, 0.0)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> MapArea.of(0.0, 0.0, 91.0, 0.0)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> MapArea.of(0.0, -181.0, 0.0, 0.0)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> MapArea.of(0.0, 0.0, 0.0, 181.0)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> MapArea.of(Double.NaN, 0.0, 0.0, 0.0)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> MapArea.of(-91.0, 0.0, 0.0, 0.0)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> MapArea.of(0.0, 0.0, 91.0, 0.0)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> MapArea.of(0.0, -181.0, 0.0, 0.0)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> MapArea.of(0.0, 0.0, 0.0, 181.0)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> MapArea.of(Double.NaN, 0.0, 0.0, 0.0)).isInstanceOf(InvalidCoordinatesException.class);
 	}
 
 }

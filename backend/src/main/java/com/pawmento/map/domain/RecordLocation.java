@@ -1,5 +1,7 @@
 package com.pawmento.map.domain;
 
+import com.pawmento.map.domain.exception.InvalidRecordLocationException;
+
 /**
  * 기록 하나에 붙은 위치. 기록 하나에는 위치 하나만 붙는다.
  * 다른 도메인의 엔티티를 참조하지 않고 기록·반려동물·회원의 id만 가진다.
@@ -64,7 +66,7 @@ public class RecordLocation {
 		}
 		String trimmed = placeName.strip();
 		if (trimmed.length() > PLACE_NAME_MAX_LENGTH) {
-			throw new IllegalArgumentException("장소 이름은 " + PLACE_NAME_MAX_LENGTH + "자 이하여야 합니다.");
+			throw InvalidRecordLocationException.placeNameTooLong(PLACE_NAME_MAX_LENGTH);
 		}
 		return trimmed;
 	}

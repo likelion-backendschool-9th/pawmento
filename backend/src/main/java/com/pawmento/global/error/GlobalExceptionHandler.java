@@ -65,6 +65,14 @@ class GlobalExceptionHandler {
     return new ErrorResponse(ErrorCode.STORAGE_UNAVAILABLE, e.getMessage());
   }
 
+  @ExceptionHandler(StoredDataInvalidException.class)
+  @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+  ErrorResponse handle(StoredDataInvalidException e) {
+    // 원인(cause)을 스택 트레이스로 남긴다. 응답에는 예외 메시지나 원인을 넣지 않는다
+    log.error("Stored data violates domain rules", e);
+    return new ErrorResponse(ErrorCode.INTERNAL_ERROR, "서버에서 데이터를 읽지 못했습니다. 잠시 후 다시 시도해 주세요.");
+  }
+
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   ResponseEntity<ErrorResponse> tooLarge(MaxUploadSizeExceededException e) {
     return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)

@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
@@ -54,6 +55,9 @@ class MapPinScenarioTest {
 
 	@Autowired
 	private SaveRecordLocationPort saveRecordLocationPort;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private record Guardian(long id, Cookie cookie) {
 	}
@@ -132,6 +136,26 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, "minLatitude=37.0&minLongitude=128.0&maxLatitude=38.0&maxLongitude=126.0"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"));
+	}
+
+	@Test
+	@DisplayName("#19-S5 저장된 행이 도메인 규칙에 맞지 않으면 핀 조회는 400 VALIDATION이 아니라 500 INTERNAL_ERROR이고 내부 정보는 응답에 없다")
+	void storedRowBreakingDomainRuleIsServerError() throws Exception {
+		Guardian me = signUpAndLogin();
+		// 이모지 128개: PostgreSQL varchar(255)에는 들어가지만 Java String.length()는 256이다
+		jdbcTemplate.update("""
+				insert into record_location (record_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
+				values (?, ?, ?, 37.5, 127.0, ?, now(), now())
+				""", RECORD_IDS.incrementAndGet(), PET, me.id(), "\uD83D\uDC36".repeat(128));
+
+		MvcResult result = mockMvc.perform(pins(me, PET, AREA))
+			.andExpect(status().isInternalServerError())
+			.andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+			.andReturn();
+
+		// 장소 이름 규칙 문구, 예외 이름, 행 id 같은 내부 정보를 응답에 싣지 않는다
+		String body = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(body).doesNotContain("장소 이름").doesNotContain("Exception").doesNotContain("id=");
 	}
 
 	@Test

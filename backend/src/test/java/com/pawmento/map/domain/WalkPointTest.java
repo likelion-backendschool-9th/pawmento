@@ -8,6 +8,8 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.map.domain.exception.InvalidCoordinatesException;
+
 class WalkPointTest {
 
 	private static final Instant AT = Instant.parse("2026-11-17T01:00:00Z");
@@ -26,12 +28,12 @@ class WalkPointTest {
 	@Test
 	@DisplayName("#73-S5 위도·경도가 범위를 벗어나거나 숫자가 아니면 만들 수 없고, 경계값은 허용한다")
 	void coordinateRange() {
-		assertThatThrownBy(() -> WalkPoint.of(5L, 91.0, 127.0, AT)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> WalkPoint.of(5L, -90.1, 127.0, AT)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> WalkPoint.of(5L, 37.0, 180.1, AT)).isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> WalkPoint.of(5L, Double.NaN, 127.0, AT)).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> WalkPoint.of(5L, 91.0, 127.0, AT)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> WalkPoint.of(5L, -90.1, 127.0, AT)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> WalkPoint.of(5L, 37.0, 180.1, AT)).isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> WalkPoint.of(5L, Double.NaN, 127.0, AT)).isInstanceOf(InvalidCoordinatesException.class);
 		assertThatThrownBy(() -> WalkPoint.of(5L, 37.0, Double.POSITIVE_INFINITY, AT))
-			.isInstanceOf(IllegalArgumentException.class);
+			.isInstanceOf(InvalidCoordinatesException.class);
 		WalkPoint.of(5L, 90.0, 180.0, AT);
 		WalkPoint.of(5L, -90.0, -180.0, AT);
 	}

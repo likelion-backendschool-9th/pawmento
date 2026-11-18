@@ -2,6 +2,8 @@ package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
 
+import com.pawmento.global.exception.RuleViolationException;
+import com.pawmento.map.application.exception.StoredLocationInvalidException;
 import com.pawmento.map.domain.WalkPoint;
 
 import jakarta.persistence.Column;
@@ -43,8 +45,15 @@ class WalkPointJpaEntity {
 	@Column(name = "recorded_at", nullable = false)
 	private Instant recordedAt;
 
+	// 저장된 좌표가 도메인 규칙에 맞지 않으면 요청 입력 오류(400)가 아니라 저장 데이터 오류(500)다.
+	// 원인은 cause로 보존한다(RecordLocationJpaEntity.toDomain() 참고)
 	WalkPoint toDomain() {
-		return WalkPoint.of(walkId, latitude, longitude, recordedAt);
+		try {
+			return WalkPoint.of(walkId, latitude, longitude, recordedAt);
+		}
+		catch (RuleViolationException e) {
+			throw new StoredLocationInvalidException("저장된 산책 좌표가 도메인 규칙에 맞지 않습니다. id=" + id, e);
+		}
 	}
 
 }
