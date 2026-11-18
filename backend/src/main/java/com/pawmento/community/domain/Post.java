@@ -3,10 +3,11 @@ package com.pawmento.community.domain;
 import java.time.Instant;
 
 import com.pawmento.community.domain.exception.InvalidPostException;
+import com.pawmento.community.domain.exception.NotPostAuthorException;
 
 import lombok.Getter;
 
-// 커뮤니티 글. Spring·JPA를 모른다. 입력 규칙을 여기서 지킨다.
+// 커뮤니티 글. Spring·JPA를 모른다. 입력 규칙과 작성자 확인을 여기서 지킨다.
 // 시각은 만들지 않는다. 영속성 어댑터가 채운 값을 불러올 때 받는다
 @Getter
 public class Post {
@@ -16,9 +17,9 @@ public class Post {
 
 	private Long id;
 	private final Long authorId;
-	private final PostCategory category;
-	private final String title;
-	private final String body;
+	private PostCategory category;
+	private String title;
+	private String body;
 	private Instant createdAt;
 	private Instant updatedAt;
 	// 지우면 true가 되고, 영속성 어댑터가 deleted_at을 채운다
@@ -51,6 +52,33 @@ public class Post {
 		post.deleted = deleted;
 		post.version = version;
 		return post;
+	}
+
+	// 카테고리·제목·본문을 모두 바꾼다(부분 수정 없음). 규칙을 어기면 아무것도 바꾸지 않는다
+	public void edit(Long memberId, PostCategory category, String title, String body) {
+		requireWrittenBy(memberId);
+		PostCategory newCategory = requireCategory(category);
+		String newTitle = requireTitle(title);
+		String newBody = requireBody(body);
+		this.category = newCategory;
+		this.title = newTitle;
+		this.body = newBody;
+	}
+
+	public void delete(Long memberId) {
+		requireWrittenBy(memberId);
+		this.deleted = true;
+	}
+
+	public boolean writtenBy(Long memberId) {
+		return authorId.equals(memberId);
+	}
+
+	// 수정은 카테고리를 찾기 전에 이것부터 불러, 남의 글이면 카테고리와 상관없이 403이 되게 한다
+	public void requireWrittenBy(Long memberId) {
+		if (!writtenBy(memberId)) {
+			throw new NotPostAuthorException();
+		}
 	}
 
 	private static PostCategory requireCategory(PostCategory category) {

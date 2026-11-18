@@ -54,7 +54,7 @@ class WalkRowLockTest {
 				Walk walk = adapter.loadByIdForUpdate(id).orElseThrow();
 				firstHoldsLock.countDown();
 				await(releaseFirst);
-				walk.end(endedAt);
+				walk.end(1L, endedAt);
 				adapter.save(walk);
 			}));
 			assertThat(firstHoldsLock.await(10, TimeUnit.SECONDS)).isTrue();

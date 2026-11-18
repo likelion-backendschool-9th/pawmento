@@ -96,7 +96,7 @@ class WalkPersistenceAdapterTest {
 		Long id = saveWalk(PET, MEMBER, NOW);
 		Walk walk = adapter.loadById(id).orElseThrow();
 		Instant endedAt = NOW.plusSeconds(120);
-		walk.end(endedAt);
+		walk.end(1L, endedAt);
 
 		adapter.save(walk);
 		flushAndClear();
@@ -143,10 +143,10 @@ class WalkPersistenceAdapterTest {
 		Walk first = adapter.loadById(id).orElseThrow();
 		Walk second = adapter.loadById(id).orElseThrow();
 		Instant firstEndedAt = NOW.plusSeconds(60);
-		first.end(firstEndedAt);
+		first.end(1L, firstEndedAt);
 		adapter.save(first);
 		flushAndClear();
-		second.end(NOW.plusSeconds(90));
+		second.end(1L, NOW.plusSeconds(90));
 
 		assertThatThrownBy(() -> {
 			adapter.save(second);
@@ -162,7 +162,7 @@ class WalkPersistenceAdapterTest {
 	void savingSameEndedAtIsAllowed() {
 		Long id = saveWalk(PET, MEMBER, NOW);
 		Walk walk = adapter.loadById(id).orElseThrow();
-		walk.end(NOW.plusSeconds(60));
+		walk.end(1L, NOW.plusSeconds(60));
 		adapter.save(walk);
 		flushAndClear();
 
@@ -348,7 +348,7 @@ class WalkPersistenceAdapterTest {
 		Long stale = saveWalk(PET, MEMBER, NOW.minusSeconds(3600));
 		Long ended = saveWalk(PET + 1, MEMBER, NOW);
 		Walk walk = adapter.loadById(ended).orElseThrow();
-		walk.end(NOW.plusSeconds(30));
+		walk.end(1L, NOW.plusSeconds(30));
 		adapter.save(walk);
 		flushAndClear();
 

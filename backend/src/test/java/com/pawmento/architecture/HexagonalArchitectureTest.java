@@ -31,6 +31,9 @@ class HexagonalArchitectureTest {
 							if (domain.equals("pet")) {
 								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|PermissionDeniedException)";
 							}
+							if (domain.equals("member")) {
+								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|StateConflictException)";
+							}
 							assertThat(dependency).as("%s -> %s", relative, dependency).matches(allowed);
 						} else if (relative.contains("/application/")) {
 							if (relative.startsWith("pet/application/exception/")) {

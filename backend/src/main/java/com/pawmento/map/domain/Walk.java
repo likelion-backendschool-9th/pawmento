@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 import com.pawmento.map.domain.exception.InvalidWalkPointBatchException;
+import com.pawmento.map.domain.exception.NotWalkOwnerException;
 import com.pawmento.map.domain.exception.WalkNotInProgressException;
 import com.pawmento.map.domain.exception.WalkPointLimitExceededException;
 
@@ -75,8 +76,16 @@ public class Walk {
 		return WalkStatus.IN_PROGRESS;
 	}
 
-	// 산책을 끝낸다. 이미 끝났거나 중단된 산책은 바꾸지 않는다. 같은 요청을 다시 보내도 같은 결과가 되게 하기 위해서다
-	public void end(Instant now) {
+	/**
+	 * 산책을 끝낸다. 시작한 회원만 끝낼 수 있고, 이 검사가 상태 확인보다 먼저다.
+	 * 이미 끝났거나 중단된 산책은 바꾸지 않는다. 같은 요청을 다시 보내도 같은 결과가 되게 하기 위해서다.
+	 *
+	 * @param requesterId 끝내려는 회원
+	 */
+	public void end(Long requesterId, Instant now) {
+		if (!createdBy.equals(requesterId)) {
+			throw new NotWalkOwnerException();
+		}
 		if (status(now) != WalkStatus.IN_PROGRESS) {
 			return;
 		}

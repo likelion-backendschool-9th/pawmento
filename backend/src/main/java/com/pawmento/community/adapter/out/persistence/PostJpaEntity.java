@@ -66,6 +66,27 @@ class PostJpaEntity {
 		return entity;
 	}
 
+	// 불러온 글의 바뀐 값을 옮긴다. 도메인이 들고 온 버전을 그대로 넣어, 그사이 다른 요청이 저장했으면 충돌하게 한다
+	static PostJpaEntity changed(Post post, Instant now) {
+		PostJpaEntity entity = new PostJpaEntity();
+		entity.id = post.getId();
+		entity.authorId = post.getAuthorId();
+		entity.categoryId = post.getCategory().getId();
+		entity.title = post.getTitle();
+		entity.body = post.getBody();
+		entity.createdAt = post.getCreatedAt();
+		entity.version = post.getVersion();
+		if (post.isDeleted()) {
+			// 지울 때는 고친 시각을 바꾸지 않는다
+			entity.updatedAt = post.getUpdatedAt();
+			entity.deletedAt = now;
+		}
+		else {
+			entity.updatedAt = now;
+		}
+		return entity;
+	}
+
 	Post toDomain(PostCategory category) {
 		return Post.restore(id, authorId, category, title, body, createdAt, updatedAt, deletedAt != null, version);
 	}

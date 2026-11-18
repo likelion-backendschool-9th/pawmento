@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
-import com.pawmento.member.application.exception.InvalidNicknameException;
 import com.pawmento.member.application.port.in.MemberResult;
 import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
@@ -15,7 +14,6 @@ import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.HashPasswordPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
-import com.pawmento.member.domain.InvalidMemberNicknameException;
 import com.pawmento.member.domain.Member;
 
 import lombok.RequiredArgsConstructor;
@@ -34,14 +32,8 @@ public class SignUpMemberService implements SignUpMemberUseCase {
 		if (existsMemberPort.existsByEmail(Member.normalizeEmail(command.email()))) {
 			throw new DuplicateEmailException();
 		}
-		Member member;
-		try {
-			member = Member.register(command.email(), passwordHasher.hash(command.rawPassword()), command.nickname(),
+		Member member = Member.register(command.email(), passwordHasher.hash(command.rawPassword()), command.nickname(),
 					Instant.now(clock));
-		}
-		catch (InvalidMemberNicknameException e) {
-			throw new InvalidNicknameException(e.getMessage());
-		}
 		return MemberResult.from(saveMemberPort.save(member));
 	}
 }
