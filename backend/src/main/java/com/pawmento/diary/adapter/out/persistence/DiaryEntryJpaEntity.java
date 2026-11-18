@@ -14,22 +14,22 @@ public class DiaryEntryJpaEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "pet_id", nullable = false)
+  @Column(nullable = false)
   private Long petId;
 
-  @Column(name = "created_by", nullable = false)
+  @Column(nullable = false)
   private Long createdBy;
 
   @Column(nullable = false, length = 3000)
   private String content;
 
-  @Column(name = "recorded_date", nullable = false)
+  @Column(nullable = false)
   private LocalDate recordedDate;
 
-  @Column(name = "created_at", nullable = false)
+  @Column(nullable = false)
   private Instant createdAt;
 
-  @Column(name = "updated_at", nullable = false)
+  @Column(nullable = false)
   private Instant updatedAt;
 
   @Version private Long version;

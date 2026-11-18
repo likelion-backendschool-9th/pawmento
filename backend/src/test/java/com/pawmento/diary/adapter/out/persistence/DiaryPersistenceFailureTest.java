@@ -51,4 +51,20 @@ class DiaryPersistenceFailureTest {
       reset(rows);
     }
   }
+
+  @Test
+  @DisplayName("#32-S22 pet의 알려진 삭제 제한은 공통 충돌 예외로 변환하며 원인을 보존한다")
+  void petConstraintCause() {
+    var rows = mock(PetJpaRepository.class);
+    var adapter = new PetPersistenceAdapter(rows);
+    for (String state : new String[] {"23001", "23503"}) {
+      var error = failure("fk_diary_entries_pet", state);
+      doThrow(error).when(rows).flush();
+      assertThatThrownBy(() -> adapter.deleteById(1L))
+          .isInstanceOf(com.pawmento.pet.application.exception.PetHasRecordsException.class)
+          .isInstanceOf(com.pawmento.global.exception.StateConflictException.class)
+          .hasCause(error);
+      reset(rows);
+    }
+  }
 }

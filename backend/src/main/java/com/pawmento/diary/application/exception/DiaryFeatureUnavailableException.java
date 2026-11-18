@@ -1,4 +1,4 @@
-package com.pawmento.diary.adapter.in.web.exception;
+package com.pawmento.diary.application.exception;
 
 import com.pawmento.global.exception.StateConflictException;
 

@@ -17,6 +17,7 @@ public class EditDiaryEntryService implements EditDiaryEntryUseCase {
   @Override
   @Transactional
   public GetDiaryEntryResult edit(EditDiaryEntryCommand c) {
+    DiaryWritePolicy.requireTextOnly(c.features());
     access.requireAccess(c.memberId(), c.petId());
     var entry = DiaryEntryAccess.load(load, c.petId(), c.recordId());
     entry.requireAuthor(c.memberId());

@@ -17,6 +17,7 @@ public class CreateDiaryEntryService implements CreateDiaryEntryUseCase {
   @Override
   @Transactional
   public GetDiaryEntryResult create(CreateDiaryEntryCommand c) {
+    DiaryWritePolicy.requireTextOnly(c.features());
     access.requireAccess(c.memberId(), c.petId());
     return GetDiaryEntryResult.from(
         save.save(

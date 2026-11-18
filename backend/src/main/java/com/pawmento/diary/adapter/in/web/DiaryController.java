@@ -25,9 +25,9 @@ public class DiaryController {
     DiaryRequestValues.id(petId);
     String content = DiaryRequestValues.text(request.content(), true);
     var date = DiaryRequestValues.date(request.recordedDate(), true);
-    DiaryRequestValues.unsupported(request.attachmentIds(), request.location());
+    var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
-        create.create(new CreateDiaryEntryCommand(memberId, petId, content, date)));
+        create.create(new CreateDiaryEntryCommand(memberId, petId, content, date, features)));
   }
 
   @GetMapping("/{recordId}")
@@ -49,9 +49,11 @@ public class DiaryController {
     String content = DiaryRequestValues.text(request.content(), false);
     var date = DiaryRequestValues.date(request.recordedDate(), false);
     Long version = DiaryRequestValues.version(request.version());
-    DiaryRequestValues.unsupported(request.attachmentIds(), request.location());
+    var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
-        edit.edit(new EditDiaryEntryCommand(memberId, petId, recordId, content, date, version)));
+        edit.edit(
+            new EditDiaryEntryCommand(
+                memberId, petId, recordId, content, date, version, features)));
   }
 
   @DeleteMapping("/{recordId}")

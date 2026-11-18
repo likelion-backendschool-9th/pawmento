@@ -244,11 +244,13 @@ class DiaryScenarioTest {
               json(
                   post(url(pet)),
                   "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\"," + extra + "}"))
-          .andExpect(status().isConflict());
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.code").value("CONFLICT"));
       call(
               9001,
               json(patch(url(pet) + "/" + id), "{\"content\":\"x\",\"version\":0," + extra + "}"))
-          .andExpect(status().isConflict());
+          .andExpect(status().isConflict())
+          .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
     for (String extra :
         List.of(
