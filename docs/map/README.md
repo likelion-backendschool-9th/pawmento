@@ -7,7 +7,7 @@
 | 이슈 | 내용 | 문서 |
 | --- | --- | --- |
 | [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44) | 다이어리 사진 GPS로 지도 핀 자동 연결 | [photo-location.md](photo-location.md) |
-| [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19) | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [record-location.md](record-location.md) |
+| [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19) | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [memory-location.md](memory-location.md) |
 
 ## 정한 것
 

@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.LoginMember;
-import com.pawmento.member.adapter.in.web.dto.UpdateNicknameRequest;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameUseCase;
 import com.pawmento.member.application.port.in.GetMemberQuery;
@@ -30,7 +29,7 @@ class MemberController {
 	}
 
 	@PatchMapping("/me")
-	MemberResponse changeNickname(@LoginMember Long memberId, @Valid @RequestBody UpdateNicknameRequest request) {
+	MemberResponse changeNickname(@LoginMember Long memberId, @Valid @RequestBody UpdateMemberNicknameRequest request) {
 		return MemberResponse.from(changeMemberNicknameUseCase
 				.changeNickname(new ChangeMemberNicknameCommand(memberId, request.nickname())));
 	}

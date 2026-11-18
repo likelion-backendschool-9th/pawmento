@@ -11,11 +11,11 @@ import org.springframework.stereotype.Component;
 
 import com.pawmento.global.security.AuthProperties;
 import com.pawmento.global.security.JwtClaims;
-import com.pawmento.member.application.port.out.TokenIssuer;
+import com.pawmento.member.application.port.out.IssueTokenPort;
 import com.pawmento.member.domain.MemberRole;
 
 @Component
-class JwtTokenIssuer implements TokenIssuer {
+class JwtTokenIssuer implements IssueTokenPort {
 
 	private final JwtEncoder jwtEncoder;
 

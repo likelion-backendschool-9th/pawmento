@@ -32,7 +32,7 @@ class ChangeMemberNicknameServiceTest {
 	@DisplayName("#52-S3 도메인의 입력 오류만 애플리케이션 입력 예외로 변환한다")
 	void invalidNicknameIsTranslated() {
 		Member member = Member.register("a@example.com", "hash", "보호자", NOW);
-		when(load.findForNicknameChange(1L)).thenReturn(Optional.of(member));
+		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, " ")))
 				.isInstanceOf(InvalidNicknameException.class);
 	}
@@ -42,7 +42,7 @@ class ChangeMemberNicknameServiceTest {
 	void limitIsTranslated() {
 		Member member = Member.register("a@example.com", "hash", "보호자", NOW);
 		member.changeNickname("첫번째", NOW, SEOUL);
-		when(load.findForNicknameChange(1L)).thenReturn(Optional.of(member));
+		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "두번째")))
 				.isInstanceOf(NicknameChangeLimitException.class);
 	}
@@ -51,7 +51,7 @@ class ChangeMemberNicknameServiceTest {
 	@DisplayName("#52-S3 저장소 장애를 닉네임 한도 오류로 오인하지 않는다")
 	void infrastructureFailureIsNotBusinessError() {
 		Member member = Member.register("a@example.com", "hash", "보호자", NOW);
-		when(load.findForNicknameChange(1L)).thenReturn(Optional.of(member));
+		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
 		IllegalStateException failure = new IllegalStateException("storage unavailable");
 		when(save.save(any())).thenThrow(failure);
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "콩이 보호자")))

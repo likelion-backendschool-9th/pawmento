@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
@@ -15,7 +16,7 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort {
+class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, ExistsMemberPort {
 
 	private final MemberJpaRepository jpaRepository;
 
@@ -35,12 +36,12 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort {
 	}
 
 	@Override
-	public Optional<Member> findById(Long id) {
+	public Optional<Member> loadById(Long id) {
 		return jpaRepository.findById(id).map(MemberJpaEntity::toDomain);
 	}
 
 	@Override
-	public Optional<Member> findByEmail(String email) {
+	public Optional<Member> loadByEmail(String email) {
 		return jpaRepository.findByEmail(email).map(MemberJpaEntity::toDomain);
 	}
 
@@ -50,7 +51,7 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort {
 	}
 
 	@Override
-	public Optional<Member> findForNicknameChange(Long memberId) {
+	public Optional<Member> loadForNicknameChange(Long memberId) {
 		return jpaRepository.findForNicknameChange(memberId).map(MemberJpaEntity::toDomain);
 	}
 

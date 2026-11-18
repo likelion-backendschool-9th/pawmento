@@ -1,6 +1,6 @@
-package com.pawmento.record.adapter.out.persistence;
+package com.pawmento.memory.adapter.out.persistence;
 
-import com.pawmento.record.domain.Record;
+import com.pawmento.memory.domain.Memory;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -9,8 +9,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "records")
-public class RecordJpaEntity {
+@Table(name = "memories")
+public class MemoryJpaEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -18,12 +18,12 @@ public class RecordJpaEntity {
     private Long petId;
     private String content;
 
-    public RecordJpaEntity() {}
+    public MemoryJpaEntity() {}
 
-    public static RecordJpaEntity from(Record record) {
-        RecordJpaEntity entity = new RecordJpaEntity();
-        entity.petId = record.getPetId();
-        entity.content = record.getContent();
+    public static MemoryJpaEntity from(Memory memory) {
+        MemoryJpaEntity entity = new MemoryJpaEntity();
+        entity.petId = memory.getPetId();
+        entity.content = memory.getContent();
         return entity;
     }
 

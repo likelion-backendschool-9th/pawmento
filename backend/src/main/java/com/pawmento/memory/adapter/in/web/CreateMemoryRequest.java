@@ -1,10 +1,10 @@
-package com.pawmento.record.adapter.in.web;
+package com.pawmento.memory.adapter.in.web;
 
-public class CreateRecordRequest {
+public class CreateMemoryRequest {
     private Long petId;
     private String content;
 
-    public CreateRecordRequest() {}
+    public CreateMemoryRequest() {}
 
     public Long getPetId() {
         return petId;

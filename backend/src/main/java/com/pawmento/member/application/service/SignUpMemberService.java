@@ -12,7 +12,8 @@ import com.pawmento.member.application.port.in.MemberResult;
 import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 import com.pawmento.member.application.port.out.LoadMemberPort;
-import com.pawmento.member.application.port.out.PasswordHasher;
+import com.pawmento.member.application.port.out.ExistsMemberPort;
+import com.pawmento.member.application.port.out.HashPasswordPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.InvalidMemberNicknameException;
 import com.pawmento.member.domain.Member;
@@ -22,15 +23,15 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SignUpMemberService implements SignUpMemberUseCase {
-	private final LoadMemberPort loadMemberPort;
+	private final ExistsMemberPort existsMemberPort;
 	private final SaveMemberPort saveMemberPort;
-	private final PasswordHasher passwordHasher;
+	private final HashPasswordPort passwordHasher;
 	private final Clock clock;
 
 	@Override
 	@Transactional
 	public MemberResult signUp(SignUpMemberCommand command) {
-		if (loadMemberPort.existsByEmail(Member.normalizeEmail(command.email()))) {
+		if (existsMemberPort.existsByEmail(Member.normalizeEmail(command.email()))) {
 			throw new DuplicateEmailException();
 		}
 		Member member;
