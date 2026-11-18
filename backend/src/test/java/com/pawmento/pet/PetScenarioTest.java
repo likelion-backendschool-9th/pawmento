@@ -330,7 +330,8 @@ class PetScenarioTest {
 
 		mockMvc.perform(delete("/api/v1/pets/{petId}", withRecords).cookie(cookie))
 			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.code").value("CONFLICT"));
+			.andExpect(jsonPath("$.code").value("CONFLICT"))
+			.andExpect(jsonPath("$.message").value("기록이 있는 반려동물은 삭제할 수 없습니다."));
 		mockMvc.perform(get("/api/v1/pets/{petId}", withRecords).cookie(cookie))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.name").value("보리"));

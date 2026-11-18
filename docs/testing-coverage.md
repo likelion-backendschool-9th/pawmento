@@ -34,3 +34,11 @@
 - 한도 직전의 산책에 좌표를 쌓는 요청이 동시에 여러 개 와도 합계가 5,000개를 넘지 않는다.
 
 설계 문서: [산책로](map/walk-route.md)
+
+## pet 삭제 거절의 애플리케이션 이동 (#72)
+
+| 기존 검사 | 새 검사 위치 | 유지·제외 범위 |
+| --- | --- | --- |
+| `PetTest.recordsBlockDeletion`의 #46-S10: 기록이 있으면 도메인에서 삭제 거절·이름 보존 | `DeletePetServiceTest.recordsBlockDeletion`의 #46-S10: 가짜 기록 포트가 true이면 `PetHasRecordsException`·삭제 포트 미호출·원본 보존. false이면 삭제 호출 | 기존 `PetScenarioTest.deletePet`의 HTTP 409·원본 보존 및 정상 204·재조회 404를 유지한다. 실제 diary/question 기록 DB 연결은 검증하지 않는다. |
+
+기록 유무를 조회한 결과에 따른 삭제 거절은 애플리케이션에서 판단한다. 기존 #46-S10 번호를 유지하며 테스트 설명에 `(고침 #72: 기록 조회에 따른 삭제 거절을 애플리케이션에서 판단)`을 표시한다.

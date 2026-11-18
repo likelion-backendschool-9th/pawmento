@@ -82,12 +82,6 @@ public class Pet {
 		}
 	}
 
-	public void requireDeletable(boolean hasRecords) {
-		if (hasRecords) {
-			throw new PetDeletionBlockedException();
-		}
-	}
-
 	public boolean ownedBy(Long memberId) {
 		return ownerMemberId.equals(memberId);
 	}

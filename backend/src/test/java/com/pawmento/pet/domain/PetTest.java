@@ -27,15 +27,6 @@ class PetTest {
 	}
 
 	@Test
-	@DisplayName("#46-S10 기록 존재 여부를 받아 도메인이 삭제 가능 여부를 판단한다")
-	void recordsBlockDeletion() {
-		Pet pet = pet();
-		assertThatCode(() -> pet.requireDeletable(false)).doesNotThrowAnyException();
-		assertThatThrownBy(() -> pet.requireDeletable(true)).isInstanceOf(PetDeletionBlockedException.class);
-		assertThat(pet.getName()).isEqualTo("콩이");
-	}
-
-	@Test
 	@DisplayName("#46-S7 잘못된 모드는 전용 예외를 던지고 기존 모드를 유지한다")
 	void invalidModeKeepsState() {
 		Pet pet = pet();
