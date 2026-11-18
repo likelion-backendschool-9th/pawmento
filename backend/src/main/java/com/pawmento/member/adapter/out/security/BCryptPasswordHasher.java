@@ -27,7 +27,11 @@ class BCryptPasswordHasher implements HashPasswordPort {
 		if (rawPassword.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
 			return false;
 		}
-		return encoder.matches(rawPassword, passwordHash == null ? absentMemberPasswordHash : passwordHash);
+		if (passwordHash == null) {
+			encoder.matches(rawPassword, absentMemberPasswordHash); // 시간만 맞추기
+			return false;
+		}
+		return encoder.matches(rawPassword, passwordHash);
 	}
 
 }
