@@ -2,8 +2,10 @@ package com.pawmento.community;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -227,10 +229,84 @@ class PostScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#21-S11 쿠키 없이 글을 쓰면 401이다")
+	@DisplayName("#21-S8 작성자가 고치면 200이고, 상세가 고친 값과 늦어진 updatedAt을 주며 목록 카테고리가 바뀐다")
+	void editPost() throws Exception {
+		Member a = loginAsNewMember();
+		Long postId = createPostId(a.cookie(), "CARE", "제목", "본문");
+
+		editPost(a.cookie(), postId, "MEMORIAL", "고친 제목", "고친 본문").andExpect(status().isOk())
+			.andExpect(jsonPath("$.category").value("MEMORIAL"))
+			.andExpect(jsonPath("$.title").value("고친 제목"));
+
+		MvcResult detail = mockMvc.perform(get(POSTS + "/" + postId))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.category").value("MEMORIAL"))
+			.andExpect(jsonPath("$.categoryName").value("추모 방식"))
+			.andExpect(jsonPath("$.title").value("고친 제목"))
+			.andExpect(jsonPath("$.body").value("고친 본문"))
+			.andReturn();
+		Instant createdAt = readInstant(detail, "$.createdAt");
+		Instant updatedAt = readInstant(detail, "$.updatedAt");
+		assertThat(updatedAt).isAfter(createdAt);
+
+		assertThat(listedIds("MEMORIAL")).contains(postId);
+		assertThat(listedIds("CARE")).doesNotContain(postId);
+	}
+
+	@Test
+	@DisplayName("#21-S9 작성자가 지우면 204이고, 상세는 404, 목록에 없으며 DB 행은 deleted_at이 채워진 채 남는다")
+	void deletePost() throws Exception {
+		Member a = loginAsNewMember();
+		Long postId = createPostId(a.cookie(), "CARE", "제목", "본문");
+
+		mockMvc.perform(delete(POSTS + "/" + postId).cookie(a.cookie())).andExpect(status().isNoContent());
+
+		mockMvc.perform(get(POSTS + "/" + postId))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.code").value("NOT_FOUND"));
+		assertThat(listedIds("CARE")).doesNotContain(postId);
+		Instant deletedAt = jdbcTemplate.queryForObject("SELECT deleted_at FROM posts WHERE id = ?", Instant.class,
+				postId);
+		assertThat(deletedAt).isNotNull();
+
+		// 지운 글을 다시 지워도 404다
+		mockMvc.perform(delete(POSTS + "/" + postId).cookie(a.cookie())).andExpect(status().isNotFound());
+	}
+
+	@Test
+	@DisplayName("#21-S10 다른 회원이 고치거나 지우면 403 FORBIDDEN이고 글은 그대로 목록에 남는다")
+	void otherMemberCannotEditOrDelete() throws Exception {
+		Member a = loginAsNewMember();
+		Member b = loginAsNewMember();
+		Long postId = createPostId(a.cookie(), "CARE", "제목", "본문");
+
+		editPost(b.cookie(), postId, "CARE", "남이 고친 제목", "남이 고친 본문").andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
+		mockMvc.perform(delete(POSTS + "/" + postId).cookie(b.cookie()))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
+		// 없는 카테고리나 숨긴 카테고리를 보내도 남의 글이면 403이다
+		ensureHiddenCategory();
+		editPost(b.cookie(), postId, "NOPE", "남이 고친 제목", "남이 고친 본문").andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
+		editPost(b.cookie(), postId, HIDDEN, "남이 고친 제목", "남이 고친 본문").andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"));
+
+		mockMvc.perform(get(POSTS + "/" + postId))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.title").value("제목"))
+			.andExpect(jsonPath("$.body").value("본문"));
+		assertThat(listedIds("CARE")).contains(postId);
+	}
+
+	@Test
+	@DisplayName("#21-S11 쿠키 없이 쓰기·고치기·지우기를 부르면 401이다")
 	void writeWithoutLogin() throws Exception {
 		mockMvc.perform(post(POSTS).contentType(MediaType.APPLICATION_JSON).content(postJson("CARE", "제목", "본문")))
 			.andExpect(status().isUnauthorized());
+		mockMvc.perform(put(POSTS + "/1").contentType(MediaType.APPLICATION_JSON).content(postJson("CARE", "제목", "본문")))
+			.andExpect(status().isUnauthorized());
+		mockMvc.perform(delete(POSTS + "/1")).andExpect(status().isUnauthorized());
 	}
 
 	@Test
@@ -279,10 +355,25 @@ class PostScenarioTest {
 				"$.postId");
 	}
 
+	private ResultActions editPost(Cookie cookie, Long postId, String category, String title, String body)
+			throws Exception {
+		return mockMvc.perform(put(POSTS + "/" + postId).cookie(cookie)
+			.contentType(MediaType.APPLICATION_JSON)
+			.content(postJson(category, title, body)));
+	}
+
 	private static String postJson(String category, String title, String body) {
 		return """
 				{"category":"%s","title":"%s","body":"%s"}
 				""".formatted(category, title, body);
+	}
+
+	private List<Long> listedIds(String category) throws Exception {
+		MvcResult result = mockMvc.perform(get(POSTS).param("category", category).param("size", "50"))
+			.andExpect(status().isOk())
+			.andReturn();
+		List<Number> ids = JsonPath.read(result.getResponse().getContentAsString(), "$.posts[*].postId");
+		return ids.stream().map(Number::longValue).toList();
 	}
 
 	private int postCount() {
@@ -313,6 +404,11 @@ class PostScenarioTest {
 	private static Long readLong(MvcResult result, String path) throws Exception {
 		Number value = JsonPath.read(result.getResponse().getContentAsString(), path);
 		return value.longValue();
+	}
+
+	private static Instant readInstant(MvcResult result, String path) throws Exception {
+		String value = JsonPath.read(result.getResponse().getContentAsString(), path);
+		return Instant.parse(value);
 	}
 
 }

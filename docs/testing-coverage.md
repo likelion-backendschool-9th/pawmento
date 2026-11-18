@@ -52,3 +52,11 @@
 | #21-S13 `ListPostsServiceTest.outOfRangePageIsRejected`: 서비스가 `size` 0·51, `cursor` 0을 `InvalidPostPageException`으로 거절 | `PostScenarioTest.listOutOfRange`: 같은 값을 HTTP로 보내 400 `VALIDATION`과 오류 문구 확인 | 서비스는 범위를 다시 검사하지 않는다. 웹 요청을 거치지 않고 서비스를 부르는 경로는 없다 |
 | #21-S4 `ListPostsServiceTest.defaultSizeIsTwenty`: `size`가 없으면 서비스가 20개씩 읽음 | `PostScenarioTest.listWithCursor`: 첫 요청에 `size`를 보내지 않고 20개와 `nextCursor`를 받는지 확인 | 기본값은 `ListPostsRequest`가 채운다. 서비스 단위 테스트는 기본값을 보지 않는다 |
 
+## 커뮤니티 글 동시 수정 (#21)
+
+리뷰를 반영하면서 #21-S14의 확인 위치를 서비스·포트 호출에서 HTTP 요청으로 옮겼다. 시나리오 번호는 그대로 둔다.
+
+| 기존 기준 | 새 확인 위치 | 남는 확인 범위 |
+| --- | --- | --- |
+| #21-S14 수정 중 삭제: 수정 스레드는 트랜잭션 안에서 `LoadPostPort`로 읽고 `Post.edit` 뒤 `UpdatePostPort.update`를 직접 부르고, 삭제 스레드는 그 사이에 유스케이스로 삭제를 커밋한다. 수정 쪽 예외가 `PostConcurrentModificationException`인지 확인 | `PostConcurrentUpdateTest.editAfterDeleteIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 삭제를 커밋하고, PUT 응답이 409 `CONFLICT`인지와 DB에 원래 제목·본문과 `deleted_at`이 남았는지 확인 | 예외 타입은 직접 보지 않고 HTTP 응답 코드로 확인한다. 끼어드는 삭제는 HTTP가 아니라 유스케이스 호출이다 |
+| #21-S14 겹친 수정: 먼저 읽은 글로 `UpdatePostPort.update`를 불러 예외 타입을 확인 | `PostConcurrentUpdateTest.laterEditIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 수정을 커밋하고, PUT 응답이 409 `CONFLICT`인지와 먼저 저장된 값이 남았는지 확인 | 영속성 어댑터를 직접 부르는 검사는 `conflictKeepsCause` 하나로, 409 예외가 저장소의 충돌 예외를 cause로 남기는지만 본다(#84 리뷰). 끼어드는 수정은 HTTP가 아니라 유스케이스 호출이다 |
