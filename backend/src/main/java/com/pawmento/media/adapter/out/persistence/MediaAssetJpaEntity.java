@@ -16,55 +16,54 @@ public class MediaAssetJpaEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @Column(name = "uploader_member_id", nullable = false)
+  @Column(nullable = false)
   private Long uploaderMemberId;
 
-  @Column(name = "pet_id", nullable = false)
+  @Column(nullable = false)
   private Long petId;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "purpose", nullable = false, length = 40)
+  @Column(nullable = false, length = 40)
   private MediaPurpose purpose;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "media_type", nullable = false, length = 16)
+  @Column(nullable = false, length = 16)
   private MediaType mediaType;
 
-  @Column(name = "original_filename", nullable = false, length = 255)
+  @Column(nullable = false, length = 255)
   private String originalFilename;
 
-  @Column(name = "declared_mime_type", nullable = false, length = 100)
+  @Column(nullable = false, length = 100)
   private String declaredMimeType;
 
-  @Column(name = "declared_size_bytes", nullable = false)
+  @Column(nullable = false)
   private long declaredSizeBytes;
 
-  @Column(name = "temporary_storage_key", nullable = false, length = 36, unique = true)
+  @Column(nullable = false, length = 36, unique = true)
   private String temporaryStorageKey;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "status", nullable = false, length = 20)
+  @Column(nullable = false, length = 20)
   private MediaUploadStatus status;
 
-  @Column(name = "created_at", nullable = false)
+  @Column(nullable = false)
   private Instant createdAt;
 
-  @Column(name = "expires_at", nullable = false)
+  @Column(nullable = false)
   private Instant expiresAt;
 
-  @Column(name = "updated_at", nullable = false)
+  @Column(nullable = false)
   private Instant updatedAt;
 
-  @Column(name = "received_size_bytes")
   private Long receivedSizeBytes;
 
-  @Column(name = "sha256", length = 64)
+  @Column(length = 64)
   private String sha256;
 
-  @Column(name = "failure_reason", length = 100)
+  @Column(length = 100)
   private String failureReason;
 
-  @Column(name = "temporary_file_deleted", nullable = false)
+  @Column(nullable = false)
   private boolean temporaryFileDeleted;
 
   @Embedded private VerifiedMediaColumns verified;
