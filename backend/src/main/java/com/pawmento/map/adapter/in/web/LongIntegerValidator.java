@@ -5,7 +5,7 @@ import java.math.BigDecimal;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-// @Digits는 지수가 매우 큰 값(1e999999999)에서 자릿수 계산이 넘쳐 통과시키고, 19자리 Long 값은 거절한다.
+// @Digits는 지수가 매우 큰 값(1e2147483647)에서 자릿수 계산이 넘쳐 통과시키고, 19자리 Long 값은 거절한다.
 // 자릿수를 세지 않고 "소수점 아래 자릿수가 없는가"와 "Long 범위인가"를 직접 비교한다
 class LongIntegerValidator implements ConstraintValidator<LongInteger, BigDecimal> {
 

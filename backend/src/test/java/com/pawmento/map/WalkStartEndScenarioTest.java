@@ -263,8 +263,8 @@ class WalkStartEndScenarioTest {
 		Guardian me = signUpAndLogin();
 
 		// 범위 밖: 처리되지 않은 예외(500)가 아니라 400 VALIDATION
-		for (String petId : new String[] { "9223372036854775808", "-9223372036854775809", "1e30", "1e999999999",
-				"-1e999999999", "1e-999999999" }) {
+		for (String petId : new String[] { "9223372036854775808", "-9223372036854775809", "1e30", "1e2147483647",
+				"-1e2147483647", "1e-999999999" }) {
 			MvcResult result = mockMvc
 				.perform(post("/api/v1/maps/walks").cookie(me.cookie())
 					.contentType(MediaType.APPLICATION_JSON)
