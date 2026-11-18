@@ -31,7 +31,7 @@ public class PetJpaEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "owner_member_id", nullable = false)
+	@Column(nullable = false)
 	private Long ownerMemberId;
 
 	@Column(nullable = false, length = 20)

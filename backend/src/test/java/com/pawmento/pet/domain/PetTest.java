@@ -9,6 +9,9 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+import com.pawmento.pet.domain.exception.PetOwnershipViolationException;
+
 class PetTest {
 	private Pet pet() {
 		return Pet.create(1L, "콩이", "abcd", PetSpecies.DOG, null, null, LocalDate.of(2026, 11, 17));
@@ -21,15 +24,6 @@ class PetTest {
 		assertThatCode(() -> pet.requireOwnedBy(1L)).doesNotThrowAnyException();
 		assertThatThrownBy(() -> pet.requireOwnedBy(2L)).isInstanceOf(PetOwnershipViolationException.class);
 		assertThatThrownBy(() -> pet.requireOwnedBy(null)).isInstanceOf(PetOwnershipViolationException.class);
-	}
-
-	@Test
-	@DisplayName("#46-S10 기록 존재 여부를 받아 도메인이 삭제 가능 여부를 판단한다")
-	void recordsBlockDeletion() {
-		Pet pet = pet();
-		assertThatCode(() -> pet.requireDeletable(false)).doesNotThrowAnyException();
-		assertThatThrownBy(() -> pet.requireDeletable(true)).isInstanceOf(PetDeletionBlockedException.class);
-		assertThat(pet.getName()).isEqualTo("콩이");
 	}
 
 	@Test

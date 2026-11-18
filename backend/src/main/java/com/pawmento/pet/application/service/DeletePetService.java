@@ -9,8 +9,6 @@ import com.pawmento.pet.application.port.in.DeletePetUseCase;
 import com.pawmento.pet.application.port.out.DeletePetPort;
 import com.pawmento.pet.application.port.out.HasPetRecordsPort;
 import com.pawmento.pet.application.port.out.LoadPetPort;
-import com.pawmento.pet.domain.Pet;
-import com.pawmento.pet.domain.PetDeletionBlockedException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,11 +23,8 @@ public class DeletePetService implements DeletePetUseCase {
 	@Override
 	@Transactional
 	public void delete(DeletePetCommand command) {
-		Pet pet = PetOwnership.requireOwnedPet(loadPetPort, command.petId(), command.memberId());
-		try {
-			pet.requireDeletable(hasPetRecordsPort.existsByPetId(command.petId()));
-		}
-		catch (PetDeletionBlockedException e) {
+		PetOwnership.requireOwnedPet(loadPetPort, command.petId(), command.memberId());
+		if (hasPetRecordsPort.existsByPetId(command.petId())) {
 			throw new PetHasRecordsException();
 		}
 		deletePetPort.deleteById(command.petId());
