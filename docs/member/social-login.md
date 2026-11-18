@@ -58,7 +58,7 @@
 - Then  401과 `code: "UNAUTHORIZED"`를 받고 쿠키를 받지 못한다
 
 #40-S8 확인된 이메일 없음 [테스트]
-- Given 제공자가 이메일을 주지 않거나 `email_verified: false`다
+- Given 제공자가 이메일을 주지 않거나, 확인된 이메일이 아니다(구글 `email_verified: false`, 카카오 `is_email_valid`·`is_email_verified` 중 하나라도 false, 네이버 `@naver.com`이 아닌 주소)
 - Then  401과 "이메일 제공에 동의해야 가입할 수 있습니다" 문구를 받고 가입되지 않는다
 
 #40-S9 지원하지 않는 제공자 [테스트]
@@ -69,20 +69,24 @@
 소셜로만 가입한 회원은 이메일·비밀번호로 로그인할 수 없다.
 
 #40-S10 실패 [테스트]
-- Given S1로 가입한 소셜 회원이 있다
-- When  `POST /api/v1/auth/login`에 그 이메일과 아무 비밀번호를 보낸다
+- Given S1로 가입한 소셜 회원(`password_hash: null`)이 있다
+- When  `POST /api/v1/auth/login`에 그 이메일과 비밀번호 `"wrong-password"`를 보낸다
 - Then  이메일 로그인 실패와 같은 401을 받는다
+- When  비밀번호를 `"absent-member-password"`(더미 비교에 쓰는 문자열)로 보낸다
+- Then  역시 401을 받고 쿠키를 받지 못한다
 
 ## 6. 카카오·네이버 (#40-R6)
 카카오·네이버도 R1~R5와 같이 동작한다. 제공자별 응답 차이는 어댑터 안에서 끝난다.
 
 #40-S11 카카오 [테스트]
-- Given 카카오가 `id`, `kakao_account.email`, `profile.nickname`을 준다
+- Given 카카오가 `id`, `kakao_account.email`, `is_email_valid: true`, `is_email_verified: true`, `profile.nickname`을 준다
 - Then  S1과 같이 `provider: KAKAO`로 가입된다
+- Given `is_email_verified: false`면 S8과 같이 가입되지 않는다
 
 #40-S12 네이버 [테스트]
-- Given 네이버가 `response.id`, `response.email`, `response.nickname`을 준다
+- Given 네이버가 `response.id`, `response.email: "dawit@naver.com"`, `response.nickname`을 준다
 - Then  S1과 같이 `provider: NAVER`로 가입된다. 토큰 교환 요청에 `state`가 함께 간다
+- Given `response.email`이 `@naver.com`이 아니면(Q1) S8과 같이 가입되지 않는다
 
 ## 7. 설정 (#40-R7)
 제공자 키는 환경 변수로만 받고, 키가 없어도 앱은 켜진다.
@@ -97,6 +101,18 @@
 - When  브라우저로 구글 로그인 후 받은 code로 S1 요청을 보낸다
 - Then  가입되고 쿠키를 받는다
 
+#40-S15 같은 계정 동시 첫 로그인 [테스트]
+- Given 가입하지 않은 구글 계정 `sub: "g-123"`이 있다
+- When  같은 계정으로 첫 소셜 로그인 요청 두 개가 동시에 온다
+- Then  두 요청 모두 200과 같은 `id`를 받는다
+- Then  `member` 행은 하나만 생긴다
+
+#40-S16 같은 이메일 동시 가입 [테스트]
+- Given `dawit@gmail.com`으로 가입한 회원이 없다
+- When  같은 이메일의 구글 계정과 카카오 계정으로 첫 소셜 로그인이 동시에 온다
+- Then  한쪽만 200으로 가입되고, 다른 쪽은 409와 `code: "CONFLICT"`를 받는다
+- Then  `member` 행은 하나만 생긴다
+
 ## 범위 밖
 - 계정 연결·해제(한 회원에 여러 로그인 방법 붙이기): 이메일 인증이 생긴 뒤 다룬다
 - 소셜 회원의 비밀번호 설정, refresh 토큰, 회원 탈퇴: 스프린트 1 이후 member에서 다룬다
@@ -104,8 +120,8 @@
 - iOS 홈 화면 PWA에서 리다이렉트 동작 확인: 프론트엔드 이슈에서 다룬다
 
 ## 작업 순서
-1. 회원에 가입 방식과 소셜 계정 정보 추가 — S10의 기반
-   - 파일: `member/domain/Member.java`, `AuthProvider.java`, `adapter/out/persistence/MemberJpaEntity.java`, `LoadMemberPort.java`
+1. 회원에 가입 방식과 소셜 계정 정보 추가, 소셜 회원의 비밀번호 로그인 차단 — S10의 기반
+   - 파일: `member/domain/Member.java`, `AuthProvider.java`, `adapter/out/persistence/MemberJpaEntity.java`, `LoadMemberPort.java`, `application/service/LoginMemberService.java`, `adapter/out/security/BCryptPasswordHasher.java`
    - 확인: `./gradlew test` (기존 가입·로그인 테스트가 그대로 통과)
 2. 소셜 로그인 유스케이스와 예외 — S5, S7~S9의 응답 형식
    - 파일: `port/in/SocialLoginMember{Command,UseCase}.java`, `application/exception/Social…`, `MemberExceptionHandler.java`
@@ -113,9 +129,8 @@
 3. 구글 프로필 어댑터 — S7, S8, S13
    - 파일: `adapter/out/oauth/*`, `application.yml`
    - 확인: `./gradlew test --tests '*GoogleProfileClientTest'`
-4. 소셜 로그인 서비스 — S1~S6
-   - 파일: `application/service/SocialLoginMemberService.java`
-   - 확인: `./gradlew test --tests '*SocialLoginScenarioTest'`
+4. 소셜 로그인 서비스 — S1~S6, S15, S16
+   - 파일: `application/service/SocialLoginMemberService.java`, `adapter/out/persistence/MemberPersistenceAdapter.java`, `application/exception/DuplicateSocialAccountException.java`
 5. 소셜 로그인 API와 공개 경로 — S1, S9
    - 파일: `adapter/in/web/AuthController.java`, `SocialLoginMemberRequest.java`, `global/security/PublicEndpoints.java`, `docs/member/README.md`
    - 확인: 같은 명령
@@ -125,7 +140,9 @@
 7. 실제 구글 계정으로 확인 — S14
 
 ## 정한 것
-- 이메일 하나에 계정 하나다. 로컬이든 소셜이든 이미 있는 이메일로는 새로 가입하지 않고 409로 막는다. 이메일이 다르면 한 사람이 여러 계정을 가져도 된다. 자동으로 연결하지 않는 이유는 자체 가입에 이메일 인증이 없어서, 다른 사람이 그 이메일로 먼저 가입해 둔 계정에 들어가게 될 수 있기 때문이다(계정 선점). 계정 연결은 이메일 인증이 생긴 뒤 다룬다.
+- 제공자가 확인한 이메일만 쓴다. 구글은 `email_verified`, 카카오는 `is_email_valid`와 `is_email_verified`가 모두 true일 때다. 네이버는 확인 표시를 주지 않아 Q1로 정한다. 확인된 이메일이 없으면 가입하지 않는다. 확인되지 않은 이메일을 받으면 다른 사람의 이메일을 먼저 선점해 그 사람의 가입을 막을 수 있기 때문이다.
+- 소셜 회원(비밀번호 없음)은 이메일 로그인에서 없는 회원과 같이 다룬다. 응답 시간을 맞추는 더미 비교는 하되 결과와 상관없이 401이다.
+- 같은 소셜 계정의 첫 로그인이 동시에 오면 진 쪽은 저장된 회원을 다시 찾아 같은 회원으로 로그인한다. 같은 이메일의 다른 제공자 가입이 동시에 오면 진 쪽은 409다.
 - 소셜 로그인은 Spring Security의 `oauth2Login()` 대신 인가 코드 방식으로 처리한다. 프론트가 받은 code를 백엔드가 교환해서, 제공자마다 출력 어댑터 하나가 되게 한다.
 - 로컬 회원과 소셜 회원은 생성 메서드부터 나눈다. 소셜 회원은 비밀번호 해시가 없고(`password_hash` nullable), 로컬 가입은 도메인에서 해시를 반드시 받는다.
 - 소셜 회원은 이메일이 아니라 `(provider, provider_user_id)`로 찾는다. 제공자에서 이메일이 바뀌어도 사용자 id는 그대로라서다. DB에도 이 둘에 유니크 제약을 둔다.
@@ -146,3 +163,5 @@
 - 카카오는 이메일을 필수 동의로 받으려면 비즈 앱 전환이 필요할 수 있다. 콘솔에서 확인한다.
 - `ddl-auto: update`는 기존 컬럼의 NOT NULL을 풀어 주지 않는다. 이 변경을 받은 뒤 로컬 DB는 `docker compose down -v`로 비우고, 개발 서버 DB도 따로 처리해야 한다.
 - 환경 변수 이름은 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`(카카오·네이버도 같은 형식)이다. 개발 서버 `.env.prod.example`에도 더한다.
+- 카카오 사용자 정보의 `kakao_account`에는 `has_email`, `email_needs_agreement`, `is_email_valid`, `is_email_verified`, `email`이 온다.
+- 네이버 프로필 응답의 `response.email`에는 확인 여부 필드가 없다.
