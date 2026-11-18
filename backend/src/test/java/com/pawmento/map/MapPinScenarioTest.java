@@ -1,6 +1,7 @@
 package com.pawmento.map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -16,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
@@ -54,6 +56,9 @@ class MapPinScenarioTest {
 
 	@Autowired
 	private SaveRecordLocationPort saveRecordLocationPort;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
 
 	private record Guardian(long id, Cookie cookie) {
 	}
@@ -132,6 +137,21 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, "minLatitude=37.0&minLongitude=128.0&maxLatitude=38.0&maxLongitude=126.0"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"));
+	}
+
+	@Test
+	@DisplayName("#19-S5 저장된 행이 도메인 규칙에 맞지 않으면 핀 조회는 400 VALIDATION이 아니라 처리되지 않은 서버 오류(500)가 된다")
+	void storedRowBreakingDomainRuleIsServerError() throws Exception {
+		Guardian me = signUpAndLogin();
+		// 이모지 128개: PostgreSQL varchar(255)에는 들어가지만 Java String.length()는 256이다
+		jdbcTemplate.update("""
+				insert into record_location (record_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
+				values (?, ?, ?, 37.5, 127.0, ?, now(), now())
+				""", RECORD_IDS.incrementAndGet(), PET, me.id(), "\uD83D\uDC36".repeat(128));
+
+		// MockMvc는 처리되지 않은 예외를 상태 코드로 바꾸지 않고 던진다. 400 핸들러가 잡았다면 던지지 않고 400을 돌려준다
+		assertThatThrownBy(() -> mockMvc.perform(pins(me, PET, AREA)))
+			.hasRootCauseInstanceOf(IllegalStateException.class);
 	}
 
 	@Test

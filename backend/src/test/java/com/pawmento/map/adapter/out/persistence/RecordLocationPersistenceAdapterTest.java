@@ -257,7 +257,8 @@ class RecordLocationPersistenceAdapterTest {
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 
 		assertThatThrownBy(() -> adapter.loadByRecordId(500L)).isInstanceOf(IllegalStateException.class)
-			.hasCauseInstanceOf(com.pawmento.map.domain.exception.InvalidRecordLocationException.class);
+			.hasMessageContaining("장소 이름은 255자 이하여야 합니다.")
+			.hasNoCause();
 		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10)).isInstanceOf(IllegalStateException.class);
 	}
 
