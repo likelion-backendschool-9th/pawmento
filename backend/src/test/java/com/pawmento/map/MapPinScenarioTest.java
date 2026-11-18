@@ -1,7 +1,6 @@
 package com.pawmento.map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -140,7 +139,7 @@ class MapPinScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#19-S5 저장된 행이 도메인 규칙에 맞지 않으면 핀 조회는 400 VALIDATION이 아니라 처리되지 않은 서버 오류(500)가 된다")
+	@DisplayName("#19-S5 저장된 행이 도메인 규칙에 맞지 않으면 핀 조회는 400 VALIDATION이 아니라 500 INTERNAL_ERROR이고 내부 정보는 응답에 없다")
 	void storedRowBreakingDomainRuleIsServerError() throws Exception {
 		Guardian me = signUpAndLogin();
 		// 이모지 128개: PostgreSQL varchar(255)에는 들어가지만 Java String.length()는 256이다
@@ -149,9 +148,14 @@ class MapPinScenarioTest {
 				values (?, ?, ?, 37.5, 127.0, ?, now(), now())
 				""", RECORD_IDS.incrementAndGet(), PET, me.id(), "\uD83D\uDC36".repeat(128));
 
-		// MockMvc는 처리되지 않은 예외를 상태 코드로 바꾸지 않고 던진다. 400 핸들러가 잡았다면 던지지 않고 400을 돌려준다
-		assertThatThrownBy(() -> mockMvc.perform(pins(me, PET, AREA)))
-			.hasRootCauseInstanceOf(IllegalStateException.class);
+		MvcResult result = mockMvc.perform(pins(me, PET, AREA))
+			.andExpect(status().isInternalServerError())
+			.andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+			.andReturn();
+
+		// 장소 이름 규칙 문구, 예외 이름, 행 id 같은 내부 정보를 응답에 싣지 않는다
+		String body = result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+		assertThat(body).doesNotContain("장소 이름").doesNotContain("Exception").doesNotContain("id=");
 	}
 
 	@Test

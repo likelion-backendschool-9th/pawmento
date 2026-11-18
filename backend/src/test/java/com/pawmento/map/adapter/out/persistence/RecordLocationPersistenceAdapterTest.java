@@ -245,7 +245,7 @@ class RecordLocationPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#19-S5 DB에는 들어가지만 Java 길이로 255자를 넘는 장소 이름의 행은 400이 아니라 저장 데이터 오류(IllegalStateException)로 읽힌다")
+	@DisplayName("#19-S5 DB에는 들어가지만 Java 길이로 255자를 넘는 장소 이름의 행은 400이 아니라 저장 데이터 오류(StoredLocationInvalidException, 원인 보존)로 읽힌다")
 	void storedRowBreakingDomainRuleIsStorageError() {
 		// 이모지 128개: PostgreSQL varchar(255)는 문자 수로 128이라 들어가고, Java String.length()는 256이다
 		String emojiName = "\uD83D\uDC36".repeat(128);
@@ -256,10 +256,10 @@ class RecordLocationPersistenceAdapterTest {
 		flushAndClear();
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 
-		assertThatThrownBy(() -> adapter.loadByRecordId(500L)).isInstanceOf(IllegalStateException.class)
-			.hasMessageContaining("장소 이름은 255자 이하여야 합니다.")
-			.hasNoCause();
-		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10)).isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> adapter.loadByRecordId(500L)).isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class)
+			.hasCauseInstanceOf(com.pawmento.map.domain.exception.InvalidRecordLocationException.class);
+		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10))
+			.isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class);
 	}
 
 	@Test

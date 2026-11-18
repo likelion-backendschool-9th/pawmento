@@ -37,6 +37,17 @@ class CommonExceptionResponseTest {
   }
 
   @Test
+  @DisplayName("#72-S1 저장 데이터 오류는 원인(cause)이 400 예외여도 500 INTERNAL_ERROR이고 원인·메시지를 응답에 싣지 않는다")
+  void storedDataInvalid() throws Exception {
+    mvc.perform(get("/fixture/stored-invalid"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+        .andExpect(
+            content()
+                .string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("internal row"))));
+  }
+
+  @Test
   @DisplayName("#33-S16 프로그래밍 오류 IllegalArgumentException을 사용자 입력 400으로 숨기지 않는다")
   void programmingError() {
     assertThatThrownBy(() -> mvc.perform(get("/fixture/programming")))
@@ -80,6 +91,9 @@ class CommonExceptionResponseTest {
         case "storage" ->
             throw new StorageUnavailableException(
                 "safe message", new java.io.IOException("internal storage path")) {};
+        case "stored-invalid" ->
+            throw new StoredDataInvalidException(
+                "internal row 5", new RuleViolationException("cause is a 400 exception") {}) {};
         case "multipart-large" ->
             throw new org.springframework.web.multipart.MaxUploadSizeExceededException(15728640);
         case "multipart-invalid" ->

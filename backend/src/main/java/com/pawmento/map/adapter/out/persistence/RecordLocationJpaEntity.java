@@ -3,6 +3,7 @@ package com.pawmento.map.adapter.out.persistence;
 import java.time.Instant;
 
 import com.pawmento.global.exception.RuleViolationException;
+import com.pawmento.map.application.exception.StoredLocationInvalidException;
 import com.pawmento.map.domain.RecordLocation;
 
 import jakarta.persistence.Column;
@@ -86,14 +87,14 @@ class RecordLocationJpaEntity {
 
 	// 저장된 행이 도메인 규칙에 맞지 않으면 요청 입력 오류(400)가 아니라 저장 데이터 오류(500)다.
 	// 예: DB의 varchar(255)에는 들어가지만 Java String.length()로는 255를 넘는 이모지 이름.
-	// 원인 예외를 cause로 달지 않는다. Spring MVC는 최상위 예외에 맞는 핸들러가 없으면 cause를 따라가
-	// RuleViolationException의 400 핸들러를 고르기 때문이다. 원인은 메시지에 남긴다
+	// 원인은 cause로 보존한다. StoredDataInvalidException을 전역 핸들러가 500으로 명시적으로 처리하므로
+	// Spring MVC가 cause의 RuleViolationException(400 핸들러)을 따라가지 않는다
 	RecordLocation toDomain() {
 		try {
 			return RecordLocation.restore(id, recordId, petId, createdBy, latitude, longitude, placeName);
 		}
 		catch (RuleViolationException e) {
-			throw new IllegalStateException("저장된 위치가 도메인 규칙에 맞지 않습니다. id=" + id + ", 원인: " + e.getMessage());
+			throw new StoredLocationInvalidException("저장된 위치가 도메인 규칙에 맞지 않습니다. id=" + id, e);
 		}
 	}
 

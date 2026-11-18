@@ -14,6 +14,8 @@ public enum ErrorCode {
 	// 입력값이 규칙에 맞지 않음 (400)
 	VALIDATION,
 	// 파일 저장소를 사용할 수 없음 (503)
-	STORAGE_UNAVAILABLE
+	STORAGE_UNAVAILABLE,
+	// 저장된 데이터가 규칙에 맞지 않는 등 서버 쪽 문제 (500)
+	INTERNAL_ERROR
 
 }

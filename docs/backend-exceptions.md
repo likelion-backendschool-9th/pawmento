@@ -32,12 +32,14 @@
 | `ContentLimitExceededException` | 전송하는 내용이 크기 제한을 넘음 | 413 `VALIDATION` | `MediaSizeLimitExceededException`, `MediaContentLimitExceededException` |
 | `UnsupportedFormatException` | 지원하지 않는 내용 형식 | 415 `VALIDATION` | `UnsupportedMediaFormatException` |
 | `StorageUnavailableException` | 파일·메타데이터 저장소의 일시 장애 | 503 `STORAGE_UNAVAILABLE` | `MediaStorageUnavailableException`, `MediaPersistenceUnavailableException` |
+| `StoredDataInvalidException` | 이미 저장된 데이터가 도메인 규칙에 맞지 않아 복원하지 못함(요청자의 잘못이 아님) | 500 `INTERNAL_ERROR` | `StoredLocationInvalidException` |
 
 - 400과 409는 "같은 입력을 언제 보내도 실패하는가"로 나눈다. 언제 보내도 실패하면 `RuleViolationException`(이름이 21자), 저장된 상태가 바뀌면 성공할 수 있으면 `StateConflictException`(이미 쓰는 이메일, 연결된 기록이 있어 삭제 불가, 다른 요청이 먼저 수정함)이다.
 - 이름은 HTTP 용어(`BadRequest`, `Forbidden`)가 아니라 뜻으로 짓는다. 도메인이 응답 형태를 알지 않게 하기 위해서다.
 - `PermissionDeniedException`은 Spring Security의 `AccessDeniedException`과 이름이 겹치지 않게 지었다.
 - 이번 PR에서는 처음 정한 네 종류에 내용 크기·지원 형식·저장소 장애 세 종류를 추가하는 것을 제안한다. 미디어의 기존 413·415·503 계약을 유지하기 위해 작성 요청자가 승인한 확장 제안이다. 팀 전체의 기존 확정 규칙이라는 뜻은 아니며, 이번 PR의 문서·코드 리뷰와 머지로 채택 여부를 결정한다. (고침 #33: #62 공통 예외 규칙 적용 시 기존 미디어 응답 유지)
 - `ContentLimitExceededException`, `UnsupportedFormatException`은 `RuleViolationException`을 상속한다. 전역 핸들러는 더 구체적인 예외를 골라 일반 400과 구분한다. `StorageUnavailableException`은 요청 규칙 위반과 구분해 `RuntimeException`을 직접 상속한다.
+- `StoredDataInvalidException`은 어댑터가 저장된 행을 도메인 객체로 복원하다 `RuleViolationException`을 만났을 때 원인을 cause로 보존해 감싼다. 감싸지 않으면 정상 조회 요청이 400 `VALIDATION`을 받고, 감싸도 전역 핸들러가 이 예외를 명시적으로 500으로 처리하지 않으면 Spring MVC가 cause의 400 핸들러를 따라간다. 응답 본문에는 예외 메시지와 원인을 넣지 않고 고정 안내만 쓰며, 원인은 `ERROR` 로그의 스택 트레이스로 남긴다. (고침 #72: PR #97 리뷰 반영)
 - 이후 공통 예외를 더할 때도 이 문서를 고치는 PR에서 먼저 합의한다. 상태별·도메인별 예외를 공통 패키지에 계속 더하지 않는다.
 - 기본 예외는 `abstract`로 두며 최상위는 `RuntimeException`을 상속한다. 메시지는 하위 예외의 생성자가 정하고, 기술 실패의 원인은 cause로 보존한다. HTTP 상태·응답 코드는 예외에 넣지 않는다.
 
