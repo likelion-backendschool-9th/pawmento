@@ -102,8 +102,12 @@ class PostScenarioTest {
 
 		// 길이는 앞뒤 공백을 지운 뒤 센다
 		createPost(a.cookie(), "CARE", " " + "가".repeat(100) + " ", "본문").andExpect(status().isCreated());
-		// 프론트엔드 trim()이 남기는 제어 문자(U+001C)만 있는 제목은 빈 제목이 아니다. JSON 이스케이프로 보낸다
+		// BOM만 있는 제목은 빈 제목이다. JSON 이스케이프로 보낸다
+		createPost(a.cookie(), "CARE", "\\uFEFF", "본문").andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.message").value("제목은 1~100자로 입력해 주세요."));
+		// 프론트엔드 trim()이 남기는 제어 문자(U+001C~U+001F)만 있는 제목은 빈 제목이 아니다
 		createPost(a.cookie(), "CARE", "\\u001C", "본문").andExpect(status().isCreated());
+		createPost(a.cookie(), "CARE", "\\u001F", "본문").andExpect(status().isCreated());
 	}
 
 	@Test
@@ -128,7 +132,8 @@ class PostScenarioTest {
 			createPostId(a.cookie(), "LIFE", "글 " + i, "본문 " + i);
 		}
 
-		MvcResult first = mockMvc.perform(get(POSTS).param("category", "LIFE").param("size", "20"))
+		// size를 보내지 않으면 20개씩 준다
+		MvcResult first = mockMvc.perform(get(POSTS).param("category", "LIFE"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.posts.length()").value(20))
 			.andExpect(jsonPath("$.posts[0].title").value("글 25"))
@@ -167,13 +172,16 @@ class PostScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#21-S6 없는 카테고리로 목록을 부르면 400 VALIDATION, 카테고리 없이 부르면 400이다")
+	@DisplayName("#21-S6 없는 카테고리로 목록을 부르거나 카테고리 없이 부르면 400 VALIDATION이다")
 	void listWithInvalidCategory() throws Exception {
 		mockMvc.perform(get(POSTS).param("category", "NOPE"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"));
 
-		mockMvc.perform(get(POSTS)).andExpect(status().isBadRequest());
+		mockMvc.perform(get(POSTS))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("카테고리를 선택해 주세요."));
 	}
 
 	@Test
@@ -181,13 +189,16 @@ class PostScenarioTest {
 	void listOutOfRange() throws Exception {
 		mockMvc.perform(get(POSTS).param("category", "LIFE").param("size", "0"))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("size는 1~50 사이로 보내 주세요."));
 		mockMvc.perform(get(POSTS).param("category", "LIFE").param("size", "51"))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("size는 1~50 사이로 보내 주세요."));
 		mockMvc.perform(get(POSTS).param("category", "LIFE").param("cursor", "0"))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("cursor는 1 이상으로 보내 주세요."));
 	}
 
 	@Test
@@ -202,6 +213,13 @@ class PostScenarioTest {
 
 		mockMvc.perform(get(POSTS).param("category", "CARE").cookie(expired)).andExpect(status().isOk());
 		mockMvc.perform(get(POSTS + "/" + postId).cookie(expired)).andExpect(status().isOk());
+	}
+
+	@Test
+	@DisplayName("#21-S7 공개 경로는 목록·카테고리 목록·숫자 id 상세뿐이라 /posts/me 같은 다른 GET은 쿠키 없이 401이다")
+	void otherGetPathsNeedLogin() throws Exception {
+		mockMvc.perform(get(POSTS + "/me")).andExpect(status().isUnauthorized());
+		mockMvc.perform(get(POSTS + "/1/comments")).andExpect(status().isUnauthorized());
 	}
 
 	@Test

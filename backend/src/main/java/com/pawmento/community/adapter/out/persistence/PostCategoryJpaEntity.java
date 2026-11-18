@@ -37,15 +37,6 @@ class PostCategoryJpaEntity {
 	@Column(nullable = false)
 	private boolean active;
 
-	static PostCategoryJpaEntity of(String code, String name, int sortOrder) {
-		PostCategoryJpaEntity entity = new PostCategoryJpaEntity();
-		entity.code = code;
-		entity.name = name;
-		entity.sortOrder = sortOrder;
-		entity.active = true;
-		return entity;
-	}
-
 	PostCategory toDomain() {
 		return PostCategory.restore(id, code, name, sortOrder, active);
 	}

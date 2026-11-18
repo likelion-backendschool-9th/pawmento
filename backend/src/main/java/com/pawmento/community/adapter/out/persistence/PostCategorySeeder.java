@@ -10,7 +10,8 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 // 서버가 시작할 때 처음 카테고리 5개를 넣는다. 같은 code가 이미 있으면 건드리지 않아,
-// DB에서 바꾼 이름·순서·사용 여부가 재시작 뒤에도 남는다. 마이그레이션 도구가 정해지면 그쪽으로 옮긴다
+// DB에서 바꾼 이름·순서·사용 여부가 재시작 뒤에도 남는다. 서버 여러 대가 동시에 시작해도 code 유니크 제약으로
+// 겹쳐 넣지 않는다(ON CONFLICT DO NOTHING). 마이그레이션 도구가 정해지면 그쪽으로 옮긴다
 @Component
 @RequiredArgsConstructor
 class PostCategorySeeder implements ApplicationRunner {
@@ -31,9 +32,7 @@ class PostCategorySeeder implements ApplicationRunner {
 	@Transactional
 	public void run(ApplicationArguments args) {
 		for (Seed seed : SEEDS) {
-			if (!postCategoryJpaRepository.existsByCode(seed.code())) {
-				postCategoryJpaRepository.save(PostCategoryJpaEntity.of(seed.code(), seed.name(), seed.sortOrder()));
-			}
+			postCategoryJpaRepository.insertIfAbsent(seed.code(), seed.name(), seed.sortOrder());
 		}
 	}
 

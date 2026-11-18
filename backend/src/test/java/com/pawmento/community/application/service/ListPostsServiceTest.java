@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import com.pawmento.community.application.exception.InactivePostCategoryException;
 import com.pawmento.community.application.exception.InvalidPostCategoryException;
-import com.pawmento.community.application.exception.InvalidPostPageException;
 import com.pawmento.community.application.port.in.ListPostsQuery;
 import com.pawmento.community.application.port.in.PostPageResult;
 import com.pawmento.community.application.port.in.PostSummaryResult;
@@ -72,19 +71,6 @@ class ListPostsServiceTest {
 	}
 
 	@Test
-	@DisplayName("#21-S4 size를 보내지 않으면 20개씩 준다")
-	void defaultSizeIsTwenty() {
-		when(categories.findByCode("LIFE")).thenReturn(Optional.of(LIFE));
-		when(posts.findPage(1L, null, 21)).thenReturn(List.of());
-
-		PostPageResult page = service.list(new ListPostsQuery("LIFE", null, null));
-
-		assertThat(page.posts()).isEmpty();
-		assertThat(page.nextCursor()).isNull();
-		verify(posts).findPage(1L, null, 21);
-	}
-
-	@Test
 	@DisplayName("#21-S4 목록은 본문 앞 100자만 준다")
 	void previewIsFirstHundredCharacters() {
 		String body = "가".repeat(99) + "🐶" + "나";
@@ -92,7 +78,7 @@ class ListPostsServiceTest {
 		when(categories.findByCode("LIFE")).thenReturn(Optional.of(LIFE));
 		when(posts.findPage(1L, null, 21)).thenReturn(List.of(post));
 
-		String preview = service.list(new ListPostsQuery("LIFE", null, null)).posts().get(0).preview();
+		String preview = service.list(new ListPostsQuery("LIFE", 20, null)).posts().get(0).preview();
 
 		assertThat(preview).isEqualTo("가".repeat(99) + "🐶");
 	}
@@ -103,24 +89,10 @@ class ListPostsServiceTest {
 		when(categories.findByCode("NOPE")).thenReturn(Optional.empty());
 		when(categories.findByCode("HIDDEN")).thenReturn(Optional.of(HIDDEN));
 
-		assertThatThrownBy(() -> service.list(new ListPostsQuery("NOPE", null, null)))
+		assertThatThrownBy(() -> service.list(new ListPostsQuery("NOPE", 20, null)))
 			.isInstanceOf(InvalidPostCategoryException.class);
-		assertThatThrownBy(() -> service.list(new ListPostsQuery("HIDDEN", null, null)))
+		assertThatThrownBy(() -> service.list(new ListPostsQuery("HIDDEN", 20, null)))
 			.isInstanceOf(InactivePostCategoryException.class);
-		verify(posts, never()).findPage(any(), any(), anyInt());
-	}
-
-	@Test
-	@DisplayName("#21-S13 size가 1~50 밖이거나 cursor가 1 미만이면 보정하지 않고 거절한다")
-	void outOfRangePageIsRejected() {
-		when(categories.findByCode("LIFE")).thenReturn(Optional.of(LIFE));
-
-		assertThatThrownBy(() -> service.list(new ListPostsQuery("LIFE", 0, null)))
-			.isInstanceOf(InvalidPostPageException.class);
-		assertThatThrownBy(() -> service.list(new ListPostsQuery("LIFE", 51, null)))
-			.isInstanceOf(InvalidPostPageException.class);
-		assertThatThrownBy(() -> service.list(new ListPostsQuery("LIFE", 20, 0L)))
-			.isInstanceOf(InvalidPostPageException.class);
 		verify(posts, never()).findPage(any(), any(), anyInt());
 	}
 
