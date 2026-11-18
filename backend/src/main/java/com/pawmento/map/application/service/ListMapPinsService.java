@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.pawmento.map.application.exception.InvalidMapAreaException;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsResult;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
@@ -38,12 +37,7 @@ class ListMapPinsService implements ListMapPinsUseCase {
 	}
 
 	private MapArea toArea(ListMapPinsQuery query) {
-		try {
-			return MapArea.of(query.minLatitude(), query.minLongitude(), query.maxLatitude(), query.maxLongitude());
-		}
-		catch (IllegalArgumentException e) {
-			throw new InvalidMapAreaException(e.getMessage(), e);
-		}
+		return MapArea.of(query.minLatitude(), query.minLongitude(), query.maxLatitude(), query.maxLongitude());
 	}
 
 }

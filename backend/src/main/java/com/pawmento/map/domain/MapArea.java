@@ -1,5 +1,7 @@
 package com.pawmento.map.domain;
 
+import com.pawmento.map.domain.exception.InvalidMapAreaException;
+
 /**
  * 지도 화면에 보이는 사각형 영역. 최솟값이 최댓값보다 크면 만들 수 없다.
  * 날짜 변경선을 걸친 영역(경도의 최솟값이 최댓값보다 큰 경우)은 지원하지 않는다.
@@ -17,7 +19,7 @@ public class MapArea {
 		Coordinates.requireLongitude(minLongitude);
 		Coordinates.requireLongitude(maxLongitude);
 		if (minLatitude > maxLatitude || minLongitude > maxLongitude) {
-			throw new IllegalArgumentException("영역의 최솟값은 최댓값보다 클 수 없습니다.");
+			throw new InvalidMapAreaException("영역의 최솟값은 최댓값보다 클 수 없습니다.");
 		}
 		this.minLatitude = minLatitude;
 		this.minLongitude = minLongitude;

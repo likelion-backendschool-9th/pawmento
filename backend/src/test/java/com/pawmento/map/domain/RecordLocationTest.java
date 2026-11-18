@@ -5,6 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.pawmento.map.domain.exception.InvalidCoordinatesException;
+import com.pawmento.map.domain.exception.InvalidRecordLocationException;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -47,7 +50,7 @@ class RecordLocationTest {
 	@ValueSource(doubles = { -90.0001, 90.0001, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY })
 	@DisplayName("#19-S2 위도가 범위를 벗어나거나 숫자가 아니면 만들 수 없다")
 	void rejectsInvalidLatitude(double latitude) {
-		assertThatThrownBy(() -> location(latitude, 0.0, null)).isInstanceOf(IllegalArgumentException.class)
+		assertThatThrownBy(() -> location(latitude, 0.0, null)).isInstanceOf(InvalidCoordinatesException.class)
 			.hasMessageContaining("위도");
 	}
 
@@ -55,7 +58,7 @@ class RecordLocationTest {
 	@ValueSource(doubles = { -180.0001, 180.0001, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY })
 	@DisplayName("#19-S2 경도가 범위를 벗어나거나 숫자가 아니면 만들 수 없다")
 	void rejectsInvalidLongitude(double longitude) {
-		assertThatThrownBy(() -> location(0.0, longitude, null)).isInstanceOf(IllegalArgumentException.class)
+		assertThatThrownBy(() -> location(0.0, longitude, null)).isInstanceOf(InvalidCoordinatesException.class)
 			.hasMessageContaining("경도");
 	}
 
@@ -83,7 +86,7 @@ class RecordLocationTest {
 	@DisplayName("#19-S1 장소 이름은 255자까지 받고 넘으면 만들 수 없다")
 	void limitsPlaceNameLength() {
 		assertThat(location(0.0, 0.0, "가".repeat(255)).getPlaceName()).hasSize(255);
-		assertThatThrownBy(() -> location(0.0, 0.0, "가".repeat(256))).isInstanceOf(IllegalArgumentException.class)
+		assertThatThrownBy(() -> location(0.0, 0.0, "가".repeat(256))).isInstanceOf(InvalidRecordLocationException.class)
 			.hasMessageContaining("255");
 	}
 
@@ -108,8 +111,8 @@ class RecordLocationTest {
 		RecordLocation location = RecordLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전");
 
 		assertThatThrownBy(() -> location.move(35.0, 129.0, "가".repeat(256)))
-			.isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> location.move(91.0, 129.0, "새 이름")).isInstanceOf(IllegalArgumentException.class);
+			.isInstanceOf(InvalidRecordLocationException.class);
+		assertThatThrownBy(() -> location.move(91.0, 129.0, "새 이름")).isInstanceOf(InvalidCoordinatesException.class);
 
 		assertThat(location.getLatitude()).isEqualTo(37.0);
 		assertThat(location.getLongitude()).isEqualTo(127.0);
@@ -122,7 +125,7 @@ class RecordLocationTest {
 		assertThatThrownBy(() -> RecordLocation.restore(null, 1L, 2L, 3L, 0.0, 0.0, null))
 			.isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> RecordLocation.restore(1L, 1L, 2L, 3L, 100.0, 0.0, null))
-			.isInstanceOf(IllegalArgumentException.class);
+			.isInstanceOf(InvalidCoordinatesException.class);
 	}
 
 }
