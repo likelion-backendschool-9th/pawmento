@@ -6,12 +6,15 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Component;
 
+import com.pawmento.community.application.exception.PostConcurrentModificationException;
 import com.pawmento.community.application.port.out.LoadPostCategoryPort;
 import com.pawmento.community.application.port.out.LoadPostPort;
 import com.pawmento.community.application.port.out.SavePostPort;
+import com.pawmento.community.application.port.out.UpdatePostPort;
 import com.pawmento.community.domain.Post;
 import com.pawmento.community.domain.PostCategory;
 
@@ -19,7 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-class PostPersistenceAdapter implements SavePostPort, LoadPostPort, LoadPostCategoryPort {
+class PostPersistenceAdapter implements SavePostPort, UpdatePostPort, LoadPostPort, LoadPostCategoryPort {
 
 	private final PostJpaRepository postJpaRepository;
 	private final PostCategoryJpaRepository postCategoryJpaRepository;
@@ -28,6 +31,20 @@ class PostPersistenceAdapter implements SavePostPort, LoadPostPort, LoadPostCate
 	@Override
 	public Long save(Post post) {
 		return postJpaRepository.save(PostJpaEntity.create(post, now())).getId();
+	}
+
+	@Override
+	public Post update(Post post) {
+		try {
+			PostJpaEntity saved = postJpaRepository.save(PostJpaEntity.changed(post, now()));
+			// flush해야 @Version 충돌이 커밋 때가 아니라 여기서 난다
+			postJpaRepository.flush();
+			return saved.toDomain(post.getCategory());
+		}
+		catch (OptimisticLockingFailureException e) {
+			// 읽은 뒤 다른 요청이 먼저 고치거나 지웠다. 지운 글이 오래된 수정으로 되살아나지 않게 거절한다
+			throw new PostConcurrentModificationException();
+		}
 	}
 
 	@Override
