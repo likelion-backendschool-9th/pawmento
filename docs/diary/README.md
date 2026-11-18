@@ -87,12 +87,14 @@
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `POST /pets/{petId}/diaries` | `content`, `recordedDate`, `attachmentIds` | 201, 자유 기록 상세 |
+| `POST /pets/{petId}/diaries` | `content`, `recordedDate`, `attachmentIds`, 선택 `location` | 201, 자유 기록 상세 |
 | `GET /pets/{petId}/diaries` | `date` 또는 `from/to`, `page`, `size` | 200, 자유 기록 목록 |
 | `GET /pets/{petId}/diaries/calendar` | `month=YYYY-MM` | 200, 해당 월 날짜별 건수 |
 | `GET /pets/{petId}/diaries/{recordId}` | 없음 | 200, 자유 기록 상세 |
-| `PATCH /pets/{petId}/diaries/{recordId}` | `content`, `recordedDate`, `attachmentIds`, `version` | 200, 변경 상세 |
+| `PATCH /pets/{petId}/diaries/{recordId}` | `content`, `recordedDate`, `attachmentIds`, `location`, `version` | 200, 변경 상세 |
 | `DELETE /pets/{petId}/diaries/{recordId}` | 없음 | 204 |
+
+생성·수정의 `location`은 [지도와의 단일 위치 저장](#지도와의-단일-위치-저장)의 AUTO/MANUAL/NONE 계약을 따른다. 생략 시 생성은 NONE, 수정은 기존 모드 유지이며 별도 위치 쓰기 API를 두지 않는다. (고침 #80: 기존 #53 위치 계약을 API 입력 표에도 반영)
 
 PATCH는 제공한 필드만 바꾼다. 변경 필드 하나 이상과 `version`이 필수이며, 필수 필드의 명시적 null은 400이다. `attachmentIds: []`는 첨부 전체 제거다. 변경 후 텍스트·첨부가 모두 비면 거부한다. 질문 답변 API는 [질문 문서](../question/README.md)에서 별도로 정의한다.
 
