@@ -71,4 +71,6 @@
 
 ## petId 입력과 임시 샘플 정리
 
-생성·상태 조회·미리보기·썸네일·삭제의 petId는 미디어 전용 `MediaPetRequest`를 검증한다. 누락·0 이하·숫자가 아닌 값은 400과 공통 `{code, message}`로 응답한다. 수신은 필터가 multipart 파싱 전에 raw query를 검사한다. 전역의 필수 쿼리 오류 처리 정책을 새로 정한 것은 아니다. 임시 `com.pawmento.record` 샘플은 실제 기능에 쓰지 않으므로 코드와 구조 문서의 해당 예시를 제거한다. Java record 값 타입이나 diary/question/map 데이터 모델을 제거하는 뜻은 아니다. 기존 DB 테이블을 삭제하는 작업은 하지 않는다.
+생성·상태 조회·GET/HEAD 미리보기·썸네일·삭제 컨트롤러와 파일 수신 필터는 `MediaPetRequest.fromQuery` 공통 파서로 URL의 raw query에서만 `petId`를 읽는다. `@ModelAttribute`·`@Valid` DTO 바인딩을 사용하지 않으며 HTTP 헤더·JSON 본문·multipart 필드로 필수 쿼리를 채울 수 없다. 유효한 쿼리와 상충하는 헤더는 무시한다. 누락·빈 값·0 이하·숫자가 아닌 값·Long 범위 초과·잘못된 인코딩·중복(디코딩 후 같은 키 포함)은 400 `VALIDATION`과 공통 `{code, message}`로 응답한다. 파일 수신은 필터가 `getParameter*`를 호출하지 않고 multipart 파싱 전에 쿼리·소유권을 검사한다. 전역의 필수 쿼리 오류 처리 정책을 새로 정한 것은 아니다. (고침 #79: 쿼리 전용 검증과 헤더 우회 차단 반영)
+
+PR #64에서 임시 `com.pawmento.record`·`com.pawmento.memory` 샘플과 `/records`·`/memories` API를 제거했다. Java record 값 타입이나 diary/question/map 데이터 모델을 제거하는 뜻은 아니며 기존 DB 테이블 삭제 작업도 포함하지 않는다. 실제 `recordId`의 의미와 diary→map 경계는 [다이어리](../diary/README.md#도메인-경계)·[지도](../map/README.md#다이어리-연동-경계)를 따른다. (고침 #80: 샘플 제거 상태와 실제 도메인 연결)

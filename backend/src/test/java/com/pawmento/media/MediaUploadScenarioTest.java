@@ -799,6 +799,82 @@ class MediaUploadScenarioTest {
   }
 
   @Test
+  @DisplayName("#79-S1 petId 헤더·본문은 필수 쿼리를 대체하지 못하고 모든 미디어 API가 공통 400을 반환한다")
+  void petHeaderCannotSupplyQuery() throws Exception {
+    Owner a = owner();
+    long id = session(a, "image/png", 3);
+    String base = "/api/v1/media/" + id;
+    for (String query :
+        new String[] {
+          "", "?petId=", "?petId=0", "?petId=abc", "?petId=1&petId=2", "?petId=1&%70etId=2"
+        }) {
+      var requests = List.of(
+          post(URI.create("/api/v1/media/uploads" + query))
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(body("image/png", 3).replace("}", ",\"petId\":" + a.petId() + "}")),
+          get(URI.create(base + query)),
+          get(URI.create(base + "/preview" + query)),
+          get(URI.create(base + "/thumbnail" + query)),
+          delete(URI.create(base + query)),
+          multipart(URI.create(base + "/content" + query))
+              .file(new MockMultipartFile("file", "a.png", "image/png", new byte[] {1, 2, 3}))
+              .param("petId", a.petId().toString())
+              .header("Origin", "http://localhost")
+              .header("X-Pawmento-Upload", "1"));
+      for (var request : requests)
+        mvc.perform(request.cookie(a.cookie()).header("petId", a.petId().toString()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION"))
+            .andExpect(jsonPath("$.message").isNotEmpty());
+      for (String suffix : new String[] {"/preview", "/thumbnail"})
+        mvc.perform(
+                head(URI.create(base + suffix + query))
+                    .cookie(a.cookie())
+                    .header("petId", a.petId()))
+            .andExpect(status().isBadRequest());
+    }
+    assertThat(state(id)).isEqualTo("PENDING");
+    assertThat(jobs.findById(id)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("#79-S2 유효한 petId 쿼리는 상충하는 헤더보다 우선하고 기존 업로드·열람·삭제가 동작한다")
+  void petQueryIgnoresConflictingHeader() throws Exception {
+    Owner a = owner(), other = owner();
+    byte[] data = fixture("sample.png");
+    var result =
+        mvc.perform(
+                post("/api/v1/media/uploads?petId=" + a.petId())
+                    .cookie(a.cookie())
+                    .header("petId", other.petId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body("image/png", data.length)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    long id = number(result, "$.assetId");
+    mvc.perform(
+            multipart(path(a, id, "/content"))
+                .file(new MockMultipartFile("file", "a.png", "image/png", data))
+                .cookie(a.cookie())
+                .header("petId", other.petId())
+                .header("Origin", "http://localhost")
+                .header("X-Pawmento-Upload", "1"))
+        .andExpect(status().isAccepted());
+    drain();
+    mvc.perform(get(path(a, id)).cookie(a.cookie()).header("petId", other.petId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("READY"));
+    for (String suffix : new String[] {"/preview", "/thumbnail"}) {
+      mvc.perform(get(path(a, id, suffix)).cookie(a.cookie()).header("petId", other.petId()))
+          .andExpect(status().isOk());
+      mvc.perform(head(path(a, id, suffix)).cookie(a.cookie()).header("petId", other.petId()))
+          .andExpect(status().isOk());
+    }
+    mvc.perform(delete(path(a, id)).cookie(a.cookie()).header("petId", other.petId()))
+        .andExpect(status().isAccepted());
+  }
+
+  @Test
   @DisplayName("#33-S1 폐기된 임시 record 샘플 경로는 실제 API로 노출하지 않는다")
   void retiredPlaceholderNotRouted() throws Exception {
     Owner a = owner();
