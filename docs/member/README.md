@@ -7,6 +7,7 @@
 | 이슈 | 내용 | 문서 |
 | --- | --- | --- |
 | [#14](https://github.com/likelion-backendschool-9th/pawmento/issues/14) | 인증 기반: 가입, 로그인, 로그아웃, 내 정보 조회, 현재 회원 id 꺼내기 | [auth-base.md](auth-base.md) |
+| [#40](https://github.com/likelion-backendschool-9th/pawmento/issues/40) | 소셜 로그인: 구글·카카오·네이버 | [social-login.md](social-login.md) |
 
 ## 도메인 담당이 쓰는 방법
 
