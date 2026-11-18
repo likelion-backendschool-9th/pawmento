@@ -123,8 +123,13 @@ public class Walk {
 	/**
 	 * 좌표를 받았음을 기록해 마지막 활동 시각을 갱신한다. 이 시각이 중단 판정의 기준이라 중단 시각이 뒤로 밀린다.
 	 * 개수와 상태 검사를 모두 통과한 요청에서만 부른다. 거절된 요청은 마지막 활동 시각을 바꾸지 않는다.
+	 * 검사를 빠뜨리고 직접 불러도 중단되거나 끝난 산책이 활동 시각 갱신으로 다시 진행 중이 되지 않도록,
+	 * 여기서도 진행 중인지 확인하고 아니면 아무것도 바꾸지 않고 예외를 던진다.
 	 */
 	public void markPointsReceived(Instant now) {
+		if (status(now) != WalkStatus.IN_PROGRESS) {
+			throw new WalkNotInProgressException();
+		}
 		this.lastActivityAt = now;
 	}
 

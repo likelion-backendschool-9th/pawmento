@@ -98,6 +98,42 @@ class WalkTest {
 	}
 
 	@Test
+	@DisplayName("#73-S3 검사 없이 직접 불러도 중단된 산책은 활동 시각과 상태가 그대로다")
+	void markPointsReceivedKeepsInterruptedWalkInterrupted() {
+		Walk interrupted = restored(null, START);
+		Instant now = START.plusSeconds(600);
+
+		assertThatThrownBy(() -> interrupted.markPointsReceived(now)).isInstanceOf(WalkNotInProgressException.class);
+
+		assertThat(interrupted.getLastActivityAt()).isEqualTo(START);
+		assertThat(interrupted.status(now)).isEqualTo(WalkStatus.INTERRUPTED);
+	}
+
+	@Test
+	@DisplayName("#73-S3 검사 없이 직접 불러도 끝난 산책은 활동 시각과 상태가 그대로다")
+	void markPointsReceivedKeepsEndedWalkEnded() {
+		Instant endedAt = START.plusSeconds(60);
+		Walk ended = restored(endedAt, endedAt);
+		Instant now = endedAt.plusSeconds(30);
+
+		assertThatThrownBy(() -> ended.markPointsReceived(now)).isInstanceOf(WalkNotInProgressException.class);
+
+		assertThat(ended.getLastActivityAt()).isEqualTo(endedAt);
+		assertThat(ended.status(now)).isEqualTo(WalkStatus.ENDED);
+	}
+
+	@Test
+	@DisplayName("#73-S4 정확히 5분 전에 마지막 활동한 산책은 아직 진행 중이라 활동 시각을 갱신할 수 있다")
+	void markPointsReceivedAtExactBoundary() {
+		Walk walk = startedAt(START);
+		Instant boundary = START.plusSeconds(300);
+
+		walk.markPointsReceived(boundary);
+
+		assertThat(walk.getLastActivityAt()).isEqualTo(boundary);
+	}
+
+	@Test
 	@DisplayName("#73-S4 받아도 되는지 검사만 하는 메서드는 마지막 활동 시각을 바꾸지 않는다")
 	void requireMethodsDoNotChangeState() {
 		Walk walk = startedAt(START);
