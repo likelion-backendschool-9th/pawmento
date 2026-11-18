@@ -6,6 +6,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.application.exception.SocialEmailConflictException;
 import com.pawmento.member.application.exception.SocialLoginFailedException;
 import com.pawmento.member.application.exception.UnsupportedSocialProviderException;
@@ -76,7 +78,15 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 		}
 		Member member = Member.registerSocial(profile.provider(), profile.providerUserId(), profile.email(),
 				profile.nickname(), Instant.now(clock));
-		return saveMemberPort.save(member);
+		try {
+			return saveMemberPort.save(member);
+		}
+		catch (DuplicateEmailException | DuplicateSocialAccountException e) {
+			// 동시에 온 같은 소셜 계정의 첫 로그인이면 먼저 저장된 회원으로 로그인한다
+			// 그 계정이 없으면 다른 방법으로 같은 이메일이 먼저 가입한 것이므로 그대로 409
+			return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
+					.orElseThrow(() -> e);
+		}
 	}
 
 }
