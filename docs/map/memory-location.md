@@ -30,7 +30,7 @@
 - 사진 속 위치(EXIF) 자동 연결은 이 #19 범위 밖이며 [#44](photo-location.md)에서 별도 설계한다. (고침 #44: 사진 기반 지도 연동을 별도 확장으로 연결)
 - 반려동물·기간 필터, GARDEN의 "함께 걸었던 곳" 보기
 - 커뮤니티 글에 장소 붙이기, 주변 동물병원 보기
-- 산책 경로 기록·공유, 장소 이름 검색
+- 산책로(별도 이슈에서 다룬다), 산책 경로 공유, 장소 이름 검색
 - 가족 공유에 따른 접근 범위 확대
 
 ## 작업 순서
@@ -39,7 +39,7 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 
 1. 계획 문서 (이 문서)
 2. 주소 조회: 출력 포트, 네이버 어댑터, 설정, 가짜 서버 테스트. 프론트엔드가 필요로 하면 주소 조회 API를 더한다 (S3의 일부)
-3. 위치 저장소: `MemoryLocation` 도메인, `memory_location` 테이블, 핀 조회용 범위 조회와 인덱스. API는 열지 않는다. 인덱스는 데이터를 쌓아 실행 계획으로 확인한다
+3. 위치 저장소: `RecordLocation` 도메인, `record_location` 테이블, 핀 조회용 범위 조회와 인덱스. API는 열지 않는다. 인덱스는 데이터를 쌓아 실행 계획으로 확인한다
 4. 지도 핀 조회 API (S5, S6, S7 중 조회 권한). 별도 deleted 필터는 추가하지 않는다. (고침 #53: 제거된 위치는 행 삭제)
 5. [#44 위치 입력 포트](photo-location.md)와 세 가지 포트 결과·revision·실제 위치 행 삭제 구현. 다이어리가 쓰기 권한을 확인하므로 record 작성자 역조회 포트는 만들지 않는다. (고침 #53: 별도 위치 쓰기 API 제거)
 6. diary body AUTO/MANUAL/NONE과 같은 DB 트랜잭션으로 연결해 S1~S4, S7의 쓰기 거부를 확인한다. (고침 #53: 조회/내부 반영은 map, 외부 쓰기는 diary)
@@ -51,18 +51,20 @@ PR은 하나의 목적만 갖도록 작게 나눈다.
 
   | 요청 | 본문·쿼리 | 성공 응답 |
   | --- | --- | --- |
-  | `GET /pets/{petId}/map-pins` | `minLatitude`, `minLongitude`, `maxLatitude`, `maxLongitude` | 200, `pins`(`memoryId`, `latitude`, `longitude`, `placeName`)와 `truncated` |
+  | `GET /maps/pins` | `petId`, `minLatitude`, `minLongitude`, `maxLatitude`, `maxLongitude` | 200, `pins`(`recordId`, `latitude`, `longitude`, `placeName`)와 `truncated` |
 
 - **별도 위치 PUT/DELETE API는 만들지 않는다.** 위치 쓰기는 diary body 하나로 통일하고 map 내부 포트는 [#44 계약](photo-location.md)을 따른다. (고침 #53: 수동/자동 쓰기 경로 중복 제거)
+- 핀 조회 경로는 `/maps/pins`이고 반려동물은 쿼리 `petId`로 받는다. 경로에 `pets`를 두면 반려동물 도메인의 경로와 책임이 섞여 보인다는 리뷰에 따랐다. (고침 #19: `GET /pets/{petId}/map-pins`에서 `GET /maps/pins?petId=`로)
 - 핀 응답에는 `petId`를 포함하지 않고 요청한 `petId`가 곧 그 핀의 반려동물이다. 핀 모양은 프론트엔드가 반려동물의 모드로 정한다. (#19)
 - 핀 조회의 기준은 요청한 회원이 만든 기록이다. (#19)
+- 영역 안의 핀이 500개를 넘으면 위치 행 id 오름차순(먼저 위치를 저장한 순)으로 500개만 돌려주고 `truncated`를 true로 한다. 순서를 고정해야 같은 요청에 같은 응답이 나가서 정했다. 기록의 작성 순서가 아니라 위치를 저장한 순서라서, 오래된 기록에 나중에 위치를 붙이거나 지웠다가 다시 붙이면 뒤로 간다. 최근 기록을 먼저 보여 줄지는 지도 화면을 만들 때 다시 정한다. (#19)
 - 외부 서비스 호출에는 짧은 타임아웃을 둔다. 값은 구현할 때 정한다. (#19)
-- 패키지는 `com.pawmento.map`이고 백엔드 구조 문서(`docs/backend-architecture.md`) 초안(PR #18)의 이름 규칙을 따른다. 도메인 객체는 `MemoryLocation`이다. (#19)
+- 패키지는 `com.pawmento.map`이고 백엔드 구조 문서(`docs/backend-architecture.md`)의 이름 규칙을 따른다. 도메인 객체는 `RecordLocation`이다. (#19)
 
 ## 가정
 
-- 공통 접두사 `/api/v1`은 설정(`WebConfig`, #22)으로 붙여 컨트롤러 경로에 쓰지 않는다. 위 경로의 실제 주소는 `/api/v1/...`이다(예: `GET /api/v1/pets/{petId}/map-pins`). 개발 서버의 nginx는 `/api/`로 시작하는 경로를 백엔드로 넘긴다.
-- diary가 원 작성자·아이·권한을 확인하고 map 내부 포트에 `memoryId`, `petId`, `createdBy`, `revision`, nullable 위치를 넘긴다. map은 diary 저장 트랜잭션에 참여하고 원자적 revision 조건으로 반영한다. (고침 #53: 작성자 역조회 포트 제거)
+- 공통 접두사 `/api/v1`은 설정(`WebConfig`, #22)으로 붙여 컨트롤러 경로에 쓰지 않는다. 위 경로의 실제 주소는 `/api/v1/...`이다(예: `GET /api/v1/maps/pins`). 개발 서버의 nginx는 `/api/`로 시작하는 경로를 백엔드로 넘긴다.
+- diary가 원 작성자·아이·권한을 확인하고 map 내부 포트에 `recordId`, `petId`, `createdBy`, `revision`, nullable 위치를 넘긴다. map은 diary 저장 트랜잭션에 참여하고 원자적 revision 조건으로 반영한다. (고침 #53: 작성자 역조회 포트 제거)
 - 지도 화면과 위치 선택은 프론트엔드가 지도 SDK로 처리한다. 서버는 좌표 저장과 조회, 주소 변환만 맡는다.
 
 ## 참고

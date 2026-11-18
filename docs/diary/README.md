@@ -132,7 +132,7 @@ ID는 서버에서 Long으로 발급하되 JavaScript의 정수 범위를 넘을
 - 일기 생성·수정 body의 `location: {mode: AUTO|MANUAL|NONE}`만 위치 쓰기 경로다. MANUAL은 좌표·선택 장소명을 받고, AUTO는 사전 동의된 READY 첨부에서만 첫 유효 GPS를 선택한다. 별도 지도 위치 PUT/DELETE는 만들지 않는다.
 - **생성에서 location 생략은 NONE**, 수정에서 생략은 기존 모드 유지다. 기존 AUTO에서 사진/순서가 바뀌면 동의된 후보로 재계산하고 MANUAL/NONE은 유지한다. 미동의 사진만으로 AUTO를 요청하면 거부한다.
 - 업로드 동의는 media 세션 생성/파일 전송 전에 받는다. 미동의 사진은 프론트에서 GPS 제거본만 전송한다. 동의 문구·범위·철회/재동의 정책은 확정이 필요하며, 미확정을 자동 동의로 취급하지 않는다.
-- `ApplyMemoryLocationUseCase`에 `recordId`, `petId`, `createdBy`, `revision`, nullable 위치(source/sourceAssetId 포함)를 전달한다. APPLIED/DUPLICATE/STALE을 받고 정상 반영/중복은 성공, STALE은 409로 부모 저장도 롤백한다. (고침 #53: 무시 사유를 명확히 구분)
+- `ApplyRecordLocationUseCase`에 `recordId`, `petId`, `createdBy`, `revision`, nullable 위치(source/sourceAssetId 포함)를 전달한다. APPLIED/DUPLICATE/STALE을 받고 정상 반영/중복은 성공, STALE은 409로 부모 저장도 롤백한다. (고침 #53: 무시 사유를 명확히 구분)
 - diary는 **저장 트랜잭션을 열기 전에** map 주소 조회 포트로 `placeName`을 구한다. 비트랜잭션 조정 메서드와 DB 저장 서비스를 분리하고 저장 시 권한·첨부·기대 버전을 재검사한다. map apply는 외부 호출을 하지 않는다. (고침 #53: 주소 조회 실행 경계 확정)
 - diary·첨부·media 참조·위치 모드/revision·map 행을 **동일 DataSource/트랜잭션 매니저의 REQUIRED 트랜잭션**으로 저장한다. 지도 DB 실패는 전체 롤백, 외부 주소 조회 실패는 주소 없는 좌표 저장으로 구분한다.
 - 지도용 outbox·PENDING/SYNCED/FAILED·location-sync API는 제거한다. 일기 성공 응답은 지도 DB 반영까지 완료된 결과다. (고침 #53: 같은 앱/DB에서 불필요한 비동기 동기화 제거)

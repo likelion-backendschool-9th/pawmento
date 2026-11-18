@@ -51,10 +51,10 @@
 
 ## 지도 입력 포트와 같은 DB 트랜잭션
 
-포트 후보: `ApplyMemoryLocationUseCase`.
+포트 후보: `ApplyRecordLocationUseCase`.
 
 ```text
-ApplyMemoryLocationCommand(
+ApplyRecordLocationCommand(
   recordId, petId, createdBy, revision,
   location: {latitude, longitude, placeName?, source, sourceAssetId?} | null
 )
@@ -79,7 +79,7 @@ ApplyMemoryLocationCommand(
 | `STALE` | 존재하는 위치의 revision보다 작은 요청 | 409 충돌로 부모 변경도 롤백 |
 
 - diary는 **모든 생성·수정·삭제**의 존재/권한·잠금/낙관적 버전 검사를 수행하고 위치 revision을 서버에서 결정한다. 저장 트랜잭션 밖·비동기·별도 공개 API로 map을 호출하지 않는다. 같은 revision을 서로 다른 내용에 재사용하지 않으며 동일 revision의 상이한 명령은 계약 위반으로 거부한다. (고침 #53: 중복 성공과 오래된 요청 거부를 구분)
-- `memory_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
+- `record_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
 - 위치가 있으면 새 revision이 더 클 때만 원자적으로 갱신하고 같으면 DUPLICATE, 낮으면 STALE이다. 최초 동시 insert는 `record_id` 유니크/조건부 upsert로 보호한다. 같은 기록 ID의 아이·원 작성자를 바꾸려는 호출은 거부한다.
 - NONE·AUTO 후보 없음·일기 삭제는 null 위치로 apply를 호출해 실제 map 행을 지운다. 존재하는 행에 대한 삭제도 높은 revision 조건을 확인한다. 삭제할 행이 없으면 DUPLICATE로 아무 작업도 하지 않는다. 성공한 삭제 뒤 revision 이력을 map에 따로 남기지 않는다.
 - **삭제 후 오래된 호출 거부의 책임은 diary**에 있다. 삭제된 일기에 대한 수정은 부모 조회에서 거부하고, 삭제와 동시에 진행된 수정은 부모의 잠금/버전 검사 실패로 지도 쓰기까지 롤백한다. map 행이 없을 때 map 포트 단독으로 과거 revision을 판별할 수 있다고 가정하지 않는다. 이 전제 밖으로 호출 경로를 늘릴 때는 별도 설계가 필요하다. (고침 #53: 같은 트랜잭션의 부모 동시성 검사로 핀 복원 방지)
