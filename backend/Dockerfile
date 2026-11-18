@@ -15,6 +15,8 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 # 사진·음성 파일 저장 폴더를 실행 사용자(app) 소유로 만든다. 처음 연결되는 Docker 볼륨이 이 소유권을 이어받아,
 # root가 아닌 백엔드가 볼륨에 쓸 수 있다 (#47)
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg util-linux \
+    && rm -rf /var/lib/apt/lists/*
 RUN groupadd --system app && useradd --system --gid app app \
     && mkdir -p /var/lib/pawmento/media \
     && chown app:app /var/lib/pawmento/media

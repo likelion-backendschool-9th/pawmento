@@ -2,6 +2,8 @@
 
 질문·다이어리와 함께 구현할 공통 파일 도메인의 개발 설계 초안이다. 사용자는 두 기능에서 사진·음성 녹음을 첨부할 수 있어야 한다고 정했다. 저장소는 사용자 선택에 따라 Docker named volume으로 한다. 파일 크기는 사진·음성 모두 15MiB를 추천안으로 정리했고 나머지 제한·유효 시간은 검토할 제안이며, 업로드 자체는 후속 범위가 아니라 이번 구현 범위다.
 
+현재 실행 방법과 아직 연결하지 않은 경계는 [실행 문서](runtime.md)에 정리한다. 가족·부모 참조·위치 동의 전체가 구현되었다는 뜻은 아니다.
+
 ## 관련 문서와 이슈
 
 | 항목 | 연결 |
@@ -99,20 +101,20 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 ## API 계약 제안
 
-공통 `/api/v1` 접두사는 `WebConfig`가 적용한다. 컨트롤러에는 아래 나머지 경로만 쓴다.
+공통 `/api/v1` 접두사는 `WebConfig`가 적용한다. 컨트롤러에는 `/media`를 루트로 아래 나머지 경로만 쓴다. 반려동물은 필수 쿼리 `petId`로 받아 기존 소유권·아이 검사를 유지한다. (고침 #33: #63과 동일한 도메인별 루트로 정리)
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `POST /pets/{petId}/media/uploads` | JSON: `purpose`, `filename`, `mimeType`, `sizeBytes`, 선택 `locationConsent: {granted, policyVersion}` | 201: `assetId`, `status=PENDING`, `expiresAt`, 인증 업로드 경로 |
-| `POST /pets/{petId}/media/{assetId}/content` | multipart, 파일 파트 `file` **한 개만** | 202: PROCESSING과 검증 상태 경로 |
-| `GET /pets/{petId}/media/{assetId}` | 없음 | 200: 상태·검증된 메타데이터·실패 사유. 업로더만 조회 |
-| `GET /pets/{petId}/media/{assetId}/preview` | 없음 | 미연결 READY의 업로더용 파일 응답 |
-| `DELETE /pets/{petId}/media/{assetId}` | 없음 | 미연결 파일 취소/정리 예약 202. 연결 파일은 409 |
+| `POST /media/uploads?petId={petId}` | JSON: `purpose`, `filename`, `mimeType`, `sizeBytes`, 선택 `locationConsent: {granted, policyVersion}` | 201: `assetId`, `status=PENDING`, `expiresAt`, 인증 업로드 경로 |
+| `POST /media/{assetId}/content?petId={petId}` | multipart, 파일 파트 `file` **한 개만** | 202: PROCESSING과 검증 상태 경로 |
+| `GET /media/{assetId}?petId={petId}` | 없음 | 200: 상태·검증된 메타데이터·실패 사유. 업로더만 조회 |
+| `GET /media/{assetId}/preview?petId={petId}` | 없음 | 미연결 READY의 업로더용 파일 응답 |
+| `DELETE /media/{assetId}?petId={petId}` | 없음 | 미연결 파일 취소/정리 예약 202. 연결 파일은 409 |
 
-가족의 파일 열람 경로는 다음과 같다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
+가족의 파일 열람 경로는 다음과 같은 후속 제안이며 각 부모 도메인 구현에서 최종 계약을 확정한다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
 
-- `GET /pets/{petId}/diaries/{recordId}/attachments/{assetId}/content`
-- `GET /pets/{petId}/question-answers/{answerId}/attachments/{assetId}/content`
+- `GET /diaries/{recordId}/attachments/{assetId}/content?petId={petId}`
+- `GET /question-answers/{answerId}/attachments/{assetId}/content?petId={petId}`
 
 일기/답변 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 프론트는 인증된 같은 출처 파일 경로로 표시·재생한다. 물리 경로를 반환하지 않는다. 정적 공개 파일 경로나 일회성 서명 URL을 DB에 저장하지 않는다.
 
@@ -120,7 +122,7 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 - 업로드 세션 10분·미연결 READY 24시간은 제안값이며 설정으로 관리한다.
 - multipart는 JSON 전용이라는 기존 CSRF 전제와 다르다. 업로드 요청에 `X-Pawmento-Upload: 1`을 필수로 요구하고, 허용된 같은 출처의 요청만 받는다. 서버는 누락 헤더·다른 Origin을 거부하며 인증/헤더 검사를 multipart 파싱 전에 수행하도록 필터 순서를 검증한다. credential CORS를 임의 출처에 허용하지 않는다. 인증 담당과 이 변경을 함께 구현한다.
-- 공통 `{code, message}` 에러를 유지한다. 401 로그인 없음, 403 쓰기/업로더/출처 거부, 404 비가족·없는 자원·무관한 첨부, 400 입력/파트 수 오류, 409 상태·용도·참조 충돌, 413 파일/요청 크기 초과, 415 형식 미지원이다. 비동기 검증 실패는 REJECTED로 조회한다.
+- 공통 `{code, message}` 에러를 유지한다. 미디어의 필수 `petId` 누락·범위 오류도 전용 요청 DTO 검증으로 400 `VALIDATION`을 반환한다. multipart 수신은 파싱 전 필터에서 같은 형식으로 거부한다. 다른 도메인의 필수 쿼리 오류 형식에 대한 공통 결정을 변경하지 않는다. 401 로그인 없음, 403 쓰기/업로더/출처 거부, 404 비가족·없는 자원·무관한 첨부, 400 입력/파트 수 오류, 409 상태·용도·참조 충돌, 413 파일/요청 크기 초과, 415 형식 미지원이다. 비동기 검증 실패는 REJECTED로 조회한다.
 
 ### 요청 크기 설정안
 
@@ -136,7 +138,7 @@ spring:
       location: /var/lib/pawmento/media/tmp/multipart
 ```
 
-요청당 파일 하나를 받아 파일 제한 15MiB와 multipart 헤더 여유를 포함한 요청 제한 16MiB를 분리한다. 애플리케이션의 실제 읽기·검증도 15MiB를 검사한다. 생성된 서비스본도 15MiB를 넘으면 재처리하거나 거부한다. 설정 예시는 문서이며 아직 실제 application.yml은 바꾸지 않았다. [Spring Boot 공식 설정](https://docs.spring.io/spring-boot/appendix/application-properties/)
+요청당 파일 하나를 받아 파일 제한 15MiB와 multipart 헤더 여유를 포함한 요청 제한 16MiB를 분리한다. 애플리케이션의 실제 읽기·검증도 15MiB를 검사한다. 생성된 서비스본도 15MiB를 넘으면 재처리하거나 거부한다. 요청 크기 설정은 현재 application.yml에 반영했다. [Spring Boot 공식 설정](https://docs.spring.io/spring-boot/appendix/application-properties/)
 
 프록시/nginx도 최대 요청 본문 16MiB 이상으로 맞춘다(예: 20m). 여러 장을 한 요청에 합치지 않으므로 5장 합계가 75MiB여도 프록시 요청 하나가 75MiB가 되지 않는다. 두 nginx를 거치는 배포라면 양쪽을 확인하고 프록시의 413도 사용자에게 안내한다.
 

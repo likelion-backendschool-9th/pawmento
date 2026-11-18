@@ -57,6 +57,8 @@ jobs:
           distribution: temurin
           java-version: 21
       - uses: gradle/actions/setup-gradle@v6
+      - name: Install media validation tools
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg util-linux
       - run: ./gradlew test
       # 실패하면 어떤 테스트가 왜 실패했는지 HTML 리포트로 볼 수 있게 남긴다 (Actions 실행 화면의 Artifacts)
       - uses: actions/upload-artifact@v7

@@ -1,4 +1,10 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 15728640B
+      max-request-size: 16777216B
+      file-size-threshold: 0B
+      location: ${PAWMENTO_MEDIA_ROOT:./.local/media}/tmp/multipart
   application:
     name: backend
   # 로컬 실행(bootRun)에서는 compose.yaml의 DB가 자동으로 연결된다. 앱을 꺼도 DB는 켜 둔다.
@@ -13,6 +19,8 @@ spring:
       ddl-auto: update
 
 pawmento:
+  media:
+    root: ${PAWMENTO_MEDIA_ROOT:./.local/media}
   auth:
     # JWT 서명 키. 32바이트 이상. 저장소에 두지 않고 환경 변수 JWT_SECRET으로만 받는다.
     # 비어 있으면 시작할 때 임시 키를 만든다(재시작하면 로그인이 풀린다). 개발 서버·운영 서버에서는 반드시 설정한다.
