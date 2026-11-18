@@ -234,6 +234,29 @@ class WalkStartEndScenarioTest {
 		return statuses;
 	}
 
+	@Test
+	@DisplayName("#73-S1 petId에 소수를 보내면 정수로 잘라 쓰지 않고 400이며 산책이 만들어지지 않는다")
+	void decimalPetIdIsRejected() throws Exception {
+		Guardian me = signUpAndLogin();
+		long pet = createPet(me);
+
+		// 10.9를 10으로 잘라 읽으면 내 10번 반려동물의 산책이 만들어질 수 있다
+		for (String petId : new String[] { pet + ".9", pet + ".1", pet + ".0" }) {
+			MvcResult result = mockMvc
+				.perform(post("/api/v1/maps/walks").cookie(me.cookie())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"petId\":" + petId + "}"))
+				.andReturn();
+			assertThat(result.getResponse().getStatus()).as("petId=%s", petId).isEqualTo(400);
+			JsonNode body = readBody(result);
+			assertThat(body.get("code").asText()).as("petId=%s", petId).isEqualTo("VALIDATION");
+			assertThat(body.get("message").asText()).as("petId=%s", petId).isEqualTo("petId는 정수로 입력해 주세요.");
+		}
+
+		assertThat(walkCountOf(me)).isZero();
+		startWalk(me, pet).andExpect(status().isCreated());
+	}
+
 	private ResultActions startWalk(Guardian guardian, long petId) throws Exception {
 		return mockMvc.perform(authorized(post("/api/v1/maps/walks"), guardian).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"petId\":%d}".formatted(petId)));

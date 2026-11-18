@@ -41,7 +41,7 @@ class MapController {
 	@PostMapping("/walks")
 	@ResponseStatus(HttpStatus.CREATED)
 	StartWalkResponse startWalk(@LoginMember Long memberId, @Valid @RequestBody StartWalkRequest request) {
-		return StartWalkResponse.from(startWalkUseCase.start(new StartWalkCommand(memberId, request.petId())));
+		return StartWalkResponse.from(startWalkUseCase.start(new StartWalkCommand(memberId, request.petIdValue())));
 	}
 
 	@PostMapping("/walks/{walkId}/end")
