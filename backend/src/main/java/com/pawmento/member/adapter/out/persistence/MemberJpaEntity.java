@@ -2,6 +2,7 @@ package com.pawmento.member.adapter.out.persistence;
 
 import java.time.Instant;
 
+import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.domain.MemberRole;
 
@@ -21,23 +22,32 @@ import lombok.NoArgsConstructor;
 
 // 기존 테이블·컬럼·제약 이름을 유지한다. DB 매핑은 도메인과 분리한다.
 @Entity
-@Table(name = "member", uniqueConstraints = @UniqueConstraint(name = MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT, columnNames = "email"))
+@Table(name = "member", uniqueConstraints = {
+		@UniqueConstraint(name = MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT, columnNames = "email"),
+		@UniqueConstraint(name = MemberJpaEntity.PROVIDER_UNIQUE_CONSTRAINT,
+				columnNames = { "provider", "provider_user_id" }) })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 class MemberJpaEntity {
 	static final String EMAIL_UNIQUE_CONSTRAINT = "uk_member_email";
+	static final String PROVIDER_UNIQUE_CONSTRAINT = "uk_member_provider_user";   // ← 추가
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 	@Column(nullable = false, length = 254)
 	private String email;
-	@Column(nullable = false)
+	@Column
 	private String passwordHash;
 	@Column(nullable = false, length = 20)
 	private String nickname;
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
 	private MemberRole role;
+	@Enumerated(EnumType.STRING)                                                        // ★
+	@Column(nullable = false, length = 20)
+	private AuthProvider provider;
+	@Column(name = "provider_user_id")                                                  // ★
+	private String providerUserId;
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 	@Column
@@ -50,12 +60,14 @@ class MemberJpaEntity {
 		entity.passwordHash = member.getPasswordHash();
 		entity.nickname = member.getNickname();
 		entity.role = member.getRole();
+		entity.provider = member.getProvider();                                         // ★
+		entity.providerUserId = member.getProviderUserId(); 
 		entity.createdAt = member.getCreatedAt();
 		entity.nicknameChangedAt = member.getNicknameChangedAt();
 		return entity;
 	}
 
 	Member toDomain() {
-		return Member.restore(id, email, passwordHash, nickname, role, createdAt, nicknameChangedAt);
+		return Member.restore(id, email, passwordHash, nickname, role, provider, providerUserId, createdAt, nicknameChangedAt);
 	}
 }
