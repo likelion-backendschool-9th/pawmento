@@ -13,11 +13,12 @@ final class PublicEndpoints {
 
 	private static final PathPatternRequestMatcher.Builder PATH = PathPatternRequestMatcher.withDefaults();
 
-	// 가입·로그인·로그아웃. 이 경로에서는 쿠키의 토큰을 읽지 않는다 (CookieBearerTokenResolver).
+	// 가입·로그인·소셜 로그인·로그아웃. 이 경로에서는 쿠키의 토큰을 읽지 않는다 (CookieBearerTokenResolver).
 	// Security는 컨트롤러 접두어(WebConfig)가 붙기 전의 실제 경로를 보므로 ApiPaths.V1을 붙여 전체 경로로 쓴다
 	static final RequestMatcher AUTH = new OrRequestMatcher(
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/signup"),
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/login"),
+			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/oauth/{provider}"),
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/logout"));
 
 	// 누구나 보는 읽기 경로. 이 경로에서도 쿠키의 토큰을 읽지 않는다 (CookieBearerTokenResolver).
