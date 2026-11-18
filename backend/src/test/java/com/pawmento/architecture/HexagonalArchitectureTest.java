@@ -33,6 +33,10 @@ class HexagonalArchitectureTest {
 							}
 							assertThat(dependency).as("%s -> %s", relative, dependency).matches(allowed);
 						} else if (relative.contains("/application/")) {
+							if (relative.startsWith("pet/application/exception/")) {
+								assertThat(dependency).as("%s -> %s", relative, dependency)
+									.doesNotContain("org.springframework.http", "global.error");
+							}
 							assertThat(dependency).as("%s -> %s", relative, dependency).doesNotContain(".adapter.",
 									"jakarta.persistence", "org.springframework.data", "org.springframework.security",
 									"global.security");

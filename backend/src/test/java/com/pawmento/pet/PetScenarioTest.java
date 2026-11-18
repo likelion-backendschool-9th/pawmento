@@ -255,7 +255,8 @@ class PetScenarioTest {
 						{"mode":"PARK"}
 						"""))
 			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"));
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("모드를 선택해 주세요."));
 
 		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(cookie))
 			.andExpect(status().isOk())
@@ -350,13 +351,22 @@ class PetScenarioTest {
 		Long petId = createPetId(cookie, """
 				{"name":"콩이","species":"DOG"}
 				""");
-		mockMvc.perform(patch("/api/v1/pets/" + petId).cookie(cookie)
-			.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
-			.andExpect(status().isBadRequest())
-			.andExpect(jsonPath("$.code").value("VALIDATION"))
-			.andExpect(jsonPath("$.message").value("이름은 1~20자로 입력해 주세요."));
-		mockMvc.perform(get("/api/v1/pets/" + petId).cookie(cookie))
-			.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("콩이"));
+		for (String invalid : java.util.List.of(
+			"{\"name\":\" \"}",
+			"{\"name\":\"" + "가".repeat(21) + "\"}",
+			"{\"name\":\"바뀌면안됨\",\"birthday\":\"2026-12-15\"}",
+			"{\"species\":\"BIRD\"}")) {
+			String message = invalid.contains("birthday") ? "생일은 오늘 이전으로 입력해 주세요."
+				: invalid.contains("species") ? "반려동물의 종류를 선택해 주세요." : "이름은 1~20자로 입력해 주세요.";
+			mockMvc.perform(patch("/api/v1/pets/" + petId).cookie(cookie)
+				.contentType(MediaType.APPLICATION_JSON).content(invalid))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION"))
+				.andExpect(jsonPath("$.message").value(message));
+			mockMvc.perform(get("/api/v1/pets/" + petId).cookie(cookie))
+				.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("콩이"))
+				.andExpect(jsonPath("$.mode").value("ACTIVE"));
+		}
 	}
 
 	@Test
