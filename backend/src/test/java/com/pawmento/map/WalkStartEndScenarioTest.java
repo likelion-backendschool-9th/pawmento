@@ -257,6 +257,35 @@ class WalkStartEndScenarioTest {
 		startWalk(me, pet).andExpect(status().isCreated());
 	}
 
+	@Test
+	@DisplayName("#73-S1 petId가 Long 범위를 넘으면 400이고, 범위 안의 큰 정수는 반려동물 조회까지 진행해 404를 받는다")
+	void petIdRangeIsChecked() throws Exception {
+		Guardian me = signUpAndLogin();
+
+		// 범위 밖: 처리되지 않은 예외(500)가 아니라 400 VALIDATION
+		for (String petId : new String[] { "9223372036854775808", "-9223372036854775809", "1e30", "1e999999999",
+				"-1e999999999", "1e-999999999" }) {
+			MvcResult result = mockMvc
+				.perform(post("/api/v1/maps/walks").cookie(me.cookie())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"petId\":" + petId + "}"))
+				.andReturn();
+			assertThat(result.getResponse().getStatus()).as("petId=%s", petId).isEqualTo(400);
+			assertThat(readBody(result).get("code").asText()).as("petId=%s", petId).isEqualTo("VALIDATION");
+		}
+
+		// 범위 안의 큰 정수(19자리 포함): 검증을 통과해 반려동물 조회까지 가고, 없으니 404
+		for (String petId : new String[] { "1000000000000000000", "9223372036854775807", "-9223372036854775808" }) {
+			mockMvc
+				.perform(post("/api/v1/maps/walks").cookie(me.cookie())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("{\"petId\":" + petId + "}"))
+				.andExpect(status().isNotFound());
+		}
+
+		assertThat(walkCountOf(me)).isZero();
+	}
+
 	private ResultActions startWalk(Guardian guardian, long petId) throws Exception {
 		return mockMvc.perform(authorized(post("/api/v1/maps/walks"), guardian).contentType(MediaType.APPLICATION_JSON)
 			.content("{\"petId\":%d}".formatted(petId)));
