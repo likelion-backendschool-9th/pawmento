@@ -43,7 +43,7 @@ class PostPersistenceAdapter implements SavePostPort, UpdatePostPort, LoadPostPo
 		}
 		catch (OptimisticLockingFailureException e) {
 			// 읽은 뒤 다른 요청이 먼저 고치거나 지웠다. 지운 글이 오래된 수정으로 되살아나지 않게 거절한다
-			throw new PostConcurrentModificationException();
+			throw new PostConcurrentModificationException(e);
 		}
 	}
 

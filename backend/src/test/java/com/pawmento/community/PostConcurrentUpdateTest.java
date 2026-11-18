@@ -1,6 +1,7 @@
 package com.pawmento.community;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -22,6 +23,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,6 +32,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.community.application.exception.PostConcurrentModificationException;
 import com.pawmento.community.application.port.in.CreatePostCommand;
 import com.pawmento.community.application.port.in.CreatePostUseCase;
 import com.pawmento.community.application.port.in.DeletePostCommand;
@@ -37,6 +40,7 @@ import com.pawmento.community.application.port.in.DeletePostUseCase;
 import com.pawmento.community.application.port.in.EditPostCommand;
 import com.pawmento.community.application.port.in.EditPostUseCase;
 import com.pawmento.community.application.port.out.LoadPostPort;
+import com.pawmento.community.application.port.out.UpdatePostPort;
 import com.pawmento.community.domain.Post;
 import com.pawmento.global.security.AccessTokenCookie;
 
@@ -68,6 +72,9 @@ class PostConcurrentUpdateTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private UpdatePostPort updatePostPort;
 
 	@TestConfiguration
 	static class HookConfig {
@@ -145,6 +152,19 @@ class PostConcurrentUpdateTest {
 		assertThat(row.get("title")).isEqualTo("먼저 고친 제목");
 		assertThat(row.get("body")).isEqualTo("먼저 고친 본문");
 		assertThat(row.get("deleted_at")).isNull();
+	}
+
+	@Test
+	@DisplayName("#21-S14 버전 충돌을 409 예외로 바꿀 때 저장소의 충돌 예외를 cause로 남긴다")
+	void conflictKeepsCause() {
+		Long postId = createPostUseCase.create(new CreatePostCommand(1L, "CARE", "원래 제목", "원래 본문"));
+		Post stale = hookedLoadPostPort.findById(postId).orElseThrow();
+		editPostUseCase.edit(new EditPostCommand(1L, postId, "CARE", "먼저 고친 제목", "먼저 고친 본문"));
+
+		stale.edit(1L, stale.getCategory(), "늦게 고친 제목", "늦게 고친 본문");
+
+		assertThatThrownBy(() -> updatePostPort.update(stale)).isInstanceOf(PostConcurrentModificationException.class)
+			.hasCauseInstanceOf(OptimisticLockingFailureException.class);
 	}
 
 	// 다른 요청처럼 별도 스레드(별도 트랜잭션)에서 실행하고 커밋이 끝날 때까지 기다린다
