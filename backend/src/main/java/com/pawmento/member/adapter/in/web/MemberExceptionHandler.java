@@ -8,26 +8,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.pawmento.global.error.ErrorCode;
 import com.pawmento.global.error.ErrorResponse;
 import com.pawmento.member.application.exception.InvalidCredentialsException;
-import com.pawmento.member.application.exception.InvalidNicknameException;
-import com.pawmento.member.application.exception.NicknameChangeLimitException;
 
-// 회원 도메인의 예외를 HTTP 응답으로 바꾼다
+// 로그인 실패(401)는 공통 기본 예외로 다룰지 아직 정하지 않아 여기서 응답으로 바꾼다 (docs/backend-exceptions.md)
 @RestControllerAdvice
 class MemberExceptionHandler {
 
 	@ExceptionHandler(InvalidCredentialsException.class)
 	ResponseEntity<ErrorResponse> handle(InvalidCredentialsException e) {
 		return response(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, e);
-	}
-
-	@ExceptionHandler(InvalidNicknameException.class)
-	ResponseEntity<ErrorResponse> handle(InvalidNicknameException e) {
-		return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, e);
-	}
-
-	@ExceptionHandler(NicknameChangeLimitException.class)
-	ResponseEntity<ErrorResponse> handle(NicknameChangeLimitException e) {
-		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
 	}
 
 	private ResponseEntity<ErrorResponse> response(HttpStatus status, ErrorCode code, RuntimeException e) {

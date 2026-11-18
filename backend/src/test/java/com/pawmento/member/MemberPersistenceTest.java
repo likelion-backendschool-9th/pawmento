@@ -18,13 +18,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 
 import com.pawmento.TestcontainersConfiguration;
-import com.pawmento.member.application.exception.NicknameChangeLimitException;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameUseCase;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.domain.MemberRole;
+import com.pawmento.member.domain.exception.MemberNicknameLimitException;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -79,7 +79,7 @@ class MemberPersistenceTest {
 			changeNickname.changeNickname(new ChangeMemberNicknameCommand(id, nickname));
 			return true;
 		}
-		catch (NicknameChangeLimitException e) {
+		catch (MemberNicknameLimitException e) {
 			return false;
 		}
 	}
