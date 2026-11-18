@@ -12,11 +12,16 @@ import com.pawmento.member.application.exception.InvalidCredentialsException;
 import com.pawmento.member.application.exception.InvalidNicknameException;
 import com.pawmento.member.application.exception.MemberNotFoundException;
 import com.pawmento.member.application.exception.NicknameChangeLimitException;
+import com.pawmento.member.application.exception.SocialEmailConflictException;
+import com.pawmento.member.application.exception.SocialLoginFailedException;
+import com.pawmento.member.application.exception.UnsupportedSocialProviderException;
 
 // 회원 도메인의 예외를 HTTP 응답으로 바꾼다
 @RestControllerAdvice
 class MemberExceptionHandler {
 
+
+	// 공통 기본 예외(#60)가 develop에 들어오면 기본 예외 상속으로 옮기고 아래 핸들러는 지운다
 	@ExceptionHandler(DuplicateEmailException.class)
 	ResponseEntity<ErrorResponse> handle(DuplicateEmailException e) {
 		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
@@ -40,6 +45,21 @@ class MemberExceptionHandler {
 	@ExceptionHandler(NicknameChangeLimitException.class)
 	ResponseEntity<ErrorResponse> handle(NicknameChangeLimitException e) {
 		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
+	}
+
+		@ExceptionHandler(SocialEmailConflictException.class)
+	ResponseEntity<ErrorResponse> handle(SocialEmailConflictException e) {
+		return response(HttpStatus.CONFLICT, ErrorCode.CONFLICT, e);
+	}
+
+	@ExceptionHandler(SocialLoginFailedException.class)
+	ResponseEntity<ErrorResponse> handle(SocialLoginFailedException e) {
+		return response(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, e);
+	}
+
+	@ExceptionHandler(UnsupportedSocialProviderException.class)
+	ResponseEntity<ErrorResponse> handle(UnsupportedSocialProviderException e) {
+		return response(HttpStatus.BAD_REQUEST, ErrorCode.VALIDATION, e);
 	}
 
 	private ResponseEntity<ErrorResponse> response(HttpStatus status, ErrorCode code, RuntimeException e) {
