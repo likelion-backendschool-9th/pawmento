@@ -2,6 +2,8 @@ package com.pawmento.pet.domain;
 
 import java.time.LocalDate;
 
+import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+
 import lombok.Getter;
 
 // 반려동물 프로필. Spring·JPA를 모른다. 생성·수정·모드 규칙을 여기서 지킨다
@@ -68,7 +70,7 @@ public class Pet {
 
 	public void changeMode(PetMode mode) {
 		if (mode == null) {
-			throw new InvalidPetProfileException("모드를 선택해 주세요.");
+			throw InvalidPetProfileException.invalidMode();
 		}
 		this.mode = mode;
 	}
@@ -91,36 +93,36 @@ public class Pet {
 
 	private static void requireOwner(Long ownerMemberId) {
 		if (ownerMemberId == null) {
-			throw new InvalidPetProfileException("소유자가 필요합니다.");
+			throw InvalidPetProfileException.missingOwner();
 		}
 	}
 
 	private static String requireName(String name) {
 		if (name == null || name.isBlank()) {
-			throw new InvalidPetProfileException("이름은 1~20자로 입력해 주세요.");
+			throw InvalidPetProfileException.invalidName();
 		}
 		String trimmed = name.strip();
 		if (trimmed.isEmpty() || trimmed.length() > 20) {
-			throw new InvalidPetProfileException("이름은 1~20자로 입력해 주세요.");
+			throw InvalidPetProfileException.invalidName();
 		}
 		return trimmed;
 	}
 
 	private static void requireTag(String tag) {
 		if (tag == null || tag.isBlank()) {
-			throw new InvalidPetProfileException("태그가 필요합니다.");
+			throw InvalidPetProfileException.missingTag();
 		}
 	}
 
 	private static void requireSpecies(PetSpecies species) {
 		if (species == null) {
-			throw new InvalidPetProfileException("반려동물의 종류를 선택해 주세요.");
+			throw InvalidPetProfileException.invalidSpecies();
 		}
 	}
 
 	private static void requireBirthdayNotFuture(LocalDate birthday, LocalDate today) {
 		if (birthday != null && birthday.isAfter(today)) {
-			throw new InvalidPetProfileException("생일은 오늘 이전으로 입력해 주세요.");
+			throw InvalidPetProfileException.futureBirthday();
 		}
 	}
 

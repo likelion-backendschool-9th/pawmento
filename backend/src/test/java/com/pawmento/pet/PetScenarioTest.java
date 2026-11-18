@@ -328,6 +328,28 @@ class PetScenarioTest {
 			.andExpect(jsonPath("$.name").value("보리"));
 	}
 
+	@Test
+	@DisplayName("#72-S1 도메인 입력 오류는 공통 처리로 400과 기존 메시지를 반환한다")
+	void domainValidationUsesCommonHandler() throws Exception {
+		Cookie cookie = loginAsNewMember();
+		createPet(cookie, """
+				{"name":"콩이","species":"DOG","birthday":"2026-12-15"}
+				""")
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("생일은 오늘 이전으로 입력해 주세요."));
+		Long petId = createPetId(cookie, """
+				{"name":"콩이","species":"DOG"}
+				""");
+		mockMvc.perform(patch("/api/v1/pets/" + petId).cookie(cookie)
+			.contentType(MediaType.APPLICATION_JSON).content("{\"name\":\" \"}"))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("이름은 1~20자로 입력해 주세요."));
+		mockMvc.perform(get("/api/v1/pets/" + petId).cookie(cookie))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.name").value("콩이"));
+	}
+
 	private Cookie loginAsNewMember() throws Exception {
 		String email = "guardian-" + UUID.randomUUID() + "@example.com";
 		mockMvc

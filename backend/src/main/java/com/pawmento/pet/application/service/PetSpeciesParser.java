@@ -10,13 +10,13 @@ final class PetSpeciesParser {
 
 	static PetSpecies require(String species) {
 		if (species == null || species.isBlank()) {
-			throw new InvalidPetException("반려동물의 종류를 선택해 주세요.");
+			throw InvalidPetException.invalidSpecies();
 		}
 		try {
 			return PetSpecies.valueOf(species);
 		}
 		catch (IllegalArgumentException e) {
-			throw new InvalidPetException("반려동물의 종류를 선택해 주세요.");
+			throw InvalidPetException.invalidSpecies();
 		}
 	}
 

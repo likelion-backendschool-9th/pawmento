@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+
 class PetTest {
 	private Pet pet() {
 		return Pet.create(1L, "콩이", "abcd", PetSpecies.DOG, null, null, LocalDate.of(2026, 11, 17));
