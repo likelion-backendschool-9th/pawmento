@@ -13,8 +13,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.member.application.exception.InvalidNicknameException;
-import com.pawmento.member.application.exception.NicknameChangeLimitException;
+import com.pawmento.member.domain.exception.InvalidMemberNicknameException;
+import com.pawmento.member.domain.exception.MemberNicknameLimitException;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
@@ -29,22 +29,22 @@ class ChangeMemberNicknameServiceTest {
 			Clock.fixed(NOW, SEOUL));
 
 	@Test
-	@DisplayName("#52-S3 도메인의 입력 오류만 애플리케이션 입력 예외로 변환한다")
-	void invalidNicknameIsTranslated() {
+	@DisplayName("#52-S3 도메인의 닉네임 규칙 위반을 바꾸지 않고 그대로 올린다")
+	void invalidNicknamePropagates() {
 		Member member = Member.register("a@example.com", "hash", "보호자", NOW);
 		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, " ")))
-				.isInstanceOf(InvalidNicknameException.class);
+				.isInstanceOf(InvalidMemberNicknameException.class);
 	}
 
 	@Test
-	@DisplayName("#52-S4 도메인의 월 한도만 한도 예외로 변환한다")
-	void limitIsTranslated() {
+	@DisplayName("#52-S4 도메인의 월 한도 예외를 바꾸지 않고 그대로 올린다")
+	void limitPropagates() {
 		Member member = Member.register("a@example.com", "hash", "보호자", NOW);
 		member.changeNickname("첫번째", NOW, SEOUL);
 		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "두번째")))
-				.isInstanceOf(NicknameChangeLimitException.class);
+				.isInstanceOf(MemberNicknameLimitException.class);
 	}
 
 	@Test
