@@ -98,7 +98,7 @@ public class MediaPersistenceAdapter
               entityManager
                   .createQuery(
                       "select count(a) from MediaAssetJpaEntity a where a.status<>'DELETED' and"
-                          + " (a.temporaryStorageKey=:key or a.verified.key=:key)",
+                          + " (a.temporaryStorageKey=:key or a.verified.storageKey=:key)",
                       Long.class)
                   .setParameter("key", key)
                   .getSingleResult();

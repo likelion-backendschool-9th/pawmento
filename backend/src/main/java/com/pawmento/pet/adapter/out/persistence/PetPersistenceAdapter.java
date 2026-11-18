@@ -3,10 +3,13 @@ package com.pawmento.pet.adapter.out.persistence;
 import java.util.List;
 import java.util.Optional;
 
+import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 import com.pawmento.pet.application.exception.PetConcurrentModificationException;
+import com.pawmento.pet.application.exception.PetHasRecordsException;
 import com.pawmento.pet.application.port.out.DeletePetPort;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.SavePetPort;
@@ -52,7 +55,22 @@ public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePe
 
 	@Override
 	public void deleteById(Long petId) {
-		petJpaRepository.deleteById(petId);
+		try {
+			petJpaRepository.deleteById(petId);
+			petJpaRepository.flush();
+		}
+		catch (DataIntegrityViolationException failure) {
+			for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+				if (cause instanceof PSQLException sql
+						&& sql.getServerErrorMessage() != null
+						&& "fk_diary_entries_pet".equals(sql.getServerErrorMessage().getConstraint())
+						// PostgreSQL RESTRICT는 23001, 일반 FK 위반은 23503이다.
+						&& ("23001".equals(sql.getSQLState()) || "23503".equals(sql.getSQLState()))) {
+					throw new PetHasRecordsException(failure);
+				}
+			}
+			throw failure;
+		}
 	}
 
 }

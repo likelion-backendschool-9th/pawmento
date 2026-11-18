@@ -1,10 +1,19 @@
 package com.pawmento.pet.application.exception;
 
-// 도메인 규칙 위반을 HTTP 400 VALIDATION으로 바꿀 때 쓴다
-public class InvalidPetException extends RuntimeException {
+import com.pawmento.global.exception.RuleViolationException;
 
-	public InvalidPetException(String message) {
+public class InvalidPetException extends RuleViolationException {
+
+	private InvalidPetException(String message) {
 		super(message);
+	}
+
+	public static InvalidPetException invalidSpecies() {
+		return new InvalidPetException("반려동물의 종류를 선택해 주세요.");
+	}
+
+	public static InvalidPetException invalidMode() {
+		return new InvalidPetException("모드를 선택해 주세요.");
 	}
 
 }

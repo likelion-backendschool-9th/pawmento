@@ -10,13 +10,13 @@ final class PetModeParser {
 
 	static PetMode require(String mode) {
 		if (mode == null || mode.isBlank()) {
-			throw new InvalidPetException("모드를 선택해 주세요.");
+			throw InvalidPetException.invalidMode();
 		}
 		try {
 			return PetMode.valueOf(mode);
 		}
 		catch (IllegalArgumentException e) {
-			throw new InvalidPetException("모드를 선택해 주세요.");
+			throw InvalidPetException.invalidMode();
 		}
 	}
 

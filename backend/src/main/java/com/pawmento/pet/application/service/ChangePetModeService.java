@@ -3,13 +3,11 @@ package com.pawmento.pet.application.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.pawmento.pet.application.exception.InvalidPetException;
 import com.pawmento.pet.application.port.in.ChangePetModeCommand;
 import com.pawmento.pet.application.port.in.ChangePetModeUseCase;
 import com.pawmento.pet.application.port.in.PetResult;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.SavePetPort;
-import com.pawmento.pet.domain.InvalidPetProfileException;
 import com.pawmento.pet.domain.Pet;
 import com.pawmento.pet.domain.PetMode;
 
@@ -27,12 +25,7 @@ public class ChangePetModeService implements ChangePetModeUseCase {
 	public PetResult changeMode(ChangePetModeCommand command) {
 		Pet pet = PetOwnership.requireOwnedPet(loadPetPort, command.petId(), command.memberId());
 		PetMode mode = PetModeParser.require(command.mode());
-		try {
-			pet.changeMode(mode);
-		}
-		catch (InvalidPetProfileException e) {
-			throw new InvalidPetException(e.getMessage());
-		}
+		pet.changeMode(mode);
 		savePetPort.save(pet);
 		return PetResult.from(pet);
 	}

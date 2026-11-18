@@ -110,7 +110,9 @@ class MediaUploadScenarioTest {
                 .cookie(other.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body("image/png", 3)))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+        .andExpect(jsonPath("$.message").value("권한이 없습니다."));
     mvc.perform(get(path(a, id)).cookie(other.cookie())).andExpect(status().isForbidden());
     mvc.perform(get("/api/v1/media/" + id + "?petId=" + other.petId()).cookie(other.cookie()))
         .andExpect(status().isForbidden());
@@ -122,6 +124,8 @@ class MediaUploadScenarioTest {
                 .header("X-Pawmento-Upload", "1"))
         .andExpect(status().isForbidden());
     assertThat(jobs.findById(id)).isEmpty();
+    mvc.perform(get(path(a, id)).cookie(a.cookie()))
+        .andExpect(jsonPath("$.status").value("PENDING"));
   }
 
   @Test
@@ -264,16 +268,20 @@ class MediaUploadScenarioTest {
     long id = session(a, "image/png", 3);
     String url = "http://localhost:" + port + path(a, id, "/content");
     // 이 본문은 multipart로 파싱하면 400이어야 한다. 앞단 거부가 먼저 나와야 한다.
-    assertThat(raw(url, null, null, null)).isEqualTo(401);
-    assertThat(raw(url, a.cookie(), null, "http://localhost:" + port)).isEqualTo(403);
-    assertThat(raw(url, a.cookie(), "1", "http://elsewhere.invalid")).isEqualTo(403);
-    assertThat(raw(url, other.cookie(), "1", "http://localhost:" + port)).isEqualTo(403);
-    assertThat(raw(url, a.cookie(), "1", "http://localhost:" + port)).isEqualTo(400);
+    assertThat(raw(url, null, null, null).statusCode()).isEqualTo(401);
+    assertThat(raw(url, a.cookie(), null, "http://localhost:" + port).statusCode()).isEqualTo(403);
+    assertThat(raw(url, a.cookie(), "1", "http://elsewhere.invalid").statusCode()).isEqualTo(403);
+    var rejected = raw(url, other.cookie(), "1", "http://localhost:" + port);
+    assertThat(rejected.statusCode()).isEqualTo(403);
+    assertThat(JsonPath.<String>read(rejected.body(), "$.code")).isEqualTo("FORBIDDEN");
+    assertThat(JsonPath.<String>read(rejected.body(), "$.message")).isEqualTo("권한이 없습니다.");
+    assertThat(jobs.findById(id)).isEmpty();
+    assertThat(raw(url, a.cookie(), "1", "http://localhost:" + port).statusCode()).isEqualTo(400);
     mvc.perform(get(path(a, id)).cookie(a.cookie()))
         .andExpect(jsonPath("$.status").value("PENDING"));
   }
 
-  int raw(String url, Cookie cookie, String header, String origin) throws Exception {
+  HttpResponse<String> raw(String url, Cookie cookie, String header, String origin) throws Exception {
     var builder =
         HttpRequest.newBuilder(URI.create(url))
             .timeout(Duration.ofSeconds(15))
@@ -283,8 +291,7 @@ class MediaUploadScenarioTest {
     if (header != null) builder.header("X-Pawmento-Upload", header);
     if (origin != null) builder.header("Origin", origin);
     return HttpClient.newHttpClient()
-        .send(builder.build(), HttpResponse.BodyHandlers.discarding())
-        .statusCode();
+        .send(builder.build(), HttpResponse.BodyHandlers.ofString(java.nio.charset.StandardCharsets.UTF_8));
   }
 
   long fileCount() throws Exception {
@@ -796,6 +803,82 @@ class MediaUploadScenarioTest {
           .andExpect(jsonPath("$.code").value("VALIDATION"));
     }
     assertThat(state(id)).isEqualTo("PENDING");
+  }
+
+  @Test
+  @DisplayName("#79-S1 petId 헤더·본문은 필수 쿼리를 대체하지 못하고 모든 미디어 API가 공통 400을 반환한다")
+  void petHeaderCannotSupplyQuery() throws Exception {
+    Owner a = owner();
+    long id = session(a, "image/png", 3);
+    String base = "/api/v1/media/" + id;
+    for (String query :
+        new String[] {
+          "", "?petId=", "?petId=0", "?petId=abc", "?petId=1&petId=2", "?petId=1&%70etId=2"
+        }) {
+      var requests = List.of(
+          post(URI.create("/api/v1/media/uploads" + query))
+              .contentType(MediaType.APPLICATION_JSON)
+              .content(body("image/png", 3).replace("}", ",\"petId\":" + a.petId() + "}")),
+          get(URI.create(base + query)),
+          get(URI.create(base + "/preview" + query)),
+          get(URI.create(base + "/thumbnail" + query)),
+          delete(URI.create(base + query)),
+          multipart(URI.create(base + "/content" + query))
+              .file(new MockMultipartFile("file", "a.png", "image/png", new byte[] {1, 2, 3}))
+              .param("petId", a.petId().toString())
+              .header("Origin", "http://localhost")
+              .header("X-Pawmento-Upload", "1"));
+      for (var request : requests)
+        mvc.perform(request.cookie(a.cookie()).header("petId", a.petId().toString()))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION"))
+            .andExpect(jsonPath("$.message").isNotEmpty());
+      for (String suffix : new String[] {"/preview", "/thumbnail"})
+        mvc.perform(
+                head(URI.create(base + suffix + query))
+                    .cookie(a.cookie())
+                    .header("petId", a.petId()))
+            .andExpect(status().isBadRequest());
+    }
+    assertThat(state(id)).isEqualTo("PENDING");
+    assertThat(jobs.findById(id)).isEmpty();
+  }
+
+  @Test
+  @DisplayName("#79-S2 유효한 petId 쿼리는 상충하는 헤더보다 우선하고 기존 업로드·열람·삭제가 동작한다")
+  void petQueryIgnoresConflictingHeader() throws Exception {
+    Owner a = owner(), other = owner();
+    byte[] data = fixture("sample.png");
+    var result =
+        mvc.perform(
+                post("/api/v1/media/uploads?petId=" + a.petId())
+                    .cookie(a.cookie())
+                    .header("petId", other.petId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body("image/png", data.length)))
+            .andExpect(status().isCreated())
+            .andReturn();
+    long id = number(result, "$.assetId");
+    mvc.perform(
+            multipart(path(a, id, "/content"))
+                .file(new MockMultipartFile("file", "a.png", "image/png", data))
+                .cookie(a.cookie())
+                .header("petId", other.petId())
+                .header("Origin", "http://localhost")
+                .header("X-Pawmento-Upload", "1"))
+        .andExpect(status().isAccepted());
+    drain();
+    mvc.perform(get(path(a, id)).cookie(a.cookie()).header("petId", other.petId()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("READY"));
+    for (String suffix : new String[] {"/preview", "/thumbnail"}) {
+      mvc.perform(get(path(a, id, suffix)).cookie(a.cookie()).header("petId", other.petId()))
+          .andExpect(status().isOk());
+      mvc.perform(head(path(a, id, suffix)).cookie(a.cookie()).header("petId", other.petId()))
+          .andExpect(status().isOk());
+    }
+    mvc.perform(delete(path(a, id)).cookie(a.cookie()).header("petId", other.petId()))
+        .andExpect(status().isAccepted());
   }
 
   @Test
