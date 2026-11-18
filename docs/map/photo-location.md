@@ -26,7 +26,7 @@
 
 - 비공개 `media_asset_location(asset_id PK, latitude, longitude, source=EXIF)`는 동의한 다이어리 이미지에만 만든다. 동의 여부·정책 버전·기록 시각은 media의 별도 동의 필드/행에서 관리한다.
 - `GetMediaLocationCandidateUseCase`는 요청 회원·아이·자산 목록으로 업로더/기존 유효 첨부·용도·READY·GPS 동의 유효성을 검사한다. 미동의 자산에는 후보를 반환하지 않는다.
-- 작성 미리보기가 필요하면 `POST /pets/{petId}/diary-location-candidates`에 `attachmentIds`와 선택 `recordId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다.
+- 작성 미리보기가 필요하면 `POST /diaries/location-candidates?petId={petId}`에 `attachmentIds`와 선택 `recordId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다. (고침 #32: PR #94의 diary 루트·petId 쿼리 계약과 통일)
 - 사진 업로드나 후보 조회만으로 지도 핀을 만들지 않는다. 위치 저장은 다이어리 생성·수정·삭제에서만 수행한다.
 
 ## 다이어리의 단일 위치 쓰기 계약
