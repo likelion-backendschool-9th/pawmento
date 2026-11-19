@@ -152,16 +152,27 @@ class SocialLoginMemberServiceTest {
 	}
 
 	@Test
-    @DisplayName("#40-S15 이메일 확인 때 같은 구글 계정이 먼저 가입했으면 409가 아니라 그 회원으로 로그인한다")
-    void concurrentSameAccountFoundAtEmailCheck() {
-        googleReturns("dawit@gmail.com", "다윗");
-        when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123"))
-                .thenReturn(Optional.empty(), Optional.of(googleMember(7L, "dawit@gmail.com")));
-        when(existsMember.existsByEmail("dawit@gmail.com")).thenReturn(true);
+	@DisplayName("#40-S15 같은 구글 계정의 첫 로그인이 동시에 와서 저장에 지면 먼저 저장된 회원으로 로그인한다")
+	void concurrentSameAccountLogsInAsWinner() {
+		googleReturns("dawit@gmail.com", "다윗");
+		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123"))
+				.thenReturn(Optional.empty(), Optional.of(googleMember(7L, "dawit@gmail.com")));
+		when(saveMember.save(any())).thenThrow(new DuplicateSocialAccountException());
 
-        assertThat(service.login(google()).member().id()).isEqualTo(7L);
-        verify(saveMember, never()).save(any());
-    }
+		assertThat(service.login(google()).member().id()).isEqualTo(7L);
+	}
+
+	@Test
+	@DisplayName("#40-S15 이메일 확인 때 같은 구글 계정이 먼저 가입했으면 409가 아니라 그 회원으로 로그인한다")
+	void concurrentSameAccountFoundAtEmailCheck() {
+		googleReturns("dawit@gmail.com", "다윗");
+		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123"))
+				.thenReturn(Optional.empty(), Optional.of(googleMember(7L, "dawit@gmail.com")));
+		when(existsMember.existsByEmail("dawit@gmail.com")).thenReturn(true);
+
+		assertThat(service.login(google()).member().id()).isEqualTo(7L);
+		verify(saveMember, never()).save(any());
+	}
 
 	@Test
 	@DisplayName("#40-S16 같은 이메일의 다른 가입이 먼저 저장되면 409 그대로 실패한다")
