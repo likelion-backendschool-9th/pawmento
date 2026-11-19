@@ -4,15 +4,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import java.time.Instant;
 import java.util.List;
 
+import org.hibernate.exception.JDBCConnectionException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
+import org.springframework.dao.PessimisticLockingFailureException;
+import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.domain.Pageable;
 
 import com.pawmento.global.exception.StorageUnavailableException;
@@ -100,13 +108,45 @@ class MapPersistenceFailureTest {
 	}
 
 	@Test
-	@DisplayName("#72-S10 JPA 예외(PersistenceException)도 같은 예외로 바꾼다")
-	void persistenceExceptionIsTranslated() {
-		PersistenceException cause = new PersistenceException("entity manager closed");
-		when(walks.findById(anyLong())).thenThrow(cause);
+	@DisplayName("#72-S10 일시적인 장애(연결 장애, 쿼리 타임아웃, 잠금 대기 초과, 일시적 JDBC 오류)만 저장소 일시 장애로 바꾼다")
+	void onlyTransientFailuresAreUnavailable() {
+		RuntimeException[] transients = { new QueryTimeoutException("timeout"),
+				new PessimisticLockingFailureException("lock wait timeout"),
+				new JDBCConnectionException("connection lost", new SQLException("08006")),
+				new jakarta.persistence.QueryTimeoutException("jpa timeout"),
+				// 원인 사슬 안에 있는 일시적 JDBC 오류도 잡는다
+				new InvalidDataAccessApiUsageException("wrapped",
+						new SQLTransientConnectionException("pool timeout")) };
+		for (RuntimeException failure : transients) {
+			// 같은 호출을 다시 스터빙하므로 when(...) 대신 doThrow를 쓴다(when 안의 호출이 이전 예외를 던진다)
+			doThrow(failure).when(walks).findById(1L);
 
-		assertThatThrownBy(() -> walkAdapter.loadById(1L)).isInstanceOf(WalkPersistenceUnavailableException.class)
-			.hasCause(cause);
+			assertThatThrownBy(() -> walkAdapter.loadById(1L)).as(failure.getClass().getSimpleName())
+				.isInstanceOf(WalkPersistenceUnavailableException.class)
+				.hasCause(failure);
+		}
+	}
+
+	@Test
+	@DisplayName("#72-S10 분류되지 않은 무결성 오류, 잘못된 JPA 호출, 분류되지 않은 JPA 예외는 503으로 바꾸지 않고 그대로 올린다")
+	void nonTransientFailuresPassThrough() {
+		RuntimeException[] others = { new DataIntegrityViolationException("not null violated"),
+				new InvalidDataAccessApiUsageException("bad jpa call", new IllegalArgumentException("bad")),
+				new PersistenceException("unclassified") };
+		for (RuntimeException failure : others) {
+			doThrow(failure).when(walks).findById(1L);
+			doThrow(failure).when(locations).findByRecordId(1L);
+
+			assertThatThrownBy(() -> walkAdapter.loadById(1L)).as(failure.getClass().getSimpleName())
+				.isSameAs(failure);
+			assertThatThrownBy(() -> locationAdapter.loadByRecordId(1L)).isSameAs(failure);
+		}
+		// 기록 위치 저장: 유일 제약이 아닌 무결성 오류는 이미 있다는 오류도, 503도 아니다
+		DataIntegrityViolationException other = new DataIntegrityViolationException("not null violated");
+		when(locations.save(any())).thenThrow(other);
+
+		assertThatThrownBy(() -> locationAdapter.save(RecordLocation.create(1L, 10L, 1L, 37.5, 127.0, null)))
+			.isSameAs(other);
 	}
 
 	@Test
