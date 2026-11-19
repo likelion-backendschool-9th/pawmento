@@ -46,8 +46,12 @@ class DiaryConcurrencyTest {
     return pets.create(new CreatePetCommand(9001L, "보리", "DOG", null, null)).petId();
   }
 
+  String path(long pet, long id) {
+    return "/api/v1/diaries/" + id + "?petId=" + pet;
+  }
+
   String path(long pet) {
-    return "/api/v1/pets/" + pet + "/diaries";
+    return "/api/v1/diaries?petId=" + pet;
   }
 
   static void waitFor(CountDownLatch latch) {
@@ -134,7 +138,7 @@ class DiaryConcurrencyTest {
         .isEqualTo(1L);
     Long id = jdbc.queryForObject("select id from diary_entries where pet_id=?", Long.class, pet);
     var detail =
-        mvc.perform(get(path(pet) + "/" + id).with(jwt().jwt(j -> j.subject("9001")))).andReturn();
+        mvc.perform(get(path(pet, id)).with(jwt().jwt(j -> j.subject("9001")))).andReturn();
     assertThat(detail.getResponse().getStatus()).isEqualTo(200);
     assertThat(JsonPath.<String>read(detail.getResponse().getContentAsString(), "$.content"))
         .isEqualTo("첫 일기");

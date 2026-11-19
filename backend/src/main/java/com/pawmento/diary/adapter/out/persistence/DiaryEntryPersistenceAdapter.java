@@ -3,10 +3,16 @@ package com.pawmento.diary.adapter.out.persistence;
 import com.pawmento.diary.application.exception.*;
 import com.pawmento.diary.application.port.out.*;
 import com.pawmento.diary.domain.DiaryEntry;
+import com.pawmento.diary.domain.DiaryListFilter;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,7 +21,10 @@ public class DiaryEntryPersistenceAdapter
     implements LoadDiaryEntryPort,
         SaveDiaryEntryPort,
         DeleteDiaryEntryPort,
-        ExistsDiaryEntriesPort {
+        ExistsDiaryEntriesPort,
+        LoadDiaryEntriesPort,
+        CountDiaryEntriesPort,
+        LoadDiaryCalendarPort {
   private final DiaryEntryJpaRepository rows;
 
   public Optional<DiaryEntry> findById(Long id) {
@@ -55,5 +64,38 @@ public class DiaryEntryPersistenceAdapter
 
   public void delete(Long id, Long version) {
     if (rows.deleteVersion(id, version) != 1) throw new DiaryVersionConflictException();
+  }
+
+  @Override
+  public List<DiaryEntry> entries(Long petId, DiaryListFilter filter) {
+    return read(
+        () ->
+            rows
+                .findPage(petId, filter.fromDate(), filter.toDate(), filter.size(), filter.offset())
+                .stream()
+                .map(DiaryEntryJpaEntity::toDomain)
+                .toList());
+  }
+
+  @Override
+  public long count(Long petId, DiaryListFilter filter) {
+    return read(() -> rows.countEntries(petId, filter.fromDate(), filter.toDate()));
+  }
+
+  @Override
+  public List<DiaryDayCount> days(Long petId, LocalDate from, LocalDate before) {
+    return read(
+        () ->
+            rows.countDays(petId, from, before).stream()
+                .map(day -> new DiaryDayCount(day.getDate(), day.getTotal()))
+                .toList());
+  }
+
+  private static <T> T read(Supplier<T> query) {
+    try {
+      return query.get();
+    } catch (DataAccessResourceFailureException | TransientDataAccessResourceException failure) {
+      throw new DiaryPersistenceUnavailableException(failure);
+    }
   }
 }

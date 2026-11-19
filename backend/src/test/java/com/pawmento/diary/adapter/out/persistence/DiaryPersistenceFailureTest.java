@@ -11,6 +11,39 @@ import org.postgresql.util.*;
 import org.springframework.dao.DataIntegrityViolationException;
 
 class DiaryPersistenceFailureTest {
+  @Test
+  @DisplayName("#32-S7 목록·건수·달력의 연결 장애는 원인을 보존한 저장소 장애로 변환한다")
+  void readResourceFailures() {
+    var rows = mock(DiaryEntryJpaRepository.class);
+    var adapter = new DiaryEntryPersistenceAdapter(rows);
+    var filter = new com.pawmento.diary.domain.DiaryListFilter(null, null, null, 0, 20);
+    for (RuntimeException error :
+        new RuntimeException[] {
+          new org.springframework.dao.DataAccessResourceFailureException("connection lost"),
+          new org.springframework.dao.TransientDataAccessResourceException(
+              "temporarily unavailable")
+        }) {
+      when(rows.findPage(1L, null, null, 20, 0L)).thenThrow(error);
+      when(rows.countEntries(1L, null, null)).thenThrow(error);
+      when(rows.countDays(1L, null, null)).thenThrow(error);
+      for (Runnable query :
+          java.util.List.<Runnable>of(
+              () -> adapter.entries(1L, filter),
+              () -> adapter.count(1L, filter),
+              () -> adapter.days(1L, null, null))) {
+        assertThatThrownBy(query::run)
+            .isInstanceOf(
+                com.pawmento.diary.application.exception.DiaryPersistenceUnavailableException.class)
+            .hasCause(error);
+      }
+      reset(rows);
+    }
+    var programmingError =
+        new org.springframework.dao.InvalidDataAccessResourceUsageException("bad SQL");
+    when(rows.countEntries(1L, null, null)).thenThrow(programmingError);
+    assertThatThrownBy(() -> adapter.count(1L, filter)).isSameAs(programmingError);
+  }
+
   DataIntegrityViolationException failure(String constraint, String state) {
     return new DataIntegrityViolationException(
         "db failure",

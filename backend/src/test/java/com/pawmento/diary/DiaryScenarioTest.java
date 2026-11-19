@@ -46,8 +46,12 @@ class DiaryScenarioTest {
     return pets.create(new CreatePetCommand(owner, "보리", "DOG", null, null)).petId();
   }
 
+  String url(long pet, long id) {
+    return "/api/v1/diaries/" + id + "?petId=" + pet;
+  }
+
   String url(long pet) {
-    return "/api/v1/pets/" + pet + "/diaries";
+    return "/api/v1/diaries?petId=" + pet;
   }
 
   ResultActions call(long member, MockHttpServletRequestBuilder request) throws Exception {
@@ -72,20 +76,20 @@ class DiaryScenarioTest {
   @DisplayName("#32-S1 텍스트 CRUD는 서버 작성자·시각을 반환하고 버전을 갱신한다")
   void crud() throws Exception {
     long pet = pet(9001), id = create(pet);
-    call(9001, get(url(pet) + "/" + id))
+    call(9001, get(url(pet, id)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.createdBy").value(9001))
         .andExpect(jsonPath("$.version").value(0))
         .andExpect(jsonPath("$.createdAt").value("2026-11-17T15:00:00Z"));
-    call(9001, json(patch(url(pet) + "/" + id), "{\"content\":\"  공원  \",\"version\":0}"))
+    call(9001, json(patch(url(pet, id)), "{\"content\":\"  공원  \",\"version\":0}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("공원"))
         .andExpect(jsonPath("$.recordedDate").value("2026-11-17"))
         .andExpect(jsonPath("$.version").value(1));
-    call(9001, delete(url(pet) + "/" + id + "?version=1"))
+    call(9001, delete(url(pet, id) + "&version=1"))
         .andExpect(status().isNoContent())
         .andExpect(content().string(""));
-    call(9001, get(url(pet) + "/" + id))
+    call(9001, get(url(pet, id)))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("NOT_FOUND"));
   }
@@ -94,18 +98,18 @@ class DiaryScenarioTest {
   @DisplayName("#32-S2 비로그인·비소유자·다른 아이의 일기와 작성자 위조를 거부한다")
   void access() throws Exception {
     long pet = pet(9001), second = pet(9001), id = create(pet);
-    mvc.perform(get(url(pet) + "/" + id)).andExpect(status().isUnauthorized());
+    mvc.perform(get(url(pet, id))).andExpect(status().isUnauthorized());
     for (var request :
         List.of(
-            get(url(pet) + "/" + id),
-            json(patch(url(pet) + "/" + id), "{\"content\":\"x\",\"version\":0}"),
-            delete(url(pet) + "/" + id + "?version=0")))
+            get(url(pet, id)),
+            json(patch(url(pet, id)), "{\"content\":\"x\",\"version\":0}"),
+            delete(url(pet, id) + "&version=0")))
       call(9002, request).andExpect(status().isForbidden());
     for (var request :
         List.of(
-            get(url(second) + "/" + id),
-            json(patch(url(second) + "/" + id), "{\"content\":\"x\",\"version\":0}"),
-            delete(url(second) + "/" + id + "?version=0")))
+            get(url(second, id)),
+            json(patch(url(second, id)), "{\"content\":\"x\",\"version\":0}"),
+            delete(url(second, id) + "&version=0")))
       call(9001, request).andExpect(status().isNotFound());
     call(
             9001,
@@ -123,10 +127,10 @@ class DiaryScenarioTest {
   void originalAuthor() throws Exception {
     long pet = pet(9001), id = create(pet);
     jdbc.update("update diary_entries set created_by=9002 where id=?", id);
-    call(9001, json(patch(url(pet) + "/" + id), "{\"content\":\"변경\",\"version\":0}"))
+    call(9001, json(patch(url(pet, id)), "{\"content\":\"변경\",\"version\":0}"))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-    call(9001, delete(url(pet) + "/" + id + "?version=0")).andExpect(status().isForbidden());
+    call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isForbidden());
     assertThat(
             jdbc.queryForObject("select content from diary_entries where id=?", String.class, id))
         .isEqualTo("산책");
@@ -159,20 +163,20 @@ class DiaryScenarioTest {
     assertThat(first).isNotEqualTo(second);
     call(9001, json(patch("/api/v1/pets/" + pet + "/mode"), "{\"mode\":\"GARDEN\"}"))
         .andExpect(status().isOk());
-    call(9001, get(url(pet) + "/" + first)).andExpect(status().isOk());
+    call(9001, get(url(pet, first))).andExpect(status().isOk());
   }
 
   @Test
   @DisplayName("#32-S8 오래된 버전의 수정·삭제는 409이며 원본을 보존한다")
   void staleVersion() throws Exception {
     long pet = pet(9001), id = create(pet);
-    call(9001, json(patch(url(pet) + "/" + id), "{\"recordedDate\":\"2026-11-16\",\"version\":0}"))
+    call(9001, json(patch(url(pet, id)), "{\"recordedDate\":\"2026-11-16\",\"version\":0}"))
         .andExpect(status().isOk());
-    call(9001, json(patch(url(pet) + "/" + id), "{\"content\":\"stale\",\"version\":0}"))
+    call(9001, json(patch(url(pet, id)), "{\"content\":\"stale\",\"version\":0}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("CONFLICT"));
-    call(9001, delete(url(pet) + "/" + id + "?version=0")).andExpect(status().isConflict());
-    call(9001, get(url(pet) + "/" + id))
+    call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isConflict());
+    call(9001, get(url(pet, id)))
         .andExpect(jsonPath("$.content").value("산책"))
         .andExpect(jsonPath("$.recordedDate").value("2026-11-16"))
         .andExpect(jsonPath("$.version").value(1));
@@ -191,7 +195,7 @@ class DiaryScenarioTest {
             "{\"content\":\"x\",\"version\":-1}",
             "{\"content\":\"x\",\"version\":0.5}",
             "{\"content\":\"x\",\"version\":\"0\"}"))
-      call(9001, json(patch(url(pet) + "/" + id), body))
+      call(9001, json(patch(url(pet, id)), body))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("VALIDATION"));
   }
@@ -203,15 +207,15 @@ class DiaryScenarioTest {
     for (String query :
         List.of(
             "",
-            "?version=",
-            "?version=-1",
-            "?version=x",
-            "?version=0&version=0",
-            "?version=9223372036854775808"))
-      call(9001, delete(url(pet) + "/" + id + query).header("version", "0"))
+            "&version=",
+            "&version=-1",
+            "&version=x",
+            "&version=0&version=0",
+            "&version=9223372036854775808"))
+      call(9001, delete(url(pet, id) + query).header("version", "0"))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("VALIDATION"));
-    call(9001, get(url(pet) + "/" + id)).andExpect(status().isOk());
+    call(9001, get(url(pet, id))).andExpect(status().isOk());
   }
 
   @Test
@@ -219,7 +223,7 @@ class DiaryScenarioTest {
   void petRecords() throws Exception {
     long pet = pet(9001), id = create(pet);
     call(9001, delete("/api/v1/pets/" + pet)).andExpect(status().isConflict());
-    call(9001, delete(url(pet) + "/" + id + "?version=0")).andExpect(status().isNoContent());
+    call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isNoContent());
     call(9001, delete("/api/v1/pets/" + pet)).andExpect(status().isNoContent());
     assertThat(
             jdbc.queryForObject(
@@ -246,9 +250,7 @@ class DiaryScenarioTest {
                   "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\"," + extra + "}"))
           .andExpect(status().isConflict())
           .andExpect(jsonPath("$.code").value("CONFLICT"));
-      call(
-              9001,
-              json(patch(url(pet) + "/" + id), "{\"content\":\"x\",\"version\":0," + extra + "}"))
+      call(9001, json(patch(url(pet, id)), "{\"content\":\"x\",\"version\":0," + extra + "}"))
           .andExpect(status().isConflict())
           .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
@@ -270,5 +272,56 @@ class DiaryScenarioTest {
                 post(url(pet)),
                 "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[],\"location\":{\"mode\":\"NONE\"}}"))
         .andExpect(status().isCreated());
+  }
+
+  @Test
+  @DisplayName("#32-S27 모든 CRUD는 양의 petId 쿼리 하나만 받고 헤더·본문으로 대체하지 않는다")
+  void rootPetQuery() throws Exception {
+    long pet = pet(9001), id = create(pet);
+    for (String query :
+        List.of(
+            "",
+            "?petId=",
+            "?petId=0",
+            "?petId=abc",
+            "?petId=1&%70etId=2",
+            "?petId=9223372036854775808")) {
+      for (var request :
+          List.of(
+              json(
+                  post(java.net.URI.create("/api/v1/diaries" + query)),
+                  "{\"content\":\"일기\",\"recordedDate\":\"2026-11-17\",\"petId\":" + pet + "}"),
+              get(java.net.URI.create("/api/v1/diaries/" + id + query)),
+              json(
+                  patch(java.net.URI.create("/api/v1/diaries/" + id + query)),
+                  "{\"content\":\"변경\",\"version\":0}"),
+              delete(
+                  java.net.URI.create(
+                      "/api/v1/diaries/"
+                          + id
+                          + query
+                          + (query.isEmpty() ? "?" : "&")
+                          + "version=0"))))
+        call(9001, request.header("petId", pet))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION"));
+    }
+    call(9001, get(url(pet, id)).header("petId", pet + 1)).andExpect(status().isOk());
+  }
+
+  @Test
+  @DisplayName("#32-S27 기존 중첩 CRUD 경로는 호환 별칭 없이 404다")
+  void retiredNestedPaths() throws Exception {
+    long pet = pet(9001), id = create(pet);
+    String old = "/api/v1/pets/" + pet + "/diaries";
+    for (var request :
+        List.of(
+            json(post(old), "{\"content\":\"일기\",\"recordedDate\":\"2026-11-17\"}"),
+            get(old),
+            get(old + "/calendar?month=2026-11"),
+            get(old + "/" + id),
+            json(patch(old + "/" + id), "{\"content\":\"변경\",\"version\":0}"),
+            delete(old + "/" + id + "?version=0")))
+      call(9001, request).andExpect(status().isNotFound());
   }
 }

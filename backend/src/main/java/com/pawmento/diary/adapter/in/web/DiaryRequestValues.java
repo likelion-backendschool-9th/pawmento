@@ -2,8 +2,6 @@ package com.pawmento.diary.adapter.in.web;
 
 import com.pawmento.diary.adapter.in.web.exception.InvalidDiaryRequestException;
 import com.pawmento.diary.application.port.in.DiaryWriteFeatures;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.time.*;
 import tools.jackson.databind.JsonNode;
 
@@ -48,26 +46,6 @@ final class DiaryRequestValues {
       if (!locationRequested && location.size() != 1) throw new InvalidDiaryRequestException();
     }
     return new DiaryWriteFeatures(attachments != null && !attachments.isEmpty(), locationRequested);
-  }
-
-  // Servlet parameter binding would also accept form fields. Read the query only, once decoded.
-  static Long deleteVersion(String query) {
-    String value = null;
-    try {
-      if (query != null)
-        for (String item : query.split("&", -1)) {
-          String[] pair = item.split("=", 2);
-          if (!"version".equals(URLDecoder.decode(pair[0], StandardCharsets.UTF_8))) continue;
-          if (value != null || pair.length != 2) throw new IllegalArgumentException();
-          value = URLDecoder.decode(pair[1], StandardCharsets.UTF_8);
-        }
-      if (value == null) throw new IllegalArgumentException();
-      long version = Long.parseLong(value);
-      if (version < 0) throw new IllegalArgumentException();
-      return version;
-    } catch (IllegalArgumentException e) {
-      throw new InvalidDiaryRequestException();
-    }
   }
 
   static void id(Long id) {
