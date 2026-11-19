@@ -198,7 +198,7 @@ class DiaryConcurrencyTest {
     long id =
         create
             .create(new CreateDiaryEntryCommand(9001L, pet, "원본", LocalDate.of(2026, 11, 17)))
-            .recordId();
+            .diaryId();
     var barrier = new CyclicBarrier(2);
     doAnswer(
             invocation -> {

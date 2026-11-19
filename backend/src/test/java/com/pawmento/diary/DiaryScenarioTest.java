@@ -68,7 +68,7 @@ class DiaryScenarioTest {
         call(9001L, json(post(url(pet)), "{\"content\":\"산책\",\"recordedDate\":\"2026-11-17\"}"))
             .andExpect(status().isCreated())
             .andReturn();
-    return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.recordId"))
+    return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.diaryId"))
         .longValue();
   }
 

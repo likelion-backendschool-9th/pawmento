@@ -9,34 +9,34 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import com.pawmento.map.application.exception.RecordLocationAlreadyExistsException;
-import com.pawmento.map.application.exception.RecordLocationPersistenceUnavailableException;
-import com.pawmento.map.application.port.out.DeleteRecordLocationPort;
+import com.pawmento.map.application.exception.DiaryLocationAlreadyExistsException;
+import com.pawmento.map.application.exception.DiaryLocationPersistenceUnavailableException;
+import com.pawmento.map.application.port.out.DeleteDiaryLocationPort;
 import com.pawmento.map.application.port.out.LoadMapPinsPort;
-import com.pawmento.map.application.port.out.LoadRecordLocationPort;
-import com.pawmento.map.application.port.out.SaveRecordLocationPort;
+import com.pawmento.map.application.port.out.LoadDiaryLocationPort;
+import com.pawmento.map.application.port.out.SaveDiaryLocationPort;
 import com.pawmento.map.domain.MapArea;
-import com.pawmento.map.domain.RecordLocation;
+import com.pawmento.map.domain.DiaryLocation;
 
 @Component
-class RecordLocationPersistenceAdapter
-		implements SaveRecordLocationPort, LoadRecordLocationPort, DeleteRecordLocationPort, LoadMapPinsPort {
+class DiaryLocationPersistenceAdapter
+		implements SaveDiaryLocationPort, LoadDiaryLocationPort, DeleteDiaryLocationPort, LoadMapPinsPort {
 
-	private final RecordLocationJpaRepository recordLocationJpaRepository;
+	private final DiaryLocationJpaRepository diaryLocationJpaRepository;
 
-	RecordLocationPersistenceAdapter(RecordLocationJpaRepository recordLocationJpaRepository) {
-		this.recordLocationJpaRepository = recordLocationJpaRepository;
+	DiaryLocationPersistenceAdapter(DiaryLocationJpaRepository diaryLocationJpaRepository) {
+		this.diaryLocationJpaRepository = diaryLocationJpaRepository;
 	}
 
 	@Override
-	public Long save(RecordLocation location) {
+	public Long save(DiaryLocation location) {
 		return execute(() -> {
-			RecordLocationJpaEntity entity;
+			DiaryLocationJpaEntity entity;
 			if (location.getId() == null) {
-				entity = RecordLocationJpaEntity.from(location);
+				entity = DiaryLocationJpaEntity.from(location);
 			}
 			else {
-				entity = recordLocationJpaRepository.findById(location.getId())
+				entity = diaryLocationJpaRepository.findById(location.getId())
 					.orElseThrow(() -> new IllegalStateException("저장된 위치를 찾을 수 없습니다. id=" + location.getId()));
 				// 기록·반려동물·작성자는 바뀌지 않는다. 다른 위치의 id로 덮어쓰는 일을 막는다
 				if (!entity.hasSameReferences(location)) {
@@ -45,13 +45,13 @@ class RecordLocationPersistenceAdapter
 				entity.updateLocation(location);
 			}
 			try {
-				return recordLocationJpaRepository.save(entity).getId();
+				return diaryLocationJpaRepository.save(entity).getId();
 			}
 			catch (DataIntegrityViolationException e) {
 				// 기록당 위치는 하나다. 처음 저장하는 요청이 겹치면 DB의 유일 제약이 막는다.
 				// 그 제약을 어긴 경우만 "이미 있는 위치"로 보고, 다른 무결성 오류는 저장소 오류로 바뀐다
 				if (isRecordUniqueViolation(e)) {
-					throw new RecordLocationAlreadyExistsException(location.getRecordId(), e);
+					throw new DiaryLocationAlreadyExistsException(location.getDiaryId(), e);
 				}
 				throw e;
 			}
@@ -60,43 +60,43 @@ class RecordLocationPersistenceAdapter
 
 	private boolean isRecordUniqueViolation(DataIntegrityViolationException e) {
 		return e.getCause() instanceof ConstraintViolationException violation
-				&& RecordLocationJpaEntity.RECORD_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
+				&& DiaryLocationJpaEntity.DIARY_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
 	}
 
 	@Override
-	public Optional<RecordLocation> loadByRecordId(Long recordId) {
-		return execute(() -> recordLocationJpaRepository.findByRecordId(recordId).map(RecordLocationJpaEntity::toDomain));
+	public Optional<DiaryLocation> loadByDiaryId(Long diaryId) {
+		return execute(() -> diaryLocationJpaRepository.findByDiaryId(diaryId).map(DiaryLocationJpaEntity::toDomain));
 	}
 
 	@Override
-	public void deleteByRecordId(Long recordId) {
+	public void deleteByDiaryId(Long diaryId) {
 		// 엔티티를 찾아 지운다. 한 번에 지우는 쿼리와 달리 영속성 컨텍스트와 어긋나지 않는다
-		execute(() -> recordLocationJpaRepository.findByRecordId(recordId).ifPresent(recordLocationJpaRepository::delete));
+		execute(() -> diaryLocationJpaRepository.findByDiaryId(diaryId).ifPresent(diaryLocationJpaRepository::delete));
 	}
 
 	@Override
-	public List<RecordLocation> loadInArea(Long createdBy, Long petId, MapArea area, int limit) {
+	public List<DiaryLocation> loadInArea(Long createdBy, Long petId, MapArea area, int limit) {
 		if (createdBy == null || petId == null || area == null) {
 			throw new IllegalArgumentException("회원, 반려동물, 영역이 필요합니다.");
 		}
 		if (limit < 1) {
 			throw new IllegalArgumentException("limit은 1 이상이어야 합니다.");
 		}
-		return execute(() -> recordLocationJpaRepository
+		return execute(() -> diaryLocationJpaRepository
 			.findInArea(createdBy, petId, area.getMinLatitude(), area.getMinLongitude(), area.getMaxLatitude(),
 					area.getMaxLongitude(), PageRequest.of(0, limit))
 			.stream()
-			.map(RecordLocationJpaEntity::toDomain)
+			.map(DiaryLocationJpaEntity::toDomain)
 			.toList());
 	}
 
 	// 이 어댑터의 모든 저장소 호출은 같은 응용 예외로 바꾼다
 	private static <T> T execute(Supplier<T> action) {
-		return MapPersistenceOperations.execute(action, RecordLocationPersistenceUnavailableException::new);
+		return MapPersistenceOperations.execute(action, DiaryLocationPersistenceUnavailableException::new);
 	}
 
 	private static void execute(Runnable action) {
-		MapPersistenceOperations.execute(action, RecordLocationPersistenceUnavailableException::new);
+		MapPersistenceOperations.execute(action, DiaryLocationPersistenceUnavailableException::new);
 	}
 
 }

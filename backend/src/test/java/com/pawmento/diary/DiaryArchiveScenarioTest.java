@@ -89,8 +89,8 @@ class DiaryArchiveScenarioTest {
     seed(other, 9002, "2026-11-17");
     read(list(pet) + "&size=2")
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.items[0].recordId").value(third))
-        .andExpect(jsonPath("$.items[1].recordId").value(second))
+        .andExpect(jsonPath("$.items[0].diaryId").value(third))
+        .andExpect(jsonPath("$.items[1].diaryId").value(second))
         .andExpect(jsonPath("$.items[1].createdBy").value(9002))
         .andExpect(jsonPath("$.items.length()").value(2))
         .andExpect(jsonPath("$.page").value(0))
@@ -98,7 +98,7 @@ class DiaryArchiveScenarioTest {
         .andExpect(jsonPath("$.totalElements").value(3))
         .andExpect(jsonPath("$.totalPages").value(2));
     read(list(pet) + "&page=1&size=2")
-        .andExpect(jsonPath("$.items[0].recordId").value(first))
+        .andExpect(jsonPath("$.items[0].diaryId").value(first))
         .andExpect(jsonPath("$.items.length()").value(1))
         .andExpect(jsonPath("$.totalElements").value(3));
     for (String query : List.of("&page=2&size=2", "&page=2147483647&size=100"))

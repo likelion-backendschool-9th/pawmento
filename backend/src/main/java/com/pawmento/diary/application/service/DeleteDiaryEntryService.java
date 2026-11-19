@@ -19,10 +19,10 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
   @Transactional
   public void delete(DeleteDiaryEntryCommand c) {
     access.requireAccess(c.memberId(), c.petId());
-    var entry = DiaryEntryAccess.load(load, c.petId(), c.recordId());
+    var entry = DiaryEntryAccess.load(load, c.petId(), c.diaryId());
     entry.requireAuthor(c.memberId());
     DiaryEntryAccess.version(entry, c.version());
-    entry = DiaryEntryAccess.locked(load, c.petId(), c.recordId());
+    entry = DiaryEntryAccess.locked(load, c.petId(), c.diaryId());
     DiaryEntryAccess.version(entry, c.version());
     var previous = attachments.find(entry.getId());
     media.lock(c.memberId(), c.petId(), previous);

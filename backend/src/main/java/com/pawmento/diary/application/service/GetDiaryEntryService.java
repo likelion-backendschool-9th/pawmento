@@ -17,6 +17,6 @@ public class GetDiaryEntryService implements GetDiaryEntryUseCase {
   @Transactional(readOnly = true)
   public GetDiaryEntryResult get(GetDiaryEntryQuery c) {
     access.requireAccess(c.memberId(), c.petId());
-    return results.one(DiaryEntryAccess.load(load, c.petId(), c.recordId()));
+    return results.one(DiaryEntryAccess.load(load, c.petId(), c.diaryId()));
   }
 }

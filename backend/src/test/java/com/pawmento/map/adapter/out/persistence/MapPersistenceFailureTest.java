@@ -24,10 +24,10 @@ import org.springframework.dao.QueryTimeoutException;
 import org.springframework.data.domain.Pageable;
 
 import com.pawmento.global.exception.StorageUnavailableException;
-import com.pawmento.map.application.exception.RecordLocationPersistenceUnavailableException;
+import com.pawmento.map.application.exception.DiaryLocationPersistenceUnavailableException;
 import com.pawmento.map.application.exception.WalkPersistenceUnavailableException;
 import com.pawmento.map.domain.MapArea;
-import com.pawmento.map.domain.RecordLocation;
+import com.pawmento.map.domain.DiaryLocation;
 import com.pawmento.map.domain.Walk;
 import com.pawmento.map.domain.WalkPoint;
 
@@ -44,12 +44,12 @@ class MapPersistenceFailureTest {
 
 	private final WalkPointJpaRepository points = mock(WalkPointJpaRepository.class);
 
-	private final RecordLocationJpaRepository locations = mock(RecordLocationJpaRepository.class);
+	private final DiaryLocationJpaRepository locations = mock(DiaryLocationJpaRepository.class);
 
 	private final WalkPersistenceAdapter walkAdapter = new WalkPersistenceAdapter(walks, points,
 			mock(EntityManager.class));
 
-	private final RecordLocationPersistenceAdapter locationAdapter = new RecordLocationPersistenceAdapter(locations);
+	private final DiaryLocationPersistenceAdapter locationAdapter = new DiaryLocationPersistenceAdapter(locations);
 
 	private final DataAccessResourceFailureException dbDown = new DataAccessResourceFailureException(
 			"internal database details");
@@ -62,7 +62,7 @@ class MapPersistenceFailureTest {
 	}
 
 	private void expectLocationUnavailable(Runnable call) {
-		assertThatThrownBy(call::run).isInstanceOf(RecordLocationPersistenceUnavailableException.class)
+		assertThatThrownBy(call::run).isInstanceOf(DiaryLocationPersistenceUnavailableException.class)
 			.isInstanceOf(StorageUnavailableException.class)
 			.hasCause(dbDown)
 			.hasMessageNotContaining("internal database details");
@@ -95,15 +95,15 @@ class MapPersistenceFailureTest {
 	@DisplayName("#72-S10 기록 위치 저장소의 모든 메서드는 DB 장애를 저장소 일시 장애 예외로 바꾸고 원인을 보존한다")
 	void locationAdapterTranslatesEveryMethod() {
 		when(locations.save(any())).thenThrow(dbDown);
-		when(locations.findByRecordId(anyLong())).thenThrow(dbDown);
+		when(locations.findByDiaryId(anyLong())).thenThrow(dbDown);
 		when(locations.findInArea(anyLong(), anyLong(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				any(Pageable.class)))
 			.thenThrow(dbDown);
 
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
-		expectLocationUnavailable(() -> locationAdapter.save(RecordLocation.create(1L, 10L, 1L, 37.5, 127.0, null)));
-		expectLocationUnavailable(() -> locationAdapter.loadByRecordId(1L));
-		expectLocationUnavailable(() -> locationAdapter.deleteByRecordId(1L));
+		expectLocationUnavailable(() -> locationAdapter.save(DiaryLocation.create(1L, 10L, 1L, 37.5, 127.0, null)));
+		expectLocationUnavailable(() -> locationAdapter.loadByDiaryId(1L));
+		expectLocationUnavailable(() -> locationAdapter.deleteByDiaryId(1L));
 		expectLocationUnavailable(() -> locationAdapter.loadInArea(1L, 10L, area, 10));
 	}
 
@@ -135,17 +135,17 @@ class MapPersistenceFailureTest {
 				new PersistenceException("unclassified") };
 		for (RuntimeException failure : others) {
 			doThrow(failure).when(walks).findById(1L);
-			doThrow(failure).when(locations).findByRecordId(1L);
+			doThrow(failure).when(locations).findByDiaryId(1L);
 
 			assertThatThrownBy(() -> walkAdapter.loadById(1L)).as(failure.getClass().getSimpleName())
 				.isSameAs(failure);
-			assertThatThrownBy(() -> locationAdapter.loadByRecordId(1L)).isSameAs(failure);
+			assertThatThrownBy(() -> locationAdapter.loadByDiaryId(1L)).isSameAs(failure);
 		}
 		// 기록 위치 저장: 유일 제약이 아닌 무결성 오류는 이미 있다는 오류도, 503도 아니다
 		DataIntegrityViolationException other = new DataIntegrityViolationException("not null violated");
 		when(locations.save(any())).thenThrow(other);
 
-		assertThatThrownBy(() -> locationAdapter.save(RecordLocation.create(1L, 10L, 1L, 37.5, 127.0, null)))
+		assertThatThrownBy(() -> locationAdapter.save(DiaryLocation.create(1L, 10L, 1L, 37.5, 127.0, null)))
 			.isSameAs(other);
 	}
 

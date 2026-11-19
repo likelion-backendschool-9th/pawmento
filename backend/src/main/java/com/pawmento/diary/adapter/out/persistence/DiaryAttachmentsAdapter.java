@@ -25,8 +25,8 @@ public class DiaryAttachmentsAdapter implements DiaryAttachmentsPort {
         () -> {
           Map<Long, List<Long>> result = new HashMap<>();
           named.query(
-              "select record_id,asset_id from diary_attachments where record_id in (:ids) order by"
-                  + " record_id,sort_order",
+              "select diary_id,asset_id from diary_attachments where diary_id in (:ids) order by"
+                  + " diary_id,sort_order",
               Map.of("ids", ids),
               r -> {
                 result.computeIfAbsent(r.getLong(1), k -> new ArrayList<>()).add(r.getLong(2));
@@ -38,10 +38,10 @@ public class DiaryAttachmentsAdapter implements DiaryAttachmentsPort {
   public void replace(Long id, List<Long> assets) {
     run(
         () -> {
-          jdbc.update("delete from diary_attachments where record_id=?", id);
+          jdbc.update("delete from diary_attachments where diary_id=?", id);
           for (int i = 0; i < assets.size(); i++)
             jdbc.update(
-                "insert into diary_attachments(record_id,asset_id,sort_order) values(?,?,?)",
+                "insert into diary_attachments(diary_id,asset_id,sort_order) values(?,?,?)",
                 id,
                 assets.get(i),
                 i);

@@ -24,8 +24,8 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
-import com.pawmento.map.application.port.out.SaveRecordLocationPort;
-import com.pawmento.map.domain.RecordLocation;
+import com.pawmento.map.application.port.out.SaveDiaryLocationPort;
+import com.pawmento.map.domain.DiaryLocation;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -54,7 +54,7 @@ class MapPinScenarioTest {
 	private MockMvc mockMvc;
 
 	@Autowired
-	private SaveRecordLocationPort saveRecordLocationPort;
+	private SaveDiaryLocationPort saveDiaryLocationPort;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -75,7 +75,7 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, AREA))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(1))
-			.andExpect(jsonPath("$.pins[0].recordId").value(inside))
+			.andExpect(jsonPath("$.pins[0].diaryId").value(inside))
 			.andExpect(jsonPath("$.pins[0].latitude").value(37.5))
 			.andExpect(jsonPath("$.pins[0].longitude").value(127.0))
 			.andExpect(jsonPath("$.pins[0].placeName").value("강남역"))
@@ -94,9 +94,9 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, AREA))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(2))
-			.andExpect(jsonPath("$.pins[0].recordId").value(onMin))
+			.andExpect(jsonPath("$.pins[0].diaryId").value(onMin))
 			.andExpect(jsonPath("$.pins[0].placeName").value((Object) null))
-			.andExpect(jsonPath("$.pins[1].recordId").value(onMax));
+			.andExpect(jsonPath("$.pins[1].diaryId").value(onMax));
 	}
 
 	@Test
@@ -121,7 +121,7 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, AREA))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(1))
-			.andExpect(jsonPath("$.pins[0].recordId").value(mine));
+			.andExpect(jsonPath("$.pins[0].diaryId").value(mine));
 	}
 
 	@Test
@@ -144,7 +144,7 @@ class MapPinScenarioTest {
 		Guardian me = signUpAndLogin();
 		// 이모지 128개: PostgreSQL varchar(255)에는 들어가지만 Java String.length()는 256이다
 		jdbcTemplate.update("""
-				insert into record_location (record_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
+				insert into diary_location (diary_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
 				values (?, ?, ?, 37.5, 127.0, ?, now(), now())
 				""", RECORD_IDS.incrementAndGet(), PET, me.id(), "\uD83D\uDC36".repeat(128));
 
@@ -217,9 +217,9 @@ class MapPinScenarioTest {
 		Guardian me = signUpAndLogin();
 		long first = 0;
 		for (int i = 0; i < 501; i++) {
-			long recordId = saveLocation(me, PET, 37.5, 127.0, null);
+			long diaryId = saveLocation(me, PET, 37.5, 127.0, null);
 			if (i == 0) {
-				first = recordId;
+				first = diaryId;
 			}
 		}
 
@@ -228,8 +228,8 @@ class MapPinScenarioTest {
 		assertThat(body.get("pins")).hasSize(500);
 		assertThat(body.get("truncated").asBoolean()).isTrue();
 		// 가장 오래된 기록부터 500개이고, 501번째는 빠진다
-		assertThat(body.get("pins").get(0).get("recordId").asLong()).isEqualTo(first);
-		assertThat(body.get("pins").get(499).get("recordId").asLong()).isEqualTo(first + 499);
+		assertThat(body.get("pins").get(0).get("diaryId").asLong()).isEqualTo(first);
+		assertThat(body.get("pins").get(499).get("diaryId").asLong()).isEqualTo(first + 499);
 	}
 
 	@Test
@@ -265,17 +265,17 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, AREA))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(1))
-			.andExpect(jsonPath("$.pins[0].recordId").value(mine));
+			.andExpect(jsonPath("$.pins[0].diaryId").value(mine));
 		mockMvc.perform(pins(other, PET, AREA))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(1))
-			.andExpect(jsonPath("$.pins[0].recordId").value(theirs));
+			.andExpect(jsonPath("$.pins[0].diaryId").value(theirs));
 	}
 
 	private long saveLocation(Guardian guardian, long petId, double latitude, double longitude, String placeName) {
-		long recordId = RECORD_IDS.incrementAndGet();
-		saveRecordLocationPort.save(RecordLocation.create(recordId, petId, guardian.id(), latitude, longitude, placeName));
-		return recordId;
+		long diaryId = RECORD_IDS.incrementAndGet();
+		saveDiaryLocationPort.save(DiaryLocation.create(diaryId, petId, guardian.id(), latitude, longitude, placeName));
+		return diaryId;
 	}
 
 	private RequestBuilder pins(Guardian guardian, long petId, String query) {

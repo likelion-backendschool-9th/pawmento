@@ -10,7 +10,7 @@ import java.util.List;
  */
 public record ListMapPinsResult(List<Pin> pins, boolean truncated) {
 
-	public record Pin(Long recordId, double latitude, double longitude, String placeName) {
+	public record Pin(Long diaryId, double latitude, double longitude, String placeName) {
 	}
 
 }

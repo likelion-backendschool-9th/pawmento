@@ -46,7 +46,7 @@ class WalkPointJpaEntity {
 	private Instant recordedAt;
 
 	// 저장된 좌표가 도메인 규칙에 맞지 않으면 요청 입력 오류(400)가 아니라 저장 데이터 오류(500)다.
-	// 원인은 cause로 보존한다(RecordLocationJpaEntity.toDomain() 참고)
+	// 원인은 cause로 보존한다(DiaryLocationJpaEntity.toDomain() 참고)
 	WalkPoint toDomain() {
 		try {
 			return WalkPoint.of(walkId, latitude, longitude, recordedAt);

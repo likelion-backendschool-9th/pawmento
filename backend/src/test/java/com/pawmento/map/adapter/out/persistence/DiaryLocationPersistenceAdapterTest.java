@@ -16,9 +16,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.TestcontainersConfiguration;
-import com.pawmento.map.application.exception.RecordLocationAlreadyExistsException;
+import com.pawmento.map.application.exception.DiaryLocationAlreadyExistsException;
 import com.pawmento.map.domain.MapArea;
-import com.pawmento.map.domain.RecordLocation;
+import com.pawmento.map.domain.DiaryLocation;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -28,13 +28,13 @@ import jakarta.persistence.PersistenceContext;
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
 @Transactional
-class RecordLocationPersistenceAdapterTest {
+class DiaryLocationPersistenceAdapterTest {
 
 	private static final long MEMBER = 1L;
 	private static final long PET = 10L;
 
 	@Autowired
-	private RecordLocationPersistenceAdapter adapter;
+	private DiaryLocationPersistenceAdapter adapter;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -49,8 +49,8 @@ class RecordLocationPersistenceAdapterTest {
 		entityManager.clear();
 	}
 
-	private Long save(long recordId, long petId, long memberId, double latitude, double longitude) {
-		Long id = adapter.save(RecordLocation.create(recordId, petId, memberId, latitude, longitude, null));
+	private Long save(long diaryId, long petId, long memberId, double latitude, double longitude) {
+		Long id = adapter.save(DiaryLocation.create(diaryId, petId, memberId, latitude, longitude, null));
 		flushAndClear();
 		return id;
 	}
@@ -58,14 +58,14 @@ class RecordLocationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#19-S1 위치를 저장하고 기록 번호로 다시 읽으면 같은 값이다")
 	void saveAndLoad() {
-		Long id = adapter.save(RecordLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
+		Long id = adapter.save(DiaryLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
 		flushAndClear();
 
-		RecordLocation loaded = adapter.loadByRecordId(100L).orElseThrow();
+		DiaryLocation loaded = adapter.loadByDiaryId(100L).orElseThrow();
 
 		assertThat(id).isNotNull();
 		assertThat(loaded.getId()).isEqualTo(id);
-		assertThat(loaded.getRecordId()).isEqualTo(100L);
+		assertThat(loaded.getDiaryId()).isEqualTo(100L);
 		assertThat(loaded.getPetId()).isEqualTo(PET);
 		assertThat(loaded.getCreatedBy()).isEqualTo(MEMBER);
 		assertThat(loaded.getLatitude()).isEqualTo(37.4979);
@@ -76,7 +76,7 @@ class RecordLocationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#19-S1 위치가 없는 기록은 빈 값을 받는다")
 	void loadMissing() {
-		assertThat(adapter.loadByRecordId(999L)).isEmpty();
+		assertThat(adapter.loadByDiaryId(999L)).isEmpty();
 	}
 
 	@Test
@@ -84,20 +84,20 @@ class RecordLocationPersistenceAdapterTest {
 	void saveAgainUpdates() {
 		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
 
-		RecordLocation existing = adapter.loadByRecordId(100L).orElseThrow();
+		DiaryLocation existing = adapter.loadByDiaryId(100L).orElseThrow();
 		existing.move(35.1796, 129.0756, "부산");
 		Long updatedId = adapter.save(existing);
 		flushAndClear();
 
 		assertThat(updatedId).isEqualTo(id);
-		assertThat(jdbcTemplate.queryForObject("select count(*) from record_location", Long.class)).isEqualTo(1L);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from diary_location", Long.class)).isEqualTo(1L);
 		// 컨텍스트를 비운 뒤라 DB 행의 값을 직접 확인한다
 		Map<String, Object> row = jdbcTemplate
-			.queryForMap("select latitude, longitude, place_name from record_location where record_id = 100");
+			.queryForMap("select latitude, longitude, place_name from diary_location where diary_id = 100");
 		assertThat(row.get("latitude")).isEqualTo(35.1796);
 		assertThat(row.get("longitude")).isEqualTo(129.0756);
 		assertThat(row.get("place_name")).isEqualTo("부산");
-		assertThat(adapter.loadByRecordId(100L).orElseThrow().getPlaceName()).isEqualTo("부산");
+		assertThat(adapter.loadByDiaryId(100L).orElseThrow().getPlaceName()).isEqualTo("부산");
 	}
 
 	@Test
@@ -106,14 +106,14 @@ class RecordLocationPersistenceAdapterTest {
 		save(100L, PET, MEMBER, 37.0, 127.0);
 
 		assertThatThrownBy(() -> save(100L, PET, MEMBER, 36.0, 128.0))
-			.isInstanceOf(RecordLocationAlreadyExistsException.class)
+			.isInstanceOf(DiaryLocationAlreadyExistsException.class)
 			.hasCauseInstanceOf(DataIntegrityViolationException.class);
 	}
 
 	@Test
 	@DisplayName("#19-S1 저장된 적 없는 id의 위치를 바꾸려 하면 오류가 난다")
 	void updateMissing() {
-		RecordLocation ghost = RecordLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null);
+		DiaryLocation ghost = DiaryLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null);
 
 		assertThatThrownBy(() -> adapter.save(ghost)).isInstanceOf(IllegalStateException.class);
 	}
@@ -122,14 +122,14 @@ class RecordLocationPersistenceAdapterTest {
 	@DisplayName("#19-S7 다른 기록·작성자의 값을 담은 위치로 저장된 위치를 덮어쓸 수 없다")
 	void cannotOverwriteWithDifferentOwner() {
 		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
-		RecordLocation otherRecord = RecordLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null);
-		RecordLocation otherMember = RecordLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null);
-		RecordLocation otherPet = RecordLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null);
+		DiaryLocation otherRecord = DiaryLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null);
+		DiaryLocation otherMember = DiaryLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null);
+		DiaryLocation otherPet = DiaryLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null);
 
 		assertThatThrownBy(() -> adapter.save(otherRecord)).isInstanceOf(IllegalStateException.class);
 		assertThatThrownBy(() -> adapter.save(otherMember)).isInstanceOf(IllegalStateException.class);
 		assertThatThrownBy(() -> adapter.save(otherPet)).isInstanceOf(IllegalStateException.class);
-		assertThat(adapter.loadByRecordId(100L).orElseThrow().getLatitude()).isEqualTo(37.0);
+		assertThat(adapter.loadByDiaryId(100L).orElseThrow().getLatitude()).isEqualTo(37.0);
 	}
 
 	@Test
@@ -137,20 +137,20 @@ class RecordLocationPersistenceAdapterTest {
 	void delete() {
 		save(100L, PET, MEMBER, 37.0, 127.0);
 
-		adapter.deleteByRecordId(100L);
-		adapter.deleteByRecordId(100L);
+		adapter.deleteByDiaryId(100L);
+		adapter.deleteByDiaryId(100L);
 
-		assertThat(adapter.loadByRecordId(100L)).isEmpty();
+		assertThat(adapter.loadByDiaryId(100L)).isEmpty();
 	}
 
 	@Test
 	@DisplayName("#19-S4 지운 위치를 같은 트랜잭션에서 그 id로 바꾸려 하면 오류가 난다")
 	void deletedLocationIsNotServedFromCache() {
 		// 저장한 엔티티가 영속성 컨텍스트에 남아 있는 상태에서 지워야 의미가 있어서, 여기서는 컨텍스트를 비우지 않는다
-		Long id = adapter.save(RecordLocation.create(100L, PET, MEMBER, 37.0, 127.0, null));
-		RecordLocation stale = RecordLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
+		Long id = adapter.save(DiaryLocation.create(100L, PET, MEMBER, 37.0, 127.0, null));
+		DiaryLocation stale = DiaryLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
 
-		adapter.deleteByRecordId(100L);
+		adapter.deleteByDiaryId(100L);
 
 		assertThatThrownBy(() -> adapter.save(stale)).isInstanceOf(IllegalStateException.class);
 	}
@@ -162,7 +162,7 @@ class RecordLocationPersistenceAdapterTest {
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).hasSize(1);
 
-		adapter.deleteByRecordId(100L);
+		adapter.deleteByDiaryId(100L);
 
 		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).isEmpty();
 	}
@@ -176,9 +176,9 @@ class RecordLocationPersistenceAdapterTest {
 		save(4L, PET, MEMBER, 37.5, 125.9); // 경도 왼쪽
 		save(5L, PET, MEMBER, 37.5, 128.1); // 경도 오른쪽
 
-		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
 
-		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
 	}
 
 	@Test
@@ -187,9 +187,9 @@ class RecordLocationPersistenceAdapterTest {
 		save(1L, PET, MEMBER, 37.0, 126.0);
 		save(2L, PET, MEMBER, 38.0, 128.0);
 
-		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
 
-		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L, 2L);
+		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L, 2L);
 	}
 
 	@Test
@@ -198,9 +198,9 @@ class RecordLocationPersistenceAdapterTest {
 		save(1L, PET, MEMBER, 37.5, 127.0);
 		save(2L, PET + 1, MEMBER, 37.5, 127.0);
 
-		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
 
-		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
 	}
 
 	@Test
@@ -209,21 +209,21 @@ class RecordLocationPersistenceAdapterTest {
 		save(1L, PET, MEMBER, 37.5, 127.0);
 		save(2L, PET, MEMBER + 1, 37.5, 127.0);
 
-		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
+		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
 
-		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L);
+		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
 	}
 
 	@Test
 	@DisplayName("#19-S6 limit보다 많으면 limit개만 오래된 순으로 돌려준다")
 	void limitsResults() {
-		for (long recordId = 1; recordId <= 5; recordId++) {
-			save(recordId, PET, MEMBER, 37.5, 127.0);
+		for (long diaryId = 1; diaryId <= 5; diaryId++) {
+			save(diaryId, PET, MEMBER, 37.5, 127.0);
 		}
 
-		List<RecordLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 3);
+		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 3);
 
-		assertThat(found).extracting(RecordLocation::getRecordId).containsExactly(1L, 2L, 3L);
+		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L, 2L, 3L);
 	}
 
 	@Test
@@ -250,14 +250,14 @@ class RecordLocationPersistenceAdapterTest {
 		// 이모지 128개: PostgreSQL varchar(255)는 문자 수로 128이라 들어가고, Java String.length()는 256이다
 		String emojiName = "\uD83D\uDC36".repeat(128);
 		jdbcTemplate.update("""
-				insert into record_location (record_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
+				insert into diary_location (diary_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
 				values (500, ?, ?, 37.5, 127.0, ?, now(), now())
 				""", PET, MEMBER, emojiName);
 		flushAndClear();
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 
-		assertThatThrownBy(() -> adapter.loadByRecordId(500L)).isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class)
-			.hasCauseInstanceOf(com.pawmento.map.domain.exception.InvalidRecordLocationException.class);
+		assertThatThrownBy(() -> adapter.loadByDiaryId(500L)).isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class)
+			.hasCauseInstanceOf(com.pawmento.map.domain.exception.InvalidDiaryLocationException.class);
 		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10))
 			.isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class);
 	}
@@ -266,9 +266,9 @@ class RecordLocationPersistenceAdapterTest {
 	@DisplayName("#19-S5 핀 조회용 인덱스와 기록별 유일 제약이 DB에 만들어진다")
 	void schemaHasIndexAndConstraint() {
 		List<String> indexes = jdbcTemplate.queryForList(
-				"select indexname from pg_indexes where tablename = 'record_location'", String.class);
+				"select indexname from pg_indexes where tablename = 'diary_location'", String.class);
 
-		assertThat(indexes).contains(RecordLocationJpaEntity.PIN_LOOKUP_INDEX, "uk_record_location_record");
+		assertThat(indexes).contains(DiaryLocationJpaEntity.PIN_LOOKUP_INDEX, "uk_diary_location_diary");
 	}
 
 }
