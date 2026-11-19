@@ -43,3 +43,7 @@ pawmento:
       # 비어 있으면 앱은 켜지고 구글 로그인만 실패한다
       client-id: ${GOOGLE_CLIENT_ID:}
       client-secret: ${GOOGLE_CLIENT_SECRET:}
+    kakao:
+      # 카카오 디벨로퍼스 > 앱 키 > REST API 키. client-secret은 콘솔에서 Client Secret을 켰을 때만 넣는다
+      client-id: ${KAKAO_CLIENT_ID:}
+      client-secret: ${KAKAO_CLIENT_SECRET:}

@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 
 
 @Configuration (proxyBeanMethods = false) 
-@EnableConfigurationProperties(GoogleOAuthProperties.class)
+@EnableConfigurationProperties({ GoogleOAuthProperties.class, KakaoOAuthProperties.class })
 public class OAuthConfig {
 
     
