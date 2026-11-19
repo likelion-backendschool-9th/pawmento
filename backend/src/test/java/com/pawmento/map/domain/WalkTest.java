@@ -197,6 +197,16 @@ class WalkTest {
 	}
 
 	@Test
+	@DisplayName("#73-S9 requireOwner는 시작한 회원이면 통과하고 아니면 소유자 오류다")
+	void requireOwner() {
+		Walk walk = startedAt(START);
+
+		walk.requireOwner(1L);
+		assertThatThrownBy(() -> walk.requireOwner(2L)).isInstanceOf(NotWalkOwnerException.class);
+		assertThatThrownBy(() -> walk.requireOwner(null)).isInstanceOf(NotWalkOwnerException.class);
+	}
+
+	@Test
 	@DisplayName("#73-S9 시작한 회원이 아니면 좌표 묶음을 받지 않고, 이 검사가 크기·상태 검사보다 먼저다")
 	void onlyOwnerMayAddPoints() {
 		Walk walk = startedAt(START);

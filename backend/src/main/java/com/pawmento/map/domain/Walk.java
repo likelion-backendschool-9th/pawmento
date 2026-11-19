@@ -77,15 +77,23 @@ public class Walk {
 	}
 
 	/**
+	 * 시작한 회원이 아니면 거절한다. 산책을 바꾸는 요청은 이 검사를 가장 먼저 한다.
+	 * 산책의 소유자는 바뀌지 않아서 행을 잠그기 전에 읽은 값으로도 확인할 수 있다.
+	 */
+	public void requireOwner(Long requesterId) {
+		if (!createdBy.equals(requesterId)) {
+			throw new NotWalkOwnerException();
+		}
+	}
+
+	/**
 	 * 산책을 끝낸다. 시작한 회원만 끝낼 수 있고, 이 검사가 상태 확인보다 먼저다.
 	 * 이미 끝났거나 중단된 산책은 바꾸지 않는다. 같은 요청을 다시 보내도 같은 결과가 되게 하기 위해서다.
 	 *
 	 * @param requesterId 끝내려는 회원
 	 */
 	public void end(Long requesterId, Instant now) {
-		if (!createdBy.equals(requesterId)) {
-			throw new NotWalkOwnerException();
-		}
+		requireOwner(requesterId);
 		if (status(now) != WalkStatus.IN_PROGRESS) {
 			return;
 		}
@@ -103,9 +111,7 @@ public class Walk {
 	 * @param requestedCount 이번 요청에 담긴 좌표 개수
 	 */
 	public void requireAcceptingPoints(Long requesterId, Instant now, int requestedCount) {
-		if (!createdBy.equals(requesterId)) {
-			throw new NotWalkOwnerException();
-		}
+		requireOwner(requesterId);
 		if (requestedCount < 1) {
 			throw InvalidWalkPointBatchException.empty();
 		}
