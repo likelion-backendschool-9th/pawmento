@@ -40,7 +40,7 @@ class DiaryAttachmentScenarioTest {
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate jdbc;
   @Autowired CreatePetUseCase pets;
-  @Autowired SaveMediaAssetPort save;
+  @MockitoSpyBean SaveMediaAssetPort save;
   @Autowired CreateDiaryEntryUseCase create;
   @Autowired EditDiaryEntryUseCase edit;
   @Autowired DeleteDiaryEntryUseCase deleteDiary;
@@ -514,5 +514,31 @@ class DiaryAttachmentScenarioTest {
         commit.countDown();
       }
     }
+  }
+
+  @Test
+  @DisplayName("#32-S13 일기 삭제 뒤 자산 저장 실패는 일기·첨부·참조·삭제 작업 모두 롤백한다")
+  void deletionRollback() {
+    long p = pet(), a = asset(p, false);
+    var r = create(p, "", a);
+    doAnswer(
+            invocation -> {
+              MediaAsset changed = invocation.getArgument(0);
+              if (changed.getId().equals(a) && changed.getStatus() == MediaUploadStatus.DELETING)
+                throw new com.pawmento.media.application.exception
+                    .MediaPersistenceUnavailableException(new java.io.IOException("injected"));
+              return invocation.callRealMethod();
+            })
+        .when(save)
+        .save(any(MediaAsset.class));
+    assertThatThrownBy(
+            () -> deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, r.recordId(), 0L)))
+        .isInstanceOf(
+            com.pawmento.media.application.exception.MediaPersistenceUnavailableException.class);
+    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(refs(a)).isEqualTo(1);
+    assertThat(state(a)).isEqualTo("READY");
+    assertThat(jobs(a)).isZero();
+    assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.recordId())).version()).isZero();
   }
 }
