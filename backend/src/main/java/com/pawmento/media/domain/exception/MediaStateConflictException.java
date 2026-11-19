@@ -4,6 +4,7 @@ import com.pawmento.global.exception.StateConflictException;
 
 public class MediaStateConflictException extends StateConflictException {
   public enum Reason {
+    ATTACHMENT_UNAVAILABLE("연결할 수 없는 파일이에요."),
     ALREADY_RECEIVED("이미 파일을 받았거나 처리 중인 업로드예요."),
     SESSION_EXPIRED("업로드 시간이 지났어요. 새로 파일을 선택해 주세요."),
     NOT_UPLOADING("파일을 받을 수 없는 상태예요."),

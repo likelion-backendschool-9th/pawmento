@@ -218,6 +218,39 @@ public class MediaAsset {
       throw new MediaAccessDeniedException(MediaAccessDeniedException.Reason.NOT_UPLOADER);
   }
 
+  public void requireDiaryOwner(Long memberId, Long requestedPetId) {
+    requireOwner(memberId, requestedPetId);
+    if (purpose != MediaPurpose.DIARY_ATTACHMENT)
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
+  }
+
+  public void requireAttached(Long requestedPetId) {
+    if (!petId.equals(requestedPetId)
+        || purpose != MediaPurpose.DIARY_ATTACHMENT
+        || status != MediaUploadStatus.READY
+        || referenceCount <= 0)
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
+  }
+
+  public void acquireReference(Instant now) {
+    if (status != MediaUploadStatus.READY
+        || (referenceCount == 0 && !now.isBefore(unattachedExpiresAt)))
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
+    referenceCount = Math.addExact(referenceCount, 1);
+    updatedAt = now;
+  }
+
+  public void releaseReference(Instant now) {
+    if (status != MediaUploadStatus.READY || referenceCount <= 0)
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
+    referenceCount--;
+    updatedAt = now;
+  }
+
   public void requirePending(Instant now) {
     if (status != MediaUploadStatus.PENDING)
       throw new MediaStateConflictException(MediaStateConflictException.Reason.ALREADY_RECEIVED);

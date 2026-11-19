@@ -35,6 +35,13 @@ public class MediaPersistenceAdapter
   }
 
   @Override
+  public List<MediaAsset> findAll(List<Long> ids) {
+    if (ids.isEmpty()) return List.of();
+    return MediaPersistenceOperations.execute(
+        () -> repository.findAllById(ids).stream().map(MediaAssetJpaEntity::toDomain).toList());
+  }
+
+  @Override
   public Optional<MediaAsset> findById(Long id) {
     return MediaPersistenceOperations.execute(
         () -> {

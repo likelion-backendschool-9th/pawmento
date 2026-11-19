@@ -27,6 +27,15 @@ public class DiaryEntryPersistenceAdapter
         LoadDiaryCalendarPort {
   private final DiaryEntryJpaRepository rows;
 
+  public Optional<DiaryEntry> findForUpdate(Long id) {
+    try {
+      return read(() -> rows.findForUpdate(id).map(DiaryEntryJpaEntity::toDomain));
+    } catch (org.springframework.dao.OptimisticLockingFailureException
+        | jakarta.persistence.OptimisticLockException failure) {
+      throw new DiaryVersionConflictException(failure);
+    }
+  }
+
   public Optional<DiaryEntry> findById(Long id) {
     return rows.findById(id).map(DiaryEntryJpaEntity::toDomain);
   }

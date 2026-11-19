@@ -15,15 +15,20 @@ class DiaryWritePolicyTest {
   private final LoadDiaryEntryPort load = mock(LoadDiaryEntryPort.class);
   private final Clock clock = Clock.fixed(Instant.parse("2026-11-17T15:00:00Z"), ZoneOffset.UTC);
   private final DiaryWriteFeatures[] unsupported = {
-    new DiaryWriteFeatures(true, false),
-    new DiaryWriteFeatures(false, true),
-    new DiaryWriteFeatures(true, true)
+    new DiaryWriteFeatures(null, true), new DiaryWriteFeatures(java.util.List.of(1L), true)
   };
 
   @Test
-  @DisplayName("#32-S23 웹을 거치지 않은 생성도 미지원 첨부·위치를 거부하고 저장하지 않는다")
+  @DisplayName("#32-S23 웹을 거치지 않은 생성도 미지원 위치를 거부하고 저장하지 않는다")
   void createPolicy() {
-    var service = new CreateDiaryEntryService(access, save, clock);
+    var service =
+        new CreateDiaryEntryService(
+            access,
+            mock(DiaryAttachmentsPort.class),
+            mock(DiaryMediaPort.class),
+            mock(DiaryResults.class),
+            save,
+            clock);
     for (var features : unsupported)
       assertThatThrownBy(
               () ->
@@ -35,9 +40,17 @@ class DiaryWritePolicyTest {
   }
 
   @Test
-  @DisplayName("#32-S23 웹을 거치지 않은 수정도 미지원 첨부·위치를 거부하고 원본에 접근하지 않는다")
+  @DisplayName("#32-S23 웹을 거치지 않은 수정도 미지원 위치를 거부하고 원본에 접근하지 않는다")
   void editPolicy() {
-    var service = new EditDiaryEntryService(access, load, save, clock);
+    var service =
+        new EditDiaryEntryService(
+            access,
+            mock(DiaryAttachmentsPort.class),
+            mock(DiaryMediaPort.class),
+            mock(DiaryResults.class),
+            load,
+            save,
+            clock);
     for (var features : unsupported)
       assertThatThrownBy(
               () -> service.edit(new EditDiaryEntryCommand(1L, 2L, 3L, "일기", null, 0L, features)))

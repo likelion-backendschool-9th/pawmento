@@ -11,4 +11,12 @@ BEGIN
     ON diary_entries(pet_id, recorded_date DESC, id DESC);
   -- 복합 인덱스의 첫 컬럼으로 FK 검사와 petId 존재 조회도 처리한다.
   DROP INDEX IF EXISTS ix_diary_entries_pet_id;
+  CREATE TABLE IF NOT EXISTS diary_attachments (
+    record_id BIGINT NOT NULL REFERENCES diary_entries(id) ON DELETE CASCADE,
+    asset_id BIGINT NOT NULL REFERENCES media_assets(id) ON DELETE RESTRICT,
+    sort_order INTEGER NOT NULL CHECK(sort_order>=0),
+    PRIMARY KEY(record_id,asset_id),
+    UNIQUE(record_id,sort_order)
+  );
+  CREATE INDEX IF NOT EXISTS ix_diary_attachments_asset ON diary_attachments(asset_id);
 END $$;

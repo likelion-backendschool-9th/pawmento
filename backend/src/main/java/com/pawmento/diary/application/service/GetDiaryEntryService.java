@@ -11,11 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class GetDiaryEntryService implements GetDiaryEntryUseCase {
   private final CheckDiaryPetAccessPort access;
   private final LoadDiaryEntryPort load;
+  private final DiaryResults results;
 
   @Override
   @Transactional(readOnly = true)
   public GetDiaryEntryResult get(GetDiaryEntryQuery c) {
     access.requireAccess(c.memberId(), c.petId());
-    return GetDiaryEntryResult.from(DiaryEntryAccess.load(load, c.petId(), c.recordId()));
+    return results.one(DiaryEntryAccess.load(load, c.petId(), c.recordId()));
   }
 }

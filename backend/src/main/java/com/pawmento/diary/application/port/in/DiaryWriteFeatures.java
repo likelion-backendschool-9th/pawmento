@@ -1,8 +1,21 @@
 package com.pawmento.diary.application.port.in;
 
-// 이번 텍스트 단계에서는 미지원 기능의 요청 여부만 전달하며 원본 JSON은 넘기지 않는다.
-public record DiaryWriteFeatures(boolean attachmentsRequested, boolean locationRequested) {
+import com.pawmento.diary.domain.exception.InvalidDiaryEntryException;
+import java.util.HashSet;
+import java.util.List;
+
+public record DiaryWriteFeatures(List<Long> attachmentIds, boolean locationRequested) {
+  public DiaryWriteFeatures {
+    if (attachmentIds != null) {
+      if (attachmentIds.size() > 5
+          || attachmentIds.stream().anyMatch(id -> id == null || id <= 0)
+          || new HashSet<>(attachmentIds).size() != attachmentIds.size())
+        throw new InvalidDiaryEntryException();
+      attachmentIds = List.copyOf(attachmentIds);
+    }
+  }
+
   public static DiaryWriteFeatures textOnly() {
-    return new DiaryWriteFeatures(false, false);
+    return new DiaryWriteFeatures(null, false);
   }
 }

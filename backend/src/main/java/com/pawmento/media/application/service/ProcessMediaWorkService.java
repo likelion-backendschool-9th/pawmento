@@ -20,6 +20,7 @@ public class ProcessMediaWorkService implements ProcessMediaWorkUseCase {
   private final ValidateMediaFilePort validator;
   private final DeleteMediaFilesPort deletion;
   private final DeleteMediaUploadPort temporary;
+  private final InspectMediaReferencesPort references;
 
   public boolean processNext() {
     var next = transactions.claim();
@@ -30,6 +31,8 @@ public class ProcessMediaWorkService implements ProcessMediaWorkUseCase {
       if (w.kind().equals("DELETE")) {
         if (a.getStatus() != MediaUploadStatus.DELETING)
           throw new IllegalStateException("DELETE_STATE");
+        if (references.isReferenced(a.getId()))
+          throw new IllegalStateException("DELETE_REFERENCED");
         deletion.deleteAll(
             a.getTemporaryStorageKey(),
             a.getVerified() == null ? null : a.getVerified().storageKey());

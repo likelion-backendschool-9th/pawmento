@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface DiaryEntryJpaRepository extends JpaRepository<DiaryEntryJpaEntity, Long> {
+  @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+  @Query("select e from DiaryEntryJpaEntity e where e.id=:id")
+  java.util.Optional<DiaryEntryJpaEntity> findForUpdate(@Param("id") Long id);
+
   // 날짜 조건을 페이지와 count에서 동일하게 사용한다. native OFFSET은 int 범위를 넘는 유효 페이지도 처리한다.
   String FILTER =
       " where pet_id = :petId and (cast(:fromDate as date) is null or recorded_date >= :fromDate)"
