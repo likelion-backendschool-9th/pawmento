@@ -40,7 +40,7 @@
 
 - 생성·수정 `attachmentIds`는 최대 5개이며 중복은 거부한다. 파일당 기존 15MiB 제한으로 전체는 최대 75MiB다. 수정 생략은 유지, 빈 배열은 해제이며 content 명시적 null은 400이다. 본문 없는 첨부 일기는 가능하지만 둘 다 없는 최종 상태는 거부한다.
 - 부모 version 검사·부모 행 잠금 후 관련 자산을 ID 순서로 잠그고 첨부 관계·참조 수·삭제 작업을 같은 트랜잭션에서 변경한다. 유지 자산은 참조를 해제하지 않고 순서만 바꾼다. 마지막 참조만 삭제 예약하며 물리 파일 I/O는 기존 작업자가 수행한다.
-- GET/HEAD `/diaries/{recordId}/attachments/{assetId}?petId=...`와 `/thumbnail`은 현재 아이 접근·실제 첨부 관계를 검사한다. 음성 Range·HEAD와 private/no-store를 제공하고 미연결 미리보기를 우회하지 않는다.
+- GET/HEAD `/diaries/{diaryId}/attachments/{assetId}?petId=...`와 `/thumbnail`은 현재 아이 접근·실제 첨부 관계를 검사한다. 음성 Range·HEAD와 private/no-store를 제공하고 미연결 미리보기를 우회하지 않는다.
 - 첨부 참조 수가 0이거나 서비스 상태를 사용할 수 없으면 목록·상세는 해당 첨부를 `available=false`, 파일/썸네일 URL을 null로 반환하고 나머지 일기는 계속 조회한다. 파일 직접 열람은 계속 거부한다. 유지·순서 변경은 참조 수를 복구하지 않으며, 해제 시 이미 0인 참조는 감소시키지 않고 실제 부모 연결이 모두 사라진 경우에만 삭제 예약한다.
 - 연결할 자산의 업로더·아이·용도는 상태 엔티티를 남기지 않는 일괄 identity 조회로 먼저 확인한다. 없는 자산과 접근할 수 없는 자산은 같은 404이며, 전체 사전 검사를 통과한 뒤에만 ID 순서로 자산 행을 잠근다.
 - 현재 권한은 실제 pet 소유자 범위이며 가족 열람이 구현된 것은 아니다. 프론트 연결·지도/GPS·질문 답변 첨부는 후속이다. 요청 의미·시나리오는 [첨부 계획](../diary/attachments.md)을 따른다.
@@ -82,4 +82,4 @@
 
 생성·상태 조회·GET/HEAD 미리보기·썸네일·삭제 컨트롤러와 파일 수신 필터는 `MediaPetRequest.fromQuery` 공통 파서로 URL의 raw query에서만 `petId`를 읽는다. `@ModelAttribute`·`@Valid` DTO 바인딩을 사용하지 않으며 HTTP 헤더·JSON 본문·multipart 필드로 필수 쿼리를 채울 수 없다. 유효한 쿼리와 상충하는 헤더는 무시한다. 누락·빈 값·0 이하·숫자가 아닌 값·Long 범위 초과·잘못된 인코딩·중복(디코딩 후 같은 키 포함)은 400 `VALIDATION`과 공통 `{code, message}`로 응답한다. 파일 수신은 필터가 `getParameter*`를 호출하지 않고 multipart 파싱 전에 쿼리·소유권을 검사한다. 전역의 필수 쿼리 오류 처리 정책을 새로 정한 것은 아니다. (고침 #79: 쿼리 전용 검증과 헤더 우회 차단 반영)
 
-PR #64에서 임시 `com.pawmento.record`·`com.pawmento.memory` 샘플과 `/records`·`/memories` API를 제거했다. Java record 값 타입이나 diary/question/map 데이터 모델을 제거하는 뜻은 아니며 기존 DB 테이블 삭제 작업도 포함하지 않는다. 실제 `recordId`의 의미와 diary→map 경계는 [다이어리](../diary/README.md#도메인-경계)·[지도](../map/README.md#다이어리-연동-경계)를 따른다. (고침 #80: 샘플 제거 상태와 실제 도메인 연결)
+PR #64에서 임시 `com.pawmento.record`·`com.pawmento.memory` 샘플과 `/records`·`/memories` API를 제거했다. Java record 값 타입이나 diary/question/map 데이터 모델을 제거하는 뜻은 아니며 기존 DB 테이블 삭제 작업도 포함하지 않는다. 실제 `diaryId`의 의미와 diary→map 경계는 [다이어리](../diary/README.md#도메인-경계)·[지도](../map/README.md#다이어리-연동-경계)를 따른다. (고침 #80: 샘플 제거 상태와 실제 도메인 연결)

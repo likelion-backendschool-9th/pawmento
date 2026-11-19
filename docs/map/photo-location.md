@@ -26,7 +26,7 @@
 
 - 비공개 `media_asset_location(asset_id PK, latitude, longitude, source=EXIF)`는 동의한 다이어리 이미지에만 만든다. 동의 여부·정책 버전·기록 시각은 media의 별도 동의 필드/행에서 관리한다.
 - `GetMediaLocationCandidateUseCase`는 요청 회원·아이·자산 목록으로 업로더/기존 유효 첨부·용도·READY·GPS 동의 유효성을 검사한다. 미동의 자산에는 후보를 반환하지 않는다.
-- 작성 미리보기가 필요하면 `POST /diaries/location-candidates?petId={petId}`에 `attachmentIds`와 선택 `recordId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다. (고침 #32: PR #94의 diary 루트·petId 쿼리 계약과 통일)
+- 작성 미리보기가 필요하면 `POST /diaries/location-candidates?petId={petId}`에 `attachmentIds`와 선택 `diaryId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다. (고침 #32: PR #94의 diary 루트·petId 쿼리 계약과 통일)
 - 사진 업로드나 후보 조회만으로 지도 핀을 만들지 않는다. 위치 저장은 다이어리 생성·수정·삭제에서만 수행한다.
 
 ## 다이어리의 단일 위치 쓰기 계약
@@ -51,11 +51,11 @@
 
 ## 지도 입력 포트와 같은 DB 트랜잭션
 
-포트 후보: `ApplyRecordLocationUseCase`.
+포트 후보: `ApplyDiaryLocationUseCase`.
 
 ```text
-ApplyRecordLocationCommand(
-  recordId, petId, createdBy, revision,
+ApplyDiaryLocationCommand(
+  diaryId, petId, createdBy, revision,
   location: {latitude, longitude, placeName?, source, sourceAssetId?} | null
 )
 → APPLIED | DUPLICATE | STALE
@@ -79,8 +79,8 @@ ApplyRecordLocationCommand(
 | `STALE` | 존재하는 위치의 revision보다 작은 요청 | 409 충돌로 부모 변경도 롤백 |
 
 - diary는 **모든 생성·수정·삭제**의 존재/권한·잠금/낙관적 버전 검사를 수행하고 위치 revision을 서버에서 결정한다. 저장 트랜잭션 밖·비동기·별도 공개 API로 map을 호출하지 않는다. 같은 revision을 서로 다른 내용에 재사용하지 않으며 동일 revision의 상이한 명령은 계약 위반으로 거부한다. (고침 #53: 중복 성공과 오래된 요청 거부를 구분)
-- `record_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
-- 위치가 있으면 새 revision이 더 클 때만 원자적으로 갱신하고 같으면 DUPLICATE, 낮으면 STALE이다. 최초 동시 insert는 `record_id` 유니크/조건부 upsert로 보호한다. 같은 기록 ID의 아이·원 작성자를 바꾸려는 호출은 거부한다.
+- `diary_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
+- 위치가 있으면 새 revision이 더 클 때만 원자적으로 갱신하고 같으면 DUPLICATE, 낮으면 STALE이다. 최초 동시 insert는 `diary_id` 유니크/조건부 upsert로 보호한다. 같은 기록 ID의 아이·원 작성자를 바꾸려는 호출은 거부한다.
 - NONE·AUTO 후보 없음·일기 삭제는 null 위치로 apply를 호출해 실제 map 행을 지운다. 존재하는 행에 대한 삭제도 높은 revision 조건을 확인한다. 삭제할 행이 없으면 DUPLICATE로 아무 작업도 하지 않는다. 성공한 삭제 뒤 revision 이력을 map에 따로 남기지 않는다.
 - **삭제 후 오래된 호출 거부의 책임은 diary**에 있다. 삭제된 일기에 대한 수정은 부모 조회에서 거부하고, 삭제와 동시에 진행된 수정은 부모의 잠금/버전 검사 실패로 지도 쓰기까지 롤백한다. map 행이 없을 때 map 포트 단독으로 과거 revision을 판별할 수 있다고 가정하지 않는다. 이 전제 밖으로 호출 경로를 늘릴 때는 별도 설계가 필요하다. (고침 #53: 같은 트랜잭션의 부모 동시성 검사로 핀 복원 방지)
 - 핀 조회에는 기존 영역/작성자 조건만 사용하며 `deleted=false` 필터를 추가하지 않는다.

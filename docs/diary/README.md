@@ -47,9 +47,9 @@
 | `media` | 파일 업로드·검증·저장·비공개 열람과 파일 메타데이터 |
 | `map` | diary의 기록 ID에 위치를 연결하고 핀 조회 제공. 기록 본문·첨부를 복제하지 않음 |
 
-`recordId`는 **실제 diary 일기의 서버 발급 ID**를 뜻한다. 지도 계약의 `recordId`·`record_location.record_id`라는 이름은 유지하되, 별도 record 도메인이나 삭제된 샘플의 존재를 뜻하지 않는다. 질문 답변 ID를 이 값으로 전달하지 않는다. 프론트의 개체명은 자유 일기 `DiaryEntry`, 질문 답변 `QuestionAnswer`로 분리한다. (고침 #80: 지도와 공유하는 ID 의미 명확화)
+`diaryId`는 **실제 diary 일기의 서버 발급 ID**다. diary 응답·Command/Query·첨부 관계·지도 핀과 내부 위치 포트에서 같은 이름을 사용한다. 위치 모델은 `DiaryLocation`, 저장소는 `diary_location.diary_id`다. 질문 답변은 독립된 `answerId`를 사용한다. 프론트 저장 모델도 자유 일기 `DiaryEntry`, 질문 답변 `QuestionAnswer`로 분리한다. 기존 DB 이름은 [이름 정리](naming-cleanup.md)의 이관 규칙을 따른다. (고침 #32: ID·저장 모델 이름 통일)
 
-도메인 간 연결은 애플리케이션 포트로 한다. diary가 현재 회원의 아이 접근·작성/수정/삭제 권한과 부모 버전을 검사한 뒤 map 입력 포트로 `recordId`, `petId`, 원 작성자 `createdBy`, `revision`, nullable 위치를 전달한다. map은 같은 DB 트랜잭션에 참여하며 diary를 역호출해 작성자를 확인하지 않는다. 다른 도메인의 JPA 엔티티·리포지토리를 직접 참조하지 않는다. 상세한 위치 반영 계약은 [위치 연동](../map/photo-location.md)을 따른다.
+도메인 간 연결은 애플리케이션 포트로 한다. diary가 현재 회원의 아이 접근·작성/수정/삭제 권한과 부모 버전을 검사한 뒤 map 입력 포트로 `diaryId`, `petId`, 원 작성자 `createdBy`, `revision`, nullable 위치를 전달한다. map은 같은 DB 트랜잭션에 참여하며 diary를 역호출해 작성자를 확인하지 않는다. 다른 도메인의 JPA 엔티티·리포지토리를 직접 참조하지 않는다. 상세한 위치 반영 계약은 [위치 연동](../map/photo-location.md)을 따른다.
 
 ## 데이터 구조 제안
 
@@ -75,7 +75,7 @@
 ### 첨부 계약
 
 - 공통 파일 동작·메타데이터·형식·개수·용량·상태·TTL은 [media 설계](../media/README.md)를 단일 기준으로 삼는다. 파일 업로드를 별도 담당이 만들기를 기다리는 범위 밖 작업으로 두지 않는다.
-- `record_attachment`: `id`, `record_id`, `asset_id`, `sort_order`. 부모+파일과 부모+순서 중복을 DB에서 막는다. 실제 파일 정보는 media가 소유한다.
+- `diary_attachments`: `id`, `diary_id`, `asset_id`, `sort_order`. 부모+파일과 부모+순서 중복을 DB에서 막는다. 실제 파일 정보는 media가 소유한다.
 - 사진 선택 및 음성 녹음 → 업로드 세션 → 바이너리 업로드 → 서버 검증 READY → 일기 JSON의 `attachmentIds` 연결 순서다. blob/data URL을 DB에 저장하지 않는다.
 - 새 첨부는 본인 업로드·해당 아이·`DIARY_ATTACHMENT` 용도·READY를 검사한다. 수정 시 기존 첨부 유지와 새 첨부 추가를 구분한다. `attachmentIds`는 전체 교체 목록이고 중복 ID는 거부한다.
 - 일기·첨부 행·media 참조 수 변경은 같은 DB 트랜잭션이다. 연결 실패 시 전체를 롤백하고 입력·기존 첨부를 보존한다. 본문이 비어 있으면 READY 첨부가 반드시 하나 이상 남아야 한다.
@@ -92,9 +92,9 @@
 | `POST /diaries?petId={petId}` | `content`, `recordedDate`, `attachmentIds`, 선택 `location` | 201, 자유 기록 상세 |
 | `GET /diaries?petId={petId}` | `date` 또는 `from/to`, `page`, `size` | 200, 자유 기록 목록 |
 | `GET /diaries/calendar?petId={petId}` | `month=YYYY-MM` | 200, 해당 월 날짜별 건수 |
-| `GET /diaries/{recordId}?petId={petId}` | 없음 | 200, 자유 기록 상세 |
-| `PATCH /diaries/{recordId}?petId={petId}` | `content`, `recordedDate`, `attachmentIds`, `location`, `version` | 200, 변경 상세 |
-| `DELETE /diaries/{recordId}?petId={petId}&version={version}` | 필수 쿼리 `version` | 204 |
+| `GET /diaries/{diaryId}?petId={petId}` | 없음 | 200, 자유 기록 상세 |
+| `PATCH /diaries/{diaryId}?petId={petId}` | `content`, `recordedDate`, `attachmentIds`, `location`, `version` | 200, 변경 상세 |
+| `DELETE /diaries/{diaryId}?petId={petId}&version={version}` | 필수 쿼리 `version` | 204 |
 
 위 표는 [공통 API 경로 규칙](../backend-architecture.md#api-경로)에 맞춘 목표 계약이다. petId는 모든 API의 필수 양의 Long 쿼리이며 헤더·본문으로 대신하지 않는다. PR #89의 중첩 CRUD 경로는 아직 코드에 남아 있으므로 [다음 구현의 선행 작업](list-calendar.md#crud-경로-전환을-먼저-수행)에서 웹/경합 테스트와 함께 전환하고, 이전 경로를 호환 별칭으로 남기지 않는다. (고침 #32: PR #94 경로 리뷰 반영)
 
@@ -106,7 +106,7 @@ PATCH는 제공한 필드만 바꾼다. 변경 필드 하나 이상과 `version`
 
 ```json
 {
-  "recordId": 123,
+  "diaryId": 123,
   "petId": 10,
   "author": {"memberId": 1, "displayName": "보리 가족"},
   "content": "오늘도 공원에서 즐겁게 뛰었어요.",
@@ -118,7 +118,7 @@ PATCH는 제공한 필드만 바꾼다. 변경 필드 하나 이상과 `version`
 }
 ```
 
-목록은 `recordedDate DESC, recordId DESC` 정렬, `page`는 0부터, `size` 기본 20·최대 100이다. 응답은 `items`, `page`, `size`, `totalElements`, `totalPages`다. `date`와 `from/to` 동시 지정은 거부하고 기간 양 끝은 포함한다. 날짜 형식·역전·페이지 범위를 검증한다. 첫 범위는 날짜 필터이며 텍스트 검색·미디어 전용 탐색은 후속 이슈로 둔다.
+목록은 `recordedDate DESC, diaryId DESC` 정렬, `page`는 0부터, `size` 기본 20·최대 100이다. 응답은 `items`, `page`, `size`, `totalElements`, `totalPages`다. `date`와 `from/to` 동시 지정은 거부하고 기간 양 끝은 포함한다. 날짜 형식·역전·페이지 범위를 검증한다. 첫 범위는 날짜 필터이며 텍스트 검색·미디어 전용 탐색은 후속 이슈로 둔다.
 
 달력 응답은 `{petId, month, days: [{date, count}]}`로 제안한다. 기록이 있는 날짜만 반환하고 프론트가 빈 날짜를 채운다. 질문 답변 저장소를 조회하거나 합산하지 않는다. 월 범위는 DATE의 월 첫날 이상·다음 달 첫날 미만이다. 날짜 클릭은 동일 목록 API의 `date`로 연결한다.
 
@@ -127,7 +127,7 @@ ID는 서버에서 Long으로 발급하되 JavaScript의 정수 범위를 넘을
 ## 인증·권한·오류
 
 - 컨트롤러의 `@LoginMember`로 회원 ID를 받는다. 클라이언트의 `ownerId`, `createdBy`는 신뢰하지 않는다.
-- pet/가족 입력 포트로 해당 회원의 멤버십·읽기/쓰기 권한을 확인한다. OWNER·EDITOR는 작성 가능, VIEWER는 조회만 가능하도록 제안한다. 수정·삭제는 작성자 본인만 허용하고 기존 기록의 `petId`, `createdBy`까지 검사한다. 경로의 petId만 확인하고 임의 recordId를 수정하는 경로가 없어야 한다.
+- pet/가족 입력 포트로 해당 회원의 멤버십·읽기/쓰기 권한을 확인한다. OWNER·EDITOR는 작성 가능, VIEWER는 조회만 가능하도록 제안한다. 수정·삭제는 작성자 본인만 허용하고 기존 기록의 `petId`, `createdBy`까지 검사한다. 경로의 petId만 확인하고 임의 diaryId를 수정하는 경로가 없어야 한다.
 - 가족은 아이의 일기를 함께 읽고 답변과 동일하게 작성자 회원 ID·표시 이름을 본다. 이름 스냅샷과 탈퇴 후 표시 정책은 question과 맞춘다. 멤버십 회수 후에는 조회·변경을 거부한다.
 - 미인증 401, 입력 오류 400, 없는 아이/기록 또는 비가족 자원 404, 열람자 쓰기·다른 작성자 수정 403, 버전 충돌 409. 관리자라는 이유로 개인 기록 열람 권한을 자동 부여하지 않는다.
 - 에러는 기존 `{code, message}`를 따른다. 저장 실패 시 DB 상태를 되돌리고 프론트는 입력을 유지한다.
@@ -141,7 +141,7 @@ ID는 서버에서 Long으로 발급하되 JavaScript의 정수 범위를 넘을
 - 일기 생성·수정 body의 `location: {mode: AUTO|MANUAL|NONE}`만 위치 쓰기 경로다. MANUAL은 좌표·선택 장소명을 받고, AUTO는 사전 동의된 READY 첨부에서만 첫 유효 GPS를 선택한다. 별도 지도 위치 PUT/DELETE는 만들지 않는다.
 - **생성에서 location 생략은 NONE**, 수정에서 생략은 기존 모드 유지다. 기존 AUTO에서 사진/순서가 바뀌면 동의된 후보로 재계산하고 MANUAL/NONE은 유지한다. 미동의 사진만으로 AUTO를 요청하면 거부한다.
 - 업로드 동의는 media 세션 생성/파일 전송 전에 받는다. 미동의 사진은 프론트에서 GPS 제거본만 전송한다. 동의 문구·범위·철회/재동의 정책은 확정이 필요하며, 미확정을 자동 동의로 취급하지 않는다.
-- `ApplyRecordLocationUseCase`에 `recordId`, `petId`, `createdBy`, `revision`, nullable 위치(source/sourceAssetId 포함)를 전달한다. APPLIED/DUPLICATE/STALE을 받고 정상 반영/중복은 성공, STALE은 409로 부모 저장도 롤백한다. (고침 #53: 무시 사유를 명확히 구분)
+- `ApplyDiaryLocationUseCase`에 `diaryId`, `petId`, `createdBy`, `revision`, nullable 위치(source/sourceAssetId 포함)를 전달한다. APPLIED/DUPLICATE/STALE을 받고 정상 반영/중복은 성공, STALE은 409로 부모 저장도 롤백한다. (고침 #53: 무시 사유를 명확히 구분)
 - diary는 **저장 트랜잭션을 열기 전에** map 주소 조회 포트로 `placeName`을 구한다. 비트랜잭션 조정 메서드와 DB 저장 서비스를 분리하고 저장 시 권한·첨부·기대 버전을 재검사한다. map apply는 외부 호출을 하지 않는다. (고침 #53: 주소 조회 실행 경계 확정)
 - diary·첨부·media 참조·위치 모드/revision·map 행을 **동일 DataSource/트랜잭션 매니저의 REQUIRED 트랜잭션**으로 저장한다. 지도 DB 실패는 전체 롤백, 외부 주소 조회 실패는 주소 없는 좌표 저장으로 구분한다.
 - 지도용 outbox·PENDING/SYNCED/FAILED·location-sync API는 제거한다. 일기 성공 응답은 지도 DB 반영까지 완료된 결과다. (고침 #53: 같은 앱/DB에서 불필요한 비동기 동기화 제거)

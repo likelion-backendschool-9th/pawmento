@@ -26,7 +26,7 @@
 
 ### CRUD 경로 전환을 먼저 수행
 
-[공통 API 경로 규칙](../backend-architecture.md#api-경로)을 따라 다이어리만의 예외는 만들지 않는다. 생성은 `POST /diaries?petId=`, 상세·수정은 `GET/PATCH /diaries/{recordId}?petId=`, 삭제는 `DELETE /diaries/{recordId}?petId=&version=`로 통일한다. `DiaryController`의 루트는 `/diaries`이며 아이는 모든 API에서 필수 양의 Long 쿼리 하나로 받는다. Command/Query에 전달한 뒤 기존 아이·작성자·버전 검사는 그대로 수행한다.
+[공통 API 경로 규칙](../backend-architecture.md#api-경로)을 따라 다이어리만의 예외는 만들지 않는다. 생성은 `POST /diaries?petId=`, 상세·수정은 `GET/PATCH /diaries/{diaryId}?petId=`, 삭제는 `DELETE /diaries/{diaryId}?petId=&version=`로 통일한다. `DiaryController`의 루트는 `/diaries`이며 아이는 모든 API에서 필수 양의 Long 쿼리 하나로 받는다. Command/Query에 전달한 뒤 기존 아이·작성자·버전 검사는 그대로 수행한다.
 
 PR #89의 현재 코드는 아직 `/pets/{petId}/diaries`를 사용한다. 이번 PR은 **목표 계약을 정하는 문서 PR**이며 코드가 이미 바뀌었다고 표시하지 않는다. 후속 목록·달력 구현 PR의 첫 작업에서 CRUD 경로와 웹/경합 테스트를 함께 전환한 뒤 목록·달력을 추가한다. 기존 중첩 경로는 호환 별칭으로 남기지 않고 404로 확인한다. #32-S27의 전환 회귀를 완료하기 전에는 이 단계가 완료된 것이 아니다. (고침 #32: PR #94의 경로 합의·전환 범위 명시)
 
@@ -45,7 +45,7 @@ PR #89의 현재 코드는 아직 `/pets/{petId}/diaries`를 사용한다. 이�
 - `from`·`to`는 각각 선택이며 한쪽만 있어도 허용한다. 양쪽이 있으면 `from <= to`여야 하며 경계 날짜를 포함한다.
 - `date`와 `from` 또는 `to`를 동시에 보내면 400이다. 잘못된 날짜·빈 값·역전 범위도 400이다.
 - `page`는 0부터 시작하고 기본 0, `size`는 기본 20·허용 1~100이다. 음수·소수·문자·정수 범위 초과·빈 값·중복은 400이며 범위를 조용히 보정하지 않는다.
-- 정렬은 `recordedDate DESC, recordId DESC`로 고정한다. 같은 사건 날짜에도 ID로 순서를 고정한다.
+- 정렬은 `recordedDate DESC, diaryId DESC`로 고정한다. 같은 사건 날짜에도 ID로 순서를 고정한다.
 - 범위를 벗어난 페이지와 일기 없는 아이는 `items: []`를 반환한다. `totalElements`와 `totalPages`는 페이지 오프셋이 아니라 같은 아이·날짜 조건의 전체 결과를 기준으로 계산한다.
 - 미래 날짜/기간도 조회 형식이 유효하면 허용하며 데이터가 없으면 빈 목록이다. 생성 시 미래 날짜를 거부하는 규칙과 조회의 빈 결과를 혼동하지 않는다.
 
@@ -54,7 +54,7 @@ PR #89의 현재 코드는 아직 `/pets/{petId}/diaries`를 사용한다. 이�
 ```json
 {
   "items": [{
-    "recordId": 123,
+    "diaryId": 123,
     "petId": 10,
     "createdBy": 1,
     "content": "공원에서 함께한 오후",

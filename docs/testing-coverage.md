@@ -72,3 +72,16 @@
 | 텍스트 전용 본문 공백 거부 | 기존 `DiaryEntryTest`의 첨부 없는 공백 거부를 유지하고, `DiaryAttachmentScenarioTest` #32-S3·S8·S9에서 첨부 전용 생성·전환·마지막 첨부 제거 거부 검사 | 본문과 첨부가 모두 없는 일기는 계속 거부한다. PATCH 생략과 명시적 null을 구분한다. |
 
 기존 #32-S21 수정/삭제 경합 검사는 유지한다. 첨부 갱신은 같은 부모 행 잠금 뒤 ID 순서 자산 잠금으로 직렬화하며, 잠금 재조회에서 확인한 버전 충돌도 공통 409로 변환한다. 테스트를 서비스 호출 검증만으로 축소하지 않는다.
+
+
+## 다이어리·질문 명칭 분리 (#32)
+
+| 기존 검사 | 새 검사 | 변경과 남는 범위 |
+| --- | --- | --- |
+| frontend workspace.test.ts #12-S3 날짜당 질문 일기 1개·날짜별 질문 포트 | question-workflow.test.ts #12-S3 (고침 #32) | 날짜 해시 배정 대신 미답변 질문 유지·작성자와 배정 질문별 중복 방지·동시 저장·최초 등록시각 유지. 날짜당 1개 제한은 폐기 |
+| workspace.test.ts #12-S6 스냅샷·혼합 컬렉션 필터 #12-S4 | question-workflow.test.ts #12-S6 (고침 #32), workspace.test.ts #12-S4 | 별도 저장소와 날짜 조회, 모드 전환 보존. 일기 페이지·날짜 필터·페이지 나누기 유지 |
+| life.test.ts #12-S10 가족 편집자가 타인 답변 수정 | life.test.ts #12-S10 및 question-workflow.test.ts #12-S10 (고침 #32) | 작성자별 수정 제한, 가족 공통 진행과 복수 답변. 실제 서버 가족 API 검증은 포함하지 않음 |
+| workspace.test.ts #12-S5 손상 v1 읽기 | 기존 검사 유지 + workspace-migration.test.ts #32-S2 | v1 보존·v2 재조회·용량 실패·손상 v2 우회 금지·초기화 후 데이터 부활 방지 |
+| 지도 RecordLocation 테스트 | 동일 시나리오의 DiaryLocation 테스트 | 동작 유지. DiaryNamingMigrationTest #32-S1에서 PostgreSQL 기존 행·FK·유니크·시퀀스·재실행·충돌 보존 추가 |
+
+브라우저 저장 데모는 서버 업로드·가족 멤버십·질문 API의 완성을 뜻하지 않는다. HTTP 연동과 복수 탭의 원자적 동시성 검사는 후속 범위다.
