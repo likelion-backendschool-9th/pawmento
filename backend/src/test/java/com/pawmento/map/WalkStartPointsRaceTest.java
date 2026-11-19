@@ -37,6 +37,9 @@ import com.pawmento.map.application.port.in.AddWalkPointsCommand;
 import com.pawmento.map.application.port.in.AddWalkPointsUseCase;
 import com.pawmento.map.application.port.in.StartWalkCommand;
 import com.pawmento.map.application.port.in.StartWalkUseCase;
+import com.pawmento.map.application.port.in.EndWalkCommand;
+import com.pawmento.map.application.port.in.EndWalkUseCase;
+import com.pawmento.map.application.port.out.LockPetWalksPort;
 import com.pawmento.map.application.port.out.SaveWalkPort;
 import com.pawmento.map.domain.Walk;
 import com.pawmento.map.domain.exception.WalkNotInProgressException;
@@ -108,6 +111,13 @@ class WalkStartPointsRaceTest {
 	@MockitoSpyBean
 	private SaveWalkPort saveWalkPort;
 
+	// 소유자 확인 뒤 반려동물 잠금을 잡기 직전에 멈추게 하려고 잠금 포트도 감시한다
+	@MockitoSpyBean
+	private LockPetWalksPort lockPetWalksPort;
+
+	@Autowired
+	private EndWalkUseCase endWalk;
+
 	@Test
 	@DisplayName("#73-S13 활동 시각을 갱신하는 좌표 요청이 커밋하기 전에 5분 경계를 넘어 새 산책을 시작해도, 같은 반려동물의 진행 중인 산책은 하나뿐이다")
 	void startAtBoundaryWhileActivityUpdateIsUncommitted() throws Exception {
@@ -152,6 +162,51 @@ class WalkStartPointsRaceTest {
 
 		assertThat(activeWalkCount(pet, L.plusSeconds(300).plusMillis(200))).isEqualTo(1);
 		assertThat(walkCount(pet)).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("#73-S2 좌표 요청이 소유자를 확인한 뒤 잠그기 전에 다른 요청이 산책을 끝내면, 좌표 요청은 409이고 끝낸 시각과 좌표가 그대로다")
+	void walkEndedBetweenOwnerCheckAndLock() throws Exception {
+		long pet = pets.create(new CreatePetCommand(MEMBER, "나비", "CAT", null, null)).petId();
+		clock.set(L);
+		long walk = startWalk.start(new StartWalkCommand(MEMBER, pet)).walkId();
+
+		CountDownLatch ownerChecked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		// 소유자 확인 뒤 반려동물 잠금을 잡으려는 순간에 멈춘다. 이 시점에 산책을 읽어 두었다면 오래된 상태가 남는다
+		doAnswer(invocation -> {
+			ownerChecked.countDown();
+			assertThat(release.await(15, TimeUnit.SECONDS)).isTrue();
+			return invocation.callRealMethod();
+		}).when(lockPetWalksPort).lock(pet);
+
+		ExecutorService pool = Executors.newSingleThreadExecutor();
+		try {
+			clock.set(L.plusSeconds(30));
+			Future<?> a = pool.submit(() -> addPoints.add(new AddWalkPointsCommand(MEMBER, walk,
+					List.of(new AddWalkPointsCommand.Point(37.5, 127.0, L.plusSeconds(29))))));
+			assertThat(ownerChecked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			// 다른 요청이 산책을 끝내고 커밋한다(끝내기는 반려동물 잠금을 잡지 않아 막히지 않는다)
+			reset(lockPetWalksPort);
+			endWalk.end(new EndWalkCommand(MEMBER, walk));
+			Instant endedAt = jdbc.queryForObject("select ended_at from walks where id = ?", Timestamp.class, walk)
+				.toInstant();
+			release.countDown();
+
+			assertThatThrownBy(() -> a.get(15, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class)
+				.hasCauseInstanceOf(WalkNotInProgressException.class);
+			// 오래된 상태로 저장했다면 끝낸 시각이 지워진다
+			assertThat(jdbc.queryForObject("select ended_at from walks where id = ?", Timestamp.class, walk)
+				.toInstant()).isEqualTo(endedAt);
+			assertThat(jdbc.queryForObject("select count(*) from walk_points where walk_id = ?", Integer.class, walk))
+				.isZero();
+		}
+		finally {
+			release.countDown();
+			pool.shutdownNow();
+			reset(lockPetWalksPort);
+		}
 	}
 
 	@Test

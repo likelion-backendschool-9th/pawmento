@@ -81,7 +81,12 @@ public class Walk {
 	 * 산책의 소유자는 바뀌지 않아서 행을 잠그기 전에 읽은 값으로도 확인할 수 있다.
 	 */
 	public void requireOwner(Long requesterId) {
-		if (!createdBy.equals(requesterId)) {
+		requireOwner(createdBy, requesterId);
+	}
+
+	// 산책을 읽지 않고 시작한 회원 id만 알 때도 같은 규칙을 쓰려는 정적 버전이다
+	public static void requireOwner(Long ownerId, Long requesterId) {
+		if (ownerId == null || !ownerId.equals(requesterId)) {
 			throw new NotWalkOwnerException();
 		}
 	}
