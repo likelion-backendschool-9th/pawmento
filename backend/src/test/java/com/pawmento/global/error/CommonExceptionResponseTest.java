@@ -37,7 +37,7 @@ class CommonExceptionResponseTest {
   }
 
   @Test
-  @DisplayName("#72-S1 저장 데이터 오류는 원인(cause)이 400 예외여도 500 INTERNAL_ERROR이고 원인·메시지를 응답에 싣지 않는다")
+  @DisplayName("#72-S9 저장 데이터 오류는 원인(cause)이 400 예외여도 500 INTERNAL_ERROR이고 원인·메시지를 응답에 싣지 않는다")
   void storedDataInvalid() throws Exception {
     mvc.perform(get("/fixture/stored-invalid"))
         .andExpect(status().isInternalServerError())
