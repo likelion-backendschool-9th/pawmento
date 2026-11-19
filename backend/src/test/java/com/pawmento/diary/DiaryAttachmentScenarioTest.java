@@ -171,26 +171,26 @@ class DiaryAttachmentScenarioTest {
     call(
             9001,
             json(
-                patch(path(p, r.recordId())),
+                patch(path(p, r.diaryId())),
                 "{\"version\":0,\"content\":\"\",\"attachmentIds\":[" + a + "]}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.version").value(1));
-    call(9001, json(patch(path(p, r.recordId())), "{\"version\":1,\"attachmentIds\":[" + b + "]}"))
+    call(9001, json(patch(path(p, r.diaryId())), "{\"version\":1,\"attachmentIds\":[" + b + "]}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value(""))
         .andExpect(jsonPath("$.recordedDate").value("2026-11-17"))
         .andExpect(jsonPath("$.version").value(2));
-    call(9001, json(patch(path(p, r.recordId())), "{\"version\":2,\"content\":null}"))
+    call(9001, json(patch(path(p, r.diaryId())), "{\"version\":2,\"content\":null}"))
         .andExpect(status().isBadRequest());
-    call(9001, json(patch(path(p, r.recordId())), "{\"version\":2,\"attachmentIds\":[]}"))
+    call(9001, json(patch(path(p, r.diaryId())), "{\"version\":2,\"attachmentIds\":[]}"))
         .andExpect(status().isBadRequest());
-    assertThat(ids(r.recordId())).containsExactly(b);
+    assertThat(ids(r.diaryId())).containsExactly(b);
     assertThat(refs(b)).isEqualTo(1);
     assertThat(jobs(b)).isZero();
-    call(9001, json(patch(path(p, r.recordId())), "{\"version\":2,\"content\":\"본문\"}"))
+    call(9001, json(patch(path(p, r.diaryId())), "{\"version\":2,\"content\":\"본문\"}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.attachments[0].assetId").value(b));
-    call(9001, json(patch(path(p, r.recordId())), "{\"version\":3}"))
+    call(9001, json(patch(path(p, r.diaryId())), "{\"version\":3}"))
         .andExpect(status().isBadRequest());
   }
 
@@ -199,21 +199,21 @@ class DiaryAttachmentScenarioTest {
   void orderedReplacement() throws Exception {
     long p = pet(), a = asset(p, false), b = asset(p, true), c = asset(p, false);
     var r = create(p, "", a, b);
-    change(p, r.recordId(), 0, null, b, a);
-    assertThat(ids(r.recordId())).containsExactly(b, a);
+    change(p, r.diaryId(), 0, null, b, a);
+    assertThat(ids(r.diaryId())).containsExactly(b, a);
     assertThat(refs(a)).isEqualTo(1);
     assertThat(refs(b)).isEqualTo(1);
     assertThat(state(a)).isEqualTo("READY");
     assertThat(jobs(a) + jobs(b)).isZero();
-    change(p, r.recordId(), 1, null, b, c);
-    assertThat(ids(r.recordId())).containsExactly(b, c);
+    change(p, r.diaryId(), 1, null, b, c);
+    assertThat(ids(r.diaryId())).containsExactly(b, c);
     assertThat(refs(a)).isZero();
     assertThat(state(a)).isEqualTo("DELETING");
     assertThat(jobs(a)).isEqualTo(1);
     assertThat(refs(b)).isEqualTo(1);
     assertThat(refs(c)).isEqualTo(1);
     assertThat(jobs(b) + jobs(c)).isZero();
-    change(p, r.recordId(), 2, null, b, c);
+    change(p, r.diaryId(), 2, null, b, c);
     assertThat(refs(b)).isEqualTo(1);
     assertThat(refs(c)).isEqualTo(1);
     call(9001, get(path(p)))
@@ -260,28 +260,28 @@ class DiaryAttachmentScenarioTest {
               throw new IllegalStateException("injected after relation insert");
             })
         .when(links)
-        .replace(r.recordId(), List.of(b));
-    assertThatThrownBy(() -> change(p, r.recordId(), 0, null, b))
+        .replace(r.diaryId(), List.of(b));
+    assertThatThrownBy(() -> change(p, r.diaryId(), 0, null, b))
         .isInstanceOf(IllegalStateException.class);
-    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(ids(r.diaryId())).containsExactly(a);
     assertThat(refs(a)).isEqualTo(1);
     assertThat(refs(b)).isZero();
     assertThat(jobs(a)).isZero();
     reset(links);
     // a를 해제하고 b를 획득하다가 뒤의 미완료 자산 검증에서 실패한다.
     long pending = asset(p, 9001L, false, "DIARY_ATTACHMENT", false);
-    assertThatThrownBy(() -> change(p, r.recordId(), 0, null, b, pending))
+    assertThatThrownBy(() -> change(p, r.diaryId(), 0, null, b, pending))
         .isInstanceOf(RuntimeException.class);
-    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(ids(r.diaryId())).containsExactly(a);
     assertThat(refs(a)).isEqualTo(1);
     assertThat(refs(b)).isZero();
     assertThat(state(a)).isEqualTo("READY");
     assertThat(jobs(a)).isZero();
-    assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.recordId())).version()).isZero();
-    change(p, r.recordId(), 0, null, a);
-    assertThatThrownBy(() -> change(p, r.recordId(), 0, null, b))
+    assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.diaryId())).version()).isZero();
+    change(p, r.diaryId(), 0, null, a);
+    assertThatThrownBy(() -> change(p, r.diaryId(), 0, null, b))
         .isInstanceOf(com.pawmento.diary.application.exception.DiaryVersionConflictException.class);
-    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(ids(r.diaryId())).containsExactly(a);
     assertThat(refs(a)).isEqualTo(1);
   }
 
@@ -291,16 +291,16 @@ class DiaryAttachmentScenarioTest {
     long p = pet(), a = asset(p, false);
     var first = create(p, "", a);
     var second = create(p, "", a);
-    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, first.recordId(), 0L));
+    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, first.diaryId(), 0L));
     assertThat(refs(a)).isEqualTo(1);
     assertThat(state(a)).isEqualTo("READY");
     assertThat(jobs(a)).isZero();
-    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, second.recordId(), 0L));
+    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, second.diaryId(), 0L));
     assertThat(refs(a)).isZero();
     assertThat(state(a)).isEqualTo("DELETING");
     assertThat(jobs(a)).isEqualTo(1);
-    assertThat(ids(first.recordId())).isEmpty();
-    assertThat(ids(second.recordId())).isEmpty();
+    assertThat(ids(first.diaryId())).isEmpty();
+    assertThat(ids(second.diaryId())).isEmpty();
   }
 
   @Test
@@ -312,7 +312,7 @@ class DiaryAttachmentScenarioTest {
     doAnswer(i -> new ByteArrayInputStream("0123456789".getBytes()))
         .when(files)
         .open(anyString(), anyString());
-    String base = "/api/v1/diaries/" + r.recordId() + "/attachments/";
+    String base = "/api/v1/diaries/" + r.diaryId() + "/attachments/";
     String url = base + audio + "?petId=" + p;
     call(9001, get(url).header("Range", "bytes=2-5"))
         .andExpect(status().isPartialContent())
@@ -333,11 +333,11 @@ class DiaryAttachmentScenarioTest {
     mvc.perform(get(url)).andExpect(status().isUnauthorized());
     call(9002, get(url)).andExpect(status().isForbidden());
     call(9001, get(base + unlinked + "?petId=" + p)).andExpect(status().isNotFound());
-    call(9001, get("/api/v1/diaries/" + other.recordId() + "/attachments/" + image + "?petId=" + p))
+    call(9001, get("/api/v1/diaries/" + other.diaryId() + "/attachments/" + image + "?petId=" + p))
         .andExpect(status().isNotFound());
     call(9001, get("/api/v1/media/" + image + "/preview?petId=" + p))
         .andExpect(status().isConflict());
-    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, r.recordId(), 0L));
+    deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, r.diaryId(), 0L));
     call(9001, get(url)).andExpect(status().isNotFound());
   }
 
@@ -352,7 +352,7 @@ class DiaryAttachmentScenarioTest {
         a);
     cleanup.schedule(a);
     call(9001, delete("/api/v1/media/" + a + "?petId=" + p)).andExpect(status().isConflict());
-    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(ids(r.diaryId())).containsExactly(a);
     assertThat(state(a)).isEqualTo("READY");
     assertThat(jobs(a)).isZero();
   }
@@ -434,7 +434,7 @@ class DiaryAttachmentScenarioTest {
         commit.countDown();
         var r = write.get(10, TimeUnit.SECONDS);
         cleaner.get(10, TimeUnit.SECONDS);
-        assertThat(ids(r.recordId())).containsExactly(a);
+        assertThat(ids(r.diaryId())).containsExactly(a);
         assertThat(refs(a)).isEqualTo(1);
         assertThat(state(a)).isEqualTo("READY");
         assertThat(jobs(a)).isZero();
@@ -451,7 +451,7 @@ class DiaryAttachmentScenarioTest {
     Long[] allowed = new Long[5];
     for (int i = 0; i < 5; i++) allowed[i] = asset(p, false);
     var r = create(p, "", allowed);
-    assertThat(ids(r.recordId())).hasSize(5);
+    assertThat(ids(r.diaryId())).hasSize(5);
     var tooMany = new java.util.ArrayList<Long>(List.of(allowed));
     tooMany.add(asset(p, false));
     assertThatThrownBy(() -> new DiaryWriteFeatures(tooMany, false))
@@ -532,14 +532,14 @@ class DiaryAttachmentScenarioTest {
         .when(save)
         .save(any(MediaAsset.class));
     assertThatThrownBy(
-            () -> deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, r.recordId(), 0L)))
+            () -> deleteDiary.delete(new DeleteDiaryEntryCommand(9001L, p, r.diaryId(), 0L)))
         .isInstanceOf(
             com.pawmento.media.application.exception.MediaPersistenceUnavailableException.class);
-    assertThat(ids(r.recordId())).containsExactly(a);
+    assertThat(ids(r.diaryId())).containsExactly(a);
     assertThat(refs(a)).isEqualTo(1);
     assertThat(state(a)).isEqualTo("READY");
     assertThat(jobs(a)).isZero();
-    assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.recordId())).version()).isZero();
+    assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.diaryId())).version()).isZero();
   }
 
   @Test
@@ -552,32 +552,32 @@ class DiaryAttachmentScenarioTest {
     call(9001, get(path(p)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalElements").value(2));
-    call(9001, get(path(p, first.recordId())))
+    call(9001, get(path(p, first.diaryId())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.attachments[0].available").value(false))
         .andExpect(jsonPath("$.attachments[0].contentUrl").doesNotExist())
         .andExpect(jsonPath("$.attachments[0].thumbnailUrl").doesNotExist())
         .andExpect(jsonPath("$.attachments[1].available").value(true));
-    call(9001, get("/api/v1/diaries/" + first.recordId() + "/attachments/" + bad + "?petId=" + p))
+    call(9001, get("/api/v1/diaries/" + first.diaryId() + "/attachments/" + bad + "?petId=" + p))
         .andExpect(status().isConflict());
-    call(9001, json(patch(path(p, first.recordId())), "{\"content\":\"수정\",\"version\":0}"))
+    call(9001, json(patch(path(p, first.diaryId())), "{\"content\":\"수정\",\"version\":0}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.attachments[0].available").value(false));
     // 조회·유지 수정이 참조 수를 임의 복구하지 않는다.
     assertThat(refs(bad)).isZero();
     assertThat(jobs(bad)).isZero();
-    call(9001, delete(path(p, first.recordId()) + "&version=1")).andExpect(status().isNoContent());
-    assertThat(ids(second.recordId())).containsExactly(bad);
+    call(9001, delete(path(p, first.diaryId()) + "&version=1")).andExpect(status().isNoContent());
+    assertThat(ids(second.diaryId())).containsExactly(bad);
     assertThat(state(bad)).isEqualTo("READY");
     assertThat(jobs(bad)).isZero();
-    call(9001, get(path(p, second.recordId())))
+    call(9001, get(path(p, second.diaryId())))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.attachments[0].available").value(false));
-    call(9001, delete(path(p, second.recordId()) + "&version=0")).andExpect(status().isNoContent());
+    call(9001, delete(path(p, second.diaryId()) + "&version=0")).andExpect(status().isNoContent());
     assertThat(state(bad)).isEqualTo("DELETING");
     assertThat(jobs(bad)).isEqualTo(1);
     assertThat(refs(bad)).isZero();
-    assertThat(ids(second.recordId())).isEmpty();
+    assertThat(ids(second.diaryId())).isEmpty();
     call(9001, get(path(p))).andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
   }
 

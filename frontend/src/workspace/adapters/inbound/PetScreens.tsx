@@ -1,4 +1,6 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -57,8 +59,9 @@ export function PetList() {
               <PetSummary
                 pet={pet}
                 count={
-                  app.state.records.filter((record) => record.petId === pet.id)
-                    .length
+                  journalItems(app.state).filter(
+                    (record) => record.petId === pet.id,
+                  ).length
                 }
               />
               <div className={styles.petActions}>

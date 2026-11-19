@@ -34,8 +34,8 @@ export function SpaceShell({
     if (open) dialog.current?.showModal();
     else dialog.current?.close();
   }, [open]);
-  const archiveActive = ["timeline", "calendar", "media", "records"].some(
-    (page) => route.startsWith(`${base}/${page}`),
+  const archiveActive = ["diary", "calendar", "media", "records"].some((page) =>
+    route.startsWith(`${base}/${page}`),
   );
   const links = [
     {
@@ -53,7 +53,7 @@ export function SpaceShell({
         route.startsWith(`${base}/diary`),
     },
     {
-      href: pet ? `${base}/timeline` : "/pets",
+      href: pet ? `${base}/diary` : "/pets",
       label: "다이어리",
       icon: "book",
       active: archiveActive,

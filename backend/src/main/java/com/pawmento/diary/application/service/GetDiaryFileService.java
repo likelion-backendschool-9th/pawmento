@@ -18,8 +18,8 @@ public class GetDiaryFileService implements GetDiaryFileUseCase {
   @Transactional(readOnly = true)
   public GetDiaryFileResult get(GetDiaryFileQuery q) {
     access.requireAccess(q.memberId(), q.petId());
-    DiaryEntryAccess.load(load, q.petId(), q.recordId());
-    if (!attachments.find(q.recordId()).contains(q.assetId()))
+    DiaryEntryAccess.load(load, q.petId(), q.diaryId());
+    if (!attachments.find(q.diaryId()).contains(q.assetId()))
       throw new DiaryEntryNotFoundException();
     return media.file(q.petId(), q.assetId(), q.thumbnail());
   }

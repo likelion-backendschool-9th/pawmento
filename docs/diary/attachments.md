@@ -18,7 +18,7 @@
 
 ## 경계와 API
 
-- 기존 `/api/v1/diaries?petId=...` 생성 및 `/api/v1/diaries/{recordId}?petId=...` 수정 body에 `attachmentIds`를 추가한다. 작성자·서버 시각·기대 버전 규칙을 유지한다.
+- 기존 `/api/v1/diaries?petId=...` 생성 및 `/api/v1/diaries/{diaryId}?petId=...` 수정 body에 `attachmentIds`를 추가한다. 작성자·서버 시각·기대 버전 규칙을 유지한다.
 - JSON 필드의 생략과 명시적 null은 웹 경계에서 구분한다. 아래 본문 계약은 이번 첨부 단계의 변경 제안이며 기존 텍스트 전용 동작이 이미 지원한다고 표시하지 않는다.
 
 | 필드 | POST 생성 | PATCH 수정 |
@@ -33,7 +33,7 @@
 
 - `version`을 포함한 attachmentIds만의 PATCH를 허용한다. content·recordedDate를 함께 보내도록 강제하지 않는다. 서버가 기존 본문과 요청의 최종 첨부를 합쳐 유효성을 검사하고, 첨부만 수정해도 부모 version과 updatedAt을 갱신한다. version 외 수정 필드가 모두 생략된 요청은 기존처럼 400이다. recordedDate의 생략/명시적 null 규칙은 기존대로 유지한다.
 - 상세 응답은 정렬된 자산 ID·종류·안전한 파일 메타데이터·부모 권한 열람 경로를 반환한다. 파일 시스템 경로·저장 키·GPS를 노출하지 않는다. 목록은 첨부 메타데이터를 일괄 조회해 N+1을 피한다.
-- 부모별 GET/HEAD `/api/v1/diaries/{recordId}/attachments/{assetId}?petId=...` 및 이미지 썸네일 경로를 제공한다. 매 요청에서 현재 부모 접근과 실제 첨부 관계를 확인하고 기존 media 파일 읽기·Range·캐시 정책을 재사용한다. 미연결 미리보기 API를 첨부 파일 열람으로 우회하지 않는다.
+- 부모별 GET/HEAD `/api/v1/diaries/{diaryId}/attachments/{assetId}?petId=...` 및 이미지 썸네일 경로를 제공한다. 매 요청에서 현재 부모 접근과 실제 첨부 관계를 확인하고 기존 media 파일 읽기·Range·캐시 정책을 재사용한다. 미연결 미리보기 API를 첨부 파일 열람으로 우회하지 않는다.
 - diary 서비스는 diary 출력 포트로 첨부·자산 참조를 조율한다. `diary/adapter/out/media`가 media 입력 포트를 호출하며 서비스에서 media 저장소나 JPA 엔티티에 접근하지 않는다. media 입력 포트는 자산 잠금·참조 획득/해제·열람을 제공하고 내부 저장 구현을 감춘다.
 - diary 첨부 테이블은 부모+자산 및 부모+순서를 유일하게 한다. 버전 조건부 갱신 성공 뒤 첨부를 변경하고, 중간 실패는 부모 변경도 롤백한다. 자산 잠금은 ID 순으로 획득해 교체 요청 간 교착 위험을 줄인다.
 - 첨부 전체 교체는 기존/요청 자산 ID의 차집합으로 처리한다. 유지 집합은 참조 해제·재획득하지 않고 순서만 변경하며, 제거 집합만 해제하고 신규 집합만 획득한다. 유지 자산의 referenceCount·READY 상태·삭제 작업은 변하지 않는다. 동일 배열 재전송도 참조 변경이나 삭제 작업을 만들지 않는다.

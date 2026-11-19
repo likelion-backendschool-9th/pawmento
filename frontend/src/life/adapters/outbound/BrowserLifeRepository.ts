@@ -65,26 +65,49 @@ export function initialLifeState(): LifeState {
         id: "q-1",
         text: "오늘 {name}{subject} 당신을 웃게 만든 순간은 언제인가요?",
         enabled: true,
+        mode: "ACTIVE",
       },
       {
         id: "q-2",
         text: "오늘 {name}에게 가장 고마웠던 순간을 들려주세요.",
         enabled: true,
+        mode: "ACTIVE",
       },
       {
         id: "q-3",
         text: "오늘 {name}와 새롭게 발견한 작은 즐거움은 무엇인가요?",
         enabled: true,
+        mode: "ACTIVE",
       },
       {
         id: "q-4",
         text: "{name}와 함께한 오늘, 오래 기억하고 싶은 풍경은 무엇인가요?",
         enabled: true,
+        mode: "ACTIVE",
       },
       {
         id: "q-5",
         text: "오늘 {name}에게 해주고 싶은 말이 있나요?",
         enabled: true,
+        mode: "ACTIVE",
+      },
+      {
+        id: "garden-q-1",
+        text: "{name}와 함께한 시간 중 가장 자주 떠오르는 순간은 언제인가요?",
+        enabled: true,
+        mode: "GARDEN",
+      },
+      {
+        id: "garden-q-2",
+        text: "{name}만의 사랑스러운 습관을 들려주세요.",
+        enabled: true,
+        mode: "GARDEN",
+      },
+      {
+        id: "garden-q-3",
+        text: "{name}에게 오래 간직하고 싶은 마음을 전해주세요.",
+        enabled: true,
+        mode: "GARDEN",
       },
     ],
     members: [
@@ -114,6 +137,28 @@ export class BrowserLifeRepository implements LifeRepository {
         ].every((key) => Array.isArray(state[key as keyof LifeState]))
       )
         throw Error();
+      state.postcards = state.postcards.map((card) => {
+        const old = card as typeof card & { sourceRecordIds?: string[] };
+        const { sourceRecordIds, ...rest } = old;
+        return {
+          ...rest,
+          sourceEntries: card.sourceEntries ?? [],
+          legacySourceRecordIds: card.legacySourceRecordIds ?? sourceRecordIds,
+        };
+      });
+      const legacyPool = state.questions.some((q) => !q.mode);
+      state.questions = state.questions.map((q) => ({
+        ...q,
+        mode: q.mode ?? "LEGACY",
+      }));
+      if (legacyPool) {
+        const ids = new Set(state.questions.map((q) => q.id));
+        state.questions.push(
+          ...initialLifeState()
+            .questions.map((q) => ({ ...q, id: `v2-${q.id}` }))
+            .filter((q) => !ids.has(q.id)),
+        );
+      }
       return state;
     } catch {
       throw Error(

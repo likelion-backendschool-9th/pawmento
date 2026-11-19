@@ -66,7 +66,7 @@
 
 ## 데이터 구조 제안
 
-질문 데이터는 실제 diary 저장소와 별도 테이블로 보관한다. 삭제된 record·memory 샘플이나 `records` 테이블을 재사용한다는 전제를 두지 않으며 질문 답변 ID는 지도 계약의 `recordId`와 독립이다. (고침 #80: 폐기 샘플과 diary 물리 테이블 이름 전제 제거)
+질문 데이터는 실제 diary 저장소와 별도 테이블로 보관한다. 삭제된 record·memory 샘플이나 `records` 테이블을 재사용한다는 전제를 두지 않으며 질문 답변 ID는 지도 계약의 `diaryId`와 독립이다. (고침 #80: 폐기 샘플과 diary 물리 테이블 이름 전제 제거)
 
 | 테이블 | 핵심 필드·제약 |
 | --- | --- |
@@ -106,7 +106,7 @@
 
 PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는다. `attachmentIds: []`는 첨부 전체 제거다. 답변 내용은 공백 제거 후 1~3,000자이며, 질문·모드·작성자·등록일 필드는 수정할 수 없다.
 
-답변 응답은 `answerId`, `petId`, `promptId`, `mode`, `questionId`, `question`(스냅샷), `author: {memberId, displayName}`, `content`, `attachments`, `answeredAt`, `answeredDate`, `updatedAt`, `version`이다. `recordId`와 `recordedDate`는 사용하지 않는다.
+답변 응답은 `answerId`, `petId`, `promptId`, `mode`, `questionId`, `question`(스냅샷), `author: {memberId, displayName}`, `content`, `attachments`, `answeredAt`, `answeredDate`, `updatedAt`, `version`이다. `diaryId`와 `recordedDate`는 사용하지 않는다.
 
 답변 목록은 `answeredAt DESC, answerId DESC`, 질문 이력은 `assignedAt DESC, promptId DESC`로 정렬한다. `from/to`는 **답변 등록 날짜** 기준·양 끝 포함이다. 등록일이 다른 가족 답변은 각각 자신의 날짜에 조회된다. `page`는 0부터, `size` 기본 20·최대 100이며 응답은 `items`, `page`, `size`, `totalElements`, `totalPages`다.
 

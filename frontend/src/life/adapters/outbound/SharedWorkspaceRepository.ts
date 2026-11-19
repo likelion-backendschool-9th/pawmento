@@ -22,7 +22,9 @@ export class SharedWorkspaceRepository implements WorkspaceRepository {
         ownerId: accountId,
         accessRole: "OWNER",
       })),
-      records: [...own.records],
+      diaries: [...own.diaries],
+      questionAnswers: [...own.questionAnswers],
+      questionPrompts: [...own.questionPrompts],
       selectedPetId: own.selectedPetId,
     };
     for (const family of shared) {
@@ -36,8 +38,12 @@ export class SharedWorkspaceRepository implements WorkspaceRepository {
           (member) => member.actorId === accountId,
         )!.role,
       });
-      state.records.push(
-        ...owner.records.filter((item) => item.petId === pet.id),
+      state.diaries.push(...owner.diaries.filter((d) => d.petId === pet.id));
+      state.questionAnswers.push(
+        ...owner.questionAnswers.filter((d) => d.petId === pet.id),
+      );
+      state.questionPrompts.push(
+        ...owner.questionPrompts.filter((d) => d.petId === pet.id),
       );
     }
     if (!state.pets.some((pet) => pet.id === state.selectedPetId))
@@ -73,21 +79,30 @@ export class SharedWorkspaceRepository implements WorkspaceRepository {
             );
             return next && sharedPets.includes(pet.id) ? clean(next) : pet;
           });
-      const records = own
-        ? incoming.records.filter((record) =>
-            pets.some((pet) => pet.id === record.petId),
-          )
-        : [
-            ...old.records.filter(
-              (record) => !sharedPets.includes(record.petId),
-            ),
-            ...incoming.records.filter((record) =>
-              sharedPets.includes(record.petId),
-            ),
-          ];
+      const selectCollection = <T extends { petId: string }>(
+        previous: T[],
+        items: T[],
+      ): T[] =>
+        own
+          ? items.filter((d) => pets.some((p) => p.id === d.petId))
+          : [
+              ...previous.filter((d) => !sharedPets.includes(d.petId)),
+              ...items.filter((d) => sharedPets.includes(d.petId)),
+            ];
+      const diaries = selectCollection(old.diaries, incoming.diaries);
+      const questionAnswers = selectCollection(
+        old.questionAnswers,
+        incoming.questionAnswers,
+      );
+      const questionPrompts = selectCollection(
+        old.questionPrompts,
+        incoming.questionPrompts,
+      );
       const next: Workspace = {
         pets,
-        records,
+        diaries,
+        questionAnswers,
+        questionPrompts,
         selectedPetId: own ? incoming.selectedPetId : old.selectedPetId,
       };
       if (JSON.stringify(next) === JSON.stringify(old)) continue;
@@ -109,9 +124,14 @@ export class SharedWorkspaceRepository implements WorkspaceRepository {
             throw Error("프로필은 소유자만 변경할 수 있어요.");
           if (
             role === "VIEWER" &&
-            JSON.stringify(
-              old.records.filter((item) => item.petId === petId),
-            ) !== JSON.stringify(records.filter((item) => item.petId === petId))
+            JSON.stringify([
+              old.diaries.filter((item) => item.petId === petId),
+              old.questionAnswers.filter((item) => item.petId === petId),
+            ]) !==
+              JSON.stringify([
+                diaries.filter((item) => item.petId === petId),
+                questionAnswers.filter((item) => item.petId === petId),
+              ])
           )
             throw Error("열람자는 기록을 수정할 수 없어요.");
         }

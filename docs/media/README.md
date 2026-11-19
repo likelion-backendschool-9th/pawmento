@@ -93,7 +93,7 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 상태는 `PENDING → UPLOADING → PROCESSING → READY`, 실패하면 `REJECTED`, 정리 대상은 `DELETING → DELETED`다. READY가 ‘글에 연결됨’을 뜻하지는 않는다. 연결은 `reference_count`와 도메인별 첨부 테이블로 구분한다.
 
-- diary의 `record_attachment(record_id, asset_id, sort_order)`와 question의 `question_answer_attachment(answer_id, asset_id, sort_order)`를 유지한다. 각 테이블에 부모+파일 중복 및 부모+순서 유니크 제약을 둔다.
+- diary의 `diary_attachments(diary_id, asset_id, sort_order)`와 question의 `question_answer_attachment(answer_id, asset_id, sort_order)`를 유지한다. 각 테이블에 부모+파일 중복 및 부모+순서 유니크 제약을 둔다.
 - 참조 수 변경은 media 입력 포트를 통해 호출하고 부모·첨부 행 변경과 같은 DB 트랜잭션으로 수행한다. 파일 I/O는 이 트랜잭션 밖이다. 실패 시 카운트만 남지 않아야 한다.
 - 참조 획득과 정리 작업은 같은 자산 행의 잠금/조건부 갱신 규약을 따른다. 정리가 먼저 DELETING으로 바꾸면 연결을 거부하고, 연결이 먼저 성공하면 정리는 건너뛴다.
 - 초기에는 같은 자산을 같은 아이·같은 용도·같은 업로더의 여러 글에 재사용할 수 있도록 제안한다. 다른 용도/아이로 복사하려면 새 업로드가 필요하다. 여러 연결 중 하나를 삭제했다고 원본을 지우면 안 된다.
@@ -114,7 +114,7 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 
 가족의 파일 열람 경로는 다음과 같은 후속 제안이며 각 부모 도메인 구현에서 최종 계약을 확정한다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
 
-- `GET /diaries/{recordId}/attachments/{assetId}/content?petId={petId}`
+- `GET /diaries/{diaryId}/attachments/{assetId}/content?petId={petId}`
 - `GET /question-answers/{answerId}/attachments/{assetId}/content?petId={petId}`
 
 일기/답변 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 프론트는 인증된 같은 출처 파일 경로로 표시·재생한다. 물리 경로를 반환하지 않는다. 정적 공개 파일 경로나 일회성 서명 URL을 DB에 저장하지 않는다.

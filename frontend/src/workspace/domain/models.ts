@@ -9,50 +9,79 @@ export type Pet = {
   photoUrl: string;
   mode: "ACTIVE" | "GARDEN";
 };
-export type Memory = {
-  id: string;
-  petId: string;
-  authorId?: string;
-  authorName?: string;
-  type: "DIARY" | "TEXT" | "PHOTO" | "VIDEO" | "VOICE";
-  recordedDate: string;
-  createdAt: string;
-  updatedAt: string;
-  body: string;
-  question: string;
-  questionId?: string;
-  photoUrl: string;
-  attachments?: MediaAttachment[];
-};
-export type MediaAttachment = {
-  id: string;
-  type: "PHOTO" | "VIDEO" | "VOICE";
-  url: string;
-  name: string;
-  mimeType: string;
-};
+export type {
+  DiaryEntry,
+  DiaryEntryInput,
+} from "../../diary/domain/DiaryEntry.ts";
+export type {
+  QuestionAnswer,
+  QuestionPrompt,
+  QuestionAnswerInput,
+  DemoQuestionAnswerInput,
+} from "../../question/domain/QuestionAnswer.ts";
+export type { MediaAttachment } from "../../shared/domain/MediaAttachment.ts";
+import type { DiaryEntry } from "../../diary/domain/DiaryEntry.ts";
+import type {
+  QuestionAnswer,
+  QuestionPrompt,
+} from "../../question/domain/QuestionAnswer.ts";
+import type { MediaAttachment } from "../../shared/domain/MediaAttachment.ts";
+// 화면 합성용 모델이다. 저장은 diaries / questionAnswers로 분리한다.
+export type JournalItem =
+  | (DiaryEntry & {
+      kind: "DIARY";
+      question?: undefined;
+      questionId?: undefined;
+    })
+  | (QuestionAnswer & {
+      kind: "QUESTION_ANSWER";
+      type: "QUESTION_ANSWER";
+      recordedDate: string;
+      createdAt: string;
+      question: string;
+    });
 export type Workspace = {
   pets: Pet[];
-  records: Memory[];
+  diaries: DiaryEntry[];
+  questionAnswers: QuestionAnswer[];
+  questionPrompts: QuestionPrompt[];
   selectedPetId: string;
 };
+export function journalItems(
+  state: Pick<Workspace, "diaries" | "questionAnswers">,
+): JournalItem[] {
+  return [
+    ...state.diaries.map((entry) => ({ ...entry, kind: "DIARY" as const })),
+    ...state.questionAnswers.map((answer) => ({
+      ...answer,
+      kind: "QUESTION_ANSWER" as const,
+      type: "QUESTION_ANSWER" as const,
+      recordedDate:
+        answer.legacyRecordedDate ??
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Seoul",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date(answer.registeredAt)),
+      createdAt: answer.registeredAt,
+      question: answer.questionSnapshot,
+    })),
+  ];
+}
+export function emptyWorkspace(): Workspace {
+  return {
+    pets: [],
+    diaries: [],
+    questionAnswers: [],
+    questionPrompts: [],
+    selectedPetId: "",
+  };
+}
 export type PetInput = Pick<
   Pet,
   "name" | "species" | "breed" | "birthday" | "photoUrl"
 >;
-export type MemoryInput = Pick<
-  Memory,
-  | "petId"
-  | "type"
-  | "recordedDate"
-  | "body"
-  | "question"
-  | "questionId"
-  | "photoUrl"
-  | "attachments"
-  | "authorName"
->;
-
 export function validateDate(value: string): void {
   if (
     !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
@@ -68,28 +97,19 @@ export function validatePet(input: PetInput): void {
     throw Error("반려동물의 종류를 선택해 주세요.");
   if (input.birthday) validateDate(input.birthday);
 }
-export function validateMemory(input: MemoryInput): void {
-  validateDate(input.recordedDate);
-  if (!["DIARY", "TEXT", "PHOTO", "VIDEO", "VOICE"].includes(input.type))
-    throw Error("기록 종류를 확인해 주세요.");
-  if (
-    (!input.body.trim() && !input.photoUrl && !input.attachments?.length) ||
-    (input.type === "DIARY" && !input.body.trim())
-  )
-    throw Error("이야기를 적어 주세요. 자유 기록은 사진만 남겨도 좋아요.");
-  if (input.type === "DIARY" && !input.question.trim())
-    throw Error(
-      "질문과 답변을 함께 저장할 수 있도록 질문을 먼저 불러와 주세요.",
-    );
-  if (
-    input.attachments?.some(
-      (file) =>
-        !["PHOTO", "VIDEO", "VOICE"].includes(file.type) ||
-        !file.url ||
-        !file.name,
-    )
-  )
-    throw Error("첨부 파일 정보를 확인해 주세요.");
+export function validateJournalContent(
+  input: { body: string; photoUrl: string; attachments?: MediaAttachment[] },
+  legacy = false,
+): void {
+  if (!input.body.trim() && !input.photoUrl && !input.attachments?.length)
+    throw Error("이야기나 사진·음성 기록을 남겨 주세요.");
   if (input.body.length > 3000)
     throw Error("기록은 3,000자까지 남길 수 있어요.");
+  if (
+    input.attachments?.some(
+      (a) => !a.url || !a.name || !["PHOTO", "VOICE"].includes(a.type),
+    )
+  ) {
+    if (!legacy) throw Error("새 첨부는 사진과 음성 녹음만 사용할 수 있어요.");
+  }
 }

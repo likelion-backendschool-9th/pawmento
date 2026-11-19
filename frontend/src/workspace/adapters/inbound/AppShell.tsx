@@ -35,7 +35,7 @@ export function Shell({
           icon: "home",
         },
         {
-          href: pet ? `${p}/timeline` : "/pets",
+          href: pet ? `${p}/diary` : "/pets",
           label: "다이어리",
           icon: "book",
         },
@@ -83,7 +83,7 @@ export function Shell({
     ["calendar", "media", "records"].some((page) =>
       route.startsWith(`${p}/${page}`),
     )
-      ? `${p}/timeline`
+      ? `${p}/diary`
       : pet && route.startsWith(`${p}/diary`)
         ? `${p}/questions`
         : route;

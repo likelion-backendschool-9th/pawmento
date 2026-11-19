@@ -1,13 +1,4 @@
-export const question = (name: string, template: string) => {
-  const last = name.charCodeAt(name.length - 1);
-  const particle =
-    last >= 0xac00 && last <= 0xd7a3
-      ? (last - 0xac00) % 28
-        ? "이"
-        : "가"
-      : "(이)가";
-  return template.replaceAll("{name}", name).replaceAll("{subject}", particle);
-};
+export { renderQuestion as question } from "../../../question/domain/renderQuestion.ts";
 export const speciesName = {
   DOG: "강아지",
   CAT: "고양이",

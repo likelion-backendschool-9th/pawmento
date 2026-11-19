@@ -2,7 +2,7 @@ package com.pawmento.map.domain;
 
 import com.pawmento.map.domain.exception.InvalidCoordinatesException;
 
-// 위도·경도의 허용 범위. 같은 규칙을 RecordLocation과 MapArea가 함께 쓴다
+// 위도·경도의 허용 범위. 같은 규칙을 DiaryLocation과 MapArea가 함께 쓴다
 final class Coordinates {
 
 	private static final double MAX_LATITUDE = 90.0;

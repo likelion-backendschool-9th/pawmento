@@ -4,7 +4,7 @@ import com.pawmento.diary.domain.DiaryEntry;
 import java.time.*;
 
 public record GetDiaryEntryResult(
-    Long recordId,
+    Long diaryId,
     Long petId,
     Long createdBy,
     String content,

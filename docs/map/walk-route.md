@@ -120,7 +120,7 @@
 
 ## 데이터 구조
 
-산책 하나를 `walks` 한 행으로, 산책 중에 쌓이는 좌표를 `walk_points` 여러 행으로 저장한다. `record_location`과는 서로 참조하지 않는다.
+산책 하나를 `walks` 한 행으로, 산책 중에 쌓이는 좌표를 `walk_points` 여러 행으로 저장한다. `diary_location`과는 서로 참조하지 않는다.
 
 `walks` 테이블
 
@@ -162,7 +162,7 @@
   | `POST /maps/walks/{walkId}/end` | 없음 | 200, `endedAt`, `status` |
   | `GET /maps/walks` | `petId`, `date`(`YYYY-MM-DD`) | 200, `walks`(`walkId`, `startedAt`, `endedAt`, `status`, `points`(`latitude`, `longitude`, `recordedAt`)). 끝내지 않은 산책의 `endedAt`은 null이다 |
 
-- 산책로는 좌표가 시간순으로 쌓이는 데이터라서 위치 하나를 담는 `record_location`과 따로 저장한다. 경로 데이터는 지도 도메인에서만 관리해 다이어리와 겹치지 않게 한다. (#73)
+- 산책로는 좌표가 시간순으로 쌓이는 데이터라서 위치 하나를 담는 `diary_location`과 따로 저장한다. 경로 데이터는 지도 도메인에서만 관리해 다이어리와 겹치지 않게 한다. (#73)
 - 반려동물의 존재와 소유는 pet이 판단한다. 산책을 시작할 때 pet의 `GetPetUseCase.get(new GetPetQuery(memberId, petId))`를 부르고, 정상으로 돌아오면 요청한 회원의 반려동물이다. 없으면 404, 다른 회원의 것이면 403이다. 지도는 pet의 입력 포트만 부르고 pet의 도메인·저장소를 직접 쓰지 않는다. `PetResult`에는 소유자 id가 없고 지도가 소유자를 다시 비교할 필요도 없다. (#73, pet 담당 답변: #74 리뷰)
 - 좌표 추가와 종료의 본인 확인은 지도가 산책의 `created_by`로 한다. 날짜별 조회는 pet 포트를 부르지 않고 `created_by`와 `pet_id` 조건으로 걸러서, 다른 회원의 반려동물을 조회하면 403이 아니라 빈 목록을 받는다. 지도 핀 조회(#19-S7)와 같은 방식이다. 가족 구성원의 접근 확대는 소유자 기준과 별도 계약으로 다룬다. (#73)
 - 산책의 시작과 끝은 보호자가 직접 누른다. 앱이 산책 시작이나 끝을 자동으로 정하지 않는다. (#73)

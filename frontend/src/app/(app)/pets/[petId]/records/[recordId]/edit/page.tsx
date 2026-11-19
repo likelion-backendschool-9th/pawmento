@@ -1,21 +1,6 @@
 "use client";
-import {
-  usePet,
-  PetWriteAccess,
-} from "@/workspace/adapters/inbound/PetContext";
-import { useRecord } from "@/workspace/adapters/inbound/RecordContext";
-import { RecordForm } from "@/workspace/adapters/inbound/RecordScreens";
+import { redirect, useParams } from "next/navigation";
 export default function Page() {
-  const pet = usePet();
-  const record = useRecord();
-  return (
-    <PetWriteAccess>
-      <RecordForm
-        key={record.id}
-        pet={pet}
-        record={record}
-        diary={record.type === "DIARY"}
-      />
-    </PetWriteAccess>
-  );
+  const p = useParams<{ petId: string; recordId: string }>();
+  redirect(`/pets/${p.petId}/diary/${p.recordId}/edit`);
 }

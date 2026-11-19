@@ -1,11 +1,16 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
 import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
-import { drawMemory, postcardScenes } from "../../application/postcardScenes";
+import {
+  drawJournalItem,
+  postcardScenes,
+} from "../../application/postcardScenes";
 import type { Pet } from "@/workspace/domain/models";
 import type { Postcard } from "../../domain/models";
 import { PostcardPaper } from "./PostcardPaper";
@@ -148,7 +153,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState("");
   const [consent, setConsent] = useState(false);
-  const records = life.app.state.records.filter(
+  const records = journalItems(life.app.state).filter(
     (record) => record.petId === pet.id,
   );
   const selected = records.find((record) => record.id === selectedId);
@@ -158,7 +163,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
       records.length > 1
         ? records.filter((record) => record.id !== selectedId)
         : records;
-    setSelectedId(drawMemory(pool)?.id ?? "");
+    setSelectedId(drawJournalItem(pool)?.id ?? "");
   }
   async function generate(event: React.FormEvent) {
     event.preventDefault();
@@ -211,7 +216,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
                 <span className="badge">
                   이번에 찾아온 기억 · {selected.recordedDate}
                 </span>
-                {selected.type === "DIARY" ? (
+                {selected.type === "QUESTION_ANSWER" ? (
                   <QuestionAnswer
                     question={selected.question}
                     answer={selected.body}
@@ -242,7 +247,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
               <LifeEmpty
                 title="원본 기록이 필요해요"
                 body="기억을 먼저 남긴 뒤 엽서를 만들어보세요."
-                href={`/pets/${pet.id}/records/new`}
+                href={`/pets/${pet.id}/diary/new`}
                 action="기록 남기기"
               />
             )}
@@ -319,8 +324,12 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
   const router = useRouter();
   const current =
     life.state?.postcards.find((item) => item.id === card.id) ?? card;
-  const sources = life.app.state.records.filter((record) =>
-    current.sourceRecordIds.includes(record.id),
+  const sources = journalItems(life.app.state).filter(
+    (record) =>
+      record.petId === pet.id &&
+      current.sourceEntries.some(
+        (source) => source.kind === record.kind && source.id === record.id,
+      ),
   );
   return (
     <div className={s.reading}>
@@ -470,7 +479,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
             <Link
               className={s.sourceLink}
               key={record.id}
-              href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+              href={`/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions/answers" : "diary"}/${record.id}`}
             >
               <span>{record.recordedDate}</span>
               <strong>

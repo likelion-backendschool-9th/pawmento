@@ -1,4 +1,6 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
@@ -7,8 +9,8 @@ import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
 import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
 import type { Pet } from "../../domain/models";
-import { RecordCard } from "./WorkspaceUi";
-import { useTodayQuestion } from "./useTodayQuestion";
+import { JournalCard } from "./WorkspaceUi";
+import { useCurrentQuestion } from "./useCurrentQuestion";
 import { question } from "./presentation";
 import { LifeEmpty, lifeStyles as s } from "@/life/adapters/inbound/LifeUi";
 import g from "./HomeScreen.module.css";
@@ -17,15 +19,18 @@ export function HomeScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const [randomIndex, setRandomIndex] = useState(0);
   const date = today();
-  const prompt = useTodayQuestion(pet.id, date);
-  const records = app.state.records
-    .filter((record) => record.petId === pet.id && record.type !== "DIARY")
+  const prompt = useCurrentQuestion(pet.id);
+  const records = journalItems(app.state)
+    .filter(
+      (record) => record.petId === pet.id && record.type !== "QUESTION_ANSWER",
+    )
     .sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
-  const answer = app.state.records.find(
+  const answer = journalItems(app.state).find(
     (record) =>
       record.petId === pet.id &&
-      record.type === "DIARY" &&
-      record.recordedDate === date,
+      record.type === "QUESTION_ANSWER" &&
+      record.promptId === prompt.id &&
+      record.authorId === app.account?.id,
   );
   const displayQuestion =
     answer?.question ??
@@ -67,7 +72,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               <span>OUR LITTLE EXHIBITION</span>
               <h2>사진 속에 머문, 우리의 계절</h2>
             </div>
-            <Link href={`/pets/${pet.id}/timeline`}>
+            <Link href={`/pets/${pet.id}/diary`}>
               일기 펼쳐보기 <Icon name="chevron" size={14} />
             </Link>
           </div>
@@ -76,7 +81,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               <Link
                 className={g.photoPrint}
                 key={record.id}
-                href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+                href={`/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions/answers" : "diary"}/${record.id}`}
               >
                 <div>
                   <Photo
@@ -110,7 +115,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
           <h2>지난 오늘, 우리가 남긴 순간</h2>
           <div className={s.threeGrid}>
             {onThisDay.slice(0, 3).map((record) => (
-              <RecordCard key={record.id} record={record} />
+              <JournalCard key={record.id} record={record} />
             ))}
           </div>
         </section>
@@ -137,12 +142,12 @@ export function HomeScreen({ pet }: { pet: Pet }) {
             </button>
           </div>
           {records.length ? (
-            <RecordCard record={records[randomIndex % records.length]} />
+            <JournalCard record={records[randomIndex % records.length]} />
           ) : (
             <LifeEmpty
               title="아직 쌓인 기억이 없어요"
               body="첫 기억부터 천천히 담아보세요."
-              href={`/pets/${pet.id}/records/new`}
+              href={`/pets/${pet.id}/diary/new`}
               action="기억 남기기"
             />
           )}
@@ -167,10 +172,10 @@ export function HomeScreen({ pet }: { pet: Pet }) {
               className="button primary"
               href={
                 answer
-                  ? `/pets/${pet.id}/diary/${answer.id}`
+                  ? `/pets/${pet.id}/questions/answers/${answer.id}`
                   : pet.accessRole === "VIEWER"
                     ? `/pets/${pet.id}/questions`
-                    : `/pets/${pet.id}/diary/new`
+                    : `/pets/${pet.id}/questions/answers/new`
               }
             >
               {answer

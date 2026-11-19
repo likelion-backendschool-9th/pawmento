@@ -67,10 +67,8 @@ export function MediaAttachments({
         throw Error("기록 하나에 추가 첨부는 5개까지 가능해요.");
       const added: MediaAttachment[] = [];
       for (const file of Array.from(files)) {
-        if (
-          !/^(image\/(jpeg|png|webp)|video\/(mp4|webm)|audio\/)/.test(file.type)
-        )
-          throw Error("사진, MP4/WebM 영상 또는 음성 파일을 선택해 주세요.");
+        if (!/^(image\/(jpeg|png|webp)|audio\/)/.test(file.type))
+          throw Error("사진 또는 음성 파일을 선택해 주세요.");
         if (file.size > 2 * 1024 * 1024)
           throw Error(
             "브라우저 데모에서는 첨부 파일 한 개가 2MB 이하여야 해요.",
@@ -79,11 +77,7 @@ export function MediaAttachments({
           id: createId(),
           name: file.name,
           mimeType: file.type,
-          type: file.type.startsWith("image/")
-            ? "PHOTO"
-            : file.type.startsWith("video/")
-              ? "VIDEO"
-              : "VOICE",
+          type: file.type.startsWith("image/") ? "PHOTO" : "VOICE",
           url: await read(file),
         });
       }
@@ -145,7 +139,7 @@ export function MediaAttachments({
   return (
     <section className="attachments">
       <div className="attachments-heading">
-        <strong>사진 · 영상 · 목소리</strong>
+        <strong>사진 · 목소리</strong>
         <span>선택</span>
       </div>
       <div className="attachments-actions">
@@ -159,7 +153,7 @@ export function MediaAttachments({
           type="file"
           disabled={recording}
           multiple
-          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,audio/*"
+          accept="image/jpeg,image/png,image/webp,audio/*"
           onChange={(event) => {
             void select(event.target.files);
             event.target.value = "";

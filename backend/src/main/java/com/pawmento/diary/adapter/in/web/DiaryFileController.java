@@ -14,19 +14,19 @@ import org.springframework.web.bind.annotation.*;
 public class DiaryFileController {
   private final GetDiaryFileUseCase files;
 
-  @GetMapping({"/{recordId}/attachments/{assetId}", "/{recordId}/attachments/{assetId}/thumbnail"})
+  @GetMapping({"/{diaryId}/attachments/{assetId}", "/{diaryId}/attachments/{assetId}/thumbnail"})
   ResponseEntity<Resource> get(
       @LoginMember Long memberId,
-      @PathVariable Long recordId,
+      @PathVariable Long diaryId,
       @PathVariable Long assetId,
       HttpServletRequest request) {
     var pet = DiaryQueryParameters.parse(request.getQueryString(), "petId").petId();
-    DiaryRequestValues.id(recordId);
+    DiaryRequestValues.id(diaryId);
     DiaryRequestValues.id(assetId);
     var r =
         files.get(
             new GetDiaryFileQuery(
-                memberId, pet, recordId, assetId, request.getRequestURI().endsWith("/thumbnail")));
+                memberId, pet, diaryId, assetId, request.getRequestURI().endsWith("/thumbnail")));
     var response =
         ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(r.mimeType()))

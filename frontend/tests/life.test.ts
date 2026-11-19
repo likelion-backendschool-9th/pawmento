@@ -5,7 +5,7 @@ import { initialLifeState } from "../src/life/adapters/outbound/BrowserLifeRepos
 import { SharedWorkspaceRepository } from "../src/life/adapters/outbound/SharedWorkspaceRepository.ts";
 import { createWorkspaceUseCases } from "../src/workspace/application/useCases.ts";
 import type { Actor, LifeState } from "../src/life/domain/models.ts";
-import type { Workspace, Memory } from "../src/workspace/domain/models.ts";
+import type { Workspace, JournalItem } from "../src/workspace/domain/models.ts";
 const alice: Actor = { id: "alice", name: "앨리스", isAdmin: false };
 const bob: Actor = { id: "bob", name: "밥", isAdmin: false };
 const admin: Actor = { id: "demo", name: "관리자", isAdmin: true };
@@ -49,10 +49,15 @@ function setup() {
     },
   };
 }
-const source: Memory = {
+const source: JournalItem = {
   id: "memory-1",
   petId: "pet-a",
-  type: "DIARY",
+  kind: "QUESTION_ANSWER",
+  type: "QUESTION_ANSWER",
+  authorId: "alice",
+  promptId: "prompt",
+  registeredAt: "2026-11-15T00:00:00.000Z",
+  questionSnapshot: "오늘은 어땠어?",
   question: "오늘은 어땠어?",
   questionId: "q-original",
   body: "함께 걸어서 행복했어",
@@ -150,7 +155,9 @@ test("#12-S9 엽서 동의·원본 참조·실패 상태·재시도·보관", as
   );
   assert.equal(completed.id, failed.id);
   assert.equal(completed.status, "COMPLETED");
-  assert.deepEqual(completed.sourceRecordIds, [source.id]);
+  assert.deepEqual(completed.sourceEntries, [
+    { kind: source.kind, id: source.id },
+  ]);
   assert.equal(source.question, "오늘은 어땠어?");
   await assert.rejects(env.uc.togglePostcard(bob, completed.id), /작성자/);
   await env.uc.togglePostcard(alice, completed.id);
@@ -193,13 +200,32 @@ test("#12-S10 같은 브라우저의 공유 기록·열람자/편집자·공유 
   };
   stores.set("alice", {
     pets: [ownPet],
-    records: [source],
+    diaries: [],
+    questionAnswers: [
+      source as Extract<JournalItem, { kind: "QUESTION_ANSWER" }>,
+    ],
+    questionPrompts: [
+      {
+        id: "prompt",
+        petId: ownPet.id,
+        mode: "ACTIVE",
+        questionId: "q-original",
+        questionSnapshot: "오늘은 어땠어?",
+        createdAt: source.createdAt,
+      },
+    ],
     selectedPetId: ownPet.id,
   });
   const base = {
     load: async (id: string) =>
       structuredClone(
-        stores.get(id) ?? { pets: [], records: [], selectedPetId: "" },
+        stores.get(id) ?? {
+          pets: [],
+          diaries: [],
+          questionAnswers: [],
+          questionPrompts: [],
+          selectedPetId: "",
+        },
       ),
     save: async (id: string, value: Workspace) => {
       stores.set(id, structuredClone(value));
@@ -211,9 +237,9 @@ test("#12-S10 같은 브라우저의 공유 기록·열람자/편집자·공유 
   const uc = createWorkspaceUseCases(repository, env.runtime);
   const shared = await uc.load("bob");
   assert.equal(shared.pets[0].accessRole, "VIEWER");
-  assert.equal(shared.records[0].question, source.question);
+  assert.equal(shared.questionAnswers[0].questionSnapshot, source.question);
   await assert.rejects(
-    uc.saveMemory("bob", { ...source, body: "열람자 수정" }, source.id),
+    uc.questions.save("bob", { ...source, body: "열람자 수정" }, source.id),
     /열람자/,
   );
   await env.uc.changeFamilyRole(
@@ -222,16 +248,22 @@ test("#12-S10 같은 브라우저의 공유 기록·열람자/편집자·공유 
     family.members[0].id,
     "EDITOR",
   );
-  await uc.saveMemory(
-    "bob",
-    { ...source, body: "가족의 답변 수정" },
-    source.id,
+  await assert.rejects(
+    uc.questions.save(
+      "bob",
+      { ...source, body: "가족의 답변 수정" },
+      source.id,
+    ),
+    /작성자/,
   );
-  assert.equal(stores.get("alice")!.records[0].body, "가족의 답변 수정");
-  assert.equal(stores.get("alice")!.records[0].question, source.question);
+  assert.equal(stores.get("alice")!.questionAnswers[0].body, source.body);
+  assert.equal(
+    stores.get("alice")!.questionAnswers[0].questionSnapshot,
+    source.question,
+  );
   await assert.rejects(uc.changeMode("bob", ownPet.id, "GARDEN"), /소유자/);
   await uc.clear("bob");
-  assert.equal(stores.get("alice")!.records.length, 1);
+  assert.equal(stores.get("alice")!.questionAnswers.length, 1);
   await env.uc.removeFamilyMember(alice, ownPet.id, family.members[0].id);
   assert.equal((await uc.load("bob")).pets.length, 0);
 });
@@ -292,4 +324,32 @@ test("#12-S9 새로고침으로 중단된 PROCESSING 데모를 같은 엽서 ID�
   assert.equal(recovered.id, pending.id);
   assert.equal(recovered.status, "COMPLETED");
   assert.equal((await env.uc.load()).postcards.length, 1);
+});
+
+test("#32-S29 기존 회원 확인은 무변경 저장을 생략하고 이름 변경·신규 등록은 직렬 저장한다", async () => {
+  const state = initialLifeState();
+  let writes = 0;
+  const uc = createLifeUseCases(
+    {
+      load: async () => structuredClone(state),
+      save: async (value) => {
+        writes++;
+        Object.assign(state, structuredClone(value));
+      },
+    },
+    {
+      generate: async () => {
+        throw Error("not used");
+      },
+    },
+    { id: () => "id", now: () => "2026-11-19T00:00:00Z" },
+  );
+  await uc.registerMember({ id: "demo", name: "보리네", isAdmin: true });
+  assert.equal(writes, 0);
+  await uc.registerMember({ id: "demo", name: "새 이름", isAdmin: true });
+  assert.equal(writes, 1);
+  assert.equal(state.members.find((m) => m.id === "demo")?.name, "새 이름");
+  await Promise.all([uc.registerMember(alice), uc.registerMember(alice)]);
+  assert.equal(writes, 2);
+  assert.equal(state.members.filter((m) => m.id === alice.id).length, 1);
 });

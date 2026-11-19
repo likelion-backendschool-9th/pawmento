@@ -1,11 +1,15 @@
-import type { Memory, MemoryInput, Pet } from "../workspace/domain/models.ts";
+import type {
+  QuestionAnswer,
+  DemoQuestionAnswerInput,
+  Pet,
+} from "../workspace/domain/models.ts";
 
 /** Only produces missing samples; never replaces an existing day's answer. */
 export function demoQuestionInputs(
   pet: Pet,
-  records: Memory[],
+  answers: QuestionAnswer[],
   today: string,
-): MemoryInput[] {
+): DemoQuestionAnswerInput[] {
   const samples = [
     {
       days: 2,
@@ -35,21 +39,17 @@ export function demoQuestionInputs(
     const recordedDate = date.toISOString().slice(0, 10);
     const questionId = `demo-question-${sample.key}`;
     if (
-      records.some(
-        (record) =>
-          record.petId === pet.id &&
-          (record.questionId === questionId ||
-            (record.type === "DIARY" && record.recordedDate === recordedDate)),
+      answers.some(
+        (answer) => answer.petId === pet.id && answer.questionId === questionId,
       )
     )
       return [];
     return [
       {
         petId: pet.id,
-        type: "DIARY",
-        recordedDate,
+        registeredAt: `${recordedDate}T12:00:00+09:00`,
         questionId,
-        question: sample.question,
+        questionSnapshot: sample.question,
         body: sample.body.replaceAll("보리", pet.name),
         photoUrl: sample.photoUrl,
         authorName: "보리네",

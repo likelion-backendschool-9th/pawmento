@@ -98,7 +98,7 @@ com.pawmento
 
 - `<Action>`은 사용자 기준 동작이다: `Create`, `Edit`, `Delete`, `Get`, `List`.
 - `<Verb>`는 저장소 기준 동작이다: `Save`, `Load`, `Update`, `Delete`.
-- 기능 하나에 유스케이스 하나, 서비스 하나를 만든다. 입력 포트 인터페이스는 생략하지 않는다. 컨트롤러와 영속성 어댑터는 도메인에 하나씩 두고 메서드를 늘린다. 다만 한 도메인 안에 저장·조회 대상이 서로 독립적이면 대상마다 영속성 어댑터를 둔다. 서로 참조하지 않고, 함께 저장되거나 바뀌지 않고, 구현하는 출력 포트가 겹치지 않으면 독립적이다(예: 지도의 기록 위치 `RecordLocationPersistenceAdapter`와 산책 `WalkPersistenceAdapter`). 컨트롤러는 도메인에 하나만 둔다. (#73)
+- 기능 하나에 유스케이스 하나, 서비스 하나를 만든다. 입력 포트 인터페이스는 생략하지 않는다. 컨트롤러와 영속성 어댑터는 도메인에 하나씩 두고 메서드를 늘린다. 다만 한 도메인 안에 저장·조회 대상이 서로 독립적이면 대상마다 영속성 어댑터를 둔다. 서로 참조하지 않고, 함께 저장되거나 바뀌지 않고, 구현하는 출력 포트가 겹치지 않으면 독립적이다(예: 지도의 기록 위치 `DiaryLocationPersistenceAdapter`와 산책 `WalkPersistenceAdapter`). 컨트롤러는 도메인에 하나만 둔다. (#73)
 - 출력 포트는 동작별로 나눈다. 영속성 어댑터 하나가 여러 출력 포트를 구현한다.
 
 ## 값 객체는 `record`로
@@ -244,7 +244,7 @@ com.pawmento
 - 형식 검증은 Request의 Bean Validation, 업무 규칙은 도메인이 맡는다.
 - Command·Query·Result·Request·Response는 자바 `record`로 만든다.
 - 롬복을 쓴다. 범위는 [롬복 사용 범위](#롬복-사용-범위)를 따른다.
-- 기록 개념의 이름을 `Memory`로 맞춘 #66의 명명 결정은 유지한다. 이 결정과 임시 memory 샘플 구현의 삭제는 별개다.
+- #66의 포괄적 `Memory` 명칭은 이력으로 남기고, 현재 자유 일기는 `DiaryEntry`, 질문 답변은 `QuestionAnswer`, 지도 일기 위치는 `DiaryLocation`으로 구분한다. 임시 memory 샘플 구현을 다시 사용하지 않는다. (고침 #32: 개별 도메인 명칭 정리)
 - 예외는 공통 기본 예외를 상속하고 `GlobalExceptionHandler` 한 곳에서 응답으로 바꾼다. 자세한 것은 [백엔드 예외 처리](backend-exceptions.md)를 따른다. (#60)
 
 ## 아직 정하지 않은 것

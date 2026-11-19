@@ -1,4 +1,6 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -153,7 +155,7 @@ export function AccountScreen() {
             </div>
             {demo && (
               <div>
-                <strong>{app.state.records.length}</strong>
+                <strong>{journalItems(app.state).length}</strong>
                 <span>남긴 이야기</span>
               </div>
             )}

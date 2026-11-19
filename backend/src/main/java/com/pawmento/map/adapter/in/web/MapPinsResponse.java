@@ -11,13 +11,13 @@ import com.pawmento.map.application.port.in.ListMapPinsResult;
  */
 record MapPinsResponse(List<Pin> pins, boolean truncated) {
 
-	record Pin(Long recordId, double latitude, double longitude, String placeName) {
+	record Pin(Long diaryId, double latitude, double longitude, String placeName) {
 	}
 
 	static MapPinsResponse from(ListMapPinsResult result) {
 		List<Pin> pins = result.pins()
 			.stream()
-			.map(pin -> new Pin(pin.recordId(), pin.latitude(), pin.longitude(), pin.placeName()))
+			.map(pin -> new Pin(pin.diaryId(), pin.latitude(), pin.longitude(), pin.placeName()))
 			.toList();
 		return new MapPinsResponse(pins, result.truncated());
 	}

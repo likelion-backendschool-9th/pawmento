@@ -5,7 +5,7 @@ import java.time.LocalDate;
 public record EditDiaryEntryCommand(
     Long memberId,
     Long petId,
-    Long recordId,
+    Long diaryId,
     String content,
     LocalDate recordedDate,
     Long version,
@@ -13,10 +13,10 @@ public record EditDiaryEntryCommand(
   public EditDiaryEntryCommand(
       Long memberId,
       Long petId,
-      Long recordId,
+      Long diaryId,
       String content,
       LocalDate recordedDate,
       Long version) {
-    this(memberId, petId, recordId, content, recordedDate, version, DiaryWriteFeatures.textOnly());
+    this(memberId, petId, diaryId, content, recordedDate, version, DiaryWriteFeatures.textOnly());
   }
 }

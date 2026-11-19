@@ -26,7 +26,7 @@
 
 - 비공개 `media_asset_location(asset_id PK, latitude, longitude, source=EXIF)`는 동의한 다이어리 이미지에만 만든다. 동의 여부·정책 버전·기록 시각은 media의 별도 동의 필드/행에서 관리한다.
 - `GetMediaLocationCandidateUseCase`는 요청 회원·아이·자산 목록으로 업로더/기존 유효 첨부·용도·READY·GPS 동의 유효성을 검사한다. 미동의 자산에는 후보를 반환하지 않는다.
-- 작성 미리보기가 필요하면 `POST /diaries/location-candidates?petId={petId}`에 `attachmentIds`와 선택 `recordId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다. (고침 #32: PR #94의 diary 루트·petId 쿼리 계약과 통일)
+- 작성 미리보기가 필요하면 `POST /diaries/location-candidates?petId={petId}`에 `attachmentIds`와 선택 `diaryId`를 받는다. 신규는 본인 업로드, 기존은 해당 일기의 본인 수정 권한·첨부 관계를 검사한다. 후보 응답은 접근 허용된 위치만 포함한다. 지도 쓰기 API가 아니다. (고침 #32: PR #94의 diary 루트·petId 쿼리 계약과 통일)
 - 사진 업로드나 후보 조회만으로 지도 핀을 만들지 않는다. 위치 저장은 다이어리 생성·수정·삭제에서만 수행한다.
 
 ## 다이어리의 단일 위치 쓰기 계약
@@ -51,11 +51,11 @@
 
 ## 지도 입력 포트와 같은 DB 트랜잭션
 
-포트 후보: `ApplyRecordLocationUseCase`.
+포트 후보: `ApplyDiaryLocationUseCase`.
 
 ```text
-ApplyRecordLocationCommand(
-  recordId, petId, createdBy, revision,
+ApplyDiaryLocationCommand(
+  diaryId, petId, createdBy, revision,
   location: {latitude, longitude, placeName?, source, sourceAssetId?} | null
 )
 → APPLIED | DUPLICATE | STALE
@@ -79,11 +79,11 @@ ApplyRecordLocationCommand(
 | `APPLIED` | 새 위치 삽입/높은 revision 갱신, 또는 존재하는 위치 삭제 | 같은 트랜잭션으로 커밋 |
 | `DUPLICATE` | 같은 revision의 동일 명령이 이미 반영됨, 또는 지울 위치가 이미 없음 | 변경 없이 성공 처리 |
 | `STALE` | 존재하는 위치의 revision보다 작은 요청 | 409 충돌로 부모 변경도 롤백 |
-| 내부 계약 위반(결과 enum 아님) | 동일 revision의 다른 내용, 같은 recordId의 아이·원 작성자 변경 | 공통 기본 예외를 상속하지 않는 예외로 500, 부모 변경도 롤백 |
+| 내부 계약 위반(결과 enum 아님) | 동일 revision의 다른 내용, 같은 diaryId의 아이·원 작성자 변경 | 공통 기본 예외를 상속하지 않는 예외로 500, 부모 변경도 롤백 |
 
 - diary는 **모든 생성·수정·삭제**의 존재/권한·잠금/낙관적 버전 검사를 수행하고 위치 revision을 서버에서 결정한다. 저장 트랜잭션 밖·비동기·별도 공개 API로 map을 호출하지 않는다. 같은 revision을 서로 다른 내용에 재사용하지 않으며 동일 revision의 상이한 명령은 계약 위반으로 거부한다. (고침 #53: 중복 성공과 오래된 요청 거부를 구분)
-- `record_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
-- 위치가 있으면 새 revision이 더 클 때만 원자적으로 갱신하고, 같은 revision의 동일 명령만 DUPLICATE, 낮으면 STALE이다. 같은 revision의 다른 내용이나 아이·원 작성자 변경은 서버 내부 계약 위반으로 500을 남기고 부모 트랜잭션을 롤백한다. 이 경우는 재시도 가능한 상태 충돌이 아니므로 409로 변환하지 않는다. (고침 #44: #113 리뷰의 공통 예외 기준 반영) 최초 동시 insert는 `record_id` 유니크/조건부 upsert로 보호한다. 내부 계약 위반은 공통 기본 예외를 상속하지 않는 `RecordLocationContractViolation` 같은 예외로 드러내며, 클라이언트 입력 오류나 저장소 일시 장애로 재포장하지 않는다.
+- `diary_location`에는 `source`, `source_asset_id`, `source_revision`만 추가한다. `deleted` 열이나 삭제 표시 행은 만들지 않는다. **기존 latitude/longitude의 NOT NULL은 유지**한다. 위치 없는 최초 일기도 map 행을 만들지 않으므로 NULL 좌표 저장이나 NOT NULL 해제 DDL이 필요 없다. 새 출처 열의 기존 데이터 백필·스키마 반영은 구현 PR에서 정한다. (고침 #53: 삭제 표시와 기존 DB NOT NULL 충돌 제거)
+- 위치가 있으면 새 revision이 더 클 때만 원자적으로 갱신하고, 같은 revision의 동일 명령만 DUPLICATE, 낮으면 STALE이다. 같은 revision의 다른 내용이나 아이·원 작성자 변경은 서버 내부 계약 위반으로 500을 남기고 부모 트랜잭션을 롤백한다. 이 경우는 재시도 가능한 상태 충돌이 아니므로 409로 변환하지 않는다. (고침 #44: #113 리뷰의 공통 예외 기준 반영) 최초 동시 insert는 `diary_id` 유니크/조건부 upsert로 보호한다. 내부 계약 위반은 공통 기본 예외를 상속하지 않는 `DiaryLocationContractViolation` 같은 예외로 드러내며, 클라이언트 입력 오류나 저장소 일시 장애로 재포장하지 않는다.
 - NONE·AUTO 후보 없음·일기 삭제는 null 위치로 apply를 호출해 실제 map 행을 지운다. 존재하는 행에 대한 삭제도 높은 revision 조건을 확인한다. 삭제할 행이 없으면 DUPLICATE로 아무 작업도 하지 않는다. 성공한 삭제 뒤 revision 이력을 map에 따로 남기지 않는다.
 - **삭제 후 오래된 호출 거부의 책임은 diary**에 있다. 삭제된 일기에 대한 수정은 부모 조회에서 거부하고, 삭제와 동시에 진행된 수정은 부모의 잠금/버전 검사 실패로 지도 쓰기까지 롤백한다. map 행이 없을 때 map 포트 단독으로 과거 revision을 판별할 수 있다고 가정하지 않는다. 이 전제 밖으로 호출 경로를 늘릴 때는 별도 설계가 필요하다. (고침 #53: 같은 트랜잭션의 부모 동시성 검사로 핀 복원 방지)
 - 핀 조회에는 기존 영역/작성자 조건만 사용하며 `deleted=false` 필터를 추가하지 않는다.
@@ -137,13 +137,13 @@ ApplyRecordLocationCommand(
 
 | 영역 | 재사용할 계약 | 이번에 추가·변경할 부분 |
 | --- | --- | --- |
-| diary | `/diaries?petId=...` 및 `/{recordId}?petId=...`, 작성자·기대 version 검사, 부모→자산 잠금 | location 값 전달·원본 저장, 위치만 PATCH, 주소 조정/DB 저장 서비스 분리 |
+| diary | `/diaries?petId=...` 및 `/{diaryId}?petId=...`, 작성자·기대 version 검사, 부모→자산 잠금 | location 값 전달·원본 저장, 위치만 PATCH, 주소 조정/DB 저장 서비스 분리 |
 | 첨부 | 최대 5개, 유지 집합 참조 보존, 실제 연결 확인, `available=false` 조회와 안전한 삭제 | 지도 실패에도 첨부·참조·삭제 작업이 함께 롤백되는지 검사 |
-| map | `RecordLocation`, `record_location`, recordId 유일 제약, 작성자 본인 영역 핀 조회 | apply/주소 조회 입력 포트, 출처·revision, 원자적 조건부 반영/삭제 |
+| map | `DiaryLocation`, `diary_location`, diaryId 유일 제약, 작성자 본인 영역 핀 조회 | apply/주소 조회 입력 포트, 출처·revision, 원자적 조건부 반영/삭제 |
 | 주소 | `LoadAddressPort`와 네이버 주소 어댑터, 기본 연결 1초·응답 2초 제한 | 외부 호출을 DB 저장 전으로 한정하고 오류 분류 재검토 |
 | 권한 | 실제 pet 소유자 접근과 일기 작성자만 변경 | 일반 일기 열람과 지도 좌표 열람 권한을 섞지 않음 |
 
-`ApplyRecordLocationUseCase`·`ResolveLocationAddressUseCase`는 위에서 합의할 입력 포트이며 현재 지도 출력 포트를 diary가 직접 호출하는 대체 구현은 하지 않는다. question·family 입력 계약이 구현됐다고 가정하지 않는다.
+`ApplyDiaryLocationUseCase`·`ResolveLocationAddressUseCase`는 위에서 합의할 입력 포트이며 현재 지도 출력 포트를 diary가 직접 호출하는 대체 구현은 하지 않는다. question·family 입력 계약이 구현됐다고 가정하지 않는다.
 
 ### HTTP 입력·응답
 
@@ -157,31 +157,31 @@ ApplyRecordLocationCommand(
 | 명시적 null·배열·알 수 없는 mode | 400 | 400 |
 
 - 위도는 유한 숫자 -90~90, 경도는 유한 숫자 -180~180이다. 0도·남위·서경도 허용한다. null·숫자 문자열·불리언·무한값은 거부한다. 검증은 외부 주소 호출 전에 수행하고 map 도메인도 같은 불변식을 검사한다.
-- placeName 생략/null/빈 값/공백은 이름 없음으로 정규화한다. 사용자가 준 비어 있지 않은 이름은 strip 후 기존 `RecordLocation`과 동일하게 Java String.length() 255 이하로 제한한다. 초과 사용자 입력은 400이며, 서버가 임의로 잘라 저장하지 않는다.
+- placeName 생략/null/빈 값/공백은 이름 없음으로 정규화한다. 사용자가 준 비어 있지 않은 이름은 strip 후 기존 `DiaryLocation`과 동일하게 Java String.length() 255 이하로 제한한다. 초과 사용자 입력은 400이며, 서버가 임의로 잘라 저장하지 않는다.
 - 서버가 조회한 주소는 map의 `ResolveLocationAddressUseCase`에서 strip·길이를 확인한다. 정규화 후 255자를 넘으면 주소 없음(`Optional.empty()`)으로 반환해 좌표와 일기는 장소명 없이 저장한다. 잘라 저장하거나 사용자 입력 오류(400)로 반환하지 않으며, diary가 서버 주소의 길이를 재판정하지 않는다. 사용자 placeName의 초과 400과 별도 테스트로 구분한다. (고침 #44: #113 리뷰의 서버 생성 주소 길이 처리)
 - MANUAL은 mode/latitude/longitude/placeName만, NONE은 mode만 받는다. 클라이언트가 source/sourceAssetId/revision/createdBy를 주입하지 못하도록 위치 객체의 다른 필드는 거부한다.
 - `{"version":v,"location":{"mode":"NONE"}}`처럼 위치만 바꾸는 PATCH를 허용하며 부모 version/updatedAt을 갱신한다. version 외 수정 필드가 모두 생략된 요청은 기존 400을 유지한다. 본문·첨부 모두 없음은 위치가 있어도 일기로 저장할 수 없다.
 - 본인 생성·상세·수정 및 목록의 해당 일기 응답에는 location 모드와 MANUAL 좌표·장소명을 반환한다. 요청 회원이 일기의 원 작성자가 아니면 location은 null로 반환하며 좌표·주소를 포함하지 않는다. 현재 가족 기능을 새로 열지 않으며, 기존 다중 작성자 fixture로 이 응답 분리를 검사한다.
-- 지도 핀 응답의 `recordId`는 실제 diary ID다. 기존 `/maps/pins`의 영역·작성자 조건과 `pins/truncated` 응답은 유지한다. 지도 UI 클릭·ACTIVE/GARDEN 그림은 프론트 연결 후 직접 확인한다.
+- 지도 핀 응답의 `diaryId`는 실제 diary ID다. 기존 `/maps/pins`의 영역·작성자 조건과 `pins/truncated` 응답은 유지한다. 지도 UI 클릭·ACTIVE/GARDEN 그림은 프론트 연결 후 직접 확인한다.
 
 ### 데이터 원본·revision·기존 행 보존
 
 - diary는 사용자가 저장한 위치 의도의 원본(mode, MANUAL 좌표·정규화된 장소명)을 보관하고 map은 핀 조회용 위치 행을 보관한다. **기준 값은 diary 위치 원본**이고 map 행은 파생 값이다. 이 중복 저장은 location 생략 수정의 정확한 유지와 외부 주소 재조회 방지를 위해 유지하며, 두 저장소는 동일 트랜잭션에서만 변경한다. NONE은 원본 좌표·장소명을 null로 비운다. map의 값을 diary에 역복사하거나 양쪽을 각각 사용자 수정 경로로 열지 않는다. (고침 #44: #113 리뷰의 기준 값 명확화)
-- 원본이 초기화된 이후에는 일기 응답과 location 생략 수정이 항상 diary의 값을 사용한다. 정합성 조회는 diary 출력 어댑터가 map 읽기 입력 포트로 같은 DB 트랜잭션 안에서 수행하며 map 저장소를 직접 읽거나 별도 HTTP 경로를 만들지 않는다. 부모 잠금 아래 이전 diary 위치와 현재 map 행의 존재 여부·recordId/petId/createdBy·좌표/정규화된 장소명·source/sourceAssetId·sourceRevision을 대조한다. 불일치 발견만으로 모든 쓰기를 막지 않고 아래 정책으로 분기한다. (고침 #44: #113 재리뷰의 사용자 수정·삭제 경로 보장)
+- 원본이 초기화된 이후에는 일기 응답과 location 생략 수정이 항상 diary의 값을 사용한다. 정합성 조회는 diary 출력 어댑터가 map 읽기 입력 포트로 같은 DB 트랜잭션 안에서 수행하며 map 저장소를 직접 읽거나 별도 HTTP 경로를 만들지 않는다. 부모 잠금 아래 이전 diary 위치와 현재 map 행의 존재 여부·diaryId/petId/createdBy·좌표/정규화된 장소명·source/sourceAssetId·sourceRevision을 대조한다. 불일치 발견만으로 모든 쓰기를 막지 않고 아래 정책으로 분기한다. (고침 #44: #113 재리뷰의 사용자 수정·삭제 경로 보장)
 
   | 요청 | 초기화된 원본과 map이 불일치할 때 |
   | --- | --- |
   | location 생략 수정 | 기존 원본을 유지해야 하므로 저장 데이터 이상 500과 ERROR 로그를 남기고 부모·첨부·참조·지도 변경을 모두 롤백한다. STALE(409)로 숨기지 않는다 |
   | 명시적 MANUAL/NONE 수정 | 권한·부모 기대 버전·입력 검사를 통과한 새 diary 원본으로 map을 교체하거나 삭제한다. 불일치 자체는 ERROR 로그에 남기고 수정은 진행한다. 이전 map 값을 정답으로 채택하지 않는다 |
-  | 일기 삭제 | 권한·부모 기대 버전 검사는 유지하되 불일치는 ERROR 로그로 남기고 계속 진행한다. 해당 recordId의 map 행이 있으면 삭제하고 없으면 성공한다. 부모·첨부·참조 해제·삭제 작업 등록과 같은 트랜잭션이다 |
+  | 일기 삭제 | 권한·부모 기대 버전 검사는 유지하되 불일치는 ERROR 로그로 남기고 계속 진행한다. 해당 diaryId의 map 행이 있으면 삭제하고 없으면 성공한다. 부모·첨부·참조 해제·삭제 작업 등록과 같은 트랜잭션이다 |
 
 - 일반 읽기는 자동 복구하지 않는다. location 생략 수정이 막히면 사용자가 MANUAL/NONE을 명시하거나 일기를 삭제할 수 있다. 별도 운영 정정이 필요한 경우에도 diary 원본을 기준으로 map을 고치며 자동 복구 API/작업자를 추가하지 않는다. 초기 이관 때만 아래의 일치하는 기존 map 행을 원본의 초기값으로 사용하고, 초기화 완료 후에는 역방향 이관을 반복하지 않는다. **초기화 전의 ID/아이/작성자 충돌 행은 여전히 보존·중단 대상**이며 사용자 정정으로 임의 재귀속하지 않는다.
 - 좌표는 diary 원본과 map 모두 PostgreSQL `double precision`, Java `double` 및 JDBC `setDouble/getDouble`로 저장·조회한다. 입력 경계에서 유한값·범위를 검사하고 부호 있는 0은 +0.0으로 정규화하며 이후 소수 자릿수 제한·문자열/decimal 변환·반올림을 끼우지 않는다. 정합성 비교는 양쪽의 0 부호만 정규화한 뒤 `Double.doubleToLongBits`가 같은지 확인하는 **정확 비교**다. 허용 오차로 서로 다른 위치를 같다고 보지 않는다. 기존 행의 -0.0은 비교 시 +0.0으로 취급하며 비교만으로 DB를 다시 쓰지 않는다. #44-S13에서 0/-0·남위/서경·경계값·소수 좌표를 두 저장소에 실제 왕복시켜 정상 행이 불일치 500으로 판정되지 않는지 확인한다. (고침 #44: #113 재리뷰의 저장 타입·좌표 비교 확정)
 - 위치 revision은 서버가 확정한 diary version이다. 생성은 0, 수정은 조건부 갱신 후의 version, 삭제는 삭제 직전 version+1이다. 별도 위치 revision 카운터나 클라이언트 revision은 받지 않는다. version 증가 범위도 넘지 않도록 검사한다.
 - 본문/첨부만 바뀌어도 유지된 위치와 새 부모 version을 apply에 전달한다. 같은 좌표라도 revision을 전진시키되 주소를 다시 조회하지 않는다. NONE은 null 위치로 전달하고 map 행을 만들지 않는다.
 - map의 `source`, `source_asset_id`, `source_revision`을 추가한다. 이번 MANUAL은 source=MANUAL·sourceAssetId=null이다. 위도/경도 NOT NULL은 유지하고 삭제 표시 행은 만들지 않는다. AUTO용 자산 후보는 아직 연결하지 않는다.
-- 기존 일기·지도 행은 삭제·초기화하지 않는다. 기존 수동 위치는 source=MANUAL·sourceAssetId=null로 이관한다. recordId/petId/createdBy가 실제 diary와 모두 일치하는 행만 diary 위치 원본으로 이관하며, 해당 map revision은 부모 version과 맞춘다. map 행이 없는 기존 일기는 NONE으로 시작한다.
-- 초기 이관 시 연결되지 않은 기존 지도 행이나 ID/아이/작성자가 충돌한 행은 자동 병합·재귀속하지 않는다. 새 일기와 recordId가 겹쳐도 기존 행을 덮어쓰지 않고 충돌을 알린다. 잘못된 좌표·장소명도 임의 보정하지 않으며 이관 대상 오류를 드러낸다.
+- 기존 일기·지도 행은 삭제·초기화하지 않는다. 기존 수동 위치는 source=MANUAL·sourceAssetId=null로 이관한다. diaryId/petId/createdBy가 실제 diary와 모두 일치하는 행만 diary 위치 원본으로 이관하며, 해당 map revision은 부모 version과 맞춘다. map 행이 없는 기존 일기는 NONE으로 시작한다.
+- 초기 이관 시 연결되지 않은 기존 지도 행이나 ID/아이/작성자가 충돌한 행은 자동 병합·재귀속하지 않는다. 새 일기와 diaryId가 겹쳐도 기존 행을 덮어쓰지 않고 충돌을 알린다. 잘못된 좌표·장소명도 임의 보정하지 않으며 이관 대상 오류를 드러낸다.
 - 백필은 새 원본 필드를 초기화하는 단계에서만 수행하고, 이후 재기동에는 사용자가 저장한 NONE·MANUAL을 과거 데이터로 덮지 않는다. 기존 데이터 보존·반복 적용·충돌을 실제 PostgreSQL에서 검증한다.
 - `ddl-auto: update`만으로 기본값 없는 새 NOT NULL 열을 기존 행에 추가한다고 가정하지 않는다. map의 신규 source/source_revision은 기존 행용 `@ColumnDefault("'MANUAL'")`·`@ColumnDefault("0")` 등 DDL 기본값을 명시하거나 명시적 SQL로 nullable 추가→백필→NOT NULL 순서로 반영한다. diary와 revision을 맞추는 백필은 초기화 여부를 관리하는 명시적 SQL로 수행한다. 구체 DDL은 구현 PR에서 검토하며, #44-S13은 이미 데이터가 있는 지도 테이블에서도 열·기본값·백필과 재기동 반복 적용을 확인한다. (고침 #44: #113 리뷰의 Hibernate 기존 행/NOT NULL 반영 주의)
 
@@ -193,8 +193,8 @@ ApplyRecordLocationCommand(
 4. 주소 키 없음·검색 결과 없음·외부 HTTP/타임아웃·사용할 수 없는 외부 주소 응답은 장소명 없이 진행한다. 사용자 입력·권한·버전·내부 계약/프로그래밍 오류나 DB 실패는 이 정책으로 삼키지 않는다. 현재 주소 어댑터의 RuntimeException 일괄 catch도 이 구분에 맞게 검토하고 diary에서 광범위한 catch를 추가하지 않는다.
 5. 별도 DB 저장 서비스의 REQUIRED 트랜잭션에서 현재 권한·작성자·기대 버전·첨부를 다시 검사한다. 사전 조회의 상태를 그대로 저장하지 않고 잠금 후 현재 값을 사용한다. 상태 엔티티가 캐시돼 있다면 projection/refresh 등으로 오래된 상태가 재사용되지 않게 한다.
 6. 수정·삭제는 기존 부모 잠금 후 관련 자산을 ID 순서로 잠근다. map apply는 같은 트랜잭션에 참여해 지도 DB 작업만 수행하며, 기존 부모→자산 순서와 충돌하는 역방향 잠금·diary 역호출을 추가하지 않는다.
-7. map은 높은 revision을 원자적으로 반영하고 동일 revision의 동일 명령만 DUPLICATE, 낮은 revision은 STALE을 반환한다. 동일 revision의 다른 내용이나 아이/원 작성자 변경은 내부 계약 위반으로 500이며 부모도 롤백한다. apply의 revision 비교에서 409로 다루는 것은 STALE이다. null 위치 삭제도 더 높은 revision을 요구하며 지울 행이 없으면 DUPLICATE다. 동시 최초 삽입은 recordId 유일 제약과 조건부 저장으로 보호한다.
-   - 위의 일반 apply 계약을 느슨하게 하거나 모든 오류를 catch해서 정정하지 않는다. **초기화된 diary 원본의 명시적 위치 수정·일기 삭제**에는 별도 내부 정정 입력 포트 `ReconcileRecordLocationUseCase`(후보)를 사용한다. diary 출력 어댑터가 검증한 부모 ID·아이·원 작성자·새 diary version, 동작(REPLACE/REMOVE), 새 위치 및 읽은 map 행의 기대 스냅샷(행 없음 포함)을 전달한다. map은 같은 트랜잭션에서 관측한 행이 그대로인지 조건부 쓰기/행 잠금으로 확인한 뒤 해당 recordId의 파생 값을 교체·삭제한다. 불일치한 기존 map의 revision·메타데이터는 정정할 대상이므로 그 값만으로 계약 위반 500/STALE을 내어 사용자 경로를 다시 막지 않는다. 정정 도중 관측 상태가 달라지면 STALE(409)로 전체 롤백하고 재조회한다. 부모의 현재 권한·버전 검사는 생략하지 않으며 다른 recordId 행을 변경하거나 초기 이관 충돌을 정정 대상으로 삼지 않는다.
+7. map은 높은 revision을 원자적으로 반영하고 동일 revision의 동일 명령만 DUPLICATE, 낮은 revision은 STALE을 반환한다. 동일 revision의 다른 내용이나 아이/원 작성자 변경은 내부 계약 위반으로 500이며 부모도 롤백한다. apply의 revision 비교에서 409로 다루는 것은 STALE이다. null 위치 삭제도 더 높은 revision을 요구하며 지울 행이 없으면 DUPLICATE다. 동시 최초 삽입은 diaryId 유일 제약과 조건부 저장으로 보호한다.
+   - 위의 일반 apply 계약을 느슨하게 하거나 모든 오류를 catch해서 정정하지 않는다. **초기화된 diary 원본의 명시적 위치 수정·일기 삭제**에는 별도 내부 정정 입력 포트 `ReconcileDiaryLocationUseCase`(후보)를 사용한다. diary 출력 어댑터가 검증한 부모 ID·아이·원 작성자·새 diary version, 동작(REPLACE/REMOVE), 새 위치 및 읽은 map 행의 기대 스냅샷(행 없음 포함)을 전달한다. map은 같은 트랜잭션에서 관측한 행이 그대로인지 조건부 쓰기/행 잠금으로 확인한 뒤 해당 diaryId의 파생 값을 교체·삭제한다. 불일치한 기존 map의 revision·메타데이터는 정정할 대상이므로 그 값만으로 계약 위반 500/STALE을 내어 사용자 경로를 다시 막지 않는다. 정정 도중 관측 상태가 달라지면 STALE(409)로 전체 롤백하고 재조회한다. 부모의 현재 권한·버전 검사는 생략하지 않으며 다른 diaryId 행을 변경하거나 초기 이관 충돌을 정정 대상으로 삼지 않는다.
    - 정정 포트에 잘못된 서버 명령이 전달되는 경우는 여전히 내부 계약 위반 500이다. 지도 DB 실패 역시 전체 롤백한다. 사용자에게 공개하는 지도 정정 API나 버전 무시 옵션은 만들지 않는다. 구현 시 일반 apply·정정 포트의 구체 타입은 지도 담당과 함께 맞춘다. (고침 #44: #113 재리뷰의 명시적 수정·삭제와 일반 apply 경계 구분)
 8. STALE은 diary의 공통 충돌 예외로 저장을 롤백한다. 다른 map 업무 예외를 diary에서 재포장하지 않는다. 예상한 DB 기술 장애는 기존 공통 저장소 예외 계열로 원인을 보존하며, 모든 오류를 503으로 감싸지 않는다.
 9. 일기·위치 원본·첨부 관계·media 참조·삭제 작업·map 행의 커밋이 끝난 뒤 성공 응답을 보낸다. 위치 해제·일기 삭제는 실제 map 행을 삭제하며, 그 후 오래된 요청 거부는 부모 version/잠금이 책임진다. 파일 I/O와 기존 파일 삭제 재시도 경계는 유지한다.
@@ -207,7 +207,7 @@ ApplyRecordLocationCommand(
 | #44-S4·S5·S11 [테스트] | MANUAL/NONE 생성·위치만 PATCH·해제·생략 유지, 첨부 변경 후 위치 유지, AUTO 409 | AUTO 후보 재계산·동의 기록 |
 | #44-S6 [테스트] | APPLIED/DUPLICATE/STALE(409), 동일 revision의 다른 내용·ID/작성자 변경은 계약 위반 500과 부모 롤백, 없는 핀 삭제, 모든 diary 쓰기의 version 반영 | 없음(수동 단계의 저장 경합 기준) |
 | #44-S7 [테스트] | 주소 조회에 저장 TX 없음·apply에 외부 호출 없음, 서버 주소 255자 경계·초과 시 이름 없이 저장, 주소 없음과 DB 실패 구분, 주소 조회 중 선행 수정/삭제 후 재검사 | 없음(수동 단계의 실행 경계 기준) |
-| #44-S8 [테스트] | 현재 소유자/작성자·petId/recordId 위조 거부, 타 작성자 일기 응답에 좌표 없음, 지도 본인 핀 격리 | 가족 멤버십·GPS 동의 후보 |
+| #44-S8 [테스트] | 현재 소유자/작성자·petId/diaryId 위조 거부, 타 작성자 일기 응답에 좌표 없음, 지도 본인 핀 격리 | 가족 멤버십·GPS 동의 후보 |
 | #44-S13 [테스트] | 기존 행 백필·초기 이관 ID 충돌 보존·생략 수정 불일치 시 500/전체 롤백·명시적 MANUAL/NONE 정정·불일치 상태의 일기 삭제 성공·정정 중 경합/DB 실패 롤백·정상 double precision 좌표 왕복과 정확 비교·새 NOT NULL 열/기본값·스키마 재적용 | 운영 데이터별 충돌 해결은 별도 검토 |
 | #32-S12·S13·S17·S18 [테스트] | 부모·첨부·참조·삭제 작업·핀의 전체 롤백, 부모 수정/삭제 경합에서 핀 복원 금지 | AUTO·가족을 포함한 전체 조합 |
 | #44-S1·S3·S9·S10·S12 [직접/테스트] | 이 단계에서는 완료로 표시하지 않음 | GPS 자동 연결·위치 동의·프론트 |

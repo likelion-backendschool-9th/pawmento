@@ -1,9 +1,6 @@
 "use client";
-import { usePet } from "@/workspace/adapters/inbound/PetContext";
-import { useRecord } from "@/workspace/adapters/inbound/RecordContext";
-import { RecordDetail } from "@/workspace/adapters/inbound/RecordScreens";
+import { redirect, useParams } from "next/navigation";
 export default function Page() {
-  const pet = usePet();
-  const record = useRecord();
-  return <RecordDetail key={record.id} pet={pet} record={record} />;
+  const p = useParams<{ petId: string; recordId: string }>();
+  redirect(`/pets/${p.petId}/diary/${p.recordId}`);
 }

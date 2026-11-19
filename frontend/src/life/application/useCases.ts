@@ -13,7 +13,7 @@ import type {
 } from "../domain/models.ts";
 import type { LifeRepository, PostcardGenerator } from "./ports.ts";
 import type { RuntimePort } from "../../workspace/application/ports.ts";
-import type { Memory } from "../../workspace/domain/models.ts";
+import type { JournalItem } from "../../workspace/domain/models.ts";
 export function createLifeUseCases(
   repository: LifeRepository,
   generator: PostcardGenerator,
@@ -22,11 +22,16 @@ export function createLifeUseCases(
   const dayKey = (timestamp: string) =>
     new Date(Date.parse(timestamp) + 9 * 3600000).toISOString().slice(0, 10);
   let queue: Promise<unknown> = Promise.resolve();
-  const mutate = <T>(operation: (state: LifeState) => T): Promise<T> => {
+  const mutate = <T>(
+    operation: (state: LifeState) => T,
+    saveOnlyWhenChanged = false,
+  ): Promise<T> => {
     const result = queue.then(async () => {
       const state = structuredClone(await repository.load());
+      const before = saveOnlyWhenChanged ? JSON.stringify(state) : undefined;
       const value = operation(state);
-      await repository.save(state);
+      if (!saveOnlyWhenChanged || JSON.stringify(state) !== before)
+        await repository.save(state);
       return value;
     });
     queue = result.catch(() => undefined);
@@ -61,7 +66,7 @@ export function createLifeUseCases(
         };
         state.members.push(value);
         return value;
-      }),
+      }, true),
     withdrawActor: (actor: Actor) =>
       mutate((state) => {
         const ids = state.posts
@@ -206,7 +211,7 @@ export function createLifeUseCases(
       actor: Actor,
       petId: string,
       petName: string,
-      records: readonly Memory[],
+      records: readonly JournalItem[],
       consent: boolean,
       retryId?: string,
       petPhotoUrl?: string,
@@ -237,7 +242,10 @@ export function createLifeUseCases(
           title: `${petName}와 함께한 작은 순간`,
           text: "",
           imageUrl: "",
-          sourceRecordIds: records.map((item) => item.id),
+          sourceEntries: records.map((item) => ({
+            kind: item.kind,
+            id: item.id,
+          })),
           status: "PROCESSING",
           error: "",
           saved: old?.saved ?? false,
@@ -356,15 +364,24 @@ export function createLifeUseCases(
         requireOwner(value.ownerId, actor);
         value.invites = value.invites.filter((item) => item.id !== id);
       }),
-    saveQuestion: (actor: Actor, text: string, id?: string) =>
+    saveQuestion: (
+      actor: Actor,
+      text: string,
+      id?: string,
+      mode: "ACTIVE" | "GARDEN" = "ACTIVE",
+    ) =>
       mutate((state) => {
         requireAdmin(actor);
         requireText(text, "질문", 300);
+        if (!["ACTIVE", "GARDEN"].includes(mode))
+          throw Error("질문의 모드를 선택해 주세요.");
         if (id) {
           const value = state.questions.find((item) => item.id === id);
           if (!value) throw Error("질문을 찾을 수 없어요.");
           value.text = text;
-        } else state.questions.push({ id: runtime.id(), text, enabled: true });
+          value.mode = mode;
+        } else
+          state.questions.push({ id: runtime.id(), text, enabled: true, mode });
       }),
     toggleQuestion: (actor: Actor, id: string) =>
       mutate((state) => {

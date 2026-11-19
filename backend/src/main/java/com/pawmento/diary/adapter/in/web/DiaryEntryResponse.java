@@ -4,7 +4,7 @@ import com.pawmento.diary.application.port.in.GetDiaryEntryResult;
 import java.time.*;
 
 public record DiaryEntryResponse(
-    Long recordId,
+    Long diaryId,
     Long petId,
     Long createdBy,
     String content,
@@ -27,7 +27,7 @@ public record DiaryEntryResponse(
 
   static DiaryEntryResponse from(GetDiaryEntryResult r) {
     return new DiaryEntryResponse(
-        r.recordId(),
+        r.diaryId(),
         r.petId(),
         r.createdBy(),
         r.content(),
@@ -38,7 +38,7 @@ public record DiaryEntryResponse(
         r.attachments().stream()
             .map(
                 a -> {
-                  String path = "/api/v1/diaries/" + r.recordId() + "/attachments/" + a.assetId();
+                  String path = "/api/v1/diaries/" + r.diaryId() + "/attachments/" + a.assetId();
                   return new AttachmentResponse(
                       a.assetId(),
                       a.type(),

@@ -1,4 +1,4 @@
-import type { Memory } from "../../workspace/domain/models.ts";
+import type { JournalItem } from "../../workspace/domain/models.ts";
 
 export const postcardScenes = {
   PARK: {
@@ -15,17 +15,17 @@ export const postcardScenes = {
   },
 } as const;
 export type PostcardScene = keyof typeof postcardScenes;
-export function sceneForMemory(record: Memory): PostcardScene {
+export function sceneForJournalItem(record: JournalItem): PostcardScene {
   const text = `${record.question ?? ""} ${record.body}`;
   if (/낮잠|잠들|인형|졸|이불|쉬었|휴식|sleep|nap/i.test(text)) return "NAP";
   if (/바다|해변|노을|파도|모래|해질|sunset|beach|sea\b/i.test(text))
     return "BEACH";
   return "PARK";
 }
-export function drawMemory(
-  records: readonly Memory[],
+export function drawJournalItem(
+  records: readonly JournalItem[],
   random = Math.random,
-): Memory | undefined {
+): JournalItem | undefined {
   if (!records.length) return undefined;
   return records[
     Math.min(

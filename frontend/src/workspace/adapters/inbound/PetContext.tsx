@@ -42,7 +42,7 @@ export function PetWriteAccess({
             ? "프로필과 모드는 소유자가 관리합니다."
             : "기록을 남기려면 소유자에게 편집자 역할을 요청해 주세요."
         }
-        href={`/pets/${pet.id}/timeline`}
+        href={`/pets/${pet.id}/diary`}
         action="다이어리 보기"
       />
     );

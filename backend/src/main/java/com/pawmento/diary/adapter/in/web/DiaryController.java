@@ -57,22 +57,22 @@ public class DiaryController {
         create.create(new CreateDiaryEntryCommand(memberId, petId, content, date, features)));
   }
 
-  @GetMapping("/{recordId}")
+  @GetMapping("/{diaryId}")
   DiaryEntryResponse get(
-      @LoginMember Long memberId, HttpServletRequest http, @PathVariable Long recordId) {
+      @LoginMember Long memberId, HttpServletRequest http, @PathVariable Long diaryId) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
-    DiaryRequestValues.id(recordId);
-    return DiaryEntryResponse.from(get.get(new GetDiaryEntryQuery(memberId, petId, recordId)));
+    DiaryRequestValues.id(diaryId);
+    return DiaryEntryResponse.from(get.get(new GetDiaryEntryQuery(memberId, petId, diaryId)));
   }
 
-  @PatchMapping("/{recordId}")
+  @PatchMapping("/{diaryId}")
   DiaryEntryResponse edit(
       @LoginMember Long memberId,
       HttpServletRequest http,
-      @PathVariable Long recordId,
+      @PathVariable Long diaryId,
       @RequestBody EditDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
-    DiaryRequestValues.id(recordId);
+    DiaryRequestValues.id(diaryId);
     String content = DiaryRequestValues.text(request.content(), false);
     var date = DiaryRequestValues.date(request.recordedDate(), false);
     Long version = DiaryRequestValues.version(request.version());
@@ -80,15 +80,15 @@ public class DiaryController {
     return DiaryEntryResponse.from(
         edit.edit(
             new EditDiaryEntryCommand(
-                memberId, petId, recordId, content, date, version, features)));
+                memberId, petId, diaryId, content, date, version, features)));
   }
 
-  @DeleteMapping("/{recordId}")
+  @DeleteMapping("/{diaryId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  void delete(@LoginMember Long memberId, @PathVariable Long recordId, HttpServletRequest http) {
+  void delete(@LoginMember Long memberId, @PathVariable Long diaryId, HttpServletRequest http) {
     var query = DiaryQueryParameters.parse(http.getQueryString(), "petId", "version");
     Long petId = query.petId();
-    DiaryRequestValues.id(recordId);
-    deletion.delete(new DeleteDiaryEntryCommand(memberId, petId, recordId, query.version()));
+    DiaryRequestValues.id(diaryId);
+    deletion.delete(new DeleteDiaryEntryCommand(memberId, petId, diaryId, query.version()));
   }
 }

@@ -151,7 +151,7 @@ class DiaryListSnapshotTest {
       } else result = lists.list(query);
       writer.get(10, TimeUnit.SECONDS);
     }
-    assertThat(result.items()).extracting(GetDiaryEntryResult::recordId).containsExactly(original);
+    assertThat(result.items()).extracting(GetDiaryEntryResult::diaryId).containsExactly(original);
     assertThat(result.totalElements()).isEqualTo(1);
     assertThat(observed.keySet()).containsExactlyInAnyOrder("access", "page", "count");
     Snapshot expected = observed.get("page");

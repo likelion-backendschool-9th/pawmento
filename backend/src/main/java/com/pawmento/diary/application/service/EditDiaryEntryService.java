@@ -22,10 +22,10 @@ public class EditDiaryEntryService implements EditDiaryEntryUseCase {
   public GetDiaryEntryResult edit(EditDiaryEntryCommand c) {
     DiaryWritePolicy.requireSupported(c.features());
     access.requireAccess(c.memberId(), c.petId());
-    var entry = DiaryEntryAccess.load(load, c.petId(), c.recordId());
+    var entry = DiaryEntryAccess.load(load, c.petId(), c.diaryId());
     entry.requireAuthor(c.memberId());
     DiaryEntryAccess.version(entry, c.version());
-    entry = DiaryEntryAccess.locked(load, c.petId(), c.recordId());
+    entry = DiaryEntryAccess.locked(load, c.petId(), c.diaryId());
     DiaryEntryAccess.version(entry, c.version());
     if (c.content() == null && c.recordedDate() == null && c.features().attachmentIds() == null)
       throw new com.pawmento.diary.domain.exception.InvalidDiaryEntryException();

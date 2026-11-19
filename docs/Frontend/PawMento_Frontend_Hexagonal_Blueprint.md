@@ -1,3 +1,7 @@
+# 현재 구현에서의 명칭과 데이터 경계
+
+자유 일기는 `DiaryEntry`·`diaries`, 질문 답변은 `QuestionAnswer`·`questionAnswers`, 배정 질문은 `QuestionPrompt`·`questionPrompts`로 구분한다. 아래 초기 청사진의 단일 `Record`·`Memory` 및 `DIARY` 유형은 현재 저장 계약이 아니다. 현재 경로·이관·질문 진행 규칙은 [이름 정리](../diary/naming-cleanup.md)를 우선한다. 새 첨부는 사진·음성만 지원하고 영상은 이전 데모 데이터의 읽기만 보존한다.
+
 # PawMento — 헥사고날 아키텍처 기반 프론트엔드 개발 청사진
 
 > **문서 버전:** 2.0 (2026-11-15)<br>
@@ -94,13 +98,17 @@ export type Pet = Readonly<{
   mode: PetMode; // MODE 기능은 P2, 모델 확장 슬롯은 미리 준비 가능
 }>;
 
-// records/domain/Record.ts
-export type RecordType = 'DIARY' | 'PHOTO' | 'VIDEO' | 'VOICE' | 'TEXT';
-export type RecordItem = Readonly<{
-  id: string; petId: string; type: RecordType;
-  recordedDate: string; body?: string;
-  questionId?: string;
-  mediaIds: readonly string[];
+// diary/domain/DiaryEntry.ts — 사건 날짜가 있는 자유 일기
+export type DiaryEntry = Readonly<{
+  id: string; petId: string; authorId?: string;
+  recordedDate: string; body: string; photoUrl: string;
+  createdAt: string; updatedAt: string;
+}>;
+// question/domain/QuestionAnswer.ts — 배정 질문의 스냅샷과 실제 답변 시각
+export type QuestionAnswer = Readonly<{
+  id: string; petId: string; authorId?: string; promptId: string;
+  questionId: string; questionSnapshot: string; body: string;
+  registeredAt: string; updatedAt: string;
 }>;
 ```
 
@@ -216,7 +224,7 @@ export const useMyPets = () => useQuery({
 2. **인증:** 쿠키/BFF/JWT 저장 방식은 BE와 협의한다. `localStorage` 토큰 저장을 전제로 박아두지 않는다. CSRF·CORS 및 만료 복구를 계약에 명시한다.
 3. **날짜:** 날짜 기반 질문은 `YYYY-MM-DD`로 다루고 로컬 날짜와 UTC timestamp를 구분한다. 서버가 기준 시간대 확정.
 4. **미디어:** `ARCH-01` 사진 P1, `ARCH-02/03` 영상·음성 P2. presigned URL 또는 multipart 계약에 따라 포트를 구현한다. 파일 제한, 진행률, 취소·재시도 처리.
-5. **단일 기록:** `DIARY`와 사진/텍스트 기록은 같은 `Record` 도메인을 공유한다. 질문은 기록에 참조값으로 연결, GARDEN은 같은 조회 포트 사용.
+5. **기록 분리:** 자유 일기는 `DiaryEntry`, 배정 질문과 답변은 `QuestionPrompt`·`QuestionAnswer`로 각각 저장한다. GARDEN·ACTIVE는 같은 일기 조회를 사용하고 질문 풀과 진행 상태는 모드별로 구분한다.
 6. **에러 타입:** `UNAUTHORIZED`, `FORBIDDEN`, `NOT_FOUND`, `VALIDATION`, `NETWORK`, `UNKNOWN` 등을 도메인 외부에서 정규화. 화면은 친절한 메시지 출력.
 7. **캐싱:** Query key를 계정·반려동물·날짜·카테고리별로 구분. 생성·수정·삭제 성공 시 관련 캐시 invalidate.
 8. **Mocks:** `InMemoryPetRepository`, `InMemoryRecordRepository`를 P1부터 제공하여 백엔드 개발과 무관하게 UI 검증. 운영 모드와 목업 모드는 composition root에서 선택.
@@ -238,7 +246,7 @@ export const useMyPets = () => useQuery({
 ### Stage 2 — P1 질문형 일기·기록
 - [ ] DIARY-01~05/07, ARCH-01/04~08
 - [ ] 오늘 질문 → 사진과 답 → 기록 저장 → 달력·타임라인
-- [ ] 질문형 일기와 아카이브가 같은 Record를 참조하는지 검증
+- [ ] 질문 답변과 일기가 독립된 컬렉션과 유스케이스를 사용하는지 검증
 
 ### Stage 3 — P1 웹 품질
 - [ ] PC 레이아웃 → 태블릿·모바일 반응형
@@ -297,12 +305,12 @@ export const useMyPets = () => useQuery({
 | PET-UI-01 | `/pets/new` | 반려동물 생성 | PET-01,06,07 | P1 |
 | PET-UI-02 | `/pets` | 반려동물 목록·선택 | PET-02,08 | P1 |
 | PET-UI-03 | `/pets/:petId` | 반려동물 상세·수정·삭제 진입 | PET-03~05 | P1 |
-| DIARY-UI-01 | `/pets/:petId/diary/new` | 오늘의 질문 답변+사진 | DIARY-01,02, ARCH-01 | P1 |
-| DIARY-UI-02 | `/pets/:petId/diary/:recordId` | 질문형 일기 상세·수정·삭제 | DIARY-03~05,07 | P1 |
-| RECORD-UI-01 | `/pets/:petId/records/new` | 자유 텍스트·사진 기록 | ARCH-01,04 | P1 |
-| RECORD-UI-02 | `/pets/:petId/records/:recordId` | 기록 상세·편집·삭제 | ARCH-05,06 | P1 |
+| DIARY-UI-01 | `/pets/:petId/questions/answers/new` | 오늘의 질문 답변+사진 | DIARY-01,02, ARCH-01 | P1 |
+| DIARY-UI-02 | `/pets/:petId/questions/answers/:answerId` | 질문 일기 상세·수정·삭제 | DIARY-03~05,07 | P1 |
+| RECORD-UI-01 | `/pets/:petId/diary/new` | 자유 텍스트·사진 기록 | ARCH-01,04 | P1 |
+| RECORD-UI-02 | `/pets/:petId/diary/:diaryId` | 기록 상세·편집·삭제 | ARCH-05,06 | P1 |
 | RECORD-UI-03 | `/pets/:petId/calendar` | 월별 기록 달력 | ARCH-07 | P1 |
-| RECORD-UI-04 | `/pets/:petId/timeline` | 무한 스크롤 타임라인 | ARCH-08 | P1 |
+| RECORD-UI-04 | `/pets/:petId/diary` | 무한 스크롤 타임라인 | ARCH-08 | P1 |
 | ACCOUNT-UI-01 | `/me` | 내 정보·내 반려동물·내 활동 | AUTH-06, COM-03 | P1 |
 | MODE-UI-01 | `/pets/:petId/settings/mode` | 모드 선택·확인·되돌리기 | MODE-01~04 | P2 |
 | GARDEN-UI-01 | `/pets/:petId/garden` | 정원 홈, 추억 회상 | GARDEN-01~04 | P2 |
