@@ -20,6 +20,7 @@ import com.pawmento.map.application.exception.WalkPersistenceUnavailableExceptio
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 import jakarta.persistence.PessimisticLockException;
+import jakarta.persistence.Query;
 
 // 잠금 호출이 실패할 때 기술 예외가 서비스까지 올라가지 않고 응용 예외로 바뀌는지만 본다. 진짜 DB는 쓰지 않는다
 class WalkLockTranslationTest {
@@ -43,9 +44,14 @@ class WalkLockTranslationTest {
 	@Test
 	@DisplayName("#72-S10 잠금 대기 시간 초과(SQLSTATE 55P03)는 Hibernate LockTimeoutException을 PessimisticLockException이 감싼 모양이어도 일시 장애로 바꾸고 원인을 보존한다")
 	void postgresLockTimeoutIsTranslated() {
-		LockTimeoutException hibernateFailure = new LockTimeoutException("lock timeout", new SQLException("55P03"));
+		// 실제 경로처럼 쿼리를 만들 때가 아니라 실행(getSingleResult)할 때, SQLSTATE 55P03을 단 예외가 난다
+		LockTimeoutException hibernateFailure = new LockTimeoutException("lock timeout",
+				new SQLException("lock timeout", "55P03"));
 		PessimisticLockException cause = new PessimisticLockException("could not obtain lock", hibernateFailure);
-		when(entityManager.createNativeQuery(anyString(), any(Class.class))).thenThrow(cause);
+		Query query = mock(Query.class);
+		when(entityManager.createNativeQuery(anyString(), any(Class.class))).thenReturn(query);
+		when(query.setParameter(anyString(), any())).thenReturn(query);
+		when(query.getSingleResult()).thenThrow(cause);
 
 		assertThatThrownBy(() -> adapter.lock(10L)).isInstanceOf(WalkPersistenceUnavailableException.class)
 			.hasCause(cause);
