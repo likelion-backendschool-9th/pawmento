@@ -234,12 +234,11 @@ class DiaryScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S23 첨부·위치 미연동 입력을 성공처럼 무시하지 않는다")
+  @DisplayName("#32-S23 미연동 위치와 잘못된 첨부 입력을 성공처럼 무시하지 않는다")
   void unsupported() throws Exception {
     long pet = pet(9001), id = create(pet);
     for (String extra :
         List.of(
-            "\"attachmentIds\":[1]",
             "\"location\":{\"mode\":\"MANUAL\",\"latitude\":37.5,\"longitude\":127.0}",
             "\"location\":{\"mode\":\"AUTO\"}",
             "\"location\":{\"mode\":\"MANUAL\"}")) {

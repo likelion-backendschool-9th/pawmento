@@ -30,7 +30,6 @@ public final class DiaryEntry {
         || createdBy == null
         || createdBy <= 0
         || content == null
-        || content.isBlank()
         || content.strip().length() > 3000
         || recordedDate == null
         || createdAt == null
@@ -49,6 +48,17 @@ public final class DiaryEntry {
 
   public static DiaryEntry create(
       Long petId, Long memberId, String content, LocalDate date, Instant now) {
+    return create(petId, memberId, content, date, now, false);
+  }
+
+  public static DiaryEntry create(
+      Long petId,
+      Long memberId,
+      String content,
+      LocalDate date,
+      Instant now,
+      boolean hasAttachments) {
+    requireContent(content, hasAttachments);
     requireDate(date, now);
     return new DiaryEntry(null, petId, memberId, content, date, now, now, 0L);
   }
@@ -71,16 +81,26 @@ public final class DiaryEntry {
   }
 
   public void edit(Long memberId, String content, LocalDate date, Instant now) {
-    requireAuthor(memberId);
     if (content == null && date == null) throw new InvalidDiaryEntryException();
+    edit(memberId, content, date, now, false);
+  }
+
+  public void edit(
+      Long memberId, String content, LocalDate date, Instant now, boolean hasAttachments) {
+    requireAuthor(memberId);
     String nextContent = content == null ? this.content : content.strip();
     LocalDate nextDate = date == null ? recordedDate : date;
-    if (nextContent.isBlank() || nextContent.length() > 3000)
-      throw new InvalidDiaryEntryException();
+    requireContent(nextContent, hasAttachments);
     requireDate(nextDate, now);
     this.content = nextContent;
     this.recordedDate = nextDate;
     this.updatedAt = now;
+  }
+
+  private static void requireContent(String content, boolean hasAttachments) {
+    if (content == null
+        || content.strip().length() > 3000
+        || (content.isBlank() && !hasAttachments)) throw new InvalidDiaryEntryException();
   }
 
   private static void requireDate(LocalDate date, Instant now) {

@@ -12,6 +12,7 @@ public class ListDiaryEntriesService implements ListDiaryEntriesUseCase {
   private final CheckDiaryPetAccessPort access;
   private final LoadDiaryEntriesPort entries;
   private final CountDiaryEntriesPort counts;
+  private final DiaryResults results;
 
   @Override
   @Transactional(
@@ -25,10 +26,6 @@ public class ListDiaryEntriesService implements ListDiaryEntriesUseCase {
     long total = counts.count(query.petId(), filter);
     long pages = total / filter.size() + (total % filter.size() == 0 ? 0 : 1);
     return new ListDiaryEntriesResult(
-        result.stream().map(GetDiaryEntryResult::from).toList(),
-        filter.page(),
-        filter.size(),
-        total,
-        pages);
+        results.many(query.petId(), result), filter.page(), filter.size(), total, pages);
   }
 }

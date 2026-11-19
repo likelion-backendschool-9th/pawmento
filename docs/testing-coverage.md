@@ -63,3 +63,12 @@
 | --- | --- | --- |
 | #21-S14 수정 중 삭제: 수정 스레드는 트랜잭션 안에서 `LoadPostPort`로 읽고 `Post.edit` 뒤 `UpdatePostPort.update`를 직접 부르고, 삭제 스레드는 그 사이에 유스케이스로 삭제를 커밋한다. 수정 쪽 예외가 `PostConcurrentModificationException`인지 확인 | `PostConcurrentUpdateTest.editAfterDeleteIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 삭제를 커밋하고, PUT 응답이 409 `CONFLICT`인지와 DB에 원래 제목·본문과 `deleted_at`이 남았는지 확인 | 예외 타입은 직접 보지 않고 HTTP 응답 코드로 확인한다. 끼어드는 삭제는 HTTP가 아니라 유스케이스 호출이다 |
 | #21-S14 겹친 수정: 먼저 읽은 글로 `UpdatePostPort.update`를 불러 예외 타입을 확인 | `PostConcurrentUpdateTest.laterEditIsRejected`: PUT이 글을 읽은 직후 다른 스레드가 수정을 커밋하고, PUT 응답이 409 `CONFLICT`인지와 먼저 저장된 값이 남았는지 확인 | 영속성 어댑터를 직접 부르는 검사는 `conflictKeepsCause` 하나로, 409 예외가 저장소의 충돌 예외를 cause로 남기는지만 본다(#84 리뷰). 끼어드는 수정은 HTTP가 아니라 유스케이스 호출이다 |
+
+## 다이어리 첨부 지원 (#32, #105)
+
+| 기존 검사 | 새 확인 위치 | 유지·제외 범위 |
+| --- | --- | --- |
+| `DiaryWritePolicyTest` #32-S23의 첨부 요청 일괄 거부 및 `DiaryScenarioTest.unsupported`의 attachmentIds 요청 409 | `DiaryAttachmentScenarioTest` #32-S3·S9·S10: 실제 READY 첨부 성공, JSON 누락/null/공백, 중복·소유권·아이·용도·만료·상태 검증 및 저장 실패 전체 롤백 | 첨부는 더 이상 미지원이 아니다. 기존 위치 AUTO/MANUAL 거부와 잘못된 JSON 거부는 유지한다. 가족·지도·프론트 연동은 검증하지 않는다. |
+| 텍스트 전용 본문 공백 거부 | 기존 `DiaryEntryTest`의 첨부 없는 공백 거부를 유지하고, `DiaryAttachmentScenarioTest` #32-S3·S8·S9에서 첨부 전용 생성·전환·마지막 첨부 제거 거부 검사 | 본문과 첨부가 모두 없는 일기는 계속 거부한다. PATCH 생략과 명시적 null을 구분한다. |
+
+기존 #32-S21 수정/삭제 경합 검사는 유지한다. 첨부 갱신은 같은 부모 행 잠금 뒤 ID 순서 자산 잠금으로 직렬화하며, 잠금 재조회에서 확인한 버전 충돌도 공통 409로 변환한다. 테스트를 서비스 호출 검증만으로 축소하지 않는다.

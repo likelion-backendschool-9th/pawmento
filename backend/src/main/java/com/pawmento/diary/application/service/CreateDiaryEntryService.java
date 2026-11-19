@@ -11,17 +11,33 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CreateDiaryEntryService implements CreateDiaryEntryUseCase {
   private final CheckDiaryPetAccessPort access;
+  private final DiaryAttachmentsPort attachments;
+  private final DiaryMediaPort media;
+  private final DiaryResults results;
   private final SaveDiaryEntryPort save;
   private final java.time.Clock clock;
 
   @Override
   @Transactional
   public GetDiaryEntryResult create(CreateDiaryEntryCommand c) {
-    DiaryWritePolicy.requireTextOnly(c.features());
+    DiaryWritePolicy.requireSupported(c.features());
     access.requireAccess(c.memberId(), c.petId());
-    return GetDiaryEntryResult.from(
+    var ids =
+        c.features().attachmentIds() == null
+            ? java.util.List.<Long>of()
+            : c.features().attachmentIds();
+    var entry =
         save.save(
             DiaryEntry.create(
-                c.petId(), c.memberId(), c.content(), c.recordedDate(), clock.instant())));
+                c.petId(),
+                c.memberId(),
+                c.content(),
+                c.recordedDate(),
+                clock.instant(),
+                !ids.isEmpty()));
+    media.lock(c.memberId(), c.petId(), ids);
+    attachments.replace(entry.getId(), ids);
+    media.change(c.memberId(), c.petId(), java.util.List.of(), ids);
+    return results.one(entry);
   }
 }

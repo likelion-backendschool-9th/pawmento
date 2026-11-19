@@ -45,7 +45,18 @@ final class DiaryRequestValues {
       locationRequested = !"NONE".equals(location.get("mode").asText());
       if (!locationRequested && location.size() != 1) throw new InvalidDiaryRequestException();
     }
-    return new DiaryWriteFeatures(attachments != null && !attachments.isEmpty(), locationRequested);
+    java.util.List<Long> ids = null;
+    if (attachments != null) {
+      ids = new java.util.ArrayList<>();
+      for (JsonNode id : attachments) {
+        if (!id.isIntegralNumber() || !id.canConvertToLong() || id.asLong() <= 0)
+          throw new InvalidDiaryRequestException();
+        ids.add(id.asLong());
+      }
+      if (new java.util.HashSet<>(ids).size() != ids.size())
+        throw new InvalidDiaryRequestException();
+    }
+    return new DiaryWriteFeatures(ids, locationRequested);
   }
 
   static void id(Long id) {

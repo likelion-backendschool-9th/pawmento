@@ -22,6 +22,47 @@ class MediaAssetTest {
         NOW);
   }
 
+  private MediaAsset ready() {
+    var a = asset(3);
+    a.begin(NOW);
+    a.received(new StoredUpload(3, "a".repeat(64)), NOW);
+    a.validated(
+        new VerifiedMedia(
+            "12345678-1234-1234-1234-123456789abc",
+            "image/png",
+            3,
+            "a".repeat(64),
+            null,
+            1,
+            1,
+            null),
+        NOW);
+    return a;
+  }
+
+  @Test
+  @DisplayName("#32-S10 새 참조는 READY·미연결 만료를 검사하고 연결된 파일의 재사용은 허용한다")
+  void referencesAndExpiry() {
+    var pending = asset(3);
+    assertThatThrownBy(() -> pending.acquireReference(NOW))
+        .isInstanceOf(MediaStateConflictException.class);
+    var expired = ready();
+    assertThatThrownBy(() -> expired.acquireReference(expired.getUnattachedExpiresAt()))
+        .isInstanceOf(MediaStateConflictException.class);
+    var linked = ready();
+    linked.acquireReference(NOW);
+    linked.acquireReference(linked.getUnattachedExpiresAt().plusSeconds(1));
+    assertThat(linked.getReferenceCount()).isEqualTo(2);
+    linked.releaseReference(NOW);
+    linked.requireAttached(2L);
+    assertThat(linked.getReferenceCount()).isEqualTo(1);
+    linked.releaseReference(NOW);
+    assertThatThrownBy(() -> linked.releaseReference(NOW))
+        .isInstanceOf(MediaStateConflictException.class);
+    assertThatThrownBy(() -> linked.requireAttached(2L))
+        .isInstanceOf(MediaStateConflictException.class);
+  }
+
   @Test
   @DisplayName("#33-S1 수신 완료는 검증 대기 PROCESSING이며 READY가 아니다")
   void receive() {

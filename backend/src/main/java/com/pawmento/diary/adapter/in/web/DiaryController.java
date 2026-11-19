@@ -49,7 +49,8 @@ public class DiaryController {
       HttpServletRequest http,
       @RequestBody CreateDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
-    String content = DiaryRequestValues.text(request.content(), true);
+    String content =
+        request.content() == null ? "" : DiaryRequestValues.text(request.content(), true);
     var date = DiaryRequestValues.date(request.recordedDate(), true);
     var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(

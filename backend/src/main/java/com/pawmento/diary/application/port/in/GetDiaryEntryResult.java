@@ -11,7 +11,26 @@ public record GetDiaryEntryResult(
     LocalDate recordedDate,
     Instant createdAt,
     Instant updatedAt,
-    Long version) {
+    Long version,
+    java.util.List<DiaryAttachment> attachments) {
+  public GetDiaryEntryResult {
+    attachments = java.util.List.copyOf(attachments);
+  }
+
+  public static GetDiaryEntryResult from(
+      DiaryEntry e, java.util.List<DiaryAttachment> attachments) {
+    return new GetDiaryEntryResult(
+        e.getId(),
+        e.getPetId(),
+        e.getCreatedBy(),
+        e.getContent(),
+        e.getRecordedDate(),
+        e.getCreatedAt(),
+        e.getUpdatedAt(),
+        e.getVersion(),
+        attachments);
+  }
+
   public static GetDiaryEntryResult from(DiaryEntry e) {
     return new GetDiaryEntryResult(
         e.getId(),
@@ -21,6 +40,7 @@ public record GetDiaryEntryResult(
         e.getRecordedDate(),
         e.getCreatedAt(),
         e.getUpdatedAt(),
-        e.getVersion());
+        e.getVersion(),
+        java.util.List.of());
   }
 }

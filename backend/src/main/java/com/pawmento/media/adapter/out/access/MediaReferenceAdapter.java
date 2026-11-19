@@ -6,10 +6,11 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class UnattachedMediaReferenceAdapter implements InspectMediaReferencesPort {
+public class MediaReferenceAdapter implements InspectMediaReferencesPort {
   private final LoadMediaAssetPort load;
+  private final com.pawmento.diary.application.port.in.HasDiaryAttachmentUseCase diary;
 
   public boolean isReferenced(Long id) {
-    return load.findById(id).map(a -> a.getReferenceCount() != 0).orElse(true);
+    return diary.exists(id) || load.findById(id).map(a -> a.getReferenceCount() != 0).orElse(true);
   }
 }

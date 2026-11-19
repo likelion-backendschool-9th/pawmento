@@ -14,6 +14,12 @@ final class DiaryEntryAccess {
     return entry;
   }
 
+  static DiaryEntry locked(LoadDiaryEntryPort load, Long petId, Long id) {
+    var entry = load.findForUpdate(id).orElseThrow(DiaryVersionConflictException::new);
+    if (!entry.getPetId().equals(petId)) throw new DiaryEntryNotFoundException();
+    return entry;
+  }
+
   static void version(DiaryEntry entry, Long version) {
     if (version == null || version < 0) throw new InvalidDiaryEntryException();
     if (!entry.getVersion().equals(version)) throw new DiaryVersionConflictException();

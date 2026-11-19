@@ -16,8 +16,9 @@ class ProcessMediaWorkServiceTest {
   final ValidateMediaFilePort validator = mock(ValidateMediaFilePort.class);
   final DeleteMediaFilesPort deletion = mock(DeleteMediaFilesPort.class);
   final DeleteMediaUploadPort temporary = mock(DeleteMediaUploadPort.class);
+  final InspectMediaReferencesPort references = mock(InspectMediaReferencesPort.class);
   final ProcessMediaWorkService service =
-      new ProcessMediaWorkService(tx, load, validator, deletion, temporary);
+      new ProcessMediaWorkService(tx, load, validator, deletion, temporary, references);
   final MediaWork work = new MediaWork(1L, UUID.randomUUID().toString(), 1, "VALIDATE");
 
   MediaAsset asset() {
@@ -34,6 +35,20 @@ class ProcessMediaWorkServiceTest {
     a.begin(Instant.now());
     a.received(new StoredUpload(3, "hash"), Instant.now());
     return a;
+  }
+
+  @Test
+  @DisplayName("#32-S11 물리 삭제 직전에 실제 첨부가 확인되면 파일을 보존한다")
+  void protectsActualReferences() {
+    var a = asset();
+    a.requestDeletion(Instant.now());
+    var w = new MediaWork(1L, work.token(), 1, "DELETE");
+    when(tx.claim()).thenReturn(Optional.of(w));
+    when(load.findById(1L)).thenReturn(Optional.of(a));
+    when(references.isReferenced(any())).thenReturn(true);
+    service.processNext();
+    verifyNoInteractions(deletion, temporary);
+    verify(tx).retry(w, "IllegalStateException", false);
   }
 
   @BeforeEach
