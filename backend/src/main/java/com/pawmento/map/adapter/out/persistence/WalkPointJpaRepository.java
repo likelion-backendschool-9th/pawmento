@@ -1,6 +1,7 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 interface WalkPointJpaRepository extends JpaRepository<WalkPointJpaEntity, Long> {
 
 	List<WalkPointJpaEntity> findByWalkIdOrderByRecordedAtAsc(Long walkId);
+
+	// 인덱스(walk_id, recorded_at)로 산책별 시간순 조회를 한 번에 한다
+	List<WalkPointJpaEntity> findByWalkIdInOrderByWalkIdAscRecordedAtAsc(Collection<Long> walkIds);
 
 	long countByWalkId(Long walkId);
 

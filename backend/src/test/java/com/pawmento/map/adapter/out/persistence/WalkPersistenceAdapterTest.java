@@ -143,6 +143,27 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
+	@DisplayName("#73-S7 여러 산책의 좌표를 한 번에 읽어 산책별로 기록 시각 순서로 묶고, 좌표가 없는 산책은 빈 목록이다")
+	void loadPointsOfSeveralWalks() {
+		Long first = saveWalk(PET, MEMBER, NOW);
+		Long second = saveWalk(PET, MEMBER, NOW.plusSeconds(3600));
+		Long empty = saveWalk(PET, MEMBER, NOW.plusSeconds(7200));
+		adapter.insertIfAbsent(List.of(WalkPoint.of(second, 37.3, 127.3, NOW.plusSeconds(3630)),
+				WalkPoint.of(first, 37.2, 127.2, NOW.plusSeconds(30)),
+				WalkPoint.of(second, 37.1, 127.1, NOW.plusSeconds(3615)),
+				WalkPoint.of(first, 37.0, 127.0, NOW.plusSeconds(15))));
+		flushAndClear();
+
+		var grouped = adapter.loadByWalkIds(List.of(first, second, empty));
+
+		assertThat(grouped.keySet()).containsExactly(first, second, empty);
+		assertThat(grouped.get(first)).extracting(WalkPoint::getLatitude).containsExactly(37.0, 37.2);
+		assertThat(grouped.get(second)).extracting(WalkPoint::getLatitude).containsExactly(37.1, 37.3);
+		assertThat(grouped.get(empty)).isEmpty();
+		assertThat(adapter.loadByWalkIds(List.of())).isEmpty();
+	}
+
+	@Test
 	@DisplayName("#73-S4 좌표를 받아 마지막 활동 시각이 바뀐 산책을 저장하면 그 값이 남는다")
 	void saveRefreshedActivity() {
 		Long id = saveWalk(PET, MEMBER, NOW);

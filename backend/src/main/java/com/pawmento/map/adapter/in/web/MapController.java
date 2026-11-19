@@ -15,9 +15,12 @@ import com.pawmento.map.application.port.in.EndWalkCommand;
 import com.pawmento.map.application.port.in.EndWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
+import com.pawmento.map.application.port.in.ListWalksQuery;
+import com.pawmento.map.application.port.in.ListWalksUseCase;
 import com.pawmento.map.application.port.in.StartWalkCommand;
 import com.pawmento.map.application.port.in.StartWalkUseCase;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -31,6 +34,7 @@ class MapController {
 	private final StartWalkUseCase startWalkUseCase;
 	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
+	private final ListWalksUseCase listWalksUseCase;
 
 	@GetMapping("/pins")
 	MapPinsResponse listPins(@LoginMember Long memberId, @Valid ListMapPinsRequest request) {
@@ -39,6 +43,14 @@ class MapController {
 		return MapPinsResponse.from(listMapPinsUseCase.list(query));
 	}
 
+
+	@GetMapping("/walks")
+	WalksResponse listWalks(@LoginMember Long memberId, HttpServletRequest http) {
+		// 쿼리 문자열만 읽는다. 모델 바인딩은 URL에 없는 값을 헤더로 채우고 날짜의 offset 접미사도 받는다
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId", "date");
+		return WalksResponse
+			.from(listWalksUseCase.list(new ListWalksQuery(memberId, query.positiveLong("petId"), query.date("date"))));
+	}
 
 	@PostMapping("/walks")
 	@ResponseStatus(HttpStatus.CREATED)

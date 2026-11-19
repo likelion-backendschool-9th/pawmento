@@ -160,7 +160,7 @@
   | `POST /maps/walks` | `petId` | 201, `walkId`, `startedAt`, `status` |
   | `POST /maps/walks/{walkId}/points` | `points`(`latitude`, `longitude`, `recordedAt`) | 204 |
   | `POST /maps/walks/{walkId}/end` | 없음 | 200, `endedAt`, `status` |
-  | `GET /maps/walks` | `petId`, `date`(`YYYY-MM-DD`) | 200, `walks`(`walkId`, `startedAt`, `endedAt`, `status`, `points`) |
+  | `GET /maps/walks` | `petId`, `date`(`YYYY-MM-DD`) | 200, `walks`(`walkId`, `startedAt`, `endedAt`, `status`, `points`(`latitude`, `longitude`, `recordedAt`)). 끝내지 않은 산책의 `endedAt`은 null이다 |
 
 - 산책로는 좌표가 시간순으로 쌓이는 데이터라서 위치 하나를 담는 `record_location`과 따로 저장한다. 경로 데이터는 지도 도메인에서만 관리해 다이어리와 겹치지 않게 한다. (#73)
 - 반려동물의 존재와 소유는 pet이 판단한다. 산책을 시작할 때 pet의 `GetPetUseCase.get(new GetPetQuery(memberId, petId))`를 부르고, 정상으로 돌아오면 요청한 회원의 반려동물이다. 없으면 404, 다른 회원의 것이면 403이다. 지도는 pet의 입력 포트만 부르고 pet의 도메인·저장소를 직접 쓰지 않는다. `PetResult`에는 소유자 id가 없고 지도가 소유자를 다시 비교할 필요도 없다. (#73, pet 담당 답변: #74 리뷰)
@@ -169,6 +169,7 @@
 - 반려동물 한 마리에는 한 번에 산책 하나만 진행된다. 진행 중인 산책이 있는데 새로 시작하면 409다. (#73)
 - 앱이 꺼져 마지막 좌표를 받은 지 5분이 넘으면 그 산책은 중단(`INTERRUPTED`)이다. 중단된 산책에는 좌표를 더 쌓을 수 없고(409) 새 산책을 시작할 수 있다. 중단된 산책은 날짜별 조회에서 마지막 좌표까지의 경로로 나오고 `endedAt`은 비어 있다. 서버는 앱이 꺼진 것을 직접 알 수 없어서 좌표가 끊긴 시간으로 판단한다. 5분은 15초 간격 수집과 묶음 전송, 짧은 신호 끊김을 견디는 값이며 구현할 때 조정한다. (#73)
 - 한 요청의 좌표는 최대 100개이고 넘으면 400이다. 한 산책의 좌표는 최대 5,000개이고 넘기면 409다. 15초 간격이면 5,000개는 약 20시간 분량이다. (#73)
+- 날짜별 조회는 산책 행과 좌표를 같은 읽기 스냅샷(REPEATABLE READ)에서 읽는다. 좌표를 쌓는 요청이 두 조회 사이에 커밋돼도 "새 좌표를 담고도 중단으로 판정"되는 어긋남이 없다. 요청은 쿼리 문자열만 읽고(같은 이름의 헤더로 채우지 않음) `date`는 정확히 `YYYY-MM-DD`만 받는다(offset 접미사, 확장 연도, 달력에 없는 날은 400). (#73)
 - 날짜는 Asia/Seoul 기준으로 나눈다. 산책이 속하는 날은 `startedAt`이 속한 날이다. (#73)
 - 에러는 [백엔드 예외 처리](../backend-exceptions.md)를 따른다. 규칙 위반은 `RuleViolationException`, 권한 없음은 `PermissionDeniedException`, 상태 충돌은 `StateConflictException`을 상속한 예외로 던진다. (#73)
 
