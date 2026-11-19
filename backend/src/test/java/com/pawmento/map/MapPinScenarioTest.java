@@ -300,7 +300,7 @@ class MapPinScenarioTest {
 				.cookie(me.cookie()))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.pins.length()").value(1))
-			.andExpect(jsonPath("$.pins[0].recordId").value(mine));
+			.andExpect(jsonPath("$.pins[0].diaryId").value(mine));
 	}
 
 	@Test
