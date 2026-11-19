@@ -1,7 +1,11 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
@@ -106,6 +110,20 @@ class WalkPersistenceAdapter
 			.stream()
 			.map(WalkPointJpaEntity::toDomain)
 			.toList());
+	}
+
+	@Override
+	public Map<Long, List<WalkPoint>> loadByWalkIds(Collection<Long> walkIds) {
+		if (walkIds.isEmpty()) {
+			return Map.of();
+		}
+		return execute(() -> {
+			Map<Long, List<WalkPoint>> grouped = new LinkedHashMap<>();
+			walkIds.forEach(id -> grouped.put(id, new ArrayList<>()));
+			walkPointJpaRepository.findByWalkIdInOrderByWalkIdAscRecordedAtAsc(walkIds)
+				.forEach(entity -> grouped.get(entity.getWalkId()).add(entity.toDomain()));
+			return grouped;
+		});
 	}
 
 	@Override
