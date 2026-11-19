@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.map.application.port.in.ListWalksQuery;
@@ -30,9 +32,13 @@ class ListWalksService implements ListWalksUseCase {
 	/**
 	 * 만든 회원과 반려동물로 거르므로 pet의 소유 확인을 부르지 않는다. 다른 회원의 반려동물은 빈 목록이다.
 	 * 좌표는 산책마다 읽지 않고 한 번에 읽는다.
+	 *
+	 * 산책 행과 좌표를 같은 읽기 스냅샷(REPEATABLE READ)에서 읽는다. 기본 격리 수준에서는 두 조회 사이에 좌표 추가가 커밋되면
+	 * 갱신 전 마지막 활동 시각과 추가된 좌표를 함께 읽어, 새 좌표를 담고도 INTERRUPTED를 돌려줄 수 있다.
+	 * 이미 열린 트랜잭션 안에서 부르면 격리 수준 지정이 무시되므로 새 읽기 트랜잭션을 시작한다.
 	 */
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ, propagation = Propagation.REQUIRES_NEW)
 	public ListWalksResult list(ListWalksQuery query) {
 		WalkDay day = new WalkDay(query.date());
 		List<Walk> walks = loadWalkPort.loadStartedBetween(query.memberId(), query.petId(), day.startInclusive(),

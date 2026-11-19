@@ -1,6 +1,9 @@
 package com.pawmento.map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.reset;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,11 +23,13 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.map.application.port.out.LoadWalkPointsPort;
 import com.pawmento.global.security.AccessTokenCookie;
 
 import jakarta.servlet.http.Cookie;
@@ -50,6 +55,10 @@ class WalkListScenarioTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	// 산책 행을 읽은 뒤 좌표를 읽기 전에 다른 연결이 끼어들게 하려고 좌표 포트를 감시한다. 기본은 실제 호출이다
+	@MockitoSpyBean
+	private LoadWalkPointsPort loadWalkPointsPort;
 
 	private record Guardian(long id, Cookie cookie) {
 	}
@@ -138,7 +147,7 @@ class WalkListScenarioTest {
 		long walk = insertWalk(pet, owner.id(), "2026-11-17T01:00:00Z", "2026-11-17T01:40:00Z", "2026-11-17T01:40:00Z");
 		seedPoints(walk, "2026-11-17T01:00:00Z", 4);
 
-		mockMvc.perform(get("/api/v1/maps/walks").param("petId", String.valueOf(pet)).param("date", "2026-11-17"))
+		mockMvc.perform(get("/api/v1/maps/walks?petId=" + pet + "&date=2026-11-17"))
 			.andExpect(status().isUnauthorized());
 		list(other, pet, "2026-11-17").andExpect(status().isOk()).andExpect(jsonPath("$.walks").isEmpty());
 		assertThat(walkIds(list(owner, pet, "2026-11-17"))).containsExactly(walk);
@@ -220,28 +229,138 @@ class WalkListScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#73-S7 petId·date가 없거나 형식이 틀리면 JSON 에러가 달린 400이다. 달력에 없는 날과 다른 날짜 형식도 거절한다")
+	@DisplayName("#73-S7 산책 행을 읽은 뒤 좌표를 읽기 전에 다른 요청의 좌표 추가가 커밋돼도, 같은 스냅샷이라 새 좌표를 담고도 INTERRUPTED가 되는 일이 없다")
+	void walkAndPointsAreReadFromTheSameSnapshot() throws Exception {
+		Guardian me = signUpAndLogin();
+		long pet = createPet(me);
+		// 마지막 활동이 10분 전이라 지금은 중단된 산책이다. 시작은 한 시간 전, 좌표는 2개다
+		Instant now = Instant.now();
+		Instant startedAt = now.minusSeconds(3600);
+		long walk = insertWalk(pet, me.id(), startedAt.toString(), null, now.minusSeconds(600).toString());
+		seedPoints(walk, startedAt.toString(), 2);
+		String date = LocalDate.ofInstant(startedAt, SEOUL).toString();
+
+		// 좌표를 읽기 직전에 다른 연결이 좌표를 추가하고 마지막 활동 시각을 지금으로 갱신해 커밋한 것과 같은 순서를 만든다
+		// 훅은 조회 트랜잭션의 스레드에서 돌고 이 스레드의 JdbcTemplate은 그 트랜잭션의 읽기 전용 연결을 쓴다.
+		// 다른 요청처럼 별도 스레드(별도 연결)에서 커밋한다
+		doAnswer(invocation -> {
+			java.util.concurrent.ExecutorService other = java.util.concurrent.Executors.newSingleThreadExecutor();
+			try {
+				other.submit(() -> {
+					jdbcTemplate.update(
+							"insert into walk_points (walk_id, latitude, longitude, recorded_at) values (?, 37.9, 127.9, ?)",
+							walk, Timestamp.from(now));
+					jdbcTemplate.update("update walks set last_activity_at = ? where id = ?", Timestamp.from(now), walk);
+				}).get(10, java.util.concurrent.TimeUnit.SECONDS);
+			}
+			finally {
+				other.shutdownNow();
+			}
+			return invocation.callRealMethod();
+		}).when(loadWalkPointsPort).loadByWalkIds(anyCollection());
+		JsonNode result;
+		try {
+			result = readBody(list(me, pet, date).andExpect(status().isOk()).andReturn()).get("walks").get(0);
+		}
+		finally {
+			reset(loadWalkPointsPort);
+		}
+
+		// 읽기 스냅샷은 추가가 커밋되기 전의 것이다. 상태와 좌표가 서로 어긋나지 않는다:
+		// 중단으로 보이면 새 좌표도 없고, 새 좌표가 있으면 진행 중이어야 한다
+		String status = result.get("status").asText();
+		int points = result.get("points").size();
+		assertThat(status.equals("INTERRUPTED") ? points == 2 : points == 3).as("status=%s points=%d", status, points)
+			.isTrue();
+		// 다음 요청은 커밋된 새 상태를 읽는다
+		JsonNode after = readBody(list(me, pet, date).andExpect(status().isOk()).andReturn()).get("walks").get(0);
+		assertThat(after.get("status").asText()).isEqualTo("IN_PROGRESS");
+		assertThat(after.get("points")).hasSize(3);
+	}
+
+	@Test
+	@DisplayName("#73-S7 petId·date가 없거나 형식이 틀리면 JSON 에러가 달린 400이다. 달력에 없는 날, 다른 날짜 형식, offset 접미사, 중복도 거절한다")
 	void invalidQueryIsRejected() throws Exception {
 		Guardian me = signUpAndLogin();
 		long pet = createPet(me);
 
 		for (String query : new String[] { "", "petId=" + pet, "date=2026-11-17", "petId=" + pet + "&date=",
 				"petId=&date=2026-11-17", "petId=abc&date=2026-11-17", "petId=10.5&date=2026-11-17",
+				"petId=0&date=2026-11-17", "petId=-1&date=2026-11-17", "petId=99999999999999999999&date=2026-11-17",
 				"petId=" + pet + "&date=2026-02-30", "petId=" + pet + "&date=2026-13-01",
 				"petId=" + pet + "&date=20261117", "petId=" + pet + "&date=2026-1-7", "petId=" + pet + "&date=abc",
-				"petId=" + pet + "&date=2026-11-17T10:00", "petId=" + pet + "&date=2026-11-17,2026-11-18" }) {
-			MvcResult result = mockMvc.perform(get("/api/v1/maps/walks?" + query).cookie(me.cookie())).andReturn();
+				"petId=" + pet + "&date=2026-11-17T10:00", "petId=" + pet + "&date=2026-11-17,2026-11-18",
+				// offset 접미사는 스프링의 ISO.DATE가 받아 주던 형식이다
+				"petId=" + pet + "&date=2026-11-17Z", "petId=" + pet + "&date=2026-11-17%2B09:00",
+				"petId=" + pet + "&date=2026-11-17-09:00", "petId=" + pet + "&date=%2B10000-01-01",
+				"petId=" + pet + "&date=+10000-01-01", "petId=" + pet + "&date=-0001-01-01",
+				// 같은 키가 둘 이상이면 첫 값을 쓰지 않고 거절한다
+				"petId=" + pet + "&petId=" + pet + "&date=2026-11-17",
+				"petId=" + pet + "&%70etId=" + pet + "&date=2026-11-17",
+				"petId=" + pet + "&date=2026-11-17&date=2026-11-18", "petId=%ZZ&date=2026-11-17" }) {
+			MvcResult result = mockMvc.perform(withRawQuery(query).cookie(me.cookie())).andReturn();
 			assertThat(result.getResponse().getStatus()).as("query=%s", query).isEqualTo(400);
 			assertThat(readBody(result).get("code").asText()).as("query=%s", query).isEqualTo("VALIDATION");
+			assertThat(readBody(result).get("message").asText()).as("query=%s", query).isNotBlank();
+		}
+	}
+
+	@Test
+	@DisplayName("#73-S7 필수 쿼리는 같은 이름의 요청 헤더로 채울 수 없다. petId·date 모두 쿼리에 있어야 한다")
+	void requiredQueryIsNotFilledByHeaders() throws Exception {
+		Guardian me = signUpAndLogin();
+		long pet = createPet(me);
+
+		MvcResult petIdHeader = mockMvc
+			.perform(get("/api/v1/maps/walks?date=2026-11-17").cookie(me.cookie()).header("petId", String.valueOf(pet)))
+			.andReturn();
+		MvcResult dateHeader = mockMvc
+			.perform(get("/api/v1/maps/walks?petId=" + pet).cookie(me.cookie()).header("date", "2026-11-17"))
+			.andReturn();
+
+		assertThat(petIdHeader.getResponse().getStatus()).isEqualTo(400);
+		assertThat(readBody(petIdHeader).get("message").asText()).isEqualTo("petId를 입력해 주세요.");
+		assertThat(dateHeader.getResponse().getStatus()).isEqualTo(400);
+		assertThat(readBody(dateHeader).get("message").asText()).isEqualTo("date를 입력해 주세요.");
+	}
+
+	@Test
+	@DisplayName("#73-S7 인코딩한 키는 읽고, 이 API가 받지 않는 파라미터는 인코딩이 잘못돼도 무시한다")
+	void encodedKeysAndIgnoredParameters() throws Exception {
+		Guardian me = signUpAndLogin();
+		long pet = createPet(me);
+		long walk = insertWalk(pet, me.id(), "2026-11-17T01:00:00Z", null, "2026-11-17T01:00:00Z");
+
+		for (String query : new String[] { "%70etId=" + pet + "&date=2026-11-17",
+				"petId=" + pet + "&date=2026-11-17&utm_source=%E0&%E0=x" }) {
+			MvcResult result = mockMvc.perform(withRawQuery(query).cookie(me.cookie())).andReturn();
+			assertThat(result.getResponse().getStatus()).as("query=%s", query).isEqualTo(200);
+			assertThat(readBody(result).get("walks").get(0).get("walkId").asLong()).as("query=%s", query)
+				.isEqualTo(walk);
 		}
 	}
 
 	// ---- 도우미
 
+	// 인코딩한 키·값과 잘못된 인코딩을 있는 그대로 보낸다. 유효한 URI면 요청 파라미터와 원본 쿼리 문자열을 함께 채우고
+	// (이전 구현이 쓰던 파라미터 바인딩에도 같은 입력이 가도록), %ZZ처럼 URI가 아닌 값은 원본 쿼리 문자열만 넣는다.
+	// get("...?...")은 %를 한 번 더 인코딩해서 쓰지 않는다
+	private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withRawQuery(
+			String rawQuery) {
+		try {
+			return get(java.net.URI.create("/api/v1/maps/walks?" + rawQuery));
+		}
+		catch (IllegalArgumentException invalidUri) {
+			return get("/api/v1/maps/walks").with(request -> {
+				request.setQueryString(rawQuery);
+				return request;
+			});
+		}
+	}
+
 	private ResultActions list(Guardian guardian, long petId, String date) throws Exception {
-		return mockMvc.perform(get("/api/v1/maps/walks").cookie(guardian.cookie())
-			.param("petId", String.valueOf(petId))
-			.param("date", date));
+		// MockMvc의 param()은 요청 파라미터만 넣고 원본 쿼리 문자열은 비워 둔다. 실제 요청처럼 URL에 쿼리를 붙인다
+		return mockMvc.perform(get("/api/v1/maps/walks?petId=" + petId + "&date=" + date).cookie(guardian.cookie()));
 	}
 
 	private java.util.List<Long> walkIds(ResultActions actions) throws Exception {

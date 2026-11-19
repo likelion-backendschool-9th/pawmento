@@ -20,6 +20,7 @@ import com.pawmento.map.application.port.in.ListWalksUseCase;
 import com.pawmento.map.application.port.in.StartWalkCommand;
 import com.pawmento.map.application.port.in.StartWalkUseCase;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -44,8 +45,11 @@ class MapController {
 
 
 	@GetMapping("/walks")
-	WalksResponse listWalks(@LoginMember Long memberId, @Valid ListWalksRequest request) {
-		return WalksResponse.from(listWalksUseCase.list(new ListWalksQuery(memberId, request.petId(), request.date())));
+	WalksResponse listWalks(@LoginMember Long memberId, HttpServletRequest http) {
+		// 쿼리 문자열만 읽는다. 모델 바인딩은 URL에 없는 값을 헤더로 채우고 날짜의 offset 접미사도 받는다
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId", "date");
+		return WalksResponse
+			.from(listWalksUseCase.list(new ListWalksQuery(memberId, query.positiveLong("petId"), query.date("date"))));
 	}
 
 	@PostMapping("/walks")
