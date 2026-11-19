@@ -72,9 +72,11 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 		if (profile.email() == null || profile.email().isBlank()) {
 			throw new SocialLoginFailedException("이메일 제공에 동의해야 가입할 수 있습니다.");
 		}
-		// 같은 이메일을 다른 방법(로컬 또는 다른 소셜)으로 가입한 회원이 있으면 막는다 (계정 선점 방지)
+		// 같은 이메일의 회원이 있어도, 같은 소셜 계정의 다른 요청이 방금 가입한 것일 수 있다 (#40-S15).
+		// 그 계정이면 그 회원으로 로그인하고, 아니면 다른 방법으로 가입된 이메일이므로 409 (계정 선점 방지)
 		if (existsMemberPort.existsByEmail(Member.normalizeEmail(profile.email()))) {
-			throw new SocialEmailConflictException();
+			return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
+					.orElseThrow(SocialEmailConflictException::new);
 		}
 		Member member = Member.registerSocial(profile.provider(), profile.providerUserId(), profile.email(),
 				profile.nickname(), Instant.now(clock));
