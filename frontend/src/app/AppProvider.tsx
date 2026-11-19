@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import type { Account } from "../auth/domain/account";
+import { emptyWorkspace } from "../workspace/domain/models";
 import type { Workspace } from "../workspace/domain/models";
 import { createDependencies, type Dependencies } from "./composition";
 import { today } from "../shared/date";
@@ -30,11 +31,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dependencies] = useState(createDependencies);
   const [account, setAccount] = useState<Account | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
-  const [state, setState] = useState<Workspace>({
-    pets: [],
-    records: [],
-    selectedPetId: "",
-  });
+  const [state, setState] = useState<Workspace>(emptyWorkspace);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, notify] = useState("");
@@ -99,11 +96,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]) {
         const date = new Date(`${today()}T12:00:00+09:00`);
         date.setUTCDate(date.getUTCDate() - sample.days);
-        await dependencies.workspace.saveMemory(current.id, {
+        await dependencies.workspace.diary.save(current.id, {
           petId: pet.id,
-          type: "PHOTO",
           recordedDate: date.toISOString().slice(0, 10),
-          question: "",
           body: sample.body,
           photoUrl: sample.photoUrl,
         });
@@ -114,13 +109,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       seeded.pets.find((pet) => pet.id === seeded.selectedPetId) ??
       seeded.pets[0];
     if (demoPet) {
-      for (const input of demoQuestionInputs(
-        demoPet,
-        seeded.records,
-        today(),
-      )) {
-        await dependencies.workspace.saveMemory(current.id, input);
-      }
+      await dependencies.workspace.seedDemoAnswers(
+        current.id,
+        demoQuestionInputs(demoPet, seeded.questionAnswers, today()),
+      );
     }
     await authenticate(current);
   };
@@ -131,20 +123,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const pet = current.pets.find((item) => item.id === petId);
     if (!pet || pet.accessRole === "VIEWER")
       throw Error("기록을 추가할 수 없어요.");
-    const inputs = demoQuestionInputs(pet, current.records, today());
-    for (const input of inputs)
-      await dependencies.workspace.saveMemory(account.id, input);
+    const inputs = demoQuestionInputs(pet, current.questionAnswers, today());
+    await dependencies.workspace.seedDemoAnswers(account.id, inputs);
     await refresh();
     notify(
       inputs.length
         ? "데모 질문과 답변을 추가했어요."
-        : "이미 데모 기록이 있거나 같은 날짜의 답변이 있어요.",
+        : "이미 데모 질문과 답변이 있어요.",
     );
   };
   const signOut = async () => {
     await dependencies.auth.signOut();
     setAccount(null);
-    setState({ pets: [], records: [], selectedPetId: "" });
+    setState(emptyWorkspace());
     notify("로그아웃했어요.");
   };
   useEffect(() => {

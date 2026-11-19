@@ -148,7 +148,14 @@ export function AdminScreen({ section = "reports" }: { section?: string }) {
               <div className={s.adminRow} key={item.id}>
                 <div>
                   <strong>{item.text}</strong>
-                  <small>{item.enabled ? "사용 중" : "비활성"}</small>
+                  <small>
+                    {item.mode === "GARDEN"
+                      ? "기억 질문"
+                      : item.mode === "ACTIVE"
+                        ? "일상 질문"
+                        : "이전 질문·모드 지정 필요"}{" "}
+                    · {item.enabled ? "사용 중" : "비활성"}
+                  </small>
                 </div>
                 <button
                   className="text-link"
@@ -183,6 +190,8 @@ export function AdminScreen({ section = "reports" }: { section?: string }) {
                   life.actor,
                   String(new FormData(event.currentTarget).get("text")),
                   editingQuestion,
+                  String(new FormData(event.currentTarget).get("mode")) as
+                    "ACTIVE" | "GARDEN",
                 );
                 return true;
               }, "질문을 저장했어요.");
@@ -190,6 +199,17 @@ export function AdminScreen({ section = "reports" }: { section?: string }) {
             }}
           >
             <h2>{question ? "질문 수정" : "질문 추가"}</h2>
+            <label>
+              질문 모드
+              <select
+                name="mode"
+                defaultValue={question?.mode === "GARDEN" ? "GARDEN" : "ACTIVE"}
+                required
+              >
+                <option value="ACTIVE">일상 질문</option>
+                <option value="GARDEN">기억 질문</option>
+              </select>
+            </label>
             <label>
               질문 문구
               <textarea

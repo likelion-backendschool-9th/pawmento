@@ -1,4 +1,6 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
 import { useRouter } from "next/navigation";
@@ -10,10 +12,10 @@ import { Icon } from "@/shared/ui/Icon";
 import { today } from "@/shared/date";
 import { formatDate } from "@/shared/date";
 import { validateDate } from "../../domain/models";
-import type { Memory } from "../../domain/models";
+import type { JournalItem } from "../../domain/models";
 import type { Pet } from "../../domain/models";
 import styles from "./Workspace.module.css";
-import { RecordCard, EmptyState, PageHeading } from "./WorkspaceUi";
+import { JournalCard, EmptyState, PageHeading } from "./WorkspaceUi";
 import { messageOf } from "./presentation";
 
 export function Calendar({
@@ -33,8 +35,8 @@ export function Calendar({
   const [year, num] = month.split("-").map(Number);
   const first = new Date(Date.UTC(year, num - 1, 1)).getUTCDay();
   const days = new Date(Date.UTC(year, num, 0)).getUTCDate();
-  const records = app.state.records.filter(
-    (record) => record.petId === pet.id && record.type !== "DIARY",
+  const records = journalItems(app.state).filter(
+    (record) => record.petId === pet.id && record.type !== "QUESTION_ANSWER",
   );
   function shift(delta: number) {
     const next = new Date(Date.UTC(year, num - 1 + delta, 1));
@@ -145,7 +147,7 @@ export function ArchiveScreen({
   }
   const [limit, setLimit] = useState(9);
   const [result, setResult] = useState<{
-    records: Memory[];
+    records: JournalItem[];
     total: number;
     hasMore: boolean;
   }>({ records: [], total: 0, hasMore: false });
@@ -154,15 +156,20 @@ export function ArchiveScreen({
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
-    app.dependencies.workspace
+    app.dependencies.workspace.diary
       .list(app.account!.id, pet.id, {
         date: calendar ? date : undefined,
-        collection: "diary",
         limit,
       })
       .then((value) => {
         if (active) {
-          setResult(value);
+          setResult({
+            ...value,
+            records: value.entries.map((d) => ({
+              ...d,
+              kind: "DIARY" as const,
+            })),
+          });
           setError("");
         }
       })
@@ -192,7 +199,7 @@ export function ArchiveScreen({
         title={calendar ? "다이어리 달력" : "다이어리"}
         body={`${pet.name}와 함께한 일기와 사진을 모았어요. 질문에 남긴 답변은 오늘의 질문에서 볼 수 있어요.`}
       >
-        <Link className="button primary" href={`/pets/${pet.id}/records/new`}>
+        <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />
           기록 남기기
         </Link>
@@ -204,7 +211,7 @@ export function ArchiveScreen({
       )}
       <ArchiveNavigation
         petId={pet.id}
-        active={calendar ? "calendar" : "timeline"}
+        active={calendar ? "calendar" : "diary"}
       />
       <div className={calendar ? styles.calendarArchive : ""}>
         {calendar && (
@@ -248,14 +255,14 @@ export function ArchiveScreen({
               className={`${styles.recordGrid} ${calendar ? styles.calendarRecords : ""}`}
             >
               {result.records.map((record) => (
-                <RecordCard key={record.id} record={record} />
+                <JournalCard key={record.id} record={record} />
               ))}
             </div>
           ) : (
             <EmptyState
               title="아직 기록이 없는 날이에요"
               body="작은 순간 하나를 남겨볼까요?"
-              href={`/pets/${pet.id}/records/new${calendar ? `?date=${date}` : ""}`}
+              href={`/pets/${pet.id}/diary/new${calendar ? `?date=${date}` : ""}`}
               action="이날의 기록 남기기"
             />
           )}

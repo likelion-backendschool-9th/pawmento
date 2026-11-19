@@ -2,7 +2,7 @@
 import { MediaAttachments, MediaPlayer } from "@/shared/ui/MediaAttachments";
 import type { MediaAttachment } from "../../domain/models";
 import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
-import { useTodayQuestion } from "./useTodayQuestion";
+import { useCurrentQuestion } from "./useCurrentQuestion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -14,31 +14,44 @@ import { Photo } from "@/shared/ui/Photo";
 import { PhotoPicker } from "@/shared/ui/PhotoPicker";
 import { today } from "@/shared/date";
 import { formatDate } from "@/shared/date";
-import type { Memory } from "../../domain/models";
+import type { JournalItem } from "../../domain/models";
 import type { Pet } from "../../domain/models";
 import styles from "./Workspace.module.css";
 import { PageHeading } from "./WorkspaceUi";
 import { useUnsavedChanges } from "./useUnsavedChanges";
 import { question, messageOf } from "./presentation";
 
-export function RecordForm({
+export function JournalForm({
   pet,
   record,
-  diary,
+  questionAnswer,
 }: {
   pet: Pet;
-  record?: Memory;
-  diary: boolean;
+  record?: JournalItem;
+  questionAnswer: boolean;
 }) {
   const app = useApp();
   const router = useRouter();
   const search = useSearchParams();
-  const prompt = useTodayQuestion(pet.id, record?.recordedDate ?? today());
+  const requestedPrompt = app.state.questionPrompts.find(
+    (p) => p.petId === pet.id && p.id === search.get("promptId"),
+  );
+  const prompt = useCurrentQuestion(
+    pet.id,
+    questionAnswer && !record && !requestedPrompt,
+  );
+  const promptId =
+    record?.type === "QUESTION_ANSWER"
+      ? record.promptId
+      : (requestedPrompt?.id ?? prompt.id);
   const questionText =
-    record?.question ?? (prompt.text ? question(pet.name, prompt.text) : "");
+    record?.question ??
+    requestedPrompt?.questionSnapshot ??
+    (prompt.text ? question(pet.name, prompt.text) : "");
   const [body, setBody] = useState(record?.body ?? "");
   const [date, setDate] = useState(
-    record?.recordedDate ?? (diary ? today() : (search.get("date") ?? today())),
+    record?.recordedDate ??
+      (questionAnswer ? today() : (search.get("date") ?? today())),
   );
   const [photo, setPhoto] = useState(record?.photoUrl ?? "");
   const [attachments, setAttachments] = useState<MediaAttachment[]>(
@@ -53,37 +66,36 @@ export function RecordForm({
     photo !== (record?.photoUrl ?? "") ||
     date !==
       (record?.recordedDate ??
-        (diary ? today() : (search.get("date") ?? today())));
+        (questionAnswer ? today() : (search.get("date") ?? today())));
   useUnsavedChanges(dirty && !saved);
   async function save(event: React.FormEvent) {
     event.preventDefault();
-    if (busy || (diary && !questionText)) return;
+    if (busy || (questionAnswer && !questionText)) return;
+    if (record?.legacy && record.attachments?.some((a) => a.type === "VIDEO")) {
+      setError("영상이 포함된 이전 데모 기록은 읽기만 가능해요.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
-      const memory = await app.dependencies.workspace.saveMemory(
-        app.account!.id,
-        {
-          petId: pet.id,
-          type: diary
-            ? "DIARY"
-            : attachments.some((file) => file.type === "VIDEO")
-              ? "VIDEO"
-              : attachments.some((file) => file.type === "VOICE")
-                ? "VOICE"
-                : photo
-                  ? "PHOTO"
-                  : "TEXT",
-          attachments,
-          authorName: app.account!.nickname,
-          recordedDate: date,
-          body,
-          photoUrl: photo,
-          question: diary ? questionText : "",
-          questionId: diary ? (record?.questionId ?? prompt.id) : undefined,
-        },
-        record?.id,
-      );
+      const content = {
+        petId: pet.id,
+        body,
+        photoUrl: photo,
+        attachments,
+        authorName: app.account!.nickname,
+      };
+      const item = questionAnswer
+        ? await app.dependencies.workspace.questions.save(
+            app.account!.id,
+            { ...content, promptId },
+            record?.id,
+          )
+        : await app.dependencies.workspace.diary.save(
+            app.account!.id,
+            { ...content, recordedDate: date },
+            record?.id,
+          );
       setSaved(true);
       await app.refresh();
       app.notify(record ? "이야기를 수정했어요." : "소중한 오늘을 기록했어요.");
@@ -91,10 +103,10 @@ export function RecordForm({
         setBody("");
         setPhoto("");
         setAttachments([]);
-        setDate(diary ? today() : (search.get("date") ?? today()));
+        setDate(questionAnswer ? today() : (search.get("date") ?? today()));
       }
       router.push(
-        `/pets/${pet.id}/${diary ? "diary" : "records"}/${memory.id}`,
+        `/pets/${pet.id}/${questionAnswer ? "questions/answers" : "diary"}/${item.id}`,
       );
     } catch (cause) {
       setError(messageOf(cause));
@@ -108,18 +120,23 @@ export function RecordForm({
         className="text-link"
         href={
           record
-            ? `/pets/${pet.id}/${diary ? "diary" : "records"}/${record.id}`
-            : `/pets/${pet.id}/${diary ? "questions" : "timeline"}`
+            ? `/pets/${pet.id}/${questionAnswer ? "questions/answers" : "diary"}/${record.id}`
+            : `/pets/${pet.id}/${questionAnswer ? "questions" : "diary"}`
         }
       >
-        ← {record ? "기록으로 돌아가기" : diary ? "오늘의 질문" : "다이어리"}
+        ←{" "}
+        {record
+          ? "기록으로 돌아가기"
+          : questionAnswer
+            ? "오늘의 질문"
+            : "다이어리"}
       </Link>
       <PageHeading
-        eyebrow={diary ? "오늘의 작은 기억" : "마음에 남은 순간"}
+        eyebrow={questionAnswer ? "오늘의 작은 기억" : "마음에 남은 순간"}
         title={
           record
             ? "우리의 이야기 다듬기"
-            : diary
+            : questionAnswer
               ? "오늘의 질문에 답해요"
               : "다이어리 쓰기"
         }
@@ -129,7 +146,7 @@ export function RecordForm({
         onSubmit={save}
         className={`${styles.editor} ${styles.diaryEditor}`}
       >
-        {diary && (
+        {questionAnswer && (
           <header className={styles.editorQuestion}>
             <p>
               <Icon name="calendar" size={20} />
@@ -150,12 +167,12 @@ export function RecordForm({
         </section>
         <section className={styles.editorFields}>
           <span className="badge">
-            <Icon name={diary ? "book" : "edit"} size={14} />
-            {diary ? "질문 일기" : "자유 기록"}
+            <Icon name={questionAnswer ? "book" : "edit"} size={14} />
+            {questionAnswer ? "질문 답변" : "자유 기록"}
           </span>
 
           <label>
-            기억하고 싶은 날짜
+            {questionAnswer ? "답변 등록일" : "기억하고 싶은 날짜"}
             <input
               type="date"
               required
@@ -164,13 +181,18 @@ export function RecordForm({
                 setSaved(false);
                 setDate(event.target.value);
               }}
-              readOnly={diary}
+              readOnly={questionAnswer}
               max="9999-12-31"
             />
-            {diary && <small>오늘의 질문은 오늘 날짜로 남겨요.</small>}
+            {questionAnswer && (
+              <small>
+                답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은
+                유지돼요.
+              </small>
+            )}
           </label>
           <label htmlFor="memory-body">
-            {diary ? "오늘의 답변" : "우리의 이야기"}
+            {questionAnswer ? "오늘의 답변" : "우리의 이야기"}
           </label>
           <textarea
             id="memory-body"
@@ -181,10 +203,10 @@ export function RecordForm({
             }}
             rows={8}
             maxLength={3000}
-            required={diary}
+            required={false}
             placeholder={`${pet.name}의 하루와 지금의 마음을 들려주세요.`}
           />
-          {diary && prompt.error && (
+          {questionAnswer && prompt.error && (
             <p className="error" role="alert">
               {prompt.error}
               <button
@@ -216,15 +238,15 @@ export function RecordForm({
               className="button secondary"
               href={
                 record
-                  ? `/pets/${pet.id}/${diary ? "diary" : "records"}/${record.id}`
-                  : `/pets/${pet.id}/${diary ? "questions" : "timeline"}`
+                  ? `/pets/${pet.id}/${questionAnswer ? "questions/answers" : "diary"}/${record.id}`
+                  : `/pets/${pet.id}/${questionAnswer ? "questions" : "diary"}`
               }
             >
               취소
             </Link>
             <button
               className="button primary"
-              disabled={busy || (diary && !questionText)}
+              disabled={busy || (questionAnswer && !questionText)}
             >
               <Icon name="check" size={17} />
               {busy
@@ -244,28 +266,34 @@ export function RecordForm({
   );
 }
 
-export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
+export function JournalDetail({
+  pet,
+  record,
+}: {
+  pet: Pet;
+  record: JournalItem;
+}) {
   const app = useApp();
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const viewer = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const url = `/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`;
+  const url = `/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions/answers" : "diary"}/${record.id}`;
   async function remove() {
     setBusy(true);
     setError("");
     try {
-      await app.dependencies.workspace.deleteMemory(
-        app.account!.id,
-        pet.id,
-        record.id,
-      );
+      const domain =
+        record.type === "QUESTION_ANSWER"
+          ? app.dependencies.workspace.questions
+          : app.dependencies.workspace.diary;
+      await domain.remove(app.account!.id, pet.id, record.id);
       await app.refresh();
       dialog.current?.close();
       app.notify("기록을 삭제했어요.");
       router.push(
-        `/pets/${pet.id}/${record.type === "DIARY" ? "questions" : "timeline"}`,
+        `/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions" : "diary"}`,
       );
     } catch (cause) {
       setError(messageOf(cause));
@@ -277,14 +305,17 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
     <div className={styles.detailWrap}>
       <Link
         className="text-link"
-        href={`/pets/${pet.id}/${record.type === "DIARY" ? "questions" : "timeline"}`}
+        href={`/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions" : "diary"}`}
       >
-        ← {record.type === "DIARY" ? "오늘의 질문" : "다이어리"}
+        ← {record.type === "QUESTION_ANSWER" ? "오늘의 질문" : "다이어리"}
       </Link>
       <header className={styles.detailHeading}>
         <span className="badge">
-          <Icon name={record.type === "DIARY" ? "book" : "camera"} size={14} />
-          {record.type === "DIARY" ? "질문과 답변" : "다이어리"}
+          <Icon
+            name={record.type === "QUESTION_ANSWER" ? "book" : "camera"}
+            size={14}
+          />
+          {record.type === "QUESTION_ANSWER" ? "질문과 답변" : "다이어리"}
         </span>
         <h1>
           {formatDate(record.recordedDate, {
@@ -312,7 +343,7 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
           </button>
         )}
         <div className={styles.detailBody}>
-          {record.type === "DIARY" ? (
+          {record.type === "QUESTION_ANSWER" ? (
             <QuestionAnswer question={record.question} answer={record.body} />
           ) : (
             <p>{record.body || "사진 한 장에 담아둔, 우리의 하루."}</p>
@@ -328,7 +359,13 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
                   ? app.account!.nickname
                   : "가족 기록")}
             </span>
-            <span>기억한 날 {record.recordedDate}</span>
+            <span>
+              {record.type === "QUESTION_ANSWER" ? "답변 등록일" : "기억한 날"}{" "}
+              {record.recordedDate}
+              {record.legacy && record.type === "QUESTION_ANSWER"
+                ? " · 이전 데모의 선택 날짜"
+                : ""}
+            </span>
             <span>
               작성{" "}
               {new Date(record.createdAt).toLocaleString("ko-KR", {
@@ -346,7 +383,7 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
           </div>
         </div>
       </article>
-      {pet.accessRole !== "VIEWER" && (
+      {pet.accessRole !== "VIEWER" && record.authorId === app.account?.id && (
         <div className={styles.detailActions}>
           <button
             className="text-link danger"
@@ -354,10 +391,16 @@ export function RecordDetail({ pet, record }: { pet: Pet; record: Memory }) {
           >
             기록 삭제
           </button>
-          <Link className="button secondary" href={`${url}/edit`}>
-            <Icon name="edit" size={17} />
-            이야기 수정하기
-          </Link>
+          {!(
+            record.legacy &&
+            (record.type === "VIDEO" ||
+              record.attachments?.some((a) => a.type === "VIDEO"))
+          ) && (
+            <Link className="button secondary" href={`${url}/edit`}>
+              <Icon name="edit" size={17} />
+              이야기 수정하기
+            </Link>
+          )}
         </div>
       )}
       <dialog ref={dialog} className="dialog">

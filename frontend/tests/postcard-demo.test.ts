@@ -1,16 +1,21 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  drawMemory,
-  sceneForMemory,
+  drawJournalItem,
+  sceneForJournalItem,
   postcardScenes,
 } from "../src/life/application/postcardScenes.ts";
 import { DemoPostcardGenerator } from "../src/life/adapters/outbound/DemoPostcardGenerator.ts";
-import type { Memory } from "../src/workspace/domain/models.ts";
-const record: Memory = {
+import type { JournalItem } from "../src/workspace/domain/models.ts";
+const record: JournalItem = {
   id: "park",
   petId: "bori",
-  type: "DIARY",
+  kind: "QUESTION_ANSWER",
+  type: "QUESTION_ANSWER",
+  promptId: "p",
+  questionId: "q",
+  questionSnapshot: "질문",
+  registeredAt: "2026-11-15T00:00:00Z",
   question: "오늘 가장 신났던 순간은?",
   body: "공원에서 공을 쫓아 달렸어요.",
   photoUrl: "reference:running",
@@ -24,24 +29,27 @@ test("#12-S9 랜덤 뽑기는 빈 기록을 처리하고 전체 후보 중 정�
     { ...record, id: "nap" },
     { ...record, id: "beach" },
   ];
-  assert.equal(drawMemory([]), undefined);
-  assert.equal(drawMemory(records, () => 0)?.id, "park");
-  assert.equal(drawMemory(records, () => 0.5)?.id, "nap");
-  assert.equal(drawMemory(records, () => 0.999)?.id, "beach");
+  assert.equal(drawJournalItem([]), undefined);
+  assert.equal(drawJournalItem(records, () => 0)?.id, "park");
+  assert.equal(drawJournalItem(records, () => 0.5)?.id, "nap");
+  assert.equal(drawJournalItem(records, () => 0.999)?.id, "beach");
   assert.equal(records.length, 3);
 });
 test("#12-S9 기록의 질문과 답변에 따라 공원·바닷가·낮잠 장면을 선택", () => {
-  assert.equal(sceneForMemory(record), "PARK");
+  assert.equal(sceneForJournalItem(record), "PARK");
   assert.equal(
-    sceneForMemory({ ...record, body: "노을이 지는 바닷가에서 산책했어요." }),
+    sceneForJournalItem({
+      ...record,
+      body: "노을이 지는 바닷가에서 산책했어요.",
+    }),
     "BEACH",
   );
   assert.equal(
-    sceneForMemory({ ...record, body: "인형을 안고 낮잠에 들었어요." }),
+    sceneForJournalItem({ ...record, body: "인형을 안고 낮잠에 들었어요." }),
     "NAP",
   );
   assert.equal(
-    sceneForMemory({
+    sceneForJournalItem({
       ...record,
       question: "해변에서 어떤 시간을 보냈나요?",
       body: "함께 즐겁게 뛰었어요.",

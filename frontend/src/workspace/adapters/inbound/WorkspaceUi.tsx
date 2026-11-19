@@ -4,7 +4,7 @@ import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
 import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
 import { formatDate } from "@/shared/date";
-import type { Memory } from "../../domain/models";
+import type { JournalItem } from "../../domain/models";
 import type { Pet } from "../../domain/models";
 import styles from "./Workspace.module.css";
 import { speciesName } from "./presentation";
@@ -62,11 +62,11 @@ export function PetSummary({ pet, count }: { pet: Pet; count: number }) {
   );
 }
 
-export function RecordCard({ record }: { record: Memory }) {
+export function JournalCard({ record }: { record: JournalItem }) {
   return (
     <Link
       className={styles.recordCard}
-      href={`/pets/${record.petId}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+      href={`/pets/${record.petId}/${record.type === "QUESTION_ANSWER" ? "questions/answers" : "diary"}/${record.id}`}
     >
       <div className={styles.recordPhoto}>
         <Photo
@@ -76,7 +76,7 @@ export function RecordCard({ record }: { record: Memory }) {
         <span className={styles.recordBadge}>
           <Icon
             name={
-              record.type === "DIARY"
+              record.type === "QUESTION_ANSWER"
                 ? "book"
                 : record.photoUrl
                   ? "camera"
@@ -84,7 +84,7 @@ export function RecordCard({ record }: { record: Memory }) {
             }
             size={12}
           />
-          {record.type === "DIARY"
+          {record.type === "QUESTION_ANSWER"
             ? "질문 일기"
             : record.photoUrl
               ? "사진 기록"
@@ -99,7 +99,7 @@ export function RecordCard({ record }: { record: Memory }) {
             weekday: "short",
           })}
         </time>
-        {record.type === "DIARY" ? (
+        {record.type === "QUESTION_ANSWER" ? (
           <QuestionAnswer
             question={record.question}
             answer={record.body}

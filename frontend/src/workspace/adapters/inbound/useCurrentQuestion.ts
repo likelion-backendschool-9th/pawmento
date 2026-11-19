@@ -2,23 +2,30 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { messageOf } from "./presentation";
-export function useTodayQuestion(petId: string, date: string) {
-  const { dependencies } = useApp();
+export function useCurrentQuestion(petId: string, enabled = true) {
+  const { dependencies, account, state } = useApp();
+  const mode = state.pets.find((p) => p.id === petId)?.mode;
   const [result, setResult] = useState<{
     key: string;
-    text: string;
     id: string;
+    text: string;
     error: string;
   } | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const key = petId + date;
+  const key = `${account?.id}:${petId}:${mode}`;
   useEffect(() => {
     let active = true;
-    dependencies
-      .getTodayQuestion(petId, date)
-      .then((question) => {
+    if (!account || !enabled) return;
+    dependencies.workspace.questions
+      .current(account.id, petId)
+      .then((prompt) => {
         if (active)
-          setResult({ key, id: question.id, text: question.text, error: "" });
+          setResult({
+            key,
+            id: prompt.id,
+            text: prompt.questionSnapshot,
+            error: "",
+          });
       })
       .catch((cause) => {
         if (active)
@@ -27,11 +34,11 @@ export function useTodayQuestion(petId: string, date: string) {
     return () => {
       active = false;
     };
-  }, [dependencies, petId, date, key, attempt]);
+  }, [dependencies, account, petId, mode, key, attempt, enabled]);
   return {
     id: result?.key === key ? result.id : "",
     text: result?.key === key ? result.text : "",
     error: result?.key === key ? result.error : "",
-    retry: () => setAttempt((value) => value + 1),
+    retry: () => setAttempt((v) => v + 1),
   };
 }

@@ -5,7 +5,6 @@ import { BrowserLifeRepository } from "../life/adapters/outbound/BrowserLifeRepo
 import { DemoPostcardGenerator } from "../life/adapters/outbound/DemoPostcardGenerator.ts";
 import { PoolQuestionRepository } from "../life/adapters/outbound/PoolQuestionRepository.ts";
 import { createLifeUseCases } from "../life/application/useCases.ts";
-import { createGetTodayQuestion } from "../workspace/application/questions.ts";
 
 import { createWorkspaceUseCases } from "../workspace/application/useCases.ts";
 import { BrowserWorkspaceRepository } from "../workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
@@ -22,9 +21,6 @@ export function createDependencies() {
     now: () => new Date().toISOString(),
   };
   return {
-    getTodayQuestion: createGetTodayQuestion(
-      new PoolQuestionRepository(lifeRepository),
-    ),
     life: createLifeUseCases(
       lifeRepository,
       new DemoPostcardGenerator(),
@@ -39,6 +35,7 @@ export function createDependencies() {
         id: () => createId(),
         now: () => new Date().toISOString(),
       },
+      new PoolQuestionRepository(lifeRepository),
     ),
     auth: createAuthUseCases(new SessionAuthRepository(http)),
     pets: createPetUseCases(new HttpPetListRepository(http)),

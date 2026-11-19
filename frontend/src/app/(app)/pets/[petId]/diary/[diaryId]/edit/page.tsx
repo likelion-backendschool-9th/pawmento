@@ -3,18 +3,18 @@ import {
   usePet,
   PetWriteAccess,
 } from "@/workspace/adapters/inbound/PetContext";
-import { useRecord } from "@/workspace/adapters/inbound/RecordContext";
-import { RecordForm } from "@/workspace/adapters/inbound/RecordScreens";
+import { useJournalItem } from "@/workspace/adapters/inbound/JournalContext";
+import { JournalForm } from "@/workspace/adapters/inbound/JournalScreens";
 export default function Page() {
   const pet = usePet();
-  const record = useRecord();
+  const record = useJournalItem();
   return (
     <PetWriteAccess>
-      <RecordForm
+      <JournalForm
         key={record.id}
         pet={pet}
         record={record}
-        diary={record.type === "DIARY"}
+        questionAnswer={record.type === "QUESTION_ANSWER"}
       />
     </PetWriteAccess>
   );

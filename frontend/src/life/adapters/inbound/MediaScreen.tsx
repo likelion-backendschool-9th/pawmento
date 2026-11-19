@@ -1,4 +1,6 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
 import { useState } from "react";
@@ -11,8 +13,8 @@ import { LifeHeading, LifeEmpty, lifeStyles as s } from "./LifeUi";
 export function MediaScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const [filter, setFilter] = useState("ALL");
-  const records = app.state.records.filter(
-    (record) => record.petId === pet.id && record.type !== "DIARY",
+  const records = journalItems(app.state).filter(
+    (record) => record.petId === pet.id && record.type !== "QUESTION_ANSWER",
   );
   const files = records
     .flatMap((record) =>
@@ -40,7 +42,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
         body={`${pet.name}의 사진과 영상, 목소리를 한곳에서 만나보세요.`}
       >
         {pet.accessRole !== "VIEWER" && (
-          <Link className="button primary" href={`/pets/${pet.id}/records/new`}>
+          <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
             <Icon name="plus" size={16} />
             미디어 남기기
           </Link>
@@ -70,7 +72,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
             <MediaTile
               key={record.id + file.id}
               file={file}
-              href={`/pets/${pet.id}/${record.type === "DIARY" ? "diary" : "records"}/${record.id}`}
+              href={`/pets/${pet.id}/${record.type === "QUESTION_ANSWER" ? "questions/answers" : "diary"}/${record.id}`}
               date={record.recordedDate}
             />
           ))}
@@ -79,7 +81,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
         <LifeEmpty
           title="아직 담긴 미디어가 없어요"
           body="사진, 영상 또는 목소리를 첨부해 첫 기억을 남겨보세요."
-          href={`/pets/${pet.id}/records/new`}
+          href={`/pets/${pet.id}/diary/new`}
           action="기록 남기기"
         />
       )}

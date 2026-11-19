@@ -1,12 +1,12 @@
 import type { LifeState, Postcard } from "../domain/models.ts";
-import type { Memory } from "../../workspace/domain/models.ts";
+import type { JournalItem } from "../../workspace/domain/models.ts";
 export interface LifeRepository {
   load(): Promise<LifeState>;
   save(state: LifeState): Promise<void>;
 }
 export interface PostcardGenerator {
   generate(
-    records: readonly Memory[],
+    records: readonly JournalItem[],
     petName: string,
     petPhotoUrl?: string,
   ): Promise<{

@@ -1,20 +1,20 @@
 import type { PostcardGenerator } from "../../application/ports.ts";
-import type { Memory } from "../../../workspace/domain/models.ts";
+import type { JournalItem } from "../../../workspace/domain/models.ts";
 import {
   postcardScenes,
-  sceneForMemory,
+  sceneForJournalItem,
 } from "../../application/postcardScenes.ts";
 
 export class DemoPostcardGenerator implements PostcardGenerator {
   async generate(
-    records: readonly Memory[],
+    records: readonly JournalItem[],
     petName: string,
     petPhotoUrl?: string,
   ) {
     if (records.length !== 1)
       throw Error("엽서에 담을 기억을 한 장 뽑아 주세요.");
     const record = records[0];
-    const scene = sceneForMemory(record);
+    const scene = sceneForJournalItem(record);
     await new Promise((resolve) => setTimeout(resolve, 1500));
     return {
       imageUrl: postcardScenes[scene].imageUrl,

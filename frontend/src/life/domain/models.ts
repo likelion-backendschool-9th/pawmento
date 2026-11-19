@@ -37,7 +37,8 @@ export type Postcard = {
   title: string;
   text: string;
   imageUrl: string;
-  sourceRecordIds: string[];
+  sourceEntries: { kind: "DIARY" | "QUESTION_ANSWER"; id: string }[];
+  legacySourceRecordIds?: string[];
   demoArtwork?: {
     scene: "PARK" | "BEACH" | "NAP";
     prompt: string;
@@ -74,7 +75,12 @@ export type Notice = {
   published: boolean;
   createdAt: string;
 };
-export type PoolQuestion = { id: string; text: string; enabled: boolean };
+export type PoolQuestion = {
+  id: string;
+  text: string;
+  enabled: boolean;
+  mode: "ACTIVE" | "GARDEN" | "LEGACY";
+};
 export type DemoMember = {
   id: string;
   name: string;

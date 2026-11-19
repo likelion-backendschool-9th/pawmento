@@ -17,7 +17,7 @@ test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의�
   const source = resolve("src");
   for (const path of files(source)) {
     const name = relative(source, path);
-    if (!/^(auth|workspace|life|pets)\/(domain|application)\//.test(name) &&
+    if (!/^(auth|workspace|life|pets|diary|question)\/(domain|application)\//.test(name) &&
         !name.startsWith("shared/application/")) continue;
     const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
     function visit(node: ts.Node) {

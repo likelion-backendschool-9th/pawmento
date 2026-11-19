@@ -7,13 +7,13 @@ export function ArchiveNavigation({
   active,
 }: {
   petId: string;
-  active: "timeline" | "calendar" | "media";
+  active: "diary" | "calendar" | "media";
 }) {
   return (
     <nav className={s.tabs} aria-label="다이어리 보기 방식">
       {(
         [
-          ["timeline", "일기", "book"],
+          ["diary", "일기", "book"],
           ["calendar", "달력", "calendar"],
         ] as const
       ).map(([page, label, icon]) => (
@@ -21,7 +21,7 @@ export function ArchiveNavigation({
           key={page}
           href={`/pets/${petId}/${page}`}
           aria-current={
-            active === page || (active === "media" && page === "timeline")
+            active === page || (active === "media" && page === "diary")
               ? "page"
               : undefined
           }

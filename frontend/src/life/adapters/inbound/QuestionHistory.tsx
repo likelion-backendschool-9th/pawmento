@@ -1,9 +1,10 @@
 "use client";
+import { journalItems } from "@/workspace/domain/models";
+
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/shared/ui/Icon";
-import { today } from "@/shared/date";
 import { QuestionAnswer } from "@/shared/ui/QuestionAnswer";
 import type { Pet } from "@/workspace/domain/models";
 import { LifeHeading, LifeEmpty, lifeStyles as s } from "./LifeUi";
@@ -11,8 +12,10 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();
   const [adding, setAdding] = useState(false);
   const [demoError, setDemoError] = useState("");
-  const records = app.state.records
-    .filter((record) => record.petId === pet.id && record.type === "DIARY")
+  const records = journalItems(app.state)
+    .filter(
+      (record) => record.petId === pet.id && record.type === "QUESTION_ANSWER",
+    )
     .sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
   return (
     <>
@@ -24,15 +27,9 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
         {pet.accessRole !== "VIEWER" && (
           <Link
             className="button primary"
-            href={
-              records.some((record) => record.recordedDate === today())
-                ? `/pets/${pet.id}/diary/${records.find((record) => record.recordedDate === today())!.id}`
-                : `/pets/${pet.id}/diary/new`
-            }
+            href={`/pets/${pet.id}/questions/answers/new`}
           >
-            {records.some((record) => record.recordedDate === today())
-              ? "오늘의 질문과 답변 보기"
-              : "오늘의 질문 답하기"}
+            현재 질문 답하기
           </Link>
         )}
       </LifeHeading>
@@ -77,24 +74,45 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
       {records.length ? (
         <div className={s.twoGrid}>
           {records.map((record) => (
-            <Link
-              href={`/pets/${pet.id}/diary/${record.id}`}
-              className={s.panel}
-              key={record.id}
-            >
-              <time className={s.meta}>{record.recordedDate}</time>
-              {record.questionId?.startsWith("demo-question-") && (
-                <span className="badge">데모 기록</span>
-              )}
-              <QuestionAnswer question={record.question} answer={record.body} />
-            </Link>
+            <article key={record.id} className={s.panel}>
+              <Link
+                href={`/pets/${pet.id}/questions/answers/${record.id}`}
+                className="text-link"
+              >
+                <time className={s.meta}>{record.recordedDate}</time>
+                {record.questionId?.startsWith("demo-question-") && (
+                  <span className="badge">데모 기록</span>
+                )}
+                <QuestionAnswer
+                  question={record.question ?? ""}
+                  answer={record.body}
+                />
+              </Link>
+              {record.type === "QUESTION_ANSWER" &&
+                pet.accessRole !== "VIEWER" &&
+                !app.state.questionAnswers.some(
+                  (a) =>
+                    a.promptId === record.promptId &&
+                    a.authorId === app.account?.id,
+                ) &&
+                app.state.questionPrompts.some(
+                  (p) => p.id === record.promptId && p.mode === pet.mode,
+                ) && (
+                  <Link
+                    className="text-link"
+                    href={`/pets/${pet.id}/questions/answers/new?promptId=${encodeURIComponent(record.promptId)}`}
+                  >
+                    이 질문에 나도 답하기
+                  </Link>
+                )}
+            </article>
           ))}
         </div>
       ) : (
         <LifeEmpty
           title="첫 질문을 기다리는 공간"
           body="오늘의 질문에 답하면 이곳에 질문과 답변이 함께 쌓여요."
-          href={`/pets/${pet.id}/diary/new`}
+          href={`/pets/${pet.id}/questions/answers/new`}
           action="답변 남기기"
         />
       )}
