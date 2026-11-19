@@ -325,3 +325,31 @@ test("#12-S9 새로고침으로 중단된 PROCESSING 데모를 같은 엽서 ID�
   assert.equal(recovered.status, "COMPLETED");
   assert.equal((await env.uc.load()).postcards.length, 1);
 });
+
+test("#12-S12 기존 회원 확인은 무변경 저장을 생략하고 이름 변경·신규 등록은 직렬 저장한다", async () => {
+  const state = initialLifeState();
+  let writes = 0;
+  const uc = createLifeUseCases(
+    {
+      load: async () => structuredClone(state),
+      save: async (value) => {
+        writes++;
+        Object.assign(state, structuredClone(value));
+      },
+    },
+    {
+      generate: async () => {
+        throw Error("not used");
+      },
+    },
+    { id: () => "id", now: () => "2026-11-19T00:00:00Z" },
+  );
+  await uc.registerMember({ id: "demo", name: "보리네", isAdmin: true });
+  assert.equal(writes, 0);
+  await uc.registerMember({ id: "demo", name: "새 이름", isAdmin: true });
+  assert.equal(writes, 1);
+  assert.equal(state.members.find((m) => m.id === "demo")?.name, "새 이름");
+  await Promise.all([uc.registerMember(alice), uc.registerMember(alice)]);
+  assert.equal(writes, 2);
+  assert.equal(state.members.filter((m) => m.id === alice.id).length, 1);
+});

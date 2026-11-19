@@ -235,3 +235,80 @@ test("#32-S29 5MiB 한도에 v2 복사본을 둘 수 없어도 기존 음성 기
     Reflect.deleteProperty(globalThis, "localStorage");
   }
 });
+
+test("#32-S29 질문 풀 이관이 필요한 512바이트 여유 저장소에서도 기존 회원 확인 후 가족 기록을 읽는다", async () => {
+  const { legacyQuotaFixture } = await import("./fixtures/legacyQuota.ts");
+  const { BrowserLifeRepository } =
+    await import("../src/life/adapters/outbound/BrowserLifeRepository.ts");
+  const { SharedWorkspaceRepository } =
+    await import("../src/life/adapters/outbound/SharedWorkspaceRepository.ts");
+  const { createLifeUseCases } =
+    await import("../src/life/application/useCases.ts");
+  const { data, limit } = legacyQuotaFixture();
+  const values = new Map(Object.entries(data));
+  let writes = 0;
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: (k: string) => values.get(k) ?? null,
+      setItem: (k: string, v: string) => {
+        writes++;
+        const next = new Map(values);
+        next.set(k, v);
+        if (
+          [...next].reduce(
+            (n, [key, value]) => n + 2 * (key.length + value.length),
+            0,
+          ) > limit
+        )
+          throw new DOMException("quota", "QuotaExceededError");
+        values.set(k, v);
+      },
+    },
+  });
+  try {
+    const repository = new BrowserLifeRepository();
+    const uc = createLifeUseCases(
+      repository,
+      {
+        generate: async () => {
+          throw Error("not used");
+        },
+      },
+      { id: () => "new", now: () => "2026-11-19T00:00:00Z" },
+    );
+    const actor = { id: "demo", name: "보리네", isAdmin: true };
+    assert.equal(
+      (await repository.load()).questions.some((q) => q.id.startsWith("v2-")),
+      true,
+    );
+    const member = await uc.registerMember(actor);
+    assert.equal(member.status, "ACTIVE");
+    assert.equal(writes, 0);
+    const workspace = await new SharedWorkspaceRepository(
+      new BrowserWorkspaceRepository(),
+      repository,
+    ).load("demo");
+    assert.equal(workspace.diaries.length, 2);
+    assert.equal(workspace.pets[0].name, "보리");
+    assert.equal(values.get("pawmento.life.v1"), data["pawmento.life.v1"]);
+    assert.equal(
+      values.get("pawmento.workspace.v1.demo"),
+      data["pawmento.workspace.v1.demo"],
+    );
+    await assert.rejects(
+      uc.registerMember({ ...actor, name: "변경된 이름" }),
+      /저장 공간/,
+    );
+    assert.equal(values.get("pawmento.life.v1"), data["pawmento.life.v1"]);
+    const state = JSON.parse(data["pawmento.life.v1"]);
+    state.members.find((m: { id: string }) => m.id === "demo").status =
+      "SUSPENDED";
+    values.set("pawmento.life.v1", JSON.stringify(state));
+    writes = 0;
+    assert.equal((await uc.registerMember(actor)).status, "SUSPENDED");
+    assert.equal(writes, 0);
+  } finally {
+    Reflect.deleteProperty(globalThis, "localStorage");
+  }
+});

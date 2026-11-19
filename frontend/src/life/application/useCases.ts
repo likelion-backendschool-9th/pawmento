@@ -22,11 +22,16 @@ export function createLifeUseCases(
   const dayKey = (timestamp: string) =>
     new Date(Date.parse(timestamp) + 9 * 3600000).toISOString().slice(0, 10);
   let queue: Promise<unknown> = Promise.resolve();
-  const mutate = <T>(operation: (state: LifeState) => T): Promise<T> => {
+  const mutate = <T>(
+    operation: (state: LifeState) => T,
+    saveOnlyWhenChanged = false,
+  ): Promise<T> => {
     const result = queue.then(async () => {
       const state = structuredClone(await repository.load());
+      const before = saveOnlyWhenChanged ? JSON.stringify(state) : undefined;
       const value = operation(state);
-      await repository.save(state);
+      if (!saveOnlyWhenChanged || JSON.stringify(state) !== before)
+        await repository.save(state);
       return value;
     });
     queue = result.catch(() => undefined);
@@ -61,7 +66,7 @@ export function createLifeUseCases(
         };
         state.members.push(value);
         return value;
-      }),
+      }, true),
     withdrawActor: (actor: Actor) =>
       mutate((state) => {
         const ids = state.posts

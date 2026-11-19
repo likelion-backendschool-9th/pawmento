@@ -74,38 +74,42 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
       {history.length > 0 && <h2>지난 질문과 답변</h2>}
       {history.length ? (
         <div className={s.twoGrid}>
-          {history.map(({ prompt, answers }) => (
-            <article key={prompt.id} className={s.panel}>
-              <h3>{prompt.questionSnapshot}</h3>
-              {prompt.questionId.startsWith("demo-question-") && (
-                <span className="badge">데모 기록</span>
-              )}
-              {answers.length ? (
-                answers.map((answer) => (
-                  <Link
-                    key={answer.id}
-                    href={`/pets/${pet.id}/questions/answers/${answer.id}`}
-                    className="text-link"
-                  >
-                    <time className={s.meta}>
-                      {answer.legacyRecordedDate ??
-                        registrationDate(answer.registeredAt)}
-                    </time>
-                    <span> · {answer.authorName ?? "가족 기록"}</span>
-                    <QuestionAnswer
-                      question={prompt.questionSnapshot}
-                      answer={answer.body}
-                    />
-                  </Link>
-                ))
-              ) : (
-                <p>
-                  현재 남아 있는 답변이 없어요. 이 질문에 다시 답할 수 있어요.
-                </p>
-              )}
-              {pet.accessRole !== "VIEWER" &&
-                prompt.mode === pet.mode &&
-                !answers.some((a) => a.authorId === app.account?.id) && (
+          {history.map(({ prompt, answers }) => {
+            const canAnswer =
+              pet.accessRole !== "VIEWER" &&
+              prompt.mode === pet.mode &&
+              !answers.some((a) => a.authorId === app.account?.id);
+            return (
+              <article key={prompt.id} className={s.panel}>
+                <h3>{prompt.questionSnapshot}</h3>
+                {prompt.questionId.startsWith("demo-question-") && (
+                  <span className="badge">데모 기록</span>
+                )}
+                {answers.length ? (
+                  answers.map((answer) => (
+                    <Link
+                      key={answer.id}
+                      href={`/pets/${pet.id}/questions/answers/${answer.id}`}
+                      className="text-link"
+                    >
+                      <time className={s.meta}>
+                        {answer.legacyRecordedDate ??
+                          registrationDate(answer.registeredAt)}
+                      </time>
+                      <span> · {answer.authorName ?? "가족 기록"}</span>
+                      <QuestionAnswer
+                        question={prompt.questionSnapshot}
+                        answer={answer.body}
+                      />
+                    </Link>
+                  ))
+                ) : (
+                  <p>
+                    현재 남아 있는 답변이 없어요.
+                    {canAnswer && " 이 질문에 다시 답할 수 있어요."}
+                  </p>
+                )}
+                {canAnswer && (
                   <Link
                     className="text-link"
                     href={`/pets/${pet.id}/questions/answers/new?promptId=${encodeURIComponent(prompt.id)}`}
@@ -113,8 +117,9 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
                     이 질문에 답변 남기기
                   </Link>
                 )}
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       ) : (
         <LifeEmpty

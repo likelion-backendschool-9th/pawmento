@@ -69,6 +69,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const startDemo = async () => {
     const current = await dependencies.auth.startDemo();
     const existing = await dependencies.workspace.load(current.id);
+    if (existing.pets.length) {
+      // 기존 데모로 다시 진입할 때 샘플 추가/재저장으로 기록 열람을 막지 않는다.
+      await authenticate(current);
+      return;
+    }
     if (!existing.pets.length) {
       const pet = await dependencies.workspace.savePet(current.id, {
         name: "보리",
