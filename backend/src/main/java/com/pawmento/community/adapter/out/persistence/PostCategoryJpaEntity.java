@@ -31,7 +31,7 @@ class PostCategoryJpaEntity {
 	@Column(nullable = false, length = 30)
 	private String name;
 
-	@Column(name = "sort_order", nullable = false)
+	@Column(nullable = false)
 	private int sortOrder;
 
 	@Column(nullable = false)

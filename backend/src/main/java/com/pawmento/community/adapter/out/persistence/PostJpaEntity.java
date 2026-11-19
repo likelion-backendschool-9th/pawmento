@@ -29,10 +29,10 @@ class PostJpaEntity {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@Column(name = "author_id", nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false)
 	private Long authorId;
 
-	@Column(name = "category_id", nullable = false)
+	@Column(nullable = false)
 	private Long categoryId;
 
 	@Column(nullable = false, length = Post.TITLE_MAX_LENGTH)
@@ -41,14 +41,13 @@ class PostJpaEntity {
 	@Column(nullable = false, length = Post.BODY_MAX_LENGTH)
 	private String body;
 
-	@Column(name = "created_at", nullable = false, updatable = false)
+	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
-	@Column(name = "updated_at", nullable = false)
+	@Column(nullable = false)
 	private Instant updatedAt;
 
 	// 지우지 않은 글은 null이다
-	@Column(name = "deleted_at")
 	private Instant deletedAt;
 
 	@Version
