@@ -4,6 +4,9 @@ import com.pawmento.diary.adapter.in.web.exception.InvalidDiaryRequestException;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.*;
+import java.time.DateTimeException;
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.*;
 
 // Servlet parameter/DTO 바인딩 전에 원본 쿼리의 중복·빈 값·인코딩을 검사한다.
@@ -46,6 +49,34 @@ final class DiaryQueryParameters {
 
   long version() {
     return number("version", 0);
+  }
+
+  int integer(String key, int fallback) {
+    if (optional(key) == null) return fallback;
+    long value = number(key, 0);
+    if (value > Integer.MAX_VALUE) throw new InvalidDiaryRequestException();
+    return (int) value;
+  }
+
+  LocalDate date(String key) {
+    String value = optional(key);
+    if (value == null) return null;
+    try {
+      if (!value.matches("\\d{4}-\\d{2}-\\d{2}")) throw new DateTimeException("date");
+      return LocalDate.parse(value);
+    } catch (DateTimeException e) {
+      throw new InvalidDiaryRequestException();
+    }
+  }
+
+  YearMonth month() {
+    String value = required("month");
+    try {
+      if (!value.matches("\\d{4}-\\d{2}")) throw new DateTimeException("month");
+      return YearMonth.parse(value);
+    } catch (DateTimeException e) {
+      throw new InvalidDiaryRequestException();
+    }
   }
 
   private long number(String key, long minimum) {

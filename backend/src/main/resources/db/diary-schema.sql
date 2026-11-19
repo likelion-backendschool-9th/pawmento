@@ -8,4 +8,6 @@ BEGIN
       FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE RESTRICT NOT DEFERRABLE;
   END IF;
   CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_id ON diary_entries(pet_id);
+  CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_date_id
+    ON diary_entries(pet_id, recorded_date DESC, id DESC);
 END $$;

@@ -317,6 +317,8 @@ class DiaryScenarioTest {
     for (var request :
         List.of(
             json(post(old), "{\"content\":\"일기\",\"recordedDate\":\"2026-11-17\"}"),
+            get(old),
+            get(old + "/calendar?month=2026-11"),
             get(old + "/" + id),
             json(patch(old + "/" + id), "{\"content\":\"변경\",\"version\":0}"),
             delete(old + "/" + id + "?version=0")))

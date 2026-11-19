@@ -15,6 +15,32 @@ public class DiaryController {
   private final GetDiaryEntryUseCase get;
   private final EditDiaryEntryUseCase edit;
   private final DeleteDiaryEntryUseCase deletion;
+  private final ListDiaryEntriesUseCase list;
+  private final GetDiaryCalendarUseCase calendar;
+
+  @GetMapping
+  DiaryEntriesPageResponse list(@LoginMember Long memberId, HttpServletRequest http) {
+    var query =
+        DiaryQueryParameters.parse(
+            http.getQueryString(), "petId", "date", "from", "to", "page", "size");
+    return DiaryEntriesPageResponse.from(
+        list.list(
+            ListDiaryEntriesQuery.of(
+                memberId,
+                query.petId(),
+                query.date("date"),
+                query.date("from"),
+                query.date("to"),
+                query.integer("page", 0),
+                query.integer("size", 20))));
+  }
+
+  @GetMapping("/calendar")
+  DiaryCalendarResponse calendar(@LoginMember Long memberId, HttpServletRequest http) {
+    var query = DiaryQueryParameters.parse(http.getQueryString(), "petId", "month");
+    return DiaryCalendarResponse.from(
+        calendar.get(new GetDiaryCalendarQuery(memberId, query.petId(), query.month())));
+  }
 
   @PostMapping
   @ResponseStatus(HttpStatus.CREATED)

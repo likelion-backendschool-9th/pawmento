@@ -3,6 +3,9 @@ package com.pawmento.diary.adapter.out.persistence;
 import com.pawmento.diary.application.exception.*;
 import com.pawmento.diary.application.port.out.*;
 import com.pawmento.diary.domain.DiaryEntry;
+import com.pawmento.diary.domain.DiaryListFilter;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
@@ -15,7 +18,10 @@ public class DiaryEntryPersistenceAdapter
     implements LoadDiaryEntryPort,
         SaveDiaryEntryPort,
         DeleteDiaryEntryPort,
-        ExistsDiaryEntriesPort {
+        ExistsDiaryEntriesPort,
+        LoadDiaryEntriesPort,
+        CountDiaryEntriesPort,
+        LoadDiaryCalendarPort {
   private final DiaryEntryJpaRepository rows;
 
   public Optional<DiaryEntry> findById(Long id) {
@@ -55,5 +61,26 @@ public class DiaryEntryPersistenceAdapter
 
   public void delete(Long id, Long version) {
     if (rows.deleteVersion(id, version) != 1) throw new DiaryVersionConflictException();
+  }
+
+  @Override
+  public List<DiaryEntry> entries(Long petId, DiaryListFilter filter) {
+    return rows
+        .findPage(petId, filter.fromDate(), filter.toDate(), filter.size(), filter.offset())
+        .stream()
+        .map(DiaryEntryJpaEntity::toDomain)
+        .toList();
+  }
+
+  @Override
+  public long count(Long petId, DiaryListFilter filter) {
+    return rows.countEntries(petId, filter.fromDate(), filter.toDate());
+  }
+
+  @Override
+  public List<DiaryDayCount> days(Long petId, LocalDate from, LocalDate before) {
+    return rows.countDays(petId, from, before).stream()
+        .map(day -> new DiaryDayCount(day.getDate(), day.getTotal()))
+        .toList();
   }
 }
