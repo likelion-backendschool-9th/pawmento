@@ -22,7 +22,8 @@ public record DiaryEntryResponse(
       Integer width,
       Integer height,
       String contentUrl,
-      String thumbnailUrl) {}
+      String thumbnailUrl,
+      boolean available) {}
 
   static DiaryEntryResponse from(GetDiaryEntryResult r) {
     return new DiaryEntryResponse(
@@ -46,8 +47,11 @@ public record DiaryEntryResponse(
                       a.durationMs(),
                       a.width(),
                       a.height(),
-                      path + "?petId=" + r.petId(),
-                      a.thumbnail() ? path + "/thumbnail?petId=" + r.petId() : null);
+                      a.available() ? path + "?petId=" + r.petId() : null,
+                      a.available() && a.thumbnail()
+                          ? path + "/thumbnail?petId=" + r.petId()
+                          : null,
+                      a.available());
                 })
             .toList());
   }

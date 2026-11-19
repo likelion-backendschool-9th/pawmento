@@ -8,4 +8,5 @@ public record MediaAttachmentMetadata(
     Long durationMs,
     Integer width,
     Integer height,
-    boolean thumbnail) {}
+    boolean thumbnail,
+    boolean available) {}

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 public class MediaPersistenceAdapter
     implements SaveMediaAssetPort,
         LoadMediaAssetPort,
+        LoadMediaOwnershipPort,
         LockMediaAssetPort,
         CheckMediaQuotaPort,
         FindMediaCleanupPort,
@@ -25,6 +26,19 @@ public class MediaPersistenceAdapter
   private final EntityManager entityManager;
   private final MediaValidationJobJpaRepository jobs;
   private final MediaPolicy policy;
+
+  @Override
+  public List<MediaOwnership> loadOwnership(List<Long> ids) {
+    if (ids.isEmpty()) return List.of();
+    return MediaPersistenceOperations.execute(
+        () ->
+            repository.findOwnership(ids).stream()
+                .map(
+                    v ->
+                        new MediaOwnership(
+                            v.getId(), v.getUploaderMemberId(), v.getPetId(), v.getPurpose()))
+                .toList());
+  }
 
   @Override
   public MediaAsset save(MediaAsset asset) {

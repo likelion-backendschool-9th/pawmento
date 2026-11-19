@@ -8,6 +8,21 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 public interface MediaAssetJpaRepository extends JpaRepository<MediaAssetJpaEntity, Long> {
+  interface OwnershipView {
+    Long getId();
+
+    Long getUploaderMemberId();
+
+    Long getPetId();
+
+    com.pawmento.media.domain.MediaPurpose getPurpose();
+  }
+
+  @Query(
+      "select a.id as id,a.uploaderMemberId as uploaderMemberId,a.petId as petId,a.purpose as"
+          + " purpose from MediaAssetJpaEntity a where a.id in :ids")
+  java.util.List<OwnershipView> findOwnership(@Param("ids") java.util.List<Long> ids);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select a from MediaAssetJpaEntity a where a.id=:id")
   Optional<MediaAssetJpaEntity> findForUpdate(@Param("id") Long id);

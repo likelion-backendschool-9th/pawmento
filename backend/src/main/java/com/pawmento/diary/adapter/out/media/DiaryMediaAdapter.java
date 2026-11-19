@@ -13,8 +13,8 @@ public class DiaryMediaAdapter implements DiaryMediaPort {
   private final ChangeMediaReferencesUseCase references;
   private final LockMediaReferencesUseCase locks;
 
-  public void lock(List<Long> ids) {
-    locks.lock(ids);
+  public void lock(Long member, Long pet, List<Long> ids) {
+    locks.lock(new LockMediaReferencesCommand(member, pet, ids));
   }
 
   private final LoadMediaAttachmentsUseCase attachments;
@@ -36,7 +36,8 @@ public class DiaryMediaAdapter implements DiaryMediaPort {
                     m.durationMs(),
                     m.width(),
                     m.height(),
-                    m.thumbnail()))
+                    m.thumbnail(),
+                    m.available()))
         .toList();
   }
 

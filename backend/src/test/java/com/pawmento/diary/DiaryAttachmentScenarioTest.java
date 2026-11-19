@@ -541,4 +541,67 @@ class DiaryAttachmentScenarioTest {
     assertThat(jobs(a)).isZero();
     assertThat(get.get(new GetDiaryEntryQuery(9001L, p, r.recordId())).version()).isZero();
   }
+
+  @Test
+  @DisplayName("#32-S11 참조 수 불일치 첨부는 unavailable로 조회하고 실제 연결이 남으면 삭제하지 않는다")
+  void mismatchedCountDoesNotBlockReadingAndDeletion() throws Exception {
+    long p = pet(), bad = asset(p, false), healthy = asset(p, true);
+    var first = create(p, "본문", bad, healthy);
+    var second = create(p, "", bad);
+    jdbc.update("update media_assets set reference_count=0 where id=?", bad);
+    call(9001, get(path(p)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalElements").value(2));
+    call(9001, get(path(p, first.recordId())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachments[0].available").value(false))
+        .andExpect(jsonPath("$.attachments[0].contentUrl").doesNotExist())
+        .andExpect(jsonPath("$.attachments[0].thumbnailUrl").doesNotExist())
+        .andExpect(jsonPath("$.attachments[1].available").value(true));
+    call(9001, get("/api/v1/diaries/" + first.recordId() + "/attachments/" + bad + "?petId=" + p))
+        .andExpect(status().isConflict());
+    call(9001, json(patch(path(p, first.recordId())), "{\"content\":\"수정\",\"version\":0}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachments[0].available").value(false));
+    // 조회·유지 수정이 참조 수를 임의 복구하지 않는다.
+    assertThat(refs(bad)).isZero();
+    assertThat(jobs(bad)).isZero();
+    call(9001, delete(path(p, first.recordId()) + "&version=1")).andExpect(status().isNoContent());
+    assertThat(ids(second.recordId())).containsExactly(bad);
+    assertThat(state(bad)).isEqualTo("READY");
+    assertThat(jobs(bad)).isZero();
+    call(9001, get(path(p, second.recordId())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachments[0].available").value(false));
+    call(9001, delete(path(p, second.recordId()) + "&version=0")).andExpect(status().isNoContent());
+    assertThat(state(bad)).isEqualTo("DELETING");
+    assertThat(jobs(bad)).isEqualTo(1);
+    assertThat(refs(bad)).isZero();
+    assertThat(ids(second.recordId())).isEmpty();
+    call(9001, get(path(p))).andExpect(status().isOk()).andExpect(jsonPath("$.items").isEmpty());
+  }
+
+  @Test
+  @DisplayName("#32-S10 없는 자산과 타인·다른 아이·용도의 첨부는 같은 404로 응답한다")
+  void inaccessibleAssetsHaveSameResponse() throws Exception {
+    long p = pet(), own = asset(p, false), other = pet();
+    long foreign = asset(other, 9002L, false, "DIARY_ATTACHMENT", true);
+    for (long id :
+        List.of(
+            Long.MAX_VALUE,
+            foreign,
+            asset(other, false),
+            asset(p, 9001L, false, "QUESTION_ANSWER_ATTACHMENT", true))) {
+      call(
+              9001,
+              json(
+                  post(path(p)),
+                  "{\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[" + own + "," + id + "]}"))
+          .andExpect(status().isNotFound())
+          .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+          .andExpect(jsonPath("$.message").value("파일을 찾을 수 없어요."));
+    }
+    assertThat(refs(own)).isZero();
+    assertThat(refs(foreign)).isZero();
+  }
 }

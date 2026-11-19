@@ -25,7 +25,7 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
     entry = DiaryEntryAccess.locked(load, c.petId(), c.recordId());
     DiaryEntryAccess.version(entry, c.version());
     var previous = attachments.find(entry.getId());
-    media.lock(previous);
+    media.lock(c.memberId(), c.petId(), previous);
     deletion.delete(entry.getId(), c.version());
     media.change(c.memberId(), c.petId(), previous, java.util.List.of());
   }

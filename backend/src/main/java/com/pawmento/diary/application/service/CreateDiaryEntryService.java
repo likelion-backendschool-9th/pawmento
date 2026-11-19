@@ -35,7 +35,7 @@ public class CreateDiaryEntryService implements CreateDiaryEntryUseCase {
                 c.recordedDate(),
                 clock.instant(),
                 !ids.isEmpty()));
-    media.lock(ids);
+    media.lock(c.memberId(), c.petId(), ids);
     attachments.replace(entry.getId(), ids);
     media.change(c.memberId(), c.petId(), java.util.List.of(), ids);
     return results.one(entry);

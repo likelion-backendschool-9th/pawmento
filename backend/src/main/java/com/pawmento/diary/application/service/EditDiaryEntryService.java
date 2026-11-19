@@ -36,7 +36,7 @@ public class EditDiaryEntryService implements EditDiaryEntryUseCase {
     var saved = save.save(entry);
     var locks = new java.util.TreeSet<Long>(previous);
     locks.addAll(next);
-    media.lock(java.util.List.copyOf(locks));
+    media.lock(c.memberId(), c.petId(), java.util.List.copyOf(locks));
     attachments.replace(entry.getId(), next);
     media.change(c.memberId(), c.petId(), previous, next);
     return results.one(saved);
