@@ -108,12 +108,47 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
+	@DisplayName("#73-S4 이미 읽어 둔 산책이 있어도 잠금 조회는 그사이 커밋된 끝난 시각을 반영한 최신 상태를 돌려준다")
+	void lockedReadIsFreshEvenIfAlreadyLoaded() {
+		Long id = saveWalk(PET, MEMBER, NOW);
+		flushAndClear();
+		// 읽어 두면 영속성 컨텍스트에 오래된 상태가 남는다
+		Walk stale = adapter.loadById(id).orElseThrow();
+		assertThat(stale.getEndedAt()).isNull();
+		// 다른 트랜잭션이 그사이 산책을 끝내고 커밋한 것과 같다
+		jdbcTemplate.update("update walks set ended_at = ?, last_activity_at = ? where id = ?",
+				java.sql.Timestamp.from(NOW.plusSeconds(60)), java.sql.Timestamp.from(NOW.plusSeconds(60)), id);
+
+		Walk locked = adapter.loadByIdForUpdate(id).orElseThrow();
+
+		assertThat(locked.getEndedAt()).isEqualTo(NOW.plusSeconds(60));
+		assertThat(locked.getLastActivityAt()).isEqualTo(NOW.plusSeconds(60));
+	}
+
+	@Test
+	@DisplayName("#73-S9 소유자 조회는 반려동물과 시작한 회원만 읽고, 산책 엔티티를 영속성 컨텍스트에 남기지 않는다")
+	void loadOwnershipReadsOnlyIdentity() {
+		Long id = saveWalk(PET, MEMBER, NOW);
+		flushAndClear();
+
+		var ownership = adapter.loadOwnership(id).orElseThrow();
+		jdbcTemplate.update("update walks set ended_at = ? where id = ?", java.sql.Timestamp.from(NOW.plusSeconds(60)),
+				id);
+
+		assertThat(ownership.petId()).isEqualTo(PET);
+		assertThat(ownership.createdBy()).isEqualTo(MEMBER);
+		// 소유자 조회가 엔티티를 남겼다면 아래 조회가 오래된 상태(끝나지 않음)를 돌려준다
+		assertThat(adapter.loadById(id).orElseThrow().getEndedAt()).isEqualTo(NOW.plusSeconds(60));
+		assertThat(adapter.loadOwnership(999_999_999L)).isEmpty();
+	}
+
+	@Test
 	@DisplayName("#73-S4 좌표를 받아 마지막 활동 시각이 바뀐 산책을 저장하면 그 값이 남는다")
 	void saveRefreshedActivity() {
 		Long id = saveWalk(PET, MEMBER, NOW);
 		Walk walk = adapter.loadById(id).orElseThrow();
 		Instant later = NOW.plusSeconds(200);
-		walk.requireAcceptingPoints(later, 4);
+		walk.requireAcceptingPoints(MEMBER, later, 4);
 		walk.markPointsReceived(later);
 
 		adapter.save(walk);

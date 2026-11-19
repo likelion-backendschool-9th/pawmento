@@ -13,6 +13,18 @@ import jakarta.persistence.LockModeType;
 
 interface WalkJpaRepository extends JpaRepository<WalkJpaEntity, Long> {
 
+	// 엔티티를 영속성 컨텍스트에 올리지 않고 바뀌지 않는 값만 읽는다
+	interface OwnershipView {
+
+		Long getPetId();
+
+		Long getCreatedBy();
+
+	}
+
+	@Query("select w.petId as petId, w.createdBy as createdBy from WalkJpaEntity w where w.id = :id")
+	Optional<OwnershipView> findOwnershipById(@Param("id") Long id);
+
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select w from WalkJpaEntity w where w.id = :id")
 	Optional<WalkJpaEntity> findForUpdate(@Param("id") Long id);

@@ -12,9 +12,16 @@ public interface LoadWalkPort {
 	Optional<Walk> loadById(Long walkId);
 
 	/**
+	 * 산책의 반려동물과 시작한 회원만 잠그지 않고 읽는다. 이 둘은 바뀌지 않는 값이라 잠그기 전에 읽어도 된다.
+	 * 상태를 함께 읽지 않으므로, 이 값으로 상태를 판단하거나 산책을 바꿔 저장하지 말고 {@link #loadByIdForUpdate}로 다시 읽는다.
+	 */
+	Optional<WalkOwnership> loadOwnership(Long walkId);
+
+	/**
 	 * 산책을 읽으면서 행을 잠근다. 같은 산책에 좌표를 쌓거나 끝내는 요청이 동시에 와도 개수 한도와 먼저 정해진
 	 * 끝낸 시각을 지키려는 용도이고, 잠금은 호출한 트랜잭션이 끝날 때까지 유지된다.
 	 * 산책의 상태를 바꾸는 모든 요청(좌표 쌓기, 끝내기)은 이 메서드로 읽고, 같은 트랜잭션에서 {@link SaveWalkPort#save}까지 끝낸다.
+	 * 같은 트랜잭션에서 이미 읽어 둔 산책이 있어도 잠근 뒤의 최신 상태를 돌려준다(다른 트랜잭션이 그사이 커밋한 끝난 시각과 마지막 활동 시각을 반영한다).
 	 */
 	Optional<Walk> loadByIdForUpdate(Long walkId);
 

@@ -27,11 +27,14 @@
 | #73-S6: 한도를 채운 마지막 요청의 재전송 | `WalkTest`의 `resendAtLimitIsNotRejected`(새로 쌓인 개수 0이면 통과) | 같은 묶음을 실제로 다시 보내 204를 받고 좌표가 늘지 않는 요청 수준 확인은 API를 연결하는 PR |
 | #73-S14: 동시 요청에서도 누적 한도를 지킴 | `WalkRowLockTest`(두 트랜잭션으로 행 잠금 확인) | 한도 직전에서 여러 요청이 동시에 와도 합계가 5,000개를 넘지 않는지는 서비스 수준 확인이 필요 |
 
-후속 검증 위치: 좌표 쌓기 API PR의 시나리오 테스트(`#73-S14`, `#73-S6`)에서 실제 DB와 요청으로 아래를 확인한다.
+좌표 쌓기 API PR(#73 3단계)에서 위 "남는 확인 범위"를 `WalkPointsScenarioTest`로 실제 DB와 요청에서 확인했다. (고침 #73: 좌표 쌓기 API 연결)
 
-- 누적 한도를 넘긴 요청 뒤에 `walk_points` 개수와 `walks.last_activity_at`이 요청 전과 같다(새 좌표와 활동 시각이 함께 롤백된다).
-- 5,000개를 채운 뒤 같은 요청을 다시 보내면 204이고 좌표가 늘지 않는다.
-- 한도 직전의 산책에 좌표를 쌓는 요청이 동시에 여러 개 와도 합계가 5,000개를 넘지 않는다.
+- 누적 한도를 넘긴 요청 뒤에 `walk_points` 개수와 `walks.last_activity_at`이 요청 전과 같다(새 좌표와 활동 시각이 함께 롤백된다): `walkLimit`.
+- 한도 직전(4,990개)에서 재전송을 섞은 묶음은 새로 쌓이는 개수로 세어 5,000개까지 쌓이고, 한도에 닿은 뒤 같은 묶음을 다시 보내면 204이며 좌표가 늘지 않는다: `resendDoesNotCountTowardsLimit`. 같은 시각의 좌표를 다른 값으로 다시 보내도 먼저 쌓인 값이 남는다: `resendKeepsFirstValue`.
+- 한도 직전의 산책에 새 좌표 100개씩을 8개 요청이 동시에 보내도 하나만 쌓이고 합계는 5,000개다: `concurrentBatchesNeverExceedLimit`.
+- 요청 형식(위도·경도 범위, 값 없음, 시각 형식, 빈 묶음, 101개)과 400 응답, 소유자 검사가 크기·상태 검사보다 먼저인 것(403), 끝나거나 중단된 산책의 409와 활동 시각 유지: `invalidCoordinateRejectsWholeBatch`, `malformedBodiesAreRejected`, `batchLimitPerRequest`, `onlyOwnerAddsPoints`, `notAcceptingWalks`.
+
+자동으로 확인하지 않는 부분: 좌표를 읽는 API(날짜별 조회)는 다음 단계라서 이 테스트는 저장된 좌표를 DB에서 직접 읽는다. 요청 본문 크기의 상한(매우 큰 JSON)은 서버의 기본 설정에 맡기고 검사하지 않는다.
 
 설계 문서: [산책로](map/walk-route.md)
 

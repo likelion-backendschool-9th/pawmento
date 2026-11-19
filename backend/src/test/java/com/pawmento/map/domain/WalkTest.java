@@ -114,7 +114,7 @@ class WalkTest {
 		Walk walk = startedAt(START);
 		Instant later = START.plusSeconds(240);
 
-		walk.requireAcceptingPoints(later, 4);
+		walk.requireAcceptingPoints(1L, later, 4);
 		walk.markPointsReceived(later);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(later);
@@ -163,7 +163,7 @@ class WalkTest {
 		Walk walk = startedAt(START);
 		Instant later = START.plusSeconds(120);
 
-		walk.requireAcceptingPoints(later, 4);
+		walk.requireAcceptingPoints(1L, later, 4);
 		walk.requireCapacity(0, 4);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
@@ -177,8 +177,8 @@ class WalkTest {
 		Walk interrupted = restored(null, START);
 		Instant now = START.plusSeconds(600);
 
-		assertThatThrownBy(() -> ended.requireAcceptingPoints(now, 1)).isInstanceOf(WalkNotInProgressException.class);
-		assertThatThrownBy(() -> interrupted.requireAcceptingPoints(now, 1))
+		assertThatThrownBy(() -> ended.requireAcceptingPoints(1L, now, 1)).isInstanceOf(WalkNotInProgressException.class);
+		assertThatThrownBy(() -> interrupted.requireAcceptingPoints(1L, now, 1))
 			.isInstanceOf(WalkNotInProgressException.class);
 		assertThat(ended.getLastActivityAt()).isEqualTo(START.plusSeconds(60));
 		assertThat(interrupted.getLastActivityAt()).isEqualTo(START);
@@ -189,11 +189,35 @@ class WalkTest {
 	void batchLimitComesFirst() {
 		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
 
-		assertThatThrownBy(() -> startedAt(START).requireAcceptingPoints(START, 101))
+		assertThatThrownBy(() -> startedAt(START).requireAcceptingPoints(1L, START, 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
-		assertThatThrownBy(() -> ended.requireAcceptingPoints(START.plusSeconds(61), 101))
+		assertThatThrownBy(() -> ended.requireAcceptingPoints(1L, START.plusSeconds(61), 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
-		startedAt(START).requireAcceptingPoints(START, 100);
+		startedAt(START).requireAcceptingPoints(1L, START, 100);
+	}
+
+	@Test
+	@DisplayName("#73-S9 requireOwner는 시작한 회원이면 통과하고 아니면 소유자 오류다")
+	void requireOwner() {
+		Walk walk = startedAt(START);
+
+		walk.requireOwner(1L);
+		assertThatThrownBy(() -> walk.requireOwner(2L)).isInstanceOf(NotWalkOwnerException.class);
+		assertThatThrownBy(() -> walk.requireOwner(null)).isInstanceOf(NotWalkOwnerException.class);
+	}
+
+	@Test
+	@DisplayName("#73-S9 시작한 회원이 아니면 좌표 묶음을 받지 않고, 이 검사가 크기·상태 검사보다 먼저다")
+	void onlyOwnerMayAddPoints() {
+		Walk walk = startedAt(START);
+		Walk ended = restored(START.plusSeconds(60), START.plusSeconds(60));
+
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(2L, START, 4)).isInstanceOf(NotWalkOwnerException.class);
+		// 크기를 넘거나 끝난 산책이어도 남의 산책이면 소유자 오류가 먼저다
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(2L, START, 101)).isInstanceOf(NotWalkOwnerException.class);
+		assertThatThrownBy(() -> ended.requireAcceptingPoints(2L, START.plusSeconds(61), 4))
+			.isInstanceOf(NotWalkOwnerException.class);
+		assertThat(walk.getLastActivityAt()).isEqualTo(START);
 	}
 
 	@Test
@@ -201,7 +225,7 @@ class WalkTest {
 	void emptyBatchIsRejected() {
 		Walk walk = startedAt(START);
 
-		assertThatThrownBy(() -> walk.requireAcceptingPoints(START.plusSeconds(60), 0))
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(1L, START.plusSeconds(60), 0))
 			.isInstanceOf(InvalidWalkPointBatchException.class)
 			.hasMessage("좌표를 한 개 이상 보내 주세요.");
 
@@ -213,7 +237,7 @@ class WalkTest {
 	void tooLargeBatchKeepsActivity() {
 		Walk walk = startedAt(START);
 
-		assertThatThrownBy(() -> walk.requireAcceptingPoints(START.plusSeconds(60), 101))
+		assertThatThrownBy(() -> walk.requireAcceptingPoints(1L, START.plusSeconds(60), 101))
 			.isInstanceOf(InvalidWalkPointBatchException.class);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
@@ -236,7 +260,7 @@ class WalkTest {
 		Instant later = START.plusSeconds(60);
 
 		// 서비스가 하는 순서: 크기·상태 검사 → 새로 쌓인 개수 검사 → 통과했을 때만 활동 시각 기록
-		walk.requireAcceptingPoints(later, 100);
+		walk.requireAcceptingPoints(1L, later, 100);
 		assertThatThrownBy(() -> walk.requireCapacity(4950, 100)).isInstanceOf(WalkPointLimitExceededException.class);
 
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);

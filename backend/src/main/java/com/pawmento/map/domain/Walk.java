@@ -77,15 +77,28 @@ public class Walk {
 	}
 
 	/**
+	 * 시작한 회원이 아니면 거절한다. 산책을 바꾸는 요청은 이 검사를 가장 먼저 한다.
+	 * 산책의 소유자는 바뀌지 않아서 행을 잠그기 전에 읽은 값으로도 확인할 수 있다.
+	 */
+	public void requireOwner(Long requesterId) {
+		requireOwner(createdBy, requesterId);
+	}
+
+	// 산책을 읽지 않고 시작한 회원 id만 알 때도 같은 규칙을 쓰려는 정적 버전이다
+	public static void requireOwner(Long ownerId, Long requesterId) {
+		if (ownerId == null || !ownerId.equals(requesterId)) {
+			throw new NotWalkOwnerException();
+		}
+	}
+
+	/**
 	 * 산책을 끝낸다. 시작한 회원만 끝낼 수 있고, 이 검사가 상태 확인보다 먼저다.
 	 * 이미 끝났거나 중단된 산책은 바꾸지 않는다. 같은 요청을 다시 보내도 같은 결과가 되게 하기 위해서다.
 	 *
 	 * @param requesterId 끝내려는 회원
 	 */
 	public void end(Long requesterId, Instant now) {
-		if (!createdBy.equals(requesterId)) {
-			throw new NotWalkOwnerException();
-		}
+		requireOwner(requesterId);
 		if (status(now) != WalkStatus.IN_PROGRESS) {
 			return;
 		}
@@ -94,13 +107,16 @@ public class Walk {
 
 	/**
 	 * 좌표 묶음을 받아도 되는지 검사한다. 값은 바꾸지 않는다.
-	 * 요청 하나의 크기(재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태만 본다.
+	 * 시작한 회원만 좌표를 쌓을 수 있고, 이 검사가 가장 먼저다(끝내기와 같다). 그다음 요청 하나의 크기
+	 * (재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태를 본다.
 	 * 산책 전체의 개수 한도는 실제로 새로 쌓이는 개수를 알아야 해서 {@link #requireCapacity}가 따로 본다.
 	 * 마지막 활동 시각은 두 검사를 모두 통과한 뒤에 {@link #markPointsReceived}로 바꾼다.
 	 *
+	 * @param requesterId 좌표를 쌓으려는 회원
 	 * @param requestedCount 이번 요청에 담긴 좌표 개수
 	 */
-	public void requireAcceptingPoints(Instant now, int requestedCount) {
+	public void requireAcceptingPoints(Long requesterId, Instant now, int requestedCount) {
+		requireOwner(requesterId);
 		if (requestedCount < 1) {
 			throw InvalidWalkPointBatchException.empty();
 		}

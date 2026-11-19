@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.LoginMember;
+import com.pawmento.map.application.port.in.AddWalkPointsUseCase;
 import com.pawmento.map.application.port.in.EndWalkCommand;
 import com.pawmento.map.application.port.in.EndWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
@@ -28,6 +29,7 @@ class MapController {
 
 	private final ListMapPinsUseCase listMapPinsUseCase;
 	private final StartWalkUseCase startWalkUseCase;
+	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
 
 	@GetMapping("/pins")
@@ -42,6 +44,13 @@ class MapController {
 	@ResponseStatus(HttpStatus.CREATED)
 	StartWalkResponse startWalk(@LoginMember Long memberId, @Valid @RequestBody StartWalkRequest request) {
 		return StartWalkResponse.from(startWalkUseCase.start(new StartWalkCommand(memberId, request.petIdValue())));
+	}
+
+	@PostMapping("/walks/{walkId}/points")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void addWalkPoints(@LoginMember Long memberId, @PathVariable Long walkId,
+			@Valid @RequestBody AddWalkPointsRequest request) {
+		addWalkPointsUseCase.add(request.toCommand(memberId, walkId));
 	}
 
 	@PostMapping("/walks/{walkId}/end")

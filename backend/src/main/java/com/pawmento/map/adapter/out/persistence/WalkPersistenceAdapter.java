@@ -13,6 +13,7 @@ import com.pawmento.map.application.port.out.LoadWalkPort;
 import com.pawmento.map.application.port.out.LockPetWalksPort;
 import com.pawmento.map.application.port.out.SaveWalkPointsPort;
 import com.pawmento.map.application.port.out.SaveWalkPort;
+import com.pawmento.map.application.port.out.WalkOwnership;
 import com.pawmento.map.domain.Walk;
 import com.pawmento.map.domain.WalkPoint;
 
@@ -55,8 +56,19 @@ class WalkPersistenceAdapter
 	}
 
 	@Override
+	public Optional<WalkOwnership> loadOwnership(Long walkId) {
+		return execute(() -> walkJpaRepository.findOwnershipById(walkId)
+			.map(view -> new WalkOwnership(view.getPetId(), view.getCreatedBy())));
+	}
+
+	// 같은 트랜잭션에서 이미 읽은 엔티티가 영속성 컨텍스트에 남아 있으면 잠금 조회가 그 오래된 상태를 그대로 돌려준다.
+	// 잠근 뒤에 행을 다시 읽어, 그사이 다른 트랜잭션이 커밋한 끝난 시각과 마지막 활동 시각을 반영한다
+	@Override
 	public Optional<Walk> loadByIdForUpdate(Long walkId) {
-		return execute(() -> walkJpaRepository.findForUpdate(walkId).map(WalkJpaEntity::toDomain));
+		return execute(() -> walkJpaRepository.findForUpdate(walkId).map(entity -> {
+			entityManager.refresh(entity);
+			return entity.toDomain();
+		}));
 	}
 
 	@Override
