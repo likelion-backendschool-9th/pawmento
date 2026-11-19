@@ -203,7 +203,7 @@ export function JournalForm({
             }}
             rows={8}
             maxLength={3000}
-            required={false}
+            required={questionAnswer}
             placeholder={`${pet.name}의 하루와 지금의 마음을 들려주세요.`}
           />
           {questionAnswer && prompt.error && (

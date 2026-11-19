@@ -28,11 +28,6 @@ export function JournalBoundary({ children }: { children: React.ReactNode }) {
       );
     notFound();
   }
-  if (p.diaryId && item.type === "QUESTION_ANSWER")
-    redirect(
-      `/pets/${pet.id}/questions/answers/${item.id}${path.endsWith("/edit") ? "/edit" : ""}`,
-    );
-  if (p.answerId && item.type !== "QUESTION_ANSWER") notFound();
   return <Context.Provider value={item}>{children}</Context.Provider>;
 }
 export function useJournalItem() {

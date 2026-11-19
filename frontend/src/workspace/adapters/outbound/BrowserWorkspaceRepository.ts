@@ -20,7 +20,13 @@ export class BrowserWorkspaceRepository implements WorkspaceRepository {
         state: migrateLegacyWorkspace(JSON.parse(legacy)),
       });
       // 한 스냅샷으로 기록해 중간 이관 상태를 만들지 않는다. v1은 복구용으로 보존한다.
-      await this.save(accountId, migrated);
+      try {
+        await this.save(accountId, migrated);
+      } catch {
+        // v2 복사본을 저장할 공간이 없어도 검증한 v1 기록은 읽을 수 있다.
+        // 변경은 일반 save를 통하므로 영속화 실패를 성공으로 처리하지 않는다.
+        return migrated;
+      }
       return migrated;
     } catch {
       throw Error(

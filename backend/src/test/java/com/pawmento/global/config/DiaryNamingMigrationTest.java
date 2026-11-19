@@ -14,7 +14,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 class DiaryNamingMigrationTest {
  @Test
- @DisplayName("#32-S1 기존 위치·첨부 행과 FK를 유지해 이름을 이관하고 재실행한다")
+ @DisplayName("#32-S28 기존 위치·첨부 행과 FK를 유지해 이름을 이관하고 재실행한다")
  void preserveRowsAndRepeat() throws Exception {
   try(var postgres=new PostgreSQLContainer("postgres:18-alpine")) {
    postgres.start();

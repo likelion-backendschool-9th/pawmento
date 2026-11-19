@@ -79,9 +79,11 @@
 | 기존 검사 | 새 검사 | 변경과 남는 범위 |
 | --- | --- | --- |
 | frontend workspace.test.ts #12-S3 날짜당 질문 일기 1개·날짜별 질문 포트 | question-workflow.test.ts #12-S3 (고침 #32) | 날짜 해시 배정 대신 미답변 질문 유지·작성자와 배정 질문별 중복 방지·동시 저장·최초 등록시각 유지. 날짜당 1개 제한은 폐기 |
-| workspace.test.ts #12-S6 스냅샷·혼합 컬렉션 필터 #12-S4 | question-workflow.test.ts #12-S6 (고침 #32), workspace.test.ts #12-S4 | 별도 저장소와 날짜 조회, 모드 전환 보존. 일기 페이지·날짜 필터·페이지 나누기 유지 |
+| workspace.test.ts #12-S6 스냅샷·혼합 컬렉션 필터 #12-S4 | question-workflow.test.ts #12-S6 (고침 #32), workspace.test.ts #12-S4 | 별도 저장소와 날짜 조회, 모드 전환 보존. question-workflow.test.ts #12-S4 (고침 #32)에서 같은 날짜의 일기+질문 혼합 fixture로 페이지별 정확 ID·날짜 필터의 답변 제외·조회 후 상태 불변을 복원 |
 | life.test.ts #12-S10 가족 편집자가 타인 답변 수정 | life.test.ts #12-S10 및 question-workflow.test.ts #12-S10 (고침 #32) | 작성자별 수정 제한, 가족 공통 진행과 복수 답변. 실제 서버 가족 API 검증은 포함하지 않음 |
-| workspace.test.ts #12-S5 손상 v1 읽기 | 기존 검사 유지 + workspace-migration.test.ts #32-S2 | v1 보존·v2 재조회·용량 실패·손상 v2 우회 금지·초기화 후 데이터 부활 방지 |
-| 지도 RecordLocation 테스트 | 동일 시나리오의 DiaryLocation 테스트 | 동작 유지. DiaryNamingMigrationTest #32-S1에서 PostgreSQL 기존 행·FK·유니크·시퀀스·재실행·충돌 보존 추가 |
+| workspace.test.ts #12-S5 손상 v1 읽기 | 기존 검사 유지 + workspace-migration.test.ts #32-S29 | v1 보존·v2 재조회·용량 실패 시 기존 기록 조회·사용자 저장 실패 보존·공간 확보 후 재이관·손상 v2 우회 금지·초기화 후 데이터 부활 방지 |
+| 지도 RecordLocation 테스트 | 동일 시나리오의 DiaryLocation 테스트 | 동작 유지. DiaryNamingMigrationTest #32-S28에서 PostgreSQL 기존 행·FK·유니크·시퀀스·재실행·충돌 보존 추가 |
 
 브라우저 저장 데모는 서버 업로드·가족 멤버십·질문 API의 완성을 뜻하지 않는다. HTTP 연동과 복수 탭의 원자적 동시성 검사는 후속 범위다.
+
+#115 재리뷰: DB 이관은 #32-S28, 브라우저 이관은 #32-S29로 등록한다. #32-S1/S2의 기존 CRUD·인증/권한 시나리오를 변경하지 않는다. 질문의 공백 거부·활성 풀 전체 순환은 #12-S3, 완료 배정 기반 이력과 마지막 답변 삭제 후 재답변은 #12-S10 (고침 #32)에서 확인한다.

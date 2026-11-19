@@ -48,9 +48,16 @@ export function createQuestionAnswerUseCases(
           throw Error(
             "이 모드의 질문이 없어요. 관리자 질문 관리를 확인해 주세요.",
           );
-        const last = history.at(-1);
-        const question =
-          questions.find((q) => q.id !== last?.questionId) ?? questions[0];
+        // 아직 배정하지 않은 질문을 먼저, 모두 배정했다면 가장 오래전에 배정한 질문을 고른다.
+        const lastAssigned = new Map(
+          history.map((p, index) => [p.questionId, index]),
+        );
+        const question = questions.reduce((selected, candidate) =>
+          (lastAssigned.get(candidate.id) ?? -1) <
+          (lastAssigned.get(selected.id) ?? -1)
+            ? candidate
+            : selected,
+        );
         const prompt: QuestionPrompt = {
           id: runtime.id(),
           petId,
@@ -66,6 +73,7 @@ export function createQuestionAnswerUseCases(
     save: (accountId: string, input: QuestionAnswerInput, id?: string) =>
       store.mutate(accountId, (ctx) => {
         const pet = requireJournalPet(ctx.pets, input.petId, true);
+        if (!input.body.trim()) throw Error("답변 내용을 입력해 주세요.");
         validateJournalContent(input);
         if ((input.attachments?.length ?? 0) > 5)
           throw Error("첨부는 최대 5개예요.");
