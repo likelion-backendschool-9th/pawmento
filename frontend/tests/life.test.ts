@@ -326,7 +326,7 @@ test("#12-S9 새로고침으로 중단된 PROCESSING 데모를 같은 엽서 ID�
   assert.equal((await env.uc.load()).postcards.length, 1);
 });
 
-test("#12-S12 기존 회원 확인은 무변경 저장을 생략하고 이름 변경·신규 등록은 직렬 저장한다", async () => {
+test("#32-S29 기존 회원 확인은 무변경 저장을 생략하고 이름 변경·신규 등록은 직렬 저장한다", async () => {
   const state = initialLifeState();
   let writes = 0;
   const uc = createLifeUseCases(
