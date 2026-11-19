@@ -180,7 +180,7 @@ class MapPinScenarioTest {
 		mockMvc.perform(pins(me, PET, "minLatitude=abc&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"))
-			.andExpect(jsonPath("$.message").value("minLatitude 값의 형식이 올바르지 않습니다."));
+			.andExpect(jsonPath("$.message").value("minLatitude는 숫자로 입력해 주세요."));
 		mockMvc.perform(pins(me, PET, "minLatitude=NaN&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0"))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"));
@@ -197,7 +197,7 @@ class MapPinScenarioTest {
 		mockMvc.perform(get("/api/v1/maps/pins?petId=abc&" + AREA).cookie(me.cookie()))
 			.andExpect(status().isBadRequest())
 			.andExpect(jsonPath("$.code").value("VALIDATION"))
-			.andExpect(jsonPath("$.message").value("petId 값의 형식이 올바르지 않습니다."));
+			.andExpect(jsonPath("$.message").value("petId는 1 이상의 정수로 입력해 주세요."));
 	}
 
 	@Test
@@ -255,6 +255,71 @@ class MapPinScenarioTest {
 	}
 
 	@Test
+	@DisplayName("#19-S5 petId와 영역은 같은 이름의 요청 헤더로 채울 수 없고, 같은 키를 둘 이상 보내면 첫 값을 쓰지 않고 400이다")
+	void queryOnlyAndNoDuplicates() throws Exception {
+		Guardian me = signUpAndLogin();
+
+		// 헤더만 있는 petId
+		MvcResult petIdHeader = mockMvc
+			.perform(get("/api/v1/maps/pins?" + AREA).cookie(me.cookie()).header("petId", String.valueOf(PET)))
+			.andReturn();
+		assertThat(petIdHeader.getResponse().getStatus()).isEqualTo(400);
+		assertThat(readBody(petIdHeader).get("message").asText()).isEqualTo("petId를 입력해 주세요.");
+		// 헤더만 있는 영역 값
+		MvcResult areaHeader = mockMvc
+			.perform(get("/api/v1/maps/pins?petId=" + PET + "&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0")
+				.cookie(me.cookie())
+				.header("minLatitude", "37.0"))
+			.andReturn();
+		assertThat(areaHeader.getResponse().getStatus()).isEqualTo(400);
+		assertThat(readBody(areaHeader).get("message").asText()).isEqualTo("minLatitude를 입력해 주세요.");
+		// 중복: 숫자도 첫 값을 쓰지 않는다
+		for (String query : new String[] { "petId=" + PET + "&petId=" + (PET + 1) + "&" + AREA,
+				"petId=" + PET + "&%70etId=" + PET + "&" + AREA,
+				"petId=" + PET + "&" + AREA + "&minLatitude=36.0" }) {
+			MvcResult result = mockMvc.perform(withRawQuery(query).cookie(me.cookie())).andReturn();
+			assertThat(result.getResponse().getStatus()).as("query=%s", query).isEqualTo(400);
+			assertThat(readBody(result).get("code").asText()).as("query=%s", query).isEqualTo("VALIDATION");
+		}
+	}
+
+	@Test
+	@DisplayName("#19-S5 인코딩한 키는 읽고, 이 API가 받지 않는 파라미터는 인코딩이 잘못돼도 무시하며, 아주 작은 지수 표기 좌표도 읽는다")
+	void encodedKeysAndIgnoredParameters() throws Exception {
+		Guardian me = signUpAndLogin();
+		long mine = saveLocation(me, PET, 0.0, 0.0, null);
+
+		for (String query : new String[] { "%70etId=" + PET + "&" + AREA.replace("minLatitude=37.0", "%6DinLatitude=37.0"),
+				"petId=" + PET + "&" + AREA + "&utm_source=%E0&%E0=x" }) {
+			MvcResult result = mockMvc.perform(withRawQuery(query).cookie(me.cookie())).andReturn();
+			assertThat(result.getResponse().getStatus()).as("query=%s", query).isEqualTo(200);
+		}
+		// 적도 근처에서 자바스크립트가 만드는 지수 표기(1e-7)
+		mockMvc
+			.perform(withRawQuery("petId=" + PET + "&minLatitude=-1e-7&minLongitude=-1e-7&maxLatitude=1e-7&maxLongitude=1e-7")
+				.cookie(me.cookie()))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.pins.length()").value(1))
+			.andExpect(jsonPath("$.pins[0].recordId").value(mine));
+	}
+
+	@Test
+	@DisplayName("#19-S5 petId는 1 이상의 정수만 받고, 영역 값은 십진수만 받는다. 0, 음수, 소수, 범위를 넘는 정수, NaN·16진수·접미사는 400이다")
+	void strictNumbers() throws Exception {
+		Guardian me = signUpAndLogin();
+
+		for (String query : new String[] { "petId=0&" + AREA, "petId=-1&" + AREA, "petId=1.5&" + AREA,
+				"petId=99999999999999999999&" + AREA, "petId=+1&" + AREA, "petId=%201&" + AREA,
+				"petId=" + PET + "&minLatitude=0x1p3&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0",
+				"petId=" + PET + "&minLatitude=37.0d&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0",
+				"petId=" + PET + "&minLatitude=1e999&minLongitude=126.0&maxLatitude=38.0&maxLongitude=128.0" }) {
+			MvcResult result = mockMvc.perform(withRawQuery(query).cookie(me.cookie())).andReturn();
+			assertThat(result.getResponse().getStatus()).as("query=%s", query).isEqualTo(400);
+			assertThat(readBody(result).get("code").asText()).as("query=%s", query).isEqualTo("VALIDATION");
+		}
+	}
+
+	@Test
 	@DisplayName("#19-S7 다른 회원이 만든 핀은 같은 영역·반려동물이어도 조회되지 않는다")
 	void otherMembersPinsAreHidden() throws Exception {
 		Guardian me = signUpAndLogin();
@@ -276,6 +341,20 @@ class MapPinScenarioTest {
 		long recordId = RECORD_IDS.incrementAndGet();
 		saveRecordLocationPort.save(RecordLocation.create(recordId, petId, guardian.id(), latitude, longitude, placeName));
 		return recordId;
+	}
+
+	// 인코딩한 키와 잘못된 인코딩을 있는 그대로 보낸다. 유효한 URI면 요청 파라미터와 원본 쿼리 문자열을 함께 채운다
+	private static org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder withRawQuery(
+			String rawQuery) {
+		try {
+			return get(java.net.URI.create("/api/v1/maps/pins?" + rawQuery));
+		}
+		catch (IllegalArgumentException invalidUri) {
+			return get("/api/v1/maps/pins").with(request -> {
+				request.setQueryString(rawQuery);
+				return request;
+			});
+		}
 	}
 
 	private RequestBuilder pins(Guardian guardian, long petId, String query) {

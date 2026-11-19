@@ -21,6 +21,14 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 " + expected + " 입력해 주세요.");
 	}
 
+	public static InvalidMapRequestException latitudeOutOfRange() {
+		return new InvalidMapRequestException("위도는 -90 이상 90 이하로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException longitudeOutOfRange() {
+		return new InvalidMapRequestException("경도는 -180 이상 180 이하로 입력해 주세요.");
+	}
+
 	public static InvalidMapRequestException malformedEncoding() {
 		return new InvalidMapRequestException("쿼리 문자열의 인코딩이 올바르지 않습니다.");
 	}

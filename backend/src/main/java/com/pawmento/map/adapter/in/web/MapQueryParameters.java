@@ -26,6 +26,10 @@ final class MapQueryParameters {
 
 	private static final Pattern DATE = Pattern.compile("[0-9]{4}-[0-9]{2}-[0-9]{2}");
 
+	// 부호 있는 십진수. 지수(1e-7)는 받고 NaN, Infinity, 16진수(0x1p3), 접미사(1d, 1f), 앞뒤 공백은 받지 않는다.
+	// 자바스크립트의 숫자 문자열이 아주 작은 값을 지수로 만들 수 있어서 지수는 허용한다
+	private static final Pattern DECIMAL = Pattern.compile("-?[0-9]+(\\.[0-9]+)?([eE][+-]?[0-9]+)?");
+
 	private final Map<String, String> values;
 
 	private MapQueryParameters(Map<String, String> values) {
@@ -75,6 +79,36 @@ final class MapQueryParameters {
 			}
 		}
 		throw InvalidMapRequestException.invalid(name, "1 이상의 정수로");
+	}
+
+	// -90 이상 90 이하의 위도. 숫자가 아니거나 NaN·무한대이거나 범위를 벗어나면 거절한다
+	double latitude(String name) {
+		double value = decimal(name);
+		if (Math.abs(value) > 90.0) {
+			throw InvalidMapRequestException.latitudeOutOfRange();
+		}
+		return value;
+	}
+
+	// -180 이상 180 이하의 경도
+	double longitude(String name) {
+		double value = decimal(name);
+		if (Math.abs(value) > 180.0) {
+			throw InvalidMapRequestException.longitudeOutOfRange();
+		}
+		return value;
+	}
+
+	private double decimal(String name) {
+		String value = required(name);
+		if (DECIMAL.matcher(value).matches()) {
+			double number = Double.parseDouble(value);
+			// 1e999처럼 범위를 넘는 지수는 무한대가 된다. 숫자로 인정하지 않는다
+			if (Double.isFinite(number)) {
+				return number;
+			}
+		}
+		throw InvalidMapRequestException.invalid(name, "숫자로");
 	}
 
 	// 정확히 YYYY-MM-DD인 날짜. offset 접미사(Z, +09:00)나 시각, 달력에 없는 날(2026-02-30)은 거절한다

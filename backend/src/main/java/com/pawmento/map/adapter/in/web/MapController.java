@@ -37,10 +37,14 @@ class MapController {
 	private final ListWalksUseCase listWalksUseCase;
 
 	@GetMapping("/pins")
-	MapPinsResponse listPins(@LoginMember Long memberId, @Valid ListMapPinsRequest request) {
-		ListMapPinsQuery query = new ListMapPinsQuery(memberId, request.petId(), request.minLatitude(), request.minLongitude(),
-				request.maxLatitude(), request.maxLongitude());
-		return MapPinsResponse.from(listMapPinsUseCase.list(query));
+	MapPinsResponse listPins(@LoginMember Long memberId, HttpServletRequest http) {
+		// 쿼리 문자열만 읽는다. 모델 바인딩은 URL에 없는 값을 같은 이름의 헤더로 채우고 중복된 키는 첫 값만 쓴다
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId", "minLatitude",
+				"minLongitude", "maxLatitude", "maxLongitude");
+		ListMapPinsQuery area = new ListMapPinsQuery(memberId, query.positiveLong("petId"),
+				query.latitude("minLatitude"), query.longitude("minLongitude"), query.latitude("maxLatitude"),
+				query.longitude("maxLongitude"));
+		return MapPinsResponse.from(listMapPinsUseCase.list(area));
 	}
 
 

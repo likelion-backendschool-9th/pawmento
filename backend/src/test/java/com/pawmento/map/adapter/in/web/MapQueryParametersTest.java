@@ -78,6 +78,49 @@ class MapQueryParametersTest {
 	}
 
 	@Test
+	@DisplayName("#19-S5 위도·경도는 부호 있는 십진수로 읽고, 경계값과 지수 표기(1e-7)도 읽는다")
+	void readsCoordinates() {
+		MapQueryParameters query = MapQueryParameters.parse(
+				"minLatitude=-90&maxLatitude=90.0&minLongitude=-180&maxLongitude=180&a=1e-7&b=0&c=-0.5&d=37.123456789",
+				"minLatitude", "maxLatitude", "minLongitude", "maxLongitude", "a", "b", "c", "d");
+
+		assertThat(query.latitude("minLatitude")).isEqualTo(-90.0);
+		assertThat(query.latitude("maxLatitude")).isEqualTo(90.0);
+		assertThat(query.longitude("minLongitude")).isEqualTo(-180.0);
+		assertThat(query.longitude("maxLongitude")).isEqualTo(180.0);
+		assertThat(query.latitude("a")).isEqualTo(1e-7);
+		assertThat(query.latitude("b")).isZero();
+		assertThat(query.latitude("c")).isEqualTo(-0.5);
+		assertThat(query.longitude("d")).isEqualTo(37.123456789);
+	}
+
+	@Test
+	@DisplayName("#19-S5 위도·경도가 숫자가 아니면 거절한다. NaN, Infinity, 16진수, 접미사, 공백, 소수점만 있는 값, 범위를 넘는 지수도 같다")
+	void invalidCoordinateFormats() {
+		for (String value : new String[] { "abc", "NaN", "Infinity", "-Infinity", "0x1p3", "1d", "1f", "1L", "%201",
+				"1%20", ".5", "5.", "+5", "--5", "1e", "1e999", "-1e999", "1,5", "%EF%BC%95" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("lat=" + value, "lat").latitude("lat"))
+				.as("lat=%s", value)
+				.isInstanceOf(InvalidMapRequestException.class)
+				.hasMessage("lat는 숫자로 입력해 주세요.");
+		}
+	}
+
+	@Test
+	@DisplayName("#19-S5 위도는 -90~90, 경도는 -180~180을 벗어나면 거절하고 문구는 기존과 같다")
+	void coordinateRanges() {
+		for (String value : new String[] { "90.0000001", "-90.0000001", "91", "-91", "1e2" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("lat=" + value, "lat").latitude("lat")).as("lat=%s", value)
+				.hasMessage("위도는 -90 이상 90 이하로 입력해 주세요.");
+		}
+		for (String value : new String[] { "180.0000001", "-180.0000001", "181", "-181", "1e3" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("lng=" + value, "lng").longitude("lng")).as("lng=%s", value)
+				.hasMessage("경도는 -180 이상 180 이하로 입력해 주세요.");
+		}
+		assertThat(MapQueryParameters.parse("lat=100", "lat").longitude("lat")).isEqualTo(100.0);
+	}
+
+	@Test
 	@DisplayName("#73-S7 잘못된 인코딩은 받는 키에서만 거절하고, 이 API가 받지 않는 키는 값과 인코딩을 보지 않는다")
 	void encodingIsCheckedOnlyForAcceptedKeys() {
 		assertThatThrownBy(() -> parse("petId=%ZZ")).isInstanceOf(InvalidMapRequestException.class)
