@@ -43,7 +43,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 
 | 경로 | 용도 |
 | --- | --- |
-| `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout` | 가입, 로그인, 로그아웃 |
+| `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`, `POST /api/v1/auth/oauth/{provider}`, `POST /api/v1/auth/logout` | 가입, 로그인, 소셜 로그인, 로그아웃 |
 | `GET /api/v1/posts`, `GET /api/v1/posts/categories`, `GET /api/v1/posts/{숫자 id}` | 커뮤니티 글 목록, 카테고리 목록, 글 상세. 쿠키의 토큰을 읽지 않는다. 와일드카드로 열지 않아 `/posts/me` 같은 다른 경로는 로그인이 필요하다 (#21) |
 | `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /swagger-ui.html` | API 문서 (Springdoc 기본 경로. 도구는 백엔드 구조 작업에서 더한다) |
 
@@ -53,6 +53,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | --- | --- | --- |
 | `POST /api/v1/auth/signup` | `email`, `password`(8~72자), `nickname`(1~20자) | 201, 회원 정보 |
 | `POST /api/v1/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
+| `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(네이버만). `provider`는 `google`·`kakao`·`naver` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
 | `POST /api/v1/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
 | `GET /api/v1/members/me` | 없음 | 200, 회원 정보 |
 

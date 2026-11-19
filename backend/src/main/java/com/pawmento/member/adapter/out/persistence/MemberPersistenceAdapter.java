@@ -7,9 +7,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
+import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
 
 import lombok.RequiredArgsConstructor;
@@ -27,9 +29,12 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, Exists
 			return jpaRepository.saveAndFlush(MemberJpaEntity.from(member)).toDomain();
 		}
 		catch (DataIntegrityViolationException e) {
-			// 중복 확인과 저장 사이에 같은 이메일로 가입이 끼어든 경우
-			if (isEmailUniqueViolation(e)) {
+			// 중복 확인과 저장 사이에 같은 이메일이나 같은 소셜 계정의 가입이 끼어든 경우
+			if (isViolation(e, MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT)) {
 				throw new DuplicateEmailException();
+			}
+			if (isViolation(e, MemberJpaEntity.PROVIDER_UNIQUE_CONSTRAINT)) {
+				throw new DuplicateSocialAccountException();
 			}
 			throw e;
 		}
@@ -55,9 +60,13 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, Exists
 		return jpaRepository.findForNicknameChange(memberId).map(MemberJpaEntity::toDomain);
 	}
 
-	private boolean isEmailUniqueViolation(DataIntegrityViolationException e) {
-		return e.getCause() instanceof ConstraintViolationException violation
-				&& MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
+	@Override
+	public Optional<Member> loadByProvider(AuthProvider provider, String providerUserId) {
+		return jpaRepository.findByProviderAndProviderUserId(provider, providerUserId).map(MemberJpaEntity::toDomain);
 	}
 
+	private boolean isViolation(DataIntegrityViolationException e, String constraintName) {
+		return e.getCause() instanceof ConstraintViolationException violation
+				&& constraintName.equalsIgnoreCase(violation.getConstraintName());
+	}
 }

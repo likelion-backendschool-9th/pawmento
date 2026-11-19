@@ -36,3 +36,10 @@ pawmento:
       # 비어 있으면 주소 조회를 건너뛴다(저장은 주소 없이 이어간다)
       client-id: ${NAVER_MAP_CLIENT_ID:}
       client-secret: ${NAVER_MAP_CLIENT_SECRET:}
+
+  oauth:
+    google:
+      # Google Cloud Console OAuth 클라이언트. 저장소에 두지 않고 환경 변수로만 받는다.
+      # 비어 있으면 앱은 켜지고 구글 로그인만 실패한다
+      client-id: ${GOOGLE_CLIENT_ID:}
+      client-secret: ${GOOGLE_CLIENT_SECRET:}

@@ -5,7 +5,7 @@ public interface HashPasswordPort {
 
 	String hash(String rawPassword);
 
-	// 저장된 해시가 없으면(null) 회원 부재를 숨기기 위한 비교만 수행한다.
+	// 저장된 해시가 없으면(null) 시간만 맞추는 비교를 하고 항상 false를 돌려준다.
 	boolean matches(String rawPassword, String passwordHash);
 
 }

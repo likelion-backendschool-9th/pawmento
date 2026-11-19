@@ -26,7 +26,7 @@ public class LoginMemberService implements LoginMemberUseCase {
 	@Transactional(readOnly = true)
 	public LoginMemberResult login(LoginMemberCommand command) {
 		Member member = loadMemberPort.loadByEmail(Member.normalizeEmail(command.email())).orElse(null);
-		if (member == null) {
+		if (member == null || !member.isLocal()) {
 			passwordHasher.matches(command.rawPassword(), null);
 			throw new InvalidCredentialsException();
 		}
