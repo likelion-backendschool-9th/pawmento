@@ -23,9 +23,15 @@ final class DiaryQueryParameters {
     if (query != null && !query.isEmpty()) {
       for (String pair : query.split("&", -1)) {
         String[] parts = pair.split("=", 2);
-        String key = decode(parts[0]);
-        String value = parts.length == 2 ? decode(parts[1]) : "";
+        String key;
+        try {
+          key = decode(parts[0]);
+        } catch (InvalidDiaryRequestException ignored) {
+          // 디코딩할 수 없는 키는 이 API가 받는 키일 수 없다.
+          continue;
+        }
         if (!keys.contains(key)) continue;
+        String value = parts.length == 2 ? decode(parts[1]) : "";
         if (value.isEmpty() || values.putIfAbsent(key, value) != null)
           throw new InvalidDiaryRequestException();
       }

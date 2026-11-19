@@ -7,7 +7,8 @@ BEGIN
     ALTER TABLE diary_entries ADD CONSTRAINT fk_diary_entries_pet
       FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE RESTRICT NOT DEFERRABLE;
   END IF;
-  CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_id ON diary_entries(pet_id);
   CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_date_id
     ON diary_entries(pet_id, recorded_date DESC, id DESC);
+  -- 복합 인덱스의 첫 컬럼으로 FK 검사와 petId 존재 조회도 처리한다.
+  DROP INDEX IF EXISTS ix_diary_entries_pet_id;
 END $$;

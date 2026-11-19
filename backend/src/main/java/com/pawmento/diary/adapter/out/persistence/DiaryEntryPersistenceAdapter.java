@@ -7,9 +7,12 @@ import com.pawmento.diary.domain.DiaryListFilter;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -65,22 +68,34 @@ public class DiaryEntryPersistenceAdapter
 
   @Override
   public List<DiaryEntry> entries(Long petId, DiaryListFilter filter) {
-    return rows
-        .findPage(petId, filter.fromDate(), filter.toDate(), filter.size(), filter.offset())
-        .stream()
-        .map(DiaryEntryJpaEntity::toDomain)
-        .toList();
+    return read(
+        () ->
+            rows
+                .findPage(petId, filter.fromDate(), filter.toDate(), filter.size(), filter.offset())
+                .stream()
+                .map(DiaryEntryJpaEntity::toDomain)
+                .toList());
   }
 
   @Override
   public long count(Long petId, DiaryListFilter filter) {
-    return rows.countEntries(petId, filter.fromDate(), filter.toDate());
+    return read(() -> rows.countEntries(petId, filter.fromDate(), filter.toDate()));
   }
 
   @Override
   public List<DiaryDayCount> days(Long petId, LocalDate from, LocalDate before) {
-    return rows.countDays(petId, from, before).stream()
-        .map(day -> new DiaryDayCount(day.getDate(), day.getTotal()))
-        .toList();
+    return read(
+        () ->
+            rows.countDays(petId, from, before).stream()
+                .map(day -> new DiaryDayCount(day.getDate(), day.getTotal()))
+                .toList());
+  }
+
+  private static <T> T read(Supplier<T> query) {
+    try {
+      return query.get();
+    } catch (DataAccessResourceFailureException | TransientDataAccessResourceException failure) {
+      throw new DiaryPersistenceUnavailableException(failure);
+    }
   }
 }

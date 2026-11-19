@@ -31,6 +31,26 @@ class DiaryArchiveScenarioTest {
   @Autowired CreatePetUseCase pets;
   @Autowired JdbcTemplate jdbc;
 
+  @Test
+  @DisplayName("#32-S7 스키마 재초기화는 기존 일기를 보존하며 중복 인덱스만 제거한다")
+  void replacesRedundantIndex() throws Exception {
+    long pet = pet();
+    long id = seed(pet, 9001L, "2026-11-19");
+    jdbc.execute("CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_id ON diary_entries(pet_id)");
+    var resource = new org.springframework.core.io.ClassPathResource("db/diary-schema.sql");
+    String sql = resource.getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    jdbc.execute(sql);
+    jdbc.execute(sql);
+    assertThat(
+            jdbc.queryForObject("SELECT count(*) FROM diary_entries WHERE id = ?", Long.class, id))
+        .isEqualTo(1L);
+    assertThat(
+            jdbc.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE tablename = 'diary_entries'", String.class))
+        .contains("ix_diary_entries_pet_date_id")
+        .doesNotContain("ix_diary_entries_pet_id");
+  }
+
   long pet() {
     return pets.create(new CreatePetCommand(9001L, "보리", "DOG", null, null)).petId();
   }
@@ -201,8 +221,7 @@ class DiaryArchiveScenarioTest {
             prefix + "&from=",
             prefix + "&%70etId=" + pet,
             "petId=%XX",
-            "petId=%FF",
-            prefix + "&%XX=x"))
+            "petId=%FF"))
       mvc.perform(
               get("/api/v1/diaries")
                   .with(jwt().jwt(j -> j.subject("9001")))
@@ -231,6 +250,25 @@ class DiaryArchiveScenarioTest {
                       }))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("VALIDATION"));
+  }
+
+  @Test
+  @DisplayName("#32-S25 사용하지 않는 파라미터의 인코딩 오류는 목록·달력에서 무시한다")
+  void ignoresUnknownQueryEncoding() throws Exception {
+    long pet = pet();
+    for (String extra : List.of("utm=%E0", "%E0=x", "utm=%", "%XX=x")) {
+      for (String path : List.of("/api/v1/diaries", "/api/v1/diaries/calendar")) {
+        mvc.perform(
+                get(path)
+                    .with(jwt().jwt(j -> j.subject("9001")))
+                    .with(
+                        r -> {
+                          r.setQueryString("petId=" + pet + "&month=2026-11&" + extra);
+                          return r;
+                        }))
+            .andExpect(status().isOk());
+      }
+    }
   }
 
   @Test
