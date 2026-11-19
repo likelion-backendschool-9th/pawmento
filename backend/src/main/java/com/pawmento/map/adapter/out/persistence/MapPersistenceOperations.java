@@ -6,11 +6,11 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.hibernate.exception.JDBCConnectionException;
+import org.hibernate.exception.LockTimeoutException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.RecoverableDataAccessException;
 import org.springframework.dao.TransientDataAccessException;
 
-import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.QueryTimeoutException;
 
 // 저장소 호출에서 나온 일시적인 저장소 장애(연결 장애, 타임아웃, 잠금 대기 초과 등)만 응용 예외(503)로 바꾼다.
@@ -46,7 +46,8 @@ final class MapPersistenceOperations {
 		for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
 			if (cause instanceof TransientDataAccessException || cause instanceof RecoverableDataAccessException
 					|| cause instanceof DataAccessResourceFailureException || cause instanceof JDBCConnectionException
-					|| cause instanceof QueryTimeoutException || cause instanceof LockTimeoutException
+					|| cause instanceof QueryTimeoutException || cause instanceof jakarta.persistence.LockTimeoutException
+					|| cause instanceof LockTimeoutException
 					|| cause instanceof SQLTransientException || cause instanceof SQLRecoverableException) {
 				return true;
 			}

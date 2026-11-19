@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.sql.SQLException;
 
 import org.hibernate.exception.JDBCConnectionException;
+import org.hibernate.exception.LockTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -18,6 +19,7 @@ import com.pawmento.map.application.exception.WalkPersistenceUnavailableExceptio
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
+import jakarta.persistence.PessimisticLockException;
 
 // 잠금 호출이 실패할 때 기술 예외가 서비스까지 올라가지 않고 응용 예외로 바뀌는지만 본다. 진짜 DB는 쓰지 않는다
 class WalkLockTranslationTest {
@@ -35,6 +37,17 @@ class WalkLockTranslationTest {
 
 		assertThatThrownBy(() -> adapter.lock(10L)).isInstanceOf(WalkPersistenceUnavailableException.class)
 			.isInstanceOf(StorageUnavailableException.class)
+			.hasCause(cause);
+	}
+
+	@Test
+	@DisplayName("#72-S10 잠금 대기 시간 초과(SQLSTATE 55P03)는 Hibernate LockTimeoutException을 PessimisticLockException이 감싼 모양이어도 일시 장애로 바꾸고 원인을 보존한다")
+	void postgresLockTimeoutIsTranslated() {
+		LockTimeoutException hibernateFailure = new LockTimeoutException("lock timeout", new SQLException("55P03"));
+		PessimisticLockException cause = new PessimisticLockException("could not obtain lock", hibernateFailure);
+		when(entityManager.createNativeQuery(anyString(), any(Class.class))).thenThrow(cause);
+
+		assertThatThrownBy(() -> adapter.lock(10L)).isInstanceOf(WalkPersistenceUnavailableException.class)
 			.hasCause(cause);
 	}
 
