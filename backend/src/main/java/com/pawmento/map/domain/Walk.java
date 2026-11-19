@@ -94,13 +94,18 @@ public class Walk {
 
 	/**
 	 * 좌표 묶음을 받아도 되는지 검사한다. 값은 바꾸지 않는다.
-	 * 요청 하나의 크기(재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태만 본다.
+	 * 시작한 회원만 좌표를 쌓을 수 있고, 이 검사가 가장 먼저다(끝내기와 같다). 그다음 요청 하나의 크기
+	 * (재전송된 좌표를 포함한 원본 묶음 크기)와 산책의 상태를 본다.
 	 * 산책 전체의 개수 한도는 실제로 새로 쌓이는 개수를 알아야 해서 {@link #requireCapacity}가 따로 본다.
 	 * 마지막 활동 시각은 두 검사를 모두 통과한 뒤에 {@link #markPointsReceived}로 바꾼다.
 	 *
+	 * @param requesterId 좌표를 쌓으려는 회원
 	 * @param requestedCount 이번 요청에 담긴 좌표 개수
 	 */
-	public void requireAcceptingPoints(Instant now, int requestedCount) {
+	public void requireAcceptingPoints(Long requesterId, Instant now, int requestedCount) {
+		if (!createdBy.equals(requesterId)) {
+			throw new NotWalkOwnerException();
+		}
 		if (requestedCount < 1) {
 			throw InvalidWalkPointBatchException.empty();
 		}

@@ -113,7 +113,7 @@ class WalkPersistenceAdapterTest {
 		Long id = saveWalk(PET, MEMBER, NOW);
 		Walk walk = adapter.loadById(id).orElseThrow();
 		Instant later = NOW.plusSeconds(200);
-		walk.requireAcceptingPoints(later, 4);
+		walk.requireAcceptingPoints(MEMBER, later, 4);
 		walk.markPointsReceived(later);
 
 		adapter.save(walk);
