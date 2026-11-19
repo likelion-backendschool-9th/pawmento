@@ -139,9 +139,25 @@ com.pawmento
 | 형식 (필수, 길이, 이메일 형식) | Request의 Bean Validation (`@Valid`) | `@NotBlank`, `@Size`, `@Email` |
 | 업무 규칙 | 도메인 객체 | 하루 기록 개수 제한, 작성자만 수정 |
 
-- 형식 검증은 Request에서 한다. 서비스에 다시 쓰지 않는다.
+- 형식 검증은 Request에서 한다. 서비스에 다시 쓰지 않는다. 쿼리 문자열을 받는 GET은 아래 [쿼리 문자열을 직접 읽는 조건](#쿼리-문자열을-직접-읽는-조건)에 해당할 때만 예외다.
 - 도메인 객체가 절대 깨지면 안 되는 조건(예: 내용이 비면 안 됨)은 Request에서 막더라도 도메인 생성 메서드에도 남긴다. 다른 경로로 들어온 값도 막는 마지막 안전장치다.
 - Bean Validation은 `spring-boot-starter-validation` 의존성이 필요하다.
+
+### 쿼리 문자열을 직접 읽는 조건
+
+쿼리 문자열을 받는 GET도 기본은 Request `record`와 `@Valid`다. 스프링의 모델 바인딩이 계약과 다르게 동작하는 아래 경우에만, 컨트롤러가 `HttpServletRequest.getQueryString()`의 원본을 읽고 같은 웹 어댑터의 `<도메인>QueryParameters` 클래스가 해석한다. 지금 쓰는 곳은 다이어리(`DiaryQueryParameters`)와 지도(`MapQueryParameters`)다. (#19, #32)
+
+| 조건 | 모델 바인딩의 동작 |
+| --- | --- |
+| 필수 쿼리를 같은 이름의 요청 헤더로 채우면 안 된다 | URL에 없는 값을 같은 이름의 헤더로 채운다 |
+| 같은 키가 둘 이상이면 거절해야 한다 | 숫자는 첫 값만 쓰고 문자열은 쉼표로 이어 붙인다 |
+| 값을 정확한 형식으로만 받아야 한다 | `ISO.DATE`는 `2026-11-17Z`도 받고 `Double`은 `NaN`·`0x1p3`·`37d`도 받는다 |
+
+- 받는 키만 해석한다. 받지 않는 키(추적용 파라미터 등)는 값과 인코딩을 보지 않고 지나간다. 인코딩한 키(`%70etId`)는 읽고 같은 키로 센다.
+- 오류는 `adapter/in/web/exception`의 `RuleViolationException` 하위 예외로 던지고 응답은 400이다. 문구는 예외 생성자에 둔다.
+- 서블릿 타입을 Command·Query로 넘기지 않는다. 요청 본문(JSON)은 계속 `record`와 `@Valid`로 받는다.
+- 같은 값 범위(예: 위도·경도)를 직접 해석과 Bean Validation 양쪽에서 쓰면 범위와 문구를 상수 한 곳에 두어 어긋나지 않게 한다(지도의 `CoordinateRange`).
+- 위 조건에 해당하지 않는 API는 Request `record`로 받는다.
 
 ## 클래스별 작성 규칙
 

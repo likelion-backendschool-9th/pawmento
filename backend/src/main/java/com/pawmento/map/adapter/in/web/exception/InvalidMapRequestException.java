@@ -22,11 +22,11 @@ public class InvalidMapRequestException extends RuleViolationException {
 	}
 
 	public static InvalidMapRequestException latitudeOutOfRange() {
-		return new InvalidMapRequestException("위도는 -90 이상 90 이하로 입력해 주세요.");
+		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
 	}
 
 	public static InvalidMapRequestException longitudeOutOfRange() {
-		return new InvalidMapRequestException("경도는 -180 이상 180 이하로 입력해 주세요.");
+		return new InvalidMapRequestException(CoordinateRange.LONGITUDE_MESSAGE);
 	}
 
 	public static InvalidMapRequestException malformedEncoding() {

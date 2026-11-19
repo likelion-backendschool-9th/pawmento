@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import com.pawmento.map.adapter.in.web.exception.CoordinateRange;
 import com.pawmento.map.adapter.in.web.exception.InvalidMapRequestException;
 
 /**
@@ -84,7 +85,7 @@ final class MapQueryParameters {
 	// -90 이상 90 이하의 위도. 숫자가 아니거나 NaN·무한대이거나 범위를 벗어나면 거절한다
 	double latitude(String name) {
 		double value = decimal(name);
-		if (Math.abs(value) > 90.0) {
+		if (Math.abs(value) > CoordinateRange.MAX_LATITUDE_DEGREES) {
 			throw InvalidMapRequestException.latitudeOutOfRange();
 		}
 		return value;
@@ -93,7 +94,7 @@ final class MapQueryParameters {
 	// -180 이상 180 이하의 경도
 	double longitude(String name) {
 		double value = decimal(name);
-		if (Math.abs(value) > 180.0) {
+		if (Math.abs(value) > CoordinateRange.MAX_LONGITUDE_DEGREES) {
 			throw InvalidMapRequestException.longitudeOutOfRange();
 		}
 		return value;
