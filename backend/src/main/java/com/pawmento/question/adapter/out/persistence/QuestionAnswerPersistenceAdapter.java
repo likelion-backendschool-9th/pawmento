@@ -1,19 +1,23 @@
 package com.pawmento.question.adapter.out.persistence;
 
 import com.pawmento.question.application.port.out.QuestionAnswerStorePort;
+import com.pawmento.question.application.port.out.QuestionAttachmentsPort;
 import com.pawmento.question.domain.*;
 import com.pawmento.question.domain.exception.QuestionAnswerConflictException;
 import jakarta.persistence.*;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
-class QuestionAnswerPersistenceAdapter implements QuestionAnswerStorePort {
+class QuestionAnswerPersistenceAdapter implements QuestionAnswerStorePort, QuestionAttachmentsPort {
   private final QuestionAnswerJpaRepository answers;
+  private final QuestionAttachmentJpaRepository attachmentRows;
   private final EntityManager em;
 
   public Optional<QuestionAnswer> find(Long pet, Long id) {
@@ -105,6 +109,39 @@ class QuestionAnswerPersistenceAdapter implements QuestionAnswerStorePort {
                 f.authorMemberId(),
                 f.from(),
                 f.to()));
+  }
+
+  public Map<Long, List<Long>> findAll(List<Long> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return run(
+        () -> {
+          Map<Long, List<Long>> result = new HashMap<>();
+          for (var row : attachmentRows.findForParents(ids))
+            result
+                .computeIfAbsent(row.getId().getAnswerId(), k -> new ArrayList<>())
+                .add(row.getId().getAssetId());
+          return result;
+        });
+  }
+
+  @Transactional
+  public void replace(Long id, List<Long> assets) {
+    run(
+        () -> {
+          // Remove managed links and flush before inserting reused composite IDs/order slots.
+          // Bulk delete would leave previously loaded link entities stale in this transaction.
+          attachmentRows.deleteById_AnswerId(id);
+          attachmentRows.flush();
+          attachmentRows.saveAllAndFlush(
+              IntStream.range(0, assets.size())
+                  .mapToObj(i -> QuestionAttachmentJpaEntity.from(id, assets.get(i), i))
+                  .toList());
+          return null;
+        });
+  }
+
+  public boolean existsByAssetId(Long id) {
+    return run(() -> attachmentRows.existsById_AssetId(id));
   }
 
   private static <T> T run(Supplier<T> action) {
