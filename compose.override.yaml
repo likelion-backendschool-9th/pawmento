@@ -6,7 +6,11 @@ services:
     build: ./backend
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        # 백엔드의 NAVER_MAP_CLIENT_ID와 같은 값(같은 네이버 앱의 Client ID)을 프론트 번들에 넣는다. 비워 두면 예시 지도가 나온다
+        NEXT_PUBLIC_NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
 
   nginx:
     # 로컬 bootRun(8080)·npm run dev(3000)와 겹치지 않는 포트. LOCAL_PORT로 바꿀 수 있다

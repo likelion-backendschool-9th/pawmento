@@ -86,6 +86,9 @@ jobs:
         with:
           context: ${{ matrix.service }}
           push: false
+          # 프론트 번들에 들어가는 공개 값(네이버 지도 Client ID). 저장소 Variables에 NAVER_MAP_CLIENT_ID를 두며 없으면 빈 값이다
+          build-args: |
+            ${{ matrix.service == 'frontend' && format('NEXT_PUBLIC_NAVER_MAP_CLIENT_ID={0}', vars.NAVER_MAP_CLIENT_ID) || '' }}
           cache-from: type=gha,scope=${{ matrix.service }}
 
   # ---- 개발 서버 배포 (develop push에서만) ----
@@ -127,6 +130,9 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # 프론트 번들에 들어가는 공개 값(네이버 지도 Client ID). 저장소 Variables의 NAVER_MAP_CLIENT_ID
+          build-args: |
+            ${{ matrix.service == 'frontend' && format('NEXT_PUBLIC_NAVER_MAP_CLIENT_ID={0}', vars.NAVER_MAP_CLIENT_ID) || '' }}
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
 
