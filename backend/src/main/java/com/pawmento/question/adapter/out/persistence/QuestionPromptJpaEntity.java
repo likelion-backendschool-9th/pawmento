@@ -51,7 +51,13 @@ class QuestionPromptJpaEntity {
   @Column(nullable = false)
   private Instant assignedAt;
 
+  private Instant completedAt;
+
   protected QuestionPromptJpaEntity() {}
+
+  void complete(QuestionPrompt prompt) {
+    completedAt = prompt.getCompletedAt();
+  }
 
   static QuestionPromptJpaEntity from(QuestionPrompt prompt) {
     var entity = new QuestionPromptJpaEntity();
@@ -75,7 +81,7 @@ class QuestionPromptJpaEntity {
   QuestionPrompt toDomain() {
     try {
       return QuestionPrompt.restore(
-          id, petId, mode, questionId, questionSnapshot, sequence, assignedAt);
+          id, petId, mode, questionId, questionSnapshot, sequence, assignedAt, completedAt);
     } catch (InvalidQuestionException e) {
       throw new StoredQuestionInvalidException(e);
     }
