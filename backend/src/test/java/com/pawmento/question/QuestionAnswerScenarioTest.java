@@ -51,6 +51,7 @@ class QuestionAnswerScenarioTest {
   @MockitoBean SelectQuestionPort selection;
   @MockitoSpyBean QuestionProgressStorePort progress;
   @MockitoSpyBean QuestionAnswerStorePort answers;
+  @MockitoSpyBean GetMemberUseCase memberDetails;
   long member, pet;
   List<Map<String, Object>> pool;
 
@@ -166,6 +167,50 @@ class QuestionAnswerScenarioTest {
         .andExpect(jsonPath("$.question").value(snapshot));
     assertThat(count("question_answer")).isEqualTo(1);
     assertThat(count("diary_entries")).isZero();
+  }
+
+  @Test
+  @DisplayName("#31-S9/S14 내용 없는 PATCH는 현재 값을 200으로 반환하고 시각·버전·진행을 바꾸지 않는다")
+  void patchWithoutContentDoesNotMutate() throws Exception {
+    long prompt = ensure();
+    var saved = json(create(prompt).andExpect(status().isCreated()));
+    long answer = id(saved);
+    var original = (Map<?, ?>) saved.get("answer");
+    long next = ensure();
+    when(clock.instant()).thenReturn(Instant.parse("2026-11-23T16:00:00Z"));
+    for (String body : List.of("{\"version\":0}", "{\"version\":0,\"attachmentIds\":[]}")) {
+      var response =
+          json(
+              call(patch(answerPath(answer)).contentType(MediaType.APPLICATION_JSON).content(body))
+                  .andExpect(status().isOk()));
+      assertThat((Map<?, ?>) response).isEqualTo(original);
+      pending(next);
+    }
+    call(patch(answerPath(answer))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"version\":1}"))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  @DisplayName("#31-S13/S14 회원 이름 누락은 사용자 입력 400이 아닌 공통 500이며 답변·완료·진행을 저장하지 않는다")
+  void invalidAuthorNameIsStoredDataFailure() throws Exception {
+    long prompt = ensure();
+    for (String name : new String[] {null, "  "}) {
+      doReturn(new MemberResult(member, "internal@example.test", name, "USER"))
+          .when(memberDetails)
+          .get(new GetMemberQuery(member));
+      create(prompt)
+          .andExpect(status().isInternalServerError())
+          .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+          .andExpect(jsonPath("$.message").value("서버에서 데이터를 읽지 못했습니다. 잠시 후 다시 시도해 주세요."));
+      assertThat(count("question_answer")).isZero();
+      pending(prompt);
+      assertThat(
+              jdbc.queryForObject(
+                  "select completed_at from question_prompt where id=?", Instant.class, prompt))
+          .isNull();
+    }
   }
 
   @Test
