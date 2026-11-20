@@ -1,4 +1,6 @@
--- 배포 이후 이 파일은 수정하지 않는다. 다음 버전도 같은 트랜잭션 잠금 키를 사용한다.
+-- 배포 이후 내용 변경은 새 버전으로 추가하고 같은 트랜잭션 잠금 키를 사용한다.
+-- 예외: #29 물리 이름 변경은 같은 PR에서 이 파일도 동기화한다(docs/question/question-flow.md).
+-- 질문 내용·seed_key 값·기존 데이터 보존 계약은 이 예외로 변경하지 않는다.
 SELECT pg_advisory_xact_lock(hashtextextended('pawmento-question-seed', 0));
 
 DO $seed$
