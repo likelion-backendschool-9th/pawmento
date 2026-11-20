@@ -148,3 +148,11 @@
 | #31-S1 [테스트] | ADMIN 등록·수정·활성 전환과 관리자 권한 | 6, 후속 |
 
 초기 데이터·배정·답변·첨부 검사는 실제 PostgreSQL을 사용한다. 경합은 다른 연결/트랜잭션과 latch/barrier로 재현한다. 초기 데이터만 준비해 놓고 사용자 질문 기능이 완성됐다고 표시하지 않는다.
+
+### 구조 규칙 적용 (#31)
+
+- 질문 배정·답변·첨부 파일의 HTTP 진입점은 `QuestionController` 하나에 둔다. 기존 경로와 쿼리 검증 범위를 유지한다.
+- 답변 입력 포트는 `CreateQuestionAnswerService`, `EditQuestionAnswerService`, `DeleteQuestionAnswerService`, `GetQuestionAnswerService`, `ListQuestionAnswersService`, `HasQuestionAnswersService`가 각각 구현한다. 조회 스냅샷과 쓰기 트랜잭션·잠금 순서는 유지한다.
+- 질문 배정 생성·진행 저장·완료 변경은 `QuestionProgressPersistenceAdapter`가 두 출력 포트를 구현한다. 같은 배정 테이블을 다루는 완료 어댑터를 별도로 두지 않는다.
+
+(고침 #31: 기존 공통 구조 규칙에 맞춰 컨트롤러·배정 영속성을 통합하고 답변 서비스를 유스케이스별로 분리)
