@@ -69,18 +69,20 @@
 연결 요청 확인: 연결은 로그인 수단을 더하는 동작이라, 콜백이 **지금 로그인한 회원이 그 제공자로 시작한 연결 요청**인지 서버가 확인한다.
 1. 연결 시작: `POST /api/v1/members/me/social-accounts/{provider}/link-state` → 200 `{"state": "…"}`. 서버는 추측할 수 없는 일회용 값 두 개를 만든다.
    - `state`: 응답 본문으로 화면에 준다.
-   - 브라우저 확인값: `SOCIAL_LINK` 쿠키(HttpOnly, SameSite=Lax, Path=`/api/v1/members/me/social-accounts`, 10분)로만 준다. 화면 코드는 읽을 수 없다.
+   - 브라우저 확인값: `SOCIAL_LINK` 쿠키(HttpOnly, SameSite=Lax, HTTPS면 Secure, Path=`/api/v1/members/me/social-accounts`, 10분)로만 준다. 화면 코드는 읽을 수 없다. `Secure`는 `ACCESS_TOKEN`과 같이 요청이 HTTPS일 때 붙인다(docs/member/README.md).
    - DB(`social_link_state`)에는 `(state 해시, 브라우저 확인값 해시, member_id, provider, expires_at)`을 저장한다(유효 10분). 원래 값은 저장하지 않는다.
+   - 본문이 없어도 `Content-Type: application/json`을 요구한다. 해제(`DELETE`)도 같다. 데이터를 바꾸는 요청은 JSON만 받는다는 기존 인증 규칙(SameSite=Lax 전제, docs/member/README.md)을 따른다. 없으면 415다(`AuthController`의 로그아웃처럼 `consumes = MediaType.APPLICATION_JSON_VALUE`).
+   - 브라우저당 연결은 한 번에 하나만 진행한다. 요청에 이미 `SOCIAL_LINK` 쿠키가 있으면 그 쿠키의 `social_link_state` 행을 먼저 지우고 새로 발급한다. 같은 브라우저에서 새로 시작하면 이전에 시작한 연결은 무효다.
 2. 화면은 이 state를 제공자 인가 URL에 실어 보내고, 콜백에서 받은 `code`·`state`를 연결 API에 넘긴다. 같은 브라우저라 `SOCIAL_LINK` 쿠키가 함께 간다.
-3. 연결: 서버는 제공자에 code를 보내기 **전에** 아래 한 문장으로 state를 확인하면서 지운다. 지운 행이 1개일 때만 계속하고, 0개면 403이고 제공자를 부르지 않으며 아무것도 저장하지 않는다.
+3. 연결: 서버는 제공자에 code를 보내기 **전에** 아래 한 문장으로 state를 확인하면서 지운다. 지운 행이 1개일 때만 계속하고, 0개면 403이고 제공자를 부르지 않으며 아무것도 저장하지 않는다. 이 삭제는 **제공자 호출 전에 따로 커밋한다.** 영속성 어댑터의 소비 메서드가 자기 트랜잭션으로 끝내고, 서비스에는 `@Transactional`을 걸지 않는다(제공자 HTTP 때문에 지금도 걸지 않는 것과 같은 방식). 그래서 뒤에서 제공자가 거절하거나 저장이 실패해도 state는 되살아나지 않는다.
    ```sql
    DELETE FROM social_link_state
    WHERE state_hash = ? AND browser_hash = ? AND member_id = ? AND provider = ? AND expires_at > ?
    ```
    - 조회와 삭제를 나누지 않으므로, 같은 state로 동시에 와도 DB가 한 요청만 행을 지우게 한다(원자적 소비). JPA에서는 `@Modifying @Query`의 반환 행 수로 판단한다.
    - 같은 회원이라도 다른 브라우저(쿠키 없음·다른 값)에서 제출하면 `browser_hash`가 달라 거부된다.
-   - 처리 후 `SOCIAL_LINK` 쿠키는 성공·실패와 상관없이 지운다(Max-Age=0).
-- JWT 쿠키 방식이라 서버 세션이 없으므로 state는 DB에 둔다. 로그인 세션 대신 이 브라우저 확인 쿠키로 발급한 곳과 완료하는 곳을 묶는다. (고침 #109: 리뷰 — 같은 회원의 다른 브라우저 구별, 동시 소비)
+   - `SOCIAL_LINK` 쿠키는 연결에 **성공했을 때만** 지운다(Max-Age=0). 실패 응답은 쿠키를 건드리지 않고, 남은 쿠키는 10분 뒤 만료된다. 실패 응답이 쿠키를 지우면 같은 브라우저에서 새로 시작한 연결까지 망가질 수 있기 때문이다.
+- JWT 쿠키 방식이라 서버 세션이 없으므로 state는 DB에 둔다. 로그인 세션 대신 이 브라우저 확인 쿠키로 발급한 곳과 완료하는 곳을 묶는다. (고침 #109: 리뷰 — 같은 회원의 다른 브라우저 구별, 동시 소비, 소비 커밋 시점, 브라우저당 한 연결, 기존 인증 규칙)
 
 #109-S6 정상 [테스트]
 - Given 이메일 회원 A가 로그인했고 `…/kakao/link-state`로 state `s-1`을 받았다
@@ -104,9 +106,10 @@
 
 #109-S10 로그인 안 함·제공자 거절 [테스트]
 - 쿠키 없이 부르면 401, 제공자가 code를 거절하면 401 `UNAUTHORIZED`
+- `link-state`·연결·해제를 `Content-Type: application/json` 없이 부르면 415이고, 발급·저장·삭제가 일어나지 않는다
 
 #109-S11 동시 연결 [테스트]
-- Given 두 회원이 같은 카카오 계정을, 또는 한 회원이 카카오 두 계정을 동시에 연결한다
+- Given 두 회원이 각자 브라우저에서 같은 카카오 계정을, 또는 한 회원이 서로 다른 두 브라우저에서 카카오 두 계정을 동시에 연결한다(각 브라우저에 자기 `SOCIAL_LINK`가 있다)
 - Then  하나만 성공하고 나머지는 409다 (`(provider, provider_user_id)`, `(member_id, provider)` 유니크 제약)
 
 #109-S17 연결 요청 확인 실패 [테스트]
@@ -121,6 +124,21 @@
 - When  `s-1`과 같은 쿠키로 연결 요청 두 개가 동시에 온다
 - Then  하나만 200이고 다른 하나는 403이다
 - Then  제공자 포트 호출은 한 번뿐이고, `social_link_state`에 `s-1` 행이 남지 않는다
+
+#109-S20 제공자 거절 뒤 같은 state [테스트]
+- Given 회원 A가 카카오 state `s-1`을 받았고, 제공자가 그 code를 거절한다
+- When  `s-1`로 연결한다
+- Then  401이다
+- When  같은 브라우저에서 `s-1`로 다시 연결한다
+- Then  403이고, 제공자 포트 호출은 두 요청을 합쳐 한 번뿐이다
+- Then  `social_link_state`에 `s-1` 행이 없고, `SOCIAL_LINK` 쿠키는 지워지지 않았다
+
+#109-S21 같은 브라우저에서 두 연결 [테스트]
+- Given 회원 A가 같은 브라우저에서 카카오 state `s-1`을 받은 뒤, 네이버 state `s-2`를 받았다
+- When  `s-1`로 카카오를 연결한다
+- Then  403이고 제공자를 부르지 않는다(새로 시작하면 이전 연결은 무효)
+- When  `s-2`로 네이버를 연결한다
+- Then  200이다(앞의 403이 쿠키를 지우지 않았다)
 
 ## 5. 해제 (#109-R5)
 로그인 방법이 하나 이상 남을 때만 해제한다.
@@ -172,7 +190,7 @@
    - 확인: `./gradlew test`(CI), [개발 서버 이전 절차](#개발-서버-이전-절차)
 2. 연결 목록 — S5
    - 파일: 새 `ListSocialAccountsUseCase`·서비스, `MemberController.java`에 엔드포인트 추가 (컨트롤러는 도메인에 하나, docs/backend-architecture.md #73). 연결·해제 엔드포인트도 같은 컨트롤러에 둔다
-3. 연결 — S6~S11, S17, S19
+3. 연결 — S6~S11, S17, S19~S21
    - 파일: 새 `IssueSocialLinkStateUseCase`·서비스, 새 `SocialLinkStateJpaEntity`·`SocialLinkStateJpaRepository`(`social_link_state`), 새 `LinkSocialAccountUseCase`·서비스, `SocialAccountAlreadyLinkedException`(StateConflict), `InvalidSocialLinkStateException`(PermissionDenied)
 4. 해제 — S12~S14, S16
    - 파일: 새 `UnlinkSocialAccountUseCase`·서비스(회원 행 잠금), `LastLoginMethodException`(StateConflict)
@@ -190,7 +208,7 @@
 ## 가정
 - 로그인 방법이 하나도 없는 회원은 만들지 않는다. 해제는 비밀번호나 다른 소셜 계정이 남을 때만 된다.
 - 해제할 때 회원 행을 잠가(`loadForNicknameChange`와 같은 방식) 동시 해제로 로그인 방법이 0개가 되지 않게 한다.
-- 연결 state는 발급한 브라우저에서 10분 동안 한 번만 쓸 수 있다. 확인은 제공자 호출 전에 하고, 실패하면 403(`PermissionDeniedException`)이다.
+- 연결 state는 발급한 브라우저에서 10분 동안 한 번만 쓸 수 있고, 브라우저당 하나만 유효하다. 확인은 제공자 호출 전에 하고, 실패하면 403(`PermissionDeniedException`)이다.
 - 연결할 때는 제공자 이메일을 쓰지 않는다. 회원 이메일과 달라도 연결된다. 로그인은 `(provider, provider_user_id)`로만 찾는다.
 - 같은 계정을 다시 연결하면 성공으로 본다(멱등). 연결되지 않은 제공자를 해제하면 204다.
 - 연결 응답은 목록 전체를 돌려줘 화면이 다시 조회하지 않아도 되게 한다.
@@ -232,7 +250,9 @@
    ```
 
 이전 (서버)
+명령은 `set -euo pipefail`로 실행해 **한 단계라도 실패하면 거기서 멈춘다.** 백업을 검증하지 못하면 이전 SQL을 실행하지 않는다.
 ```bash
+set -euo pipefail
 cd ~/pawmento
 export IMAGE_TAG=sha-<이전 커밋>
 
@@ -243,36 +263,46 @@ mkdir -p before-109/nginx && cp compose.yaml compose.prod.yaml before-109/ && cp
 docker compose stop backend
 docker compose exec -T db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > member-before-109.dump
 
-# 3. 이전 (실패하면 psql이 0이 아닌 코드로 끝나고 DB는 그대로)
+# 3. 백업 검증: 파일을 읽을 수 있고 member 데이터가 들어 있어야 다음으로 간다
+docker compose exec -T db pg_restore --list < member-before-109.dump | grep -q 'TABLE DATA public member '
+
+# 4. 이전 (건수가 다르거나 SQL이 실패하면 psql이 0이 아닌 코드로 끝나고 DB는 그대로)
 docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < migrate-109.sql
 
-# 4. PR 1 커밋의 설정으로 바꾸고 새 이미지로 띄움
+# 5. PR 1 커밋의 설정으로 바꾸고 새 이미지로 띄움
 cp after-109/compose.yaml after-109/compose.prod.yaml . && cp after-109/nginx/proxy.conf nginx/
 export IMAGE_TAG=sha-<PR 1 커밋>
 docker compose up -d --no-build
 ```
-5. #109-S2를 확인한다(이전 전에 가입한 소셜 회원이 같은 id로 로그인, 이메일 회원 로그인).
-6. `DEPLOY_HOST`를 다시 넣는다. 다음 머지부터는 워크플로가 설정과 이미지를 함께 맞춘다.
+6. #109-S2를 확인한다(이전 전에 가입한 소셜 회원이 같은 id로 로그인, 이메일 회원 로그인).
+7. `DEPLOY_HOST`를 다시 넣는다. 다음 머지부터는 워크플로가 설정과 이미지를 함께 맞춘다.
 
 실패하면
-- 3에서 실패: DB는 바뀌지 않았다. 설정도 아직 그대로이므로 `IMAGE_TAG=sha-<이전 커밋> docker compose up -d --no-build`로 이전 앱을 다시 띄운다.
-- 4·5에서 실패: DB와 앱·설정을 **함께** 되돌린다. `pg_restore --clean`으로 같은 DB에 덮어쓰면 백업에 없는 `social_account`의 외래 키가 `member` 삭제를 막아 복원되지 않는다. 그래서 **빈 DB에 복원한 뒤 DB 이름을 바꾼다.**
+- 1~3에서 멈춤: DB는 바뀌지 않았다. 설정도 그대로이므로 `IMAGE_TAG=sha-<이전 커밋> docker compose up -d --no-build`로 이전 앱을 다시 띄운다. 백업 문제를 해결하기 전에는 이전을 다시 시작하지 않는다.
+- 4에서 멈춤: 이전 SQL이 롤백돼 DB는 그대로다. 위와 같이 이전 앱을 다시 띄운다.
+- 5·6에서 실패: DB와 앱·설정을 **함께** 되돌린다. `pg_restore --clean`으로 같은 DB에 덮어쓰면 백업에 없는 `social_account`의 외래 키가 `member` 삭제를 막아 복원되지 않는다. 그래서 **빈 DB에 복원하고, 확인한 뒤에만 DB 이름을 바꾼다.** 여기서도 한 단계라도 실패하면 멈춘다.
   ```bash
+  set -euo pipefail
   cd ~/pawmento
   export IMAGE_TAG=sha-<이전 커밋>
   cp before-109/compose.yaml before-109/compose.prod.yaml . && cp before-109/nginx/proxy.conf nginx/
   docker compose stop backend
 
-  # 빈 DB에 백업 복원
-  docker compose exec -T db sh -c 'createdb -U "$POSTGRES_USER" pawmento_restore'
-  docker compose exec -T db sh -c 'pg_restore --exit-on-error --no-owner -U "$POSTGRES_USER" -d pawmento_restore' < member-before-109.dump
+  # 1. 빈 DB에 백업 복원 (한 트랜잭션, 오류가 나면 바로 멈춤)
+  docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --if-exists pawmento_restore && createdb -U "$POSTGRES_USER" pawmento_restore'
+  docker compose exec -T db sh -c 'pg_restore --exit-on-error --single-transaction --no-owner -U "$POSTGRES_USER" -d pawmento_restore' < member-before-109.dump
 
-  # 이름 바꾸기 (백엔드가 멈춰 있어 대상 DB에 연결이 없어야 한다)
-  docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "ALTER DATABASE \"$POSTGRES_DB\" RENAME TO pawmento_failed_109" -c "ALTER DATABASE pawmento_restore RENAME TO \"$POSTGRES_DB\""'
+  # 2. 복원 확인: member.provider가 있어야 이름을 바꾼다
+  test "$(docker compose exec -T db sh -c 'psql -tA -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d pawmento_restore -c "select count(*) from information_schema.columns where table_name = '\''member'\'' and column_name = '\''provider'\''"')" = 1
+
+  # 3. 이름 두 번 바꾸기를 한 트랜잭션으로 (두 번째가 실패하면 첫 번째도 되돌아가 원래 DB 이름이 남는다)
+  #    psql -1은 -c 두 개를 한 트랜잭션으로 실행한다. $POSTGRES_DB는 db 컨테이너 안에서 채워진다
+  docker compose exec -T db sh -c 'psql -1 -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d postgres -c "ALTER DATABASE \"$POSTGRES_DB\" RENAME TO pawmento_failed_109" -c "ALTER DATABASE pawmento_restore RENAME TO \"$POSTGRES_DB\""'
 
   docker compose up -d --no-build
   ```
+  - 1·2에서 멈춤: 원래 DB(이전 후 상태)는 그대로이고 앱은 멈춰 있다. 원인을 확인한 뒤 1부터 다시 한다.
+  - 3에서 멈춤: 트랜잭션이 롤백돼 두 DB 이름이 모두 그대로다. 원인을 확인한 뒤 3부터 다시 한다.
   - 확인: `member`에 `provider`·`provider_user_id`가 다시 있고 `social_account`가 없다. 이전 이미지에서 이메일 회원 로그인과, 이전 전에 가입한 소셜 회원 로그인이 같은 id로 되는지 직접 확인한다.
   - 백업 이후 새 앱이 받은 데이터는 되돌린 DB에 없다. 원인 확인용으로 `pawmento_failed_109`를 남겨 두고, 확인이 끝나면 지운다.
-  - 이 복원 순서는 임시 PostgreSQL 16에서 이관 후 복원해 `member.provider`가 돌아오는 것까지 확인했다. 기존 `pg_restore --clean` 방식은 같은 조건에서 종료 코드 1로 실패했다.
-- 되돌린 뒤 원인을 고쳐 PR을 다시 올리고, 이 절차를 처음부터 다시 한다. (고침 #109: 리뷰 — 복원 방식, IMAGE_TAG, 설정 파일 맞추기)
+- 되돌린 뒤 원인을 고쳐 PR을 다시 올리고, 이 절차를 처음부터 다시 한다. (고침 #109: 리뷰 — 복원 방식, IMAGE_TAG, 설정 파일 맞추기, 실패 시 중단, 이름 바꾸기 원자성)
