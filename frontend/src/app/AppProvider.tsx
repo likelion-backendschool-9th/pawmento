@@ -73,6 +73,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
   const startDemo = async () => {
     const current = await dependencies.auth.startDemo();
+    setAccount(current);
+    setSessionSource(dependencies.auth.sessionSource());
+    setState(emptyWorkspace());
     const existing = await dependencies.workspace.load(current.id);
     if (existing.pets.length) {
       // 기존 데모로 다시 진입할 때 샘플 추가/재저장으로 기록 열람을 막지 않는다.
