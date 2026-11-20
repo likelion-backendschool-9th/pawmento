@@ -5,14 +5,23 @@ export type NaverBounds = { getSW(): NaverLatLng; getNE(): NaverLatLng };
 export type NaverMap = {
   getBounds(): NaverBounds;
   getCenter(): NaverLatLng;
+  setCenter(center: NaverLatLng): void;
   destroy(): void;
 };
-export type NaverMarker = { setMap(map: NaverMap | null): void };
+export type NaverMarker = {
+  setMap(map: NaverMap | null): void;
+  setPosition(position: NaverLatLng): void;
+};
+export type NaverPolyline = {
+  setMap(map: NaverMap | null): void;
+  setPath(path: NaverLatLng[]): void;
+};
 export type NaverMapsApi = {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => NaverMap;
   LatLng: new (latitude: number, longitude: number) => NaverLatLng;
   Point: new (x: number, y: number) => unknown;
   Marker: new (options: Record<string, unknown>) => NaverMarker;
+  Polyline: new (options: Record<string, unknown>) => NaverPolyline;
   Event: {
     addListener(
       target: object,

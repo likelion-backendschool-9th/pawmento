@@ -89,6 +89,10 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
         title="추억 지도"
         body={`${pet.name}와 함께 다녀온 곳을 지도에서 다시 만나 보세요.`}
       >
+        <Link className="button secondary" href={`/pets/${pet.id}/map/walk`}>
+          <Icon name="paw" size={17} />
+          산책 시작
+        </Link>
         <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />
           기록 남기기

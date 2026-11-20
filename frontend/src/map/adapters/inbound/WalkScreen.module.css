@@ -1,0 +1,212 @@
+/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕 색은 추억 지도와 같은 팔레트다. */
+.screen {
+  --map-land: #f4f3ea;
+  --map-park: #dfe8cb;
+  --map-water: #d7e6df;
+  position: fixed;
+  inset: 0;
+  z-index: 60; /* 앱 머리글·하단 메뉴(45)보다 위, 알림(100)보다 아래 */
+  overflow: hidden;
+  background: var(--map-land);
+}
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+.staticMap svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.park {
+  position: absolute;
+  left: -8%;
+  top: 8%;
+  width: 62%;
+  height: 50%;
+  border-radius: 46% 54% 52% 48%;
+  background: var(--map-park);
+}
+.river {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -8%;
+  height: 24%;
+  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
+  background: var(--map-water);
+}
+.casing {
+  fill: none;
+  stroke: var(--color-white);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.startDot {
+  fill: var(--brand-primary);
+  stroke: var(--color-white);
+  stroke-width: 0.8;
+}
+.route {
+  fill: none;
+  stroke: var(--brand-primary);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.halo {
+  fill: var(--mode-subtle);
+  opacity: 0.9;
+}
+.here {
+  fill: var(--brand-primary);
+  stroke: var(--color-white);
+  stroke-width: 0.8;
+}
+.hereMarker {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 4px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--brand-primary);
+  box-shadow: 0 0 0 8px #68864733;
+}
+
+.top {
+  position: absolute;
+  z-index: 3;
+  top: max(14px, env(safe-area-inset-top));
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.close {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--mode-border);
+  border-radius: 50%;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  transform: rotate(180deg);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
+}
+.rec i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-danger);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rec i {
+    animation: none;
+  }
+}
+
+.card {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  width: min(440px, calc(100% - 28px));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 12px;
+  padding: 22px 20px 18px;
+  border: 1px solid var(--mode-border);
+  border-radius: 26px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+}
+.card h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.eyebrow {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+}
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+}
+.stats div {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--mode-subtle);
+}
+.stats dt {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.stats dd {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.stats small {
+  margin-left: 3px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.notice,
+.warn {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.notice {
+  background: var(--color-apricot-100);
+  color: var(--text-primary);
+}
+.warn {
+  border: 1px solid var(--color-danger-600);
+  background: var(--surface-card);
+  color: var(--text-danger);
+}
+.link {
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
