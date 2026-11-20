@@ -25,6 +25,15 @@ class QuestionArchitectureTest {
                 .as("%s -> %s", path, dependency)
                 .matches(
                     "java\\..*|lombok\\.Getter|com\\.pawmento\\.question\\.domain\\..*|com\\.pawmento\\.global\\.exception\\..*");
+          } else if (relative.startsWith("application/service/")) {
+            assertThat(dependency)
+                .as("%s -> %s", path, dependency)
+                .matches(
+                    "java\\..*|lombok\\..*|org\\.springframework\\.(stereotype|transaction)\\..*|com\\.pawmento\\.question\\.(domain|application)\\..*|com\\.pawmento\\.global\\.exception\\..*");
+          } else if (relative.startsWith("adapter/in/web/")) {
+            assertThat(dependency)
+                .as("%s -> %s", path, dependency)
+                .doesNotContain(".domain.", ".application.service.", ".adapter.out.");
           } else if (relative.startsWith("application/")) {
             assertThat(dependency)
                 .as("%s -> %s", path, dependency)
