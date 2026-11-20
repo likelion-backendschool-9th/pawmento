@@ -51,7 +51,15 @@ class QuestionAnswerPersistenceAdapter implements QuestionAnswerStorePort {
                     em.getReference(QuestionPromptJpaEntity.class, answer.getPrompt().getId()));
           else {
             entity = answers.findById(answer.getId()).orElseThrow();
-            entity.update(answer);
+            if (answer.isEdited()) {
+              if (answers.updateVersion(
+                      answer.getId(),
+                      answer.getVersion(),
+                      answer.getContent(),
+                      answer.getUpdatedAt())
+                  != 1) throw new QuestionAnswerConflictException();
+              em.refresh(entity);
+            }
           }
           return answers.saveAndFlush(entity).toDomain();
         });

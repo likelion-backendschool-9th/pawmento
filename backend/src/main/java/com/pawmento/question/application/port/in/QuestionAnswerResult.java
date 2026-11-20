@@ -13,14 +13,31 @@ public record QuestionAnswerResult(
     String question,
     Author author,
     String content,
-    List<Object> attachments,
+    List<Attachment> attachments,
     Instant answeredAt,
     LocalDate answeredDate,
     Instant updatedAt,
     long version) {
   public record Author(Long memberId, String displayName) {}
 
+  public record Attachment(
+      Long assetId,
+      String type,
+      String mimeType,
+      long sizeBytes,
+      Long durationMs,
+      Integer width,
+      Integer height,
+      int sortOrder,
+      boolean available,
+      boolean thumbnail,
+      String filename) {}
+
   public static QuestionAnswerResult from(QuestionAnswer a) {
+    return from(a, List.of());
+  }
+
+  public static QuestionAnswerResult from(QuestionAnswer a, List<QuestionAttachment> assets) {
     var p = a.getPrompt();
     return new QuestionAnswerResult(
         a.getId(),
@@ -31,7 +48,24 @@ public record QuestionAnswerResult(
         p.getQuestionSnapshot(),
         new Author(a.getAuthorMemberId(), a.getAuthorNameSnapshot()),
         a.getContent(),
-        List.of(),
+        java.util.stream.IntStream.range(0, assets.size())
+            .mapToObj(
+                i -> {
+                  var m = assets.get(i);
+                  return new Attachment(
+                      m.assetId(),
+                      m.type(),
+                      m.mimeType(),
+                      m.sizeBytes(),
+                      m.durationMs(),
+                      m.width(),
+                      m.height(),
+                      i,
+                      m.available(),
+                      m.thumbnail(),
+                      m.filename());
+                })
+            .toList(),
         a.getAnsweredAt(),
         a.getAnsweredDate(),
         a.getUpdatedAt(),

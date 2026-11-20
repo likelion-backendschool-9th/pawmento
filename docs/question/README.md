@@ -105,7 +105,7 @@
 | `PATCH /questions/answers/{answerId}?petId={petId}` | `content`, `attachmentIds`, `version` | 200, 본인 답변 변경 |
 | `DELETE /questions/answers/{answerId}?petId={petId}&version={version}` | 필수 version 쿼리 | 204, 본인 답변 삭제 |
 
-텍스트 답변 단위는 content와 빈 attachmentIds만 지원하며 실제 첨부는 후속 연결한다. 상세 경계는 [텍스트 답변 계약](question-flow.md#텍스트-답변-단위의-api저장-계약)을 따른다. DELETE도 필수 version으로 충돌을 검사한다. (고침 #31: 텍스트 단위와 삭제 버전 계약 확정)
+답변은 필수 content와 선택 사진·음성 attachmentIds를 지원한다. 연결·교체·삭제·인증 파일 조회는 [첨부 계약](question-flow.md#사진음성-첨부-연결-계약)을 따른다. 상세 경계는 [텍스트 답변 계약](question-flow.md#텍스트-답변-단위의-api저장-계약)을 따른다. DELETE도 필수 version으로 충돌을 검사한다. (고침 #31: 텍스트 단위와 삭제 버전 계약 확정)
 
 PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는다. `attachmentIds: []`는 첨부 전체 제거다. 답변 내용은 공백 제거 후 1~3,000자이며, 질문·모드·작성자·등록일 필드는 수정할 수 없다.
 

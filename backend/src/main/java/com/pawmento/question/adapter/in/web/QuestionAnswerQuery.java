@@ -10,7 +10,8 @@ import java.util.*;
 final class QuestionAnswerQuery {
   private final Map<String, String> values = new HashMap<>();
 
-  QuestionAnswerQuery(String raw) {
+  QuestionAnswerQuery(String raw, String... allowedKeys) {
+    Set<String> knownKeys = Set.of(allowedKeys);
     if (raw == null) return;
     for (String pair : raw.split("&", -1)) {
       var parts = pair.split("=", 2);
@@ -20,17 +21,7 @@ final class QuestionAnswerQuery {
       } catch (IllegalArgumentException e) {
         continue;
       }
-      if (!Set.of(
-              "petId",
-              "mode",
-              "promptId",
-              "authorMemberId",
-              "from",
-              "to",
-              "page",
-              "size",
-              "version")
-          .contains(key)) continue;
+      if (!knownKeys.contains(key)) continue;
       if (parts.length != 2 || values.containsKey(key)) throw new InvalidQuestionRequestException();
       try {
         values.put(key, URLDecoder.decode(parts[1], StandardCharsets.UTF_8));

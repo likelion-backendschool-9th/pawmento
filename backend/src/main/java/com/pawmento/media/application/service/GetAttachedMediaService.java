@@ -16,7 +16,7 @@ public class GetAttachedMediaService implements GetAttachedMediaUseCase {
   @Transactional(readOnly = true)
   public GetMediaPreviewResult get(GetAttachedMediaQuery q) {
     var a = load.findById(q.assetId()).orElseThrow(MediaAssetNotFoundException::new);
-    a.requireAttached(q.petId());
+    a.requireAttached(q.petId(), com.pawmento.media.domain.MediaPurpose.valueOf(q.purpose()));
     var v = a.getVerified();
     if (q.thumbnail() && v.thumbnailSizeBytes() == null)
       throw new MediaThumbnailNotFoundException();

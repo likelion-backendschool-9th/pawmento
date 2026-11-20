@@ -16,6 +16,7 @@ public final class QuestionAnswer {
   private final LocalDate answeredDate;
   private Instant updatedAt;
   private final long version;
+  private boolean edited;
 
   private QuestionAnswer(
       Long id,
@@ -89,6 +90,7 @@ public final class QuestionAnswer {
     if (now == null) throw new InvalidQuestionAnswerException();
     this.content = validate(content);
     this.updatedAt = now;
+    this.edited = true;
   }
 
   private static String validate(String content) {

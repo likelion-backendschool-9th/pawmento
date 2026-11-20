@@ -115,7 +115,7 @@ Docker volume은 컨테이너 교체와 별개로 데이터를 보존하지만 �
 가족의 파일 열람 경로는 다음과 같은 후속 제안이며 각 부모 도메인 구현에서 최종 계약을 확정한다. 부모 도메인이 매 요청마다 현재 읽기 권한·실제 첨부 관계·READY를 확인하고 media 포트로 파일을 스트리밍한다.
 
 - `GET /diaries/{diaryId}/attachments/{assetId}/content?petId={petId}`
-- `GET /question-answers/{answerId}/attachments/{assetId}/content?petId={petId}`
+- `GET /questions/answers/{answerId}/attachments/{assetId}/content?petId={petId}`
 
 일기/답변 `attachments`는 `assetId`, `type`, `filename`, `mimeType`, `sizeBytes`, `durationMs`, `width`, `height`, `sortOrder`를 반환한다. 프론트는 인증된 같은 출처 파일 경로로 표시·재생한다. 물리 경로를 반환하지 않는다. 정적 공개 파일 경로나 일회성 서명 URL을 DB에 저장하지 않는다.
 

@@ -26,7 +26,7 @@ public class LoadMediaAttachmentsService implements LoadMediaAttachmentsUseCase 
               var a = assets.get(id);
               if (a == null
                   || !a.getPetId().equals(q.petId())
-                  || a.getPurpose() != MediaPurpose.DIARY_ATTACHMENT)
+                  || a.getPurpose() != MediaPurpose.valueOf(q.purpose()))
                 return new MediaAttachmentMetadata(
                     id, null, null, 0, null, null, null, false, false);
               var v = a.getVerified();
@@ -43,7 +43,8 @@ public class LoadMediaAttachmentsService implements LoadMediaAttachmentsUseCase 
                   v == null ? null : v.width(),
                   v == null ? null : v.height(),
                   v != null && v.thumbnailSizeBytes() != null,
-                  available);
+                  available,
+                  a.getOriginalFilename());
             })
         .toList();
   }

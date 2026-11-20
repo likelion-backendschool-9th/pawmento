@@ -19,7 +19,7 @@ public class QuestionAnswerController {
   private final DeleteQuestionAnswerUseCase delete;
 
   @PostMapping("/prompts/{promptId}/answers")
-  ResponseEntity<CreateQuestionAnswerResult> create(
+  ResponseEntity<QuestionAnswerResponse.Created> create(
       @LoginMember Long member,
       @PathVariable Long promptId,
       HttpServletRequest request,
@@ -29,45 +29,61 @@ public class QuestionAnswerController {
         create.create(
             new CreateQuestionAnswerCommand(
                 member,
-                new QuestionAnswerQuery(request.getQueryString()).petId(),
+                QuestionPetQuery.petId(request.getQueryString()),
                 promptId,
-                values.content()));
-    return ResponseEntity.status(201).body(result);
+                values.content(),
+                values.attachmentIds()));
+    return ResponseEntity.status(201).body(QuestionAnswerResponse.Created.from(result));
   }
 
   @GetMapping("/answers")
-  QuestionAnswersPage list(@LoginMember Long member, HttpServletRequest request) {
-    return list.list(new QuestionAnswerQuery(request.getQueryString()).list(member));
+  QuestionAnswerResponse.Page list(@LoginMember Long member, HttpServletRequest request) {
+    return QuestionAnswerResponse.Page.from(
+        list.list(
+            new QuestionAnswerQuery(
+                    request.getQueryString(),
+                    "petId",
+                    "mode",
+                    "promptId",
+                    "authorMemberId",
+                    "from",
+                    "to",
+                    "page",
+                    "size")
+                .list(member)));
   }
 
   @GetMapping("/answers/{answerId}")
-  QuestionAnswerResult get(
+  QuestionAnswerResponse get(
       @LoginMember Long member, @PathVariable Long answerId, HttpServletRequest request) {
-    return get.get(
-        new GetQuestionAnswerQuery(
-            member, new QuestionAnswerQuery(request.getQueryString()).petId(), answerId));
+    return QuestionAnswerResponse.from(
+        get.get(
+            new GetQuestionAnswerQuery(
+                member, QuestionPetQuery.petId(request.getQueryString()), answerId)));
   }
 
   @PatchMapping("/answers/{answerId}")
-  QuestionAnswerResult edit(
+  QuestionAnswerResponse edit(
       @LoginMember Long member,
       @PathVariable Long answerId,
       HttpServletRequest request,
       @RequestBody JsonNode body) {
     var values = QuestionAnswerBody.parse(body, true);
-    return edit.edit(
-        new EditQuestionAnswerCommand(
-            member,
-            new QuestionAnswerQuery(request.getQueryString()).petId(),
-            answerId,
-            values.content(),
-            values.version()));
+    return QuestionAnswerResponse.from(
+        edit.edit(
+            new EditQuestionAnswerCommand(
+                member,
+                QuestionPetQuery.petId(request.getQueryString()),
+                answerId,
+                values.content(),
+                values.version(),
+                values.attachmentIds())));
   }
 
   @DeleteMapping("/answers/{answerId}")
   ResponseEntity<Void> delete(
       @LoginMember Long member, @PathVariable Long answerId, HttpServletRequest request) {
-    var query = new QuestionAnswerQuery(request.getQueryString());
+    var query = new QuestionAnswerQuery(request.getQueryString(), "petId", "version");
     delete.delete(
         new DeleteQuestionAnswerCommand(member, query.petId(), answerId, query.version()));
     return ResponseEntity.noContent().build();

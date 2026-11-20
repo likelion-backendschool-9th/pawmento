@@ -32,7 +32,7 @@ public class ChangeMediaReferencesService
                 a ->
                     !Objects.equals(a.uploaderMemberId(), c.memberId())
                         || !Objects.equals(a.petId(), c.petId())
-                        || a.purpose() != MediaPurpose.DIARY_ATTACHMENT))
+                        || a.purpose() != MediaPurpose.valueOf(c.purpose())))
       throw new MediaAssetNotFoundException();
     for (Long id : ids) load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
   }
@@ -45,7 +45,7 @@ public class ChangeMediaReferencesService
       throw new IllegalArgumentException("Duplicate reference IDs");
     var ids = new TreeSet<Long>(old);
     ids.addAll(next);
-    lock(new LockMediaReferencesCommand(c.memberId(), c.petId(), List.copyOf(ids)));
+    lock(new LockMediaReferencesCommand(c.memberId(), c.petId(), List.copyOf(ids), c.purpose()));
     for (Long id : ids) {
       var a = load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
       if (old.contains(id) && next.contains(id)) continue; // 불일치 첨부도 유지·순서 변경은 참조 수를 건드리지 않는다.

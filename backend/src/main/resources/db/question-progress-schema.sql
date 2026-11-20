@@ -13,5 +13,12 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='question_answer'::regclass AND conname='fk_question_answer_pet') THEN
     ALTER TABLE question_answer ADD CONSTRAINT fk_question_answer_pet FOREIGN KEY(pet_id) REFERENCES pets(id) ON DELETE RESTRICT;
   END IF;
+  CREATE TABLE IF NOT EXISTS question_answer_attachment (
+    answer_id BIGINT NOT NULL REFERENCES question_answer(id) ON DELETE CASCADE,
+    asset_id BIGINT NOT NULL REFERENCES media_assets(id) ON DELETE RESTRICT,
+    sort_order INTEGER NOT NULL CHECK(sort_order>=0),
+    PRIMARY KEY(answer_id,asset_id), UNIQUE(answer_id,sort_order)
+  );
+  CREATE INDEX IF NOT EXISTS ix_question_answer_attachment_asset ON question_answer_attachment(asset_id);
 END;
 $schema$;

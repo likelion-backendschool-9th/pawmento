@@ -20,6 +20,7 @@ public class QuestionAnswerWriteService
   private final QuestionProgressStorePort progresses;
   private final QuestionPromptCompletionPort prompts;
   private final Clock clock;
+  private final QuestionAnswerAttachments attachments;
 
   public CreateQuestionAnswerResult create(CreateQuestionAnswerCommand c) {
     var mode = access.currentModeForWrite(c.memberId(), c.petId());
@@ -37,6 +38,7 @@ public class QuestionAnswerWriteService
         answers.save(
             QuestionAnswer.create(
                 prompt, c.memberId(), authors.loadName(c.memberId()), c.content(), now));
+    attachments.replace(c.memberId(), saved, c.attachmentIds());
     if (completedNow) {
       prompt.complete(now);
       progress.completeCurrent(prompt);
@@ -44,7 +46,7 @@ public class QuestionAnswerWriteService
       progresses.saveProgress(progress);
     }
     return new CreateQuestionAnswerResult(
-        QuestionAnswerResult.from(saved), completedNow, progress.getCurrentPromptId() == null);
+        attachments.one(saved), completedNow, progress.getCurrentPromptId() == null);
   }
 
   public QuestionAnswerResult edit(EditQuestionAnswerCommand c) {
@@ -52,8 +54,12 @@ public class QuestionAnswerWriteService
     var answer =
         answers.lock(c.petId(), c.answerId()).orElseThrow(QuestionAnswerNotFoundException::new);
     answer.requireEditable(c.memberId(), mode, c.version());
-    if (c.content() != null) answer.edit(c.content(), clock.instant());
-    return QuestionAnswerResult.from(answers.save(answer));
+    boolean attachmentChanged = attachments.changes(answer, c.attachmentIds());
+    if (c.content() == null && !attachmentChanged) return attachments.one(answer);
+    answer.edit(c.content() == null ? answer.getContent() : c.content(), clock.instant());
+    var saved = answers.save(answer);
+    if (attachmentChanged) attachments.replace(c.memberId(), saved, c.attachmentIds());
+    return attachments.one(saved);
   }
 
   public void delete(DeleteQuestionAnswerCommand c) {
@@ -61,6 +67,7 @@ public class QuestionAnswerWriteService
     var answer =
         answers.lock(c.petId(), c.answerId()).orElseThrow(QuestionAnswerNotFoundException::new);
     answer.requireEditable(c.memberId(), mode, c.version());
+    attachments.replace(c.memberId(), answer, java.util.List.of());
     answers.delete(answer);
   }
 }
