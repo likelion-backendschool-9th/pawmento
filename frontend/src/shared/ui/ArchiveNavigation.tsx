@@ -7,7 +7,7 @@ export function ArchiveNavigation({
   active,
 }: {
   petId: string;
-  active: "diary" | "calendar" | "media";
+  active: "diary" | "calendar" | "map" | "media";
 }) {
   return (
     <nav className={s.tabs} aria-label="다이어리 보기 방식">
@@ -15,6 +15,7 @@ export function ArchiveNavigation({
         [
           ["diary", "일기", "book"],
           ["calendar", "달력", "calendar"],
+          ["map", "지도", "pin"],
         ] as const
       ).map(([page, label, icon]) => (
         <Link

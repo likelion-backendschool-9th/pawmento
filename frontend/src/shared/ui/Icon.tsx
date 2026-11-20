@@ -84,6 +84,12 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
       </>
     ),
     plus: <path d="M12 5v14M5 12h14" />,
+    pin: (
+      <>
+        <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+        <circle cx="12" cy="10" r="2.4" />
+      </>
+    ),
     arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
     chevron: <path d="m9 5 7 7-7 7" />,
     down: <path d="m6 9 6 6 6-6" />,

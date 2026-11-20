@@ -1,0 +1,196 @@
+/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕 색은 팔레트에서 파생한 값이다. */
+.stage {
+  --map-land: #f4f3ea;
+  --map-park: #dfe8cb;
+  --map-water: #d7e6df;
+  --map-road: #fffdf7;
+  position: relative;
+  height: min(68vh, 640px);
+  min-height: 460px;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 22px;
+  background: var(--map-land);
+  box-shadow: var(--shadow-card);
+}
+.stage[data-mode="GARDEN"] {
+  --map-land: #f6f2ec;
+  --map-park: #e6e1ee;
+  --map-water: #dde3ec;
+  --map-road: #fffcf8;
+}
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* 지도 키가 없을 때 쓰는 예시 지도 */
+.staticMap {
+  overflow: hidden;
+  background:
+    linear-gradient(0deg, #ffffff40 1px, transparent 1px) 0 0 / 100% 64px,
+    linear-gradient(90deg, #ffffff40 1px, transparent 1px) 0 0 / 64px 100%,
+    var(--map-land);
+}
+.park {
+  position: absolute;
+  left: -8%;
+  top: 6%;
+  width: 62%;
+  height: 56%;
+  border-radius: 46% 54% 52% 48%;
+  background: var(--map-park);
+}
+.river {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  bottom: -8%;
+  height: 26%;
+  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
+  background: var(--map-water);
+}
+.avenue {
+  position: absolute;
+  left: 30%;
+  top: 46%;
+  width: 90%;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--map-road);
+  transform: rotate(24deg);
+  transform-origin: left center;
+}
+.pin {
+  position: absolute;
+  width: 40px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  /* 핀 그림의 끝(아래 가운데)이 좌표 위치가 된다 */
+  transform: translate(-50%, -100%);
+}
+.pin > svg {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+.pin:focus-visible > svg {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.chip,
+.notice {
+  position: absolute;
+  z-index: 4;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+.chip {
+  top: 14px;
+}
+.chip b {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.chipIcon {
+  display: inline-flex;
+}
+.notice {
+  top: 56px;
+  color: var(--text-secondary);
+}
+
+.message {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 50%;
+  width: min(360px, calc(100% - 40px));
+  transform: translate(-50%, -50%);
+  padding: 26px 22px 22px;
+  border: 1px solid var(--mode-border);
+  border-radius: 24px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+.message strong {
+  display: block;
+  font-size: 17px;
+  font-weight: 600;
+}
+.message p {
+  margin: 8px 0 18px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.sheet {
+  position: absolute;
+  z-index: 5;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  padding: 10px 20px 20px;
+  border: 1px solid var(--mode-border);
+  border-radius: 24px 24px 20px 20px;
+  background: var(--surface-card);
+  box-shadow: 0 -6px 34px rgb(101 83 51 / 0.12);
+}
+.grab {
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 4px;
+  background: var(--border-default);
+}
+.eyebrow {
+  margin: 0;
+  font-family: Georgia, serif;
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  color: var(--text-secondary);
+}
+.sheet h2 {
+  margin: 4px 0 14px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.muted {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.note {
+  margin: 14px 4px 0;
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 767px) {
+  .stage {
+    height: min(72vh, 620px);
+    border-radius: 18px;
+  }
+  .sheet .button {
+    width: 100%;
+  }
+}
