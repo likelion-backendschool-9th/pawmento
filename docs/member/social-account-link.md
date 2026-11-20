@@ -81,7 +81,7 @@
    ```
    - 조회와 삭제를 나누지 않으므로, 같은 state로 동시에 와도 DB가 한 요청만 행을 지우게 한다(원자적 소비). JPA에서는 `@Modifying @Query`의 반환 행 수로 판단한다.
    - 같은 회원이라도 다른 브라우저(쿠키 없음·다른 값)에서 제출하면 `browser_hash`가 달라 거부된다.
-   - `SOCIAL_LINK` 쿠키는 연결에 **성공했을 때만** 지운다(Max-Age=0). 실패 응답은 쿠키를 건드리지 않고, 남은 쿠키는 10분 뒤 만료된다. 실패 응답이 쿠키를 지우면 같은 브라우저에서 새로 시작한 연결까지 망가질 수 있기 때문이다.
+   - 연결 완료 응답은 성공·실패와 상관없이 `SOCIAL_LINK` 쿠키를 **지우지 않는다**. 쿠키는 10분 뒤 저절로 만료된다. 쿠키 이름이 하나라, 완료 응답이 쿠키를 지우면 그사이 같은 브라우저에서 새로 시작한 연결의 쿠키까지 지워질 수 있기 때문이다. state 행은 이미 소비됐으므로 남은 쿠키로는 아무것도 할 수 없다.
 - JWT 쿠키 방식이라 서버 세션이 없으므로 state는 DB에 둔다. 로그인 세션 대신 이 브라우저 확인 쿠키로 발급한 곳과 완료하는 곳을 묶는다. (고침 #109: 리뷰 — 같은 회원의 다른 브라우저 구별, 동시 소비, 소비 커밋 시점, 브라우저당 한 연결, 기존 인증 규칙)
 
 #109-S6 정상 [테스트]
@@ -139,6 +139,11 @@
 - Then  403이고 제공자를 부르지 않는다(새로 시작하면 이전 연결은 무효)
 - When  `s-2`로 네이버를 연결한다
 - Then  200이다(앞의 403이 쿠키를 지우지 않았다)
+- Given 회원 A가 카카오 state `s-1`로 연결을 요청했고, 서버가 `s-1`을 소비한 뒤 제공자 응답을 기다리는 중이다
+- When  그사이 같은 브라우저에서 네이버 연결을 시작해 새 `SOCIAL_LINK`와 `s-2`를 받고, 그 뒤 카카오 요청이 200으로 끝난다
+- Then  카카오 200 응답에 `SOCIAL_LINK`를 지우는 `Set-Cookie`가 없다
+- When  `s-2`로 네이버를 연결한다
+- Then  200이다(먼저 끝난 응답이 새 쿠키를 지우지 않았다)
 
 ## 5. 해제 (#109-R5)
 로그인 방법이 하나 이상 남을 때만 해제한다.
@@ -229,7 +234,8 @@
 2. 지금 서버에서 도는 이미지 태그(`sha-<이전 커밋>`)와 PR 1 머지 커밋 태그(`sha-<PR 1 커밋>`)를 적어 둔다.
 3. 배포 워크플로가 하던 설정 복사를 직접 한다. PR 1 머지 커밋의 `compose.yaml`, `compose.prod.yaml`, `nginx/proxy.conf`를 꺼내 서버에 올려 둔다(아직 덮어쓰지 않음).
    ```bash
-   git fetch origin && mkdir -p after-109/nginx
+   git fetch origin
+   mkdir -p after-109/nginx
    for f in compose.yaml compose.prod.yaml nginx/proxy.conf; do git show <PR 1 커밋>:$f > after-109/$f; done
    scp -r after-109 <서버>:~/pawmento/
    ```
@@ -257,7 +263,10 @@ cd ~/pawmento
 export IMAGE_TAG=sha-<이전 커밋>
 
 # 1. 지금 설정을 되돌리기용으로 보관
-mkdir -p before-109/nginx && cp compose.yaml compose.prod.yaml before-109/ && cp nginx/proxy.conf before-109/nginx/
+# set -e는 `a && b`에서 앞 명령의 실패로는 멈추지 않으므로 한 줄에 한 명령씩 쓴다
+mkdir -p before-109/nginx
+cp compose.yaml compose.prod.yaml before-109/
+cp nginx/proxy.conf before-109/nginx/
 
 # 2. 백엔드만 멈추고 백업
 docker compose stop backend
@@ -270,7 +279,8 @@ docker compose exec -T db pg_restore --list < member-before-109.dump | grep -q '
 docker compose exec -T db sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < migrate-109.sql
 
 # 5. PR 1 커밋의 설정으로 바꾸고 새 이미지로 띄움
-cp after-109/compose.yaml after-109/compose.prod.yaml . && cp after-109/nginx/proxy.conf nginx/
+cp after-109/compose.yaml after-109/compose.prod.yaml .
+cp after-109/nginx/proxy.conf nginx/
 export IMAGE_TAG=sha-<PR 1 커밋>
 docker compose up -d --no-build
 ```
@@ -285,11 +295,13 @@ docker compose up -d --no-build
   set -euo pipefail
   cd ~/pawmento
   export IMAGE_TAG=sha-<이전 커밋>
-  cp before-109/compose.yaml before-109/compose.prod.yaml . && cp before-109/nginx/proxy.conf nginx/
+  cp before-109/compose.yaml before-109/compose.prod.yaml .
+  cp before-109/nginx/proxy.conf nginx/
   docker compose stop backend
 
   # 1. 빈 DB에 백업 복원 (한 트랜잭션, 오류가 나면 바로 멈춤)
-  docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --if-exists pawmento_restore && createdb -U "$POSTGRES_USER" pawmento_restore'
+  docker compose exec -T db sh -c 'dropdb -U "$POSTGRES_USER" --if-exists pawmento_restore'
+  docker compose exec -T db sh -c 'createdb -U "$POSTGRES_USER" pawmento_restore'
   docker compose exec -T db sh -c 'pg_restore --exit-on-error --single-transaction --no-owner -U "$POSTGRES_USER" -d pawmento_restore' < member-before-109.dump
 
   # 2. 복원 확인: member.provider가 있어야 이름을 바꾼다
