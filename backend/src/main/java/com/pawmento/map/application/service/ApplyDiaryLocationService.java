@@ -21,6 +21,7 @@ public class ApplyDiaryLocationService implements ApplyDiaryLocationUseCase {
 	@Override
 	@Transactional(propagation = Propagation.MANDATORY)
 	public DiaryLocationApplyResult apply(ApplyDiaryLocationCommand command) {
+		var location = DiaryLocationPortValues.value(command.location());
 		var current = store.lock(command.diaryId()).orElse(null);
 		var decision =
 				DiaryLocation.assess(
@@ -28,7 +29,7 @@ public class ApplyDiaryLocationService implements ApplyDiaryLocationUseCase {
 						command.petId(),
 						command.createdBy(),
 						command.revision(),
-						command.location());
+						location);
 		return switch (decision) {
 			case STALE -> DiaryLocationApplyResult.STALE;
 			case DUPLICATE -> DiaryLocationApplyResult.DUPLICATE;
@@ -42,7 +43,7 @@ public class ApplyDiaryLocationService implements ApplyDiaryLocationUseCase {
 							command.petId(),
 							command.createdBy(),
 							command.revision(),
-							command.location());
+							location);
 				}
 				yield DiaryLocationApplyResult.APPLIED;
 			}

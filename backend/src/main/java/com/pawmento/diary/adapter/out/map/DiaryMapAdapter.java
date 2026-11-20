@@ -9,9 +9,8 @@ import com.pawmento.map.application.port.in.GetDiaryLocationUseCase;
 import com.pawmento.map.application.port.in.ReconcileDiaryLocationCommand;
 import com.pawmento.map.application.port.in.ReconcileDiaryLocationUseCase;
 import com.pawmento.map.application.port.in.ResolveLocationAddressUseCase;
-import com.pawmento.map.domain.DiaryLocationState;
-import com.pawmento.map.domain.DiaryLocationValue;
-import com.pawmento.map.domain.LocationSource;
+import com.pawmento.map.application.port.in.DiaryLocationSnapshot;
+import com.pawmento.map.application.port.in.DiaryLocationInput;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -62,7 +61,7 @@ public class DiaryMapAdapter implements DiaryMapPort {
     var state =
         expected == null
             ? null
-            : new DiaryLocationState(
+            : new DiaryLocationSnapshot(
                 expected.rowId(),
                 expected.diaryId(),
                 expected.petId(),
@@ -70,7 +69,7 @@ public class DiaryMapAdapter implements DiaryMapPort {
                 expected.latitude(),
                 expected.longitude(),
                 expected.placeName(),
-                expected.source() == null ? null : LocationSource.valueOf(expected.source().name()),
+                expected.source() == null ? null : DiaryLocationSnapshot.Source.valueOf(expected.source().name()),
                 expected.sourceAssetId(),
                 expected.revision());
     return Result.valueOf(
@@ -80,9 +79,9 @@ public class DiaryMapAdapter implements DiaryMapPort {
             .name());
   }
 
-  private static DiaryLocationValue value(DiaryLocationIntent v) {
+  private static DiaryLocationInput value(DiaryLocationIntent v) {
     return v == null || v.mode() == DiaryLocationIntent.Mode.NONE
         ? null
-        : new DiaryLocationValue(v.latitude(), v.longitude(), v.placeName());
+        : new DiaryLocationInput(v.latitude(), v.longitude(), v.placeName());
   }
 }

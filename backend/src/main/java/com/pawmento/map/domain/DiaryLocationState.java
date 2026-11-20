@@ -17,7 +17,4 @@ public record DiaryLocationState(
 		longitude = longitude == 0 ? 0 : longitude;
 	}
 
-	public DiaryLocationValue value() {
-		return new DiaryLocationValue(latitude, longitude, placeName);
-	}
 }

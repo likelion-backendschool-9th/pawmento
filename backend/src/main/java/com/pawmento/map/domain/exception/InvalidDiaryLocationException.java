@@ -9,14 +9,6 @@ public class InvalidDiaryLocationException extends RuleViolationException {
 		super(message);
 	}
 
-	public static InvalidDiaryLocationException invalidIdentity() {
-		return new InvalidDiaryLocationException("일기, 반려동물, 작성자 ID는 양수이고 revision은 0 이상이어야 합니다.");
-	}
-
-	public static InvalidDiaryLocationException invalidObservation() {
-		return new InvalidDiaryLocationException("다른 일기의 관측값입니다.");
-	}
-
 	public static InvalidDiaryLocationException placeNameTooLong(int maxLength) {
 		return new InvalidDiaryLocationException("장소 이름은 " + maxLength + "자 이하여야 합니다.");
 	}

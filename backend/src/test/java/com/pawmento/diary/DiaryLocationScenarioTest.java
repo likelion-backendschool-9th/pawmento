@@ -13,7 +13,7 @@ import com.pawmento.diary.application.port.in.*;
 import com.pawmento.map.application.exception.*;
 import com.pawmento.map.application.port.in.*;
 import com.pawmento.map.application.port.out.*;
-import com.pawmento.map.domain.DiaryLocationValue;
+import com.pawmento.map.application.port.in.DiaryLocationInput;
 import com.pawmento.media.application.port.out.SaveMediaAssetPort;
 import com.pawmento.media.domain.*;
 import com.pawmento.pet.application.port.in.*;
@@ -366,7 +366,7 @@ class DiaryLocationScenarioTest {
   @DisplayName("#44-S6 같은 일기의 동시 최초 반영은 APPLIED/DUPLICATE로 수렴하고 계약 위반은 500 계열이다")
   void atomicApply() throws Exception {
     long id = 900000 + pet();
-    var c = new ApplyDiaryLocationCommand(id, 1L, 9001L, 0, new DiaryLocationValue(1, 2, "공원"));
+    var c = new ApplyDiaryLocationCommand(id, 1L, 9001L, 0, new DiaryLocationInput(1, 2, "공원"));
     var gate = new CountDownLatch(1);
     try (var pool = Executors.newFixedThreadPool(2)) {
       var a =
@@ -392,7 +392,7 @@ class DiaryLocationScenarioTest {
                 s ->
                     apply.apply(
                         new ApplyDiaryLocationCommand(
-                            id, 1L, 9001L, 1, new DiaryLocationValue(3, 4, "공원")))))
+                            id, 1L, 9001L, 1, new DiaryLocationInput(3, 4, "공원")))))
         .isEqualTo(DiaryLocationApplyResult.APPLIED);
     assertThat(tx.<DiaryLocationApplyResult>execute(s -> apply.apply(c)))
         .isEqualTo(DiaryLocationApplyResult.STALE);
@@ -402,7 +402,7 @@ class DiaryLocationScenarioTest {
                     s ->
                         apply.apply(
                             new ApplyDiaryLocationCommand(
-                                id, 1L, 9001L, 1, new DiaryLocationValue(5, 6, "다름")))))
+                                id, 1L, 9001L, 1, new DiaryLocationInput(5, 6, "다름")))))
         .isInstanceOf(DiaryLocationContractViolation.class);
     assertThatThrownBy(
             () ->
@@ -410,7 +410,7 @@ class DiaryLocationScenarioTest {
                     s ->
                         apply.apply(
                             new ApplyDiaryLocationCommand(
-                                id, 2L, 9001L, 2, new DiaryLocationValue(5, 6, null)))))
+                                id, 2L, 9001L, 2, new DiaryLocationInput(5, 6, null)))))
         .isInstanceOf(DiaryLocationContractViolation.class);
   }
 

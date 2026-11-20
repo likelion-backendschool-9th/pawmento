@@ -24,8 +24,8 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
-import com.pawmento.map.application.port.out.SaveDiaryLocationPort;
-import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.application.port.out.DiaryLocationStorePort;
+import com.pawmento.map.domain.DiaryLocationValue;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -54,7 +54,7 @@ class MapPinScenarioTest {
 	private MockMvc mockMvc;
 
 	@Autowired
-	private SaveDiaryLocationPort saveDiaryLocationPort;
+	private DiaryLocationStorePort diaryLocationStore;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -274,7 +274,8 @@ class MapPinScenarioTest {
 
 	private long saveLocation(Guardian guardian, long petId, double latitude, double longitude, String placeName) {
 		long diaryId = RECORD_IDS.incrementAndGet();
-		saveDiaryLocationPort.save(DiaryLocation.create(diaryId, petId, guardian.id(), latitude, longitude, placeName));
+		diaryLocationStore.lock(diaryId);
+		diaryLocationStore.write(diaryId, petId, guardian.id(), 0, new DiaryLocationValue(latitude, longitude, placeName));
 		return diaryId;
 	}
 

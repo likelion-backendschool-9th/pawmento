@@ -20,8 +20,9 @@ public class ReconcileDiaryLocationService implements ReconcileDiaryLocationUseC
 	@Override
 	@Transactional(propagation = Propagation.MANDATORY)
 	public DiaryLocationApplyResult reconcile(ReconcileDiaryLocationCommand command) {
+		var location = DiaryLocationPortValues.value(command.location());
 		var current = store.lock(command.diaryId()).orElse(null);
-		var decision = DiaryLocation.assessReconciliation(current, command.expected(), command.location());
+		var decision = DiaryLocation.assessReconciliation(current, DiaryLocationPortValues.state(command.expected()), location);
 		if (decision != DiaryLocation.ApplyDecision.APPLIED) {
 			return DiaryLocationApplyResult.valueOf(decision.name());
 		}
@@ -33,7 +34,7 @@ public class ReconcileDiaryLocationService implements ReconcileDiaryLocationUseC
 					command.petId(),
 					command.createdBy(),
 					command.revision(),
-					command.location());
+					location);
 		}
 		return DiaryLocationApplyResult.APPLIED;
 	}
