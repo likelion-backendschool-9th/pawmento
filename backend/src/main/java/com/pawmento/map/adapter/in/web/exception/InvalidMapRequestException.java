@@ -29,11 +29,6 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 YYYY-MM-DD 형식으로 입력해 주세요.");
 	}
 
-	// 도메인의 영역 규칙(MapArea)과 같은 문구. 웹 어댑터는 도메인을 import하지 않아 문구를 따로 둔다
-	public static InvalidMapRequestException areaReversed() {
-		return new InvalidMapRequestException("영역의 최솟값은 최댓값보다 클 수 없습니다.");
-	}
-
 	public static InvalidMapRequestException latitudeOutOfRange() {
 		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
 	}

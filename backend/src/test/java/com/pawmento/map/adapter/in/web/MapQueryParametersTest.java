@@ -84,14 +84,14 @@ class MapQueryParametersTest {
 				"minLatitude=-90&maxLatitude=90.0&minLongitude=-180&maxLongitude=180&a=1e-7&b=0&c=-0.5&d=37.123456789",
 				"minLatitude", "maxLatitude", "minLongitude", "maxLongitude", "a", "b", "c", "d");
 
-		assertThat(query.latitude("minLatitude")).isEqualTo(-90.0);
-		assertThat(query.latitude("maxLatitude")).isEqualTo(90.0);
-		assertThat(query.longitude("minLongitude")).isEqualTo(-180.0);
-		assertThat(query.longitude("maxLongitude")).isEqualTo(180.0);
-		assertThat(query.latitude("a")).isEqualTo(1e-7);
+		assertThat(query.latitude("minLatitude")).isEqualByComparingTo("-90");
+		assertThat(query.latitude("maxLatitude")).isEqualByComparingTo("90.0");
+		assertThat(query.longitude("minLongitude")).isEqualByComparingTo("-180");
+		assertThat(query.longitude("maxLongitude")).isEqualByComparingTo("180");
+		assertThat(query.latitude("a")).isEqualByComparingTo("1e-7");
 		assertThat(query.latitude("b")).isZero();
-		assertThat(query.latitude("c")).isEqualTo(-0.5);
-		assertThat(query.longitude("d")).isEqualTo(37.123456789);
+		assertThat(query.latitude("c")).isEqualByComparingTo("-0.5");
+		assertThat(query.longitude("d")).isEqualByComparingTo("37.123456789");
 	}
 
 	@Test
@@ -117,7 +117,7 @@ class MapQueryParametersTest {
 			assertThatThrownBy(() -> MapQueryParameters.parse("lng=" + value, "lng").longitude("lng")).as("lng=%s", value)
 				.hasMessage("경도는 -180 이상 180 이하로 입력해 주세요.");
 		}
-		assertThat(MapQueryParameters.parse("lat=100", "lat").longitude("lat")).isEqualTo(100.0);
+		assertThat(MapQueryParameters.parse("lat=100", "lat").longitude("lat")).isEqualByComparingTo("100");
 	}
 
 	@Test
@@ -132,30 +132,6 @@ class MapQueryParametersTest {
 			assertThatThrownBy(() -> MapQueryParameters.parse("lng=" + value, "lng").longitude("lng")).as("lng=%s", value)
 				.hasMessage("경도는 -180 이상 180 이하로 입력해 주세요.");
 		}
-	}
-
-	@Test
-	@DisplayName("#19-S5 영역의 최솟값이 최댓값보다 크면 십진수로 비교해 거절한다. double로는 같아지는 1e-400과 0도 거절한다")
-	void areaOrderIsCheckedOnTheDecimalValue() {
-		String[] names = { "minLat", "minLng", "maxLat", "maxLng" };
-		for (String query : new String[] { "minLat=1e-400&minLng=0&maxLat=0&maxLng=0",
-				"minLat=0&minLng=37.0000000000000001&maxLat=0&maxLng=37",
-				"minLat=38&minLng=0&maxLat=37&maxLng=0" }) {
-			assertThatThrownBy(
-					() -> MapQueryParameters.parse(query, names).area("minLat", "minLng", "maxLat", "maxLng"))
-				.as(query)
-				.isInstanceOf(InvalidMapRequestException.class)
-				.hasMessage("영역의 최솟값은 최댓값보다 클 수 없습니다.");
-		}
-		MapQueryParameters.Area area = MapQueryParameters
-			.parse("minLat=-1e-400&minLng=0&maxLat=0&maxLng=0", names)
-			.area("minLat", "minLng", "maxLat", "maxLng");
-		assertThat(area.minLatitude()).isZero();
-		assertThat(area.maxLongitude()).isZero();
-		MapQueryParameters.Area same = MapQueryParameters.parse("minLat=1&minLng=2&maxLat=1&maxLng=2", names)
-			.area("minLat", "minLng", "maxLat", "maxLng");
-		assertThat(same.minLatitude()).isEqualTo(1.0);
-		assertThat(same.maxLongitude()).isEqualTo(2.0);
 	}
 
 	@Test

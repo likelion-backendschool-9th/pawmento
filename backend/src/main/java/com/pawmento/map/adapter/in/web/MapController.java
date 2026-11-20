@@ -41,9 +41,9 @@ class MapController {
 		// 쿼리 문자열만 읽는다. 모델 바인딩은 URL에 없는 값을 같은 이름의 헤더로 채우고 중복된 키는 첫 값만 쓴다
 		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId", "minLatitude",
 				"minLongitude", "maxLatitude", "maxLongitude");
-		MapQueryParameters.Area area = query.area("minLatitude", "minLongitude", "maxLatitude", "maxLongitude");
-		ListMapPinsQuery pinsQuery = new ListMapPinsQuery(memberId, query.positiveLong("petId"), area.minLatitude(),
-				area.minLongitude(), area.maxLatitude(), area.maxLongitude());
+		ListMapPinsQuery pinsQuery = new ListMapPinsQuery(memberId, query.positiveLong("petId"),
+				query.latitude("minLatitude"), query.longitude("minLongitude"), query.latitude("maxLatitude"),
+				query.longitude("maxLongitude"));
 		return MapPinsResponse.from(listMapPinsUseCase.list(pinsQuery));
 	}
 

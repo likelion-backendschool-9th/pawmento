@@ -44,8 +44,8 @@ class CoordinateRangeTest {
 		// 경계값
 		assertThat(validate(90.0, 180.0)).isEmpty();
 		assertThat(validate(-90.0, -180.0)).isEmpty();
-		assertThat(MapQueryParameters.parse("lat=90&lng=180", "lat", "lng").latitude("lat")).isEqualTo(90.0);
-		assertThat(MapQueryParameters.parse("lat=-90&lng=-180", "lat", "lng").longitude("lng")).isEqualTo(-180.0);
+		assertThat(MapQueryParameters.parse("lat=90&lng=180", "lat", "lng").latitude("lat")).isEqualByComparingTo("90");
+		assertThat(MapQueryParameters.parse("lat=-90&lng=-180", "lat", "lng").longitude("lng")).isEqualByComparingTo("-180");
 
 		// 바로 바깥
 		for (double outside : new double[] { 90.0000001, -90.0000001 }) {

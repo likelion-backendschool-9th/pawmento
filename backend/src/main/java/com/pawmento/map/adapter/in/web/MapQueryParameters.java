@@ -83,36 +83,8 @@ final class MapQueryParameters {
 		throw InvalidMapRequestException.invalidPositiveInteger(name);
 	}
 
-	/** 핀 조회 영역. 값은 범위와 순서를 십진수로 검사한 뒤 조회용 double로 바꾼 것이다. */
-	record Area(double minLatitude, double minLongitude, double maxLatitude, double maxLongitude) {
-	}
-
-	/**
-	 * 영역의 네 값을 읽는다. 범위와 최솟값 ≤ 최댓값 검사는 입력한 십진수 그대로 한다. double로 바꾼 뒤에 검사하면 반올림 때문에
-	 * 90.000000000000001이 90.0이 되거나 1e-400과 0이 같아져서 범위와 순서 규칙을 통과한다.
-	 */
-	Area area(String minLatitude, String minLongitude, String maxLatitude, String maxLongitude) {
-		BigDecimal minLat = latitudeDecimal(minLatitude);
-		BigDecimal minLng = longitudeDecimal(minLongitude);
-		BigDecimal maxLat = latitudeDecimal(maxLatitude);
-		BigDecimal maxLng = longitudeDecimal(maxLongitude);
-		if (minLat.compareTo(maxLat) > 0 || minLng.compareTo(maxLng) > 0) {
-			throw InvalidMapRequestException.areaReversed();
-		}
-		return new Area(minLat.doubleValue(), minLng.doubleValue(), maxLat.doubleValue(), maxLng.doubleValue());
-	}
-
-	// -90 이상 90 이하의 위도. 숫자가 아니거나 NaN·무한대이거나 범위를 벗어나면 거절한다
-	double latitude(String name) {
-		return latitudeDecimal(name).doubleValue();
-	}
-
-	// -180 이상 180 이하의 경도
-	double longitude(String name) {
-		return longitudeDecimal(name).doubleValue();
-	}
-
-	private BigDecimal latitudeDecimal(String name) {
+	// -90 이상 90 이하의 위도. 숫자가 아니거나 NaN·무한대이거나 범위를 벗어나면 거절한다. 반올림하지 않도록 십진수 그대로 돌려준다
+	BigDecimal latitude(String name) {
 		BigDecimal value = decimal(name);
 		if (value.abs().compareTo(BigDecimal.valueOf(CoordinateRange.MAX_LATITUDE_DEGREES)) > 0) {
 			throw InvalidMapRequestException.latitudeOutOfRange();
@@ -120,7 +92,8 @@ final class MapQueryParameters {
 		return value;
 	}
 
-	private BigDecimal longitudeDecimal(String name) {
+	// -180 이상 180 이하의 경도
+	BigDecimal longitude(String name) {
 		BigDecimal value = decimal(name);
 		if (value.abs().compareTo(BigDecimal.valueOf(CoordinateRange.MAX_LONGITUDE_DEGREES)) > 0) {
 			throw InvalidMapRequestException.longitudeOutOfRange();
