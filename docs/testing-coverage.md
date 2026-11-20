@@ -126,3 +126,11 @@
 DiaryLocationContractErrorTest #44-S6은 실제 전역 MVC advice에서 내부 ID·좌표 오류가 400으로 처리되지 않고 ServletException으로 컨테이너에 전파되는지 검사한다. 실제 서버의 HTTP 500 응답 본문은 이 검사 범위가 아니다.
 
 DiaryLocationState.value()는 사용하지 않아 제거했다. 관측 상태는 원본 그대로 유지하며 새 좌표 입력만 지도 서비스에서 도메인 값으로 변환한다. HexagonalArchitectureTest.mapBoundaryUsesInputContracts #44-S6으로 기존 구조 검사를 이동했다. 기존 단일 DiaryMapAdapter 파일·DiaryLocation 이름 필터 대신 diary/adapter 전체 및 map/application/port/in 전체를 재귀 조회한다. 기존 import 검사와 도메인 타입 노출 금지를 유지하고 완전 수식 map.domain 참조도 검사한다. 이름이 다른 새 전달 타입·어댑터도 포함되며 기존 자동 확인에서 빠지는 범위는 없다. 소스 문자열 기반의 기존 저장소 검사 방식을 재사용하며 바이트코드 의존성 분석을 대체하지는 않는다. DiaryLocationPortValuesTest #44-S6은 LocationSource·입력 계약·diary 관측값의 출처 이름 집합 일치와 모든 현행 출처의 지도 경계 왕복을 검사한다. 이 정리로 AUTO/GPS·가족 공유·프론트 검증이 추가되는 것은 아니다.
+
+## 질문·다이어리 구조 정리 (#31, #32)
+
+| 기존 검사 | 새 검사 위치 | 유지하는 범위 |
+| --- | --- | --- |
+| `QuestionAnswerWriteServiceTest.pastAnswerDoesNotAdvance` (#31-S6/S9) | `CreateQuestionAnswerServiceTest.pastAnswerDoesNotAdvance` | 생성 유스케이스 분리에 따른 클래스 이름만 변경한다. 과거 회차에 다른 작성자가 답해도 현재 공통 진행을 다시 바꾸지 않는 단위 검증과 실제 가족 연동 미포함 범위를 유지한다. 삭제하거나 자동 확인에서 제외하는 시나리오는 없다. |
+
+(고침 #31: 답변 유스케이스별 서비스 분리에 따른 기존 테스트 위치 대응)

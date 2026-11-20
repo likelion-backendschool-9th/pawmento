@@ -10,10 +10,6 @@ public record DiaryWriteFeatures(List<Long> attachmentIds, DiaryLocationChange l
         attachmentIds, locationRequested ? DiaryLocationChange.auto() : DiaryLocationChange.keep());
   }
 
-  public boolean locationRequested() {
-    return location.requiresMap();
-  }
-
   public DiaryWriteFeatures {
     java.util.Objects.requireNonNull(location, "위치 변경 의도가 필요합니다.");
     if (attachmentIds != null) {

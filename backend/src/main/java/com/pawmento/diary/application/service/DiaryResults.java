@@ -23,10 +23,6 @@ public class DiaryResults {
     return many(entry.getPetId(), List.of(entry), requester).getFirst();
   }
 
-  public List<GetDiaryEntryResult> many(Long pet, List<DiaryEntry> entries) {
-    return many(pet, entries, null);
-  }
-
   public List<GetDiaryEntryResult> many(Long pet, List<DiaryEntry> entries, Long requester) {
     var links = attachments.findAll(entries.stream().map(DiaryEntry::getId).toList());
     var ids = links.values().stream().flatMap(List::stream).distinct().toList();

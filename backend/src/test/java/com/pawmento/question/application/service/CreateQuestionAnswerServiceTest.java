@@ -11,7 +11,7 @@ import java.time.*;
 import java.util.Optional;
 import org.junit.jupiter.api.*;
 
-class QuestionAnswerWriteServiceTest {
+class CreateQuestionAnswerServiceTest {
   @Test
   @DisplayName("#31-S6/S9 권한 포트 이후의 과거 회차 추가 답변은 다른 작성자로 저장하되 현재 진행을 다시 바꾸지 않는다")
   void pastAnswerDoesNotAdvance() {
@@ -55,7 +55,7 @@ class QuestionAnswerWriteServiceTest {
     var attachments = mock(QuestionAnswerAttachments.class);
     when(attachments.one(any())).thenAnswer(inv -> QuestionAnswerResult.from(inv.getArgument(0)));
     var service =
-        new QuestionAnswerWriteService(
+        new CreateQuestionAnswerService(
             access,
             names,
             answers,

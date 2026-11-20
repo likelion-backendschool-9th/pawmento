@@ -1,4 +1,4 @@
-package com.pawmento.global.config;
+package com.pawmento.diary.adapter.out.persistence;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
