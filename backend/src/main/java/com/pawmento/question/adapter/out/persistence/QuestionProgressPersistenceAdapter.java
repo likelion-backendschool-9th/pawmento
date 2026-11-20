@@ -2,6 +2,7 @@ package com.pawmento.question.adapter.out.persistence;
 
 import com.pawmento.question.application.exception.StoredQuestionInvalidException;
 import com.pawmento.question.application.port.out.QuestionProgressStorePort;
+import com.pawmento.question.application.port.out.QuestionPromptCompletionPort;
 import com.pawmento.question.domain.QuestionMode;
 import com.pawmento.question.domain.QuestionProgress;
 import com.pawmento.question.domain.QuestionPrompt;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-class QuestionProgressPersistenceAdapter implements QuestionProgressStorePort {
+class QuestionProgressPersistenceAdapter implements QuestionProgressStorePort, QuestionPromptCompletionPort {
   private final QuestionProgressJpaRepository progresses;
   private final QuestionPromptJpaRepository prompts;
   private final EntityManager em;
@@ -74,6 +75,29 @@ class QuestionProgressPersistenceAdapter implements QuestionProgressStorePort {
               progresses.findById(id).orElseGet(() -> QuestionProgressJpaEntity.from(progress));
           entity.update(progress);
           progresses.saveAndFlush(entity);
+          return null;
+        });
+  }
+
+  public Optional<QuestionPrompt> find(Long petId, Long promptId) {
+    return QuestionPersistenceOperations.execute(
+        () ->
+            prompts
+                .findById(promptId)
+                .map(
+                    entity -> {
+                      em.refresh(entity);
+                      return entity.toDomain();
+                    })
+                .filter(p -> p.getPetId().equals(petId)));
+  }
+
+  public void complete(QuestionPrompt prompt) {
+    QuestionPersistenceOperations.execute(
+        () -> {
+          var entity = prompts.findById(prompt.getId()).orElseThrow();
+          entity.complete(prompt);
+          prompts.flush();
           return null;
         });
   }

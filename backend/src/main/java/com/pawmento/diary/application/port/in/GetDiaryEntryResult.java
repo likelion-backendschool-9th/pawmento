@@ -44,12 +44,4 @@ public record GetDiaryEntryResult(
         location);
   }
 
-  public static GetDiaryEntryResult from(
-      DiaryEntry e, java.util.List<DiaryAttachment> attachments) {
-    return from(e, attachments, e.getCreatedBy());
-  }
-
-  public static GetDiaryEntryResult from(DiaryEntry e) {
-    return from(e, java.util.List.of());
-  }
 }

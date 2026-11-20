@@ -12,8 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class QuestionAnswerWriteService
-    implements CreateQuestionAnswerUseCase, EditQuestionAnswerUseCase, DeleteQuestionAnswerUseCase {
+public class CreateQuestionAnswerService implements CreateQuestionAnswerUseCase {
   private final CheckQuestionPetWriteAccessPort access;
   private final LoadQuestionAuthorNamePort authors;
   private final QuestionAnswerStorePort answers;
@@ -47,27 +46,5 @@ public class QuestionAnswerWriteService
     }
     return new CreateQuestionAnswerResult(
         attachments.one(saved), completedNow, progress.getCurrentPromptId() == null);
-  }
-
-  public QuestionAnswerResult edit(EditQuestionAnswerCommand c) {
-    var mode = access.currentModeForWrite(c.memberId(), c.petId());
-    var answer =
-        answers.lock(c.petId(), c.answerId()).orElseThrow(QuestionAnswerNotFoundException::new);
-    answer.requireEditable(c.memberId(), mode, c.version());
-    boolean attachmentChanged = attachments.changes(answer, c.attachmentIds());
-    if (c.content() == null && !attachmentChanged) return attachments.one(answer);
-    answer.edit(c.content() == null ? answer.getContent() : c.content(), clock.instant());
-    var saved = answers.save(answer);
-    if (attachmentChanged) attachments.replace(c.memberId(), saved, c.attachmentIds());
-    return attachments.one(saved);
-  }
-
-  public void delete(DeleteQuestionAnswerCommand c) {
-    var mode = access.currentModeForWrite(c.memberId(), c.petId());
-    var answer =
-        answers.lock(c.petId(), c.answerId()).orElseThrow(QuestionAnswerNotFoundException::new);
-    answer.requireEditable(c.memberId(), mode, c.version());
-    attachments.replace(c.memberId(), answer, java.util.List.of());
-    answers.delete(answer);
   }
 }
