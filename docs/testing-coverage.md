@@ -96,3 +96,17 @@
 - `DiaryLocationRequestValuesTest` #44-S2/S4/S7은 JSON 생략/명시 NONE/MANUAL/AUTO·좌표/장소명·서버 필드 주입 거부와 코어 입력 보존을 검사한다. 실제 지도 입력 포트/주소 조회 호출은 아직 검사하지 않는다.
 - `DiaryLocationIntentPersistenceTest` #44-S4/S13은 실제 PostgreSQL에서 위치 원본 저장·본문 수정 보존·버전 충돌·NONE 전환·미이관 NULL과 기존 핀 보존·스키마 반복 적용·double precision 왕복을 검사한다. 지도 행의 초기 백필·명시적 정정·일기 삭제와 핀의 원자성은 후속 map 연결 범위다.
 - `DiaryEntryTest`와 `DiaryLocationIntentTest`는 위치 작성자와 값 불변식을 검사한다. 이 준비 작업만으로 #44-S4/S13 전체 또는 #32-S12/S16~S18을 완료 처리하지 않는다.
+
+## 수동 위치의 실제 지도 연결 (#32, #44)
+
+| 기존 확인 | 현재 검사 | 범위·후속 |
+| --- | --- | --- |
+| #32-S23의 MANUAL/AUTO 미지원 409 | DiaryScenarioTest·DiaryWritePolicyTest | 유효한 MANUAL은 실제 저장으로 전환하고 AUTO만 409 유지. 잘못된 MANUAL JSON은 400 유지 |
+| #44-S4/S7/S8 준비 단계의 입력·저장 검사 | DiaryLocationScenarioTest | 실제 API 생성→핀 조회→위치만 PATCH→KEEP→NONE→삭제, 주소 TX 경계·255자·권한 응답·첨부 사전 검사. AUTO/가족/프론트는 제외 |
+| #44-S6 revision·부모 경합 | DiaryLocationScenarioTest atomicApply/manualEditDeleteRace/staleReconcile | 동시 최초 삽입 APPLIED/DUPLICATE, STALE, 계약 위반, 관측 경합과 실제 핀 수정/삭제 경합·오래된 요청의 핀 부활 금지 |
+| #44-S7 전체 롤백 | DiaryLocationScenarioTest rollbackCreateAndEdit/rollbackDelete/deletionJobRollback | 지도 DB 쓰기/삭제 후 실패를 주입해 부모·첨부·참조·실제 핀·물리 삭제 작업 등록을 원자적으로 취소 |
+| #44-S13 미이관 상태 보존 | DiaryLocationIntentPersistenceTest | 원본 값 왕복 외 정상 핀 백필·revision 맞춤·반복 적용·초기 ID 충돌/고아 핀 보존 및 중단 추가 |
+| DiaryConcurrencyTest #32-S22 첫 생성/아이 삭제의 바깥 TX latch | 동일 테스트의 SaveDiaryEntryPort spy latch | HTTP를 감싼 바깥 TX 대신 실제 DB 쓰기 내부에서 첫 INSERT 후 커밋 전 대기. 반대 실행 순서·기록/아이 보존 검사 유지 |
+| DiaryAttachmentScenarioTest #32-S10 참조 획득/만료 정리의 바깥 TX latch | 동일 테스트의 DiaryMediaPort.change spy latch | 실제 참조 획득 후 DB TX 안에서 대기·만료 정리의 잠금 대기·참조/파일/작업 보존 유지 |
+
+사전 조회로 열린 JPA 문맥은 부모·자산 잠금 후 refresh하며, 실제 저장 시 소유권·버전·상태를 다시 검사한다. 기존 코드의 실행 테스트를 삭제하거나 경합을 순차 호출로 축소하지 않았다. 이전 준비 단계에서 'map 호출 미검사'로 남긴 범위 중 MANUAL/NONE은 위 테스트로 연결했다.
