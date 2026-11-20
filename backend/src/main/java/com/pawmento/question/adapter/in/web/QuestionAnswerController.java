@@ -29,7 +29,7 @@ public class QuestionAnswerController {
         create.create(
             new CreateQuestionAnswerCommand(
                 member,
-                new QuestionAnswerQuery(request.getQueryString()).petId(),
+                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
                 promptId,
                 values.content(),
                 values.attachmentIds()));
@@ -39,7 +39,18 @@ public class QuestionAnswerController {
   @GetMapping("/answers")
   QuestionAnswerResponse.Page list(@LoginMember Long member, HttpServletRequest request) {
     return QuestionAnswerResponse.Page.from(
-        list.list(new QuestionAnswerQuery(request.getQueryString()).list(member)));
+        list.list(
+            new QuestionAnswerQuery(
+                    request.getQueryString(),
+                    "petId",
+                    "mode",
+                    "promptId",
+                    "authorMemberId",
+                    "from",
+                    "to",
+                    "page",
+                    "size")
+                .list(member)));
   }
 
   @GetMapping("/answers/{answerId}")
@@ -48,7 +59,9 @@ public class QuestionAnswerController {
     return QuestionAnswerResponse.from(
         get.get(
             new GetQuestionAnswerQuery(
-                member, new QuestionAnswerQuery(request.getQueryString()).petId(), answerId)));
+                member,
+                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
+                answerId)));
   }
 
   @PatchMapping("/answers/{answerId}")
@@ -62,7 +75,7 @@ public class QuestionAnswerController {
         edit.edit(
             new EditQuestionAnswerCommand(
                 member,
-                new QuestionAnswerQuery(request.getQueryString()).petId(),
+                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
                 answerId,
                 values.content(),
                 values.version(),
@@ -72,7 +85,7 @@ public class QuestionAnswerController {
   @DeleteMapping("/answers/{answerId}")
   ResponseEntity<Void> delete(
       @LoginMember Long member, @PathVariable Long answerId, HttpServletRequest request) {
-    var query = new QuestionAnswerQuery(request.getQueryString());
+    var query = new QuestionAnswerQuery(request.getQueryString(), "petId", "version");
     delete.delete(
         new DeleteQuestionAnswerCommand(member, query.petId(), answerId, query.version()));
     return ResponseEntity.noContent().build();

@@ -54,7 +54,8 @@ class QuestionAnswerAttachmentScenarioTest {
   @MockitoSpyBean QuestionAnswerStorePort answers;
   @MockitoSpyBean GetMemberUseCase memberDetails;
   @Autowired SaveMediaAssetPort saveMedia;
-  @Autowired QuestionAttachmentsPort links;
+  @Autowired com.pawmento.question.application.port.in.GetQuestionAnswerUseCase detail;
+  @MockitoSpyBean QuestionAttachmentsPort links;
   @Autowired MediaCleanupTransactions cleanup;
   @MockitoSpyBean QuestionMediaPort media;
   @MockitoSpyBean ReadMediaFilePort files;
@@ -151,7 +152,7 @@ class QuestionAnswerAttachmentScenarioTest {
             owner,
             petId,
             purpose,
-            "file",
+            audio ? "voice-source.webm" : "photo-source.png",
             audio ? "audio/webm" : "image/png",
             10,
             UUID.randomUUID().toString(),
@@ -203,6 +204,10 @@ class QuestionAnswerAttachmentScenarioTest {
                 attach(prompt, image, audio)
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.answer.attachments[0].type").value("IMAGE"))
+                    .andExpect(
+                        jsonPath("$.answer.attachments[0].filename").value("photo-source.png"))
+                    .andExpect(
+                        jsonPath("$.answer.attachments[1].filename").value("voice-source.webm"))
                     .andExpect(jsonPath("$.answer.attachments[1].type").value("AUDIO"))
                     .andExpect(jsonPath("$.answer.attachments[0].available").value(true))));
     assertThat(refs(image)).isEqualTo(1);
@@ -216,11 +221,16 @@ class QuestionAnswerAttachmentScenarioTest {
         .andExpect(jsonPath("$.version").value(1))
         .andExpect(jsonPath("$.answeredDate").value("2026-11-20"))
         .andExpect(jsonPath("$.attachments[0].assetId").value(audio))
-        .andExpect(jsonPath("$.attachments[1].sortOrder").value(1));
+        .andExpect(jsonPath("$.attachments[1].sortOrder").value(1))
+        .andExpect(jsonPath("$.attachments[0].filename").value("voice-source.webm"));
+    call(get(answerPath(answer)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.attachments[1].filename").value("photo-source.png"));
     pending(next);
     call(get("/api/v1/questions/answers?petId=" + pet))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.items[0].attachments[0].assetId").value(audio));
+        .andExpect(jsonPath("$.items[0].attachments[0].assetId").value(audio))
+        .andExpect(jsonPath("$.items[0].attachments[0].filename").value("voice-source.webm"));
     call(patch(answerPath(answer))
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"version\":1,\"content\":\"본문만 변경\"}"))
@@ -441,5 +451,130 @@ class QuestionAnswerAttachmentScenarioTest {
     assertThat(refs(a)).isZero();
     assertThat(jobs(a)).isEqualTo(1);
     pending(prompt);
+  }
+
+  @Test
+  @DisplayName("#31-S9/S16 동일 첨부 순서 PATCH는 자산 잠금·행 교체·참조 변경·답변 저장 없이 현재 값만 반환한다")
+  void unchangedAttachmentsSkipWrites() throws Exception {
+    long a = asset(false),
+        b = asset(true),
+        answer = id(json(attach(ensure(), a, b).andExpect(status().isCreated())));
+    var original = json(call(get(answerPath(answer))).andExpect(status().isOk()));
+    clearInvocations(answers, links, media);
+    var result =
+        json(
+            call(patch(answerPath(answer))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"version\":0,\"attachmentIds\":[" + a + "," + b + "]}"))
+                .andExpect(status().isOk()));
+    assertThat(result).isEqualTo(original);
+    verify(answers, never()).save(any());
+    verify(links, never()).replace(anyLong(), anyList());
+    verify(media, never()).lock(anyLong(), anyLong(), anyList());
+    verify(media, never()).change(anyLong(), anyLong(), anyList(), anyList());
+    assertThat(refs(a)).isEqualTo(1);
+    assertThat(refs(b)).isEqualTo(1);
+  }
+
+  @Test
+  @DisplayName("#31-S13/S18 파일 쿼리는 petId만 검사하고 미지원 키의 중복·잘못된 값은 무시한다")
+  void fileQueryScope() throws Exception {
+    long a = asset(false), answer = id(json(attach(ensure(), a).andExpect(status().isCreated())));
+    doAnswer(inv -> new ByteArrayInputStream("0123456789".getBytes()))
+        .when(files)
+        .open(anyString(), anyString());
+    String url =
+        "/api/v1/questions/answers/" + answer + "/attachments/" + a + "/content?petId=" + pet;
+    call(get(url + "&page=bad&page=other&version=x&version=y&mode=unknown"))
+        .andExpect(status().isOk());
+    call(get(url + "&petId=" + pet)).andExpect(status().isBadRequest());
+    call(get(answerPath(answer) + "&version=x&version=y")).andExpect(status().isOk());
+    call(get("/api/v1/questions/answers?petId=" + pet + "&version=x&version=y"))
+        .andExpect(status().isOk());
+    call(get("/api/v1/questions/answers?petId=" + pet + "&page=0&page=1"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  @DisplayName("#31-S13/S16 상세의 답변 조회와 첨부 조회 사이 PATCH가 커밋돼도 같은 RR 스냅샷을 반환한다")
+  void detailSnapshot() throws Exception {
+    long a = asset(false),
+        b = asset(true),
+        answer = id(json(attach(ensure(), a).andExpect(status().isCreated())));
+    var loaded = new CountDownLatch(1);
+    var committed = new CountDownLatch(1);
+    doAnswer(
+            inv -> {
+              var result = inv.callRealMethod();
+              assertThat(
+                      jdbc.queryForObject(
+                          "select current_setting('transaction_isolation')", String.class))
+                  .isEqualTo("repeatable read");
+              assertThat(
+                      jdbc.queryForObject(
+                          "select current_setting('transaction_read_only')", String.class))
+                  .isEqualTo("on");
+              loaded.countDown();
+              if (!committed.await(10, TimeUnit.SECONDS))
+                throw new AssertionError("writer commit timeout");
+              return result;
+            })
+        .when(answers)
+        .find(pet, answer);
+    try (var executor = Executors.newSingleThreadExecutor()) {
+      var reading =
+          executor.submit(() -> json(call(get(answerPath(answer))).andExpect(status().isOk())));
+      try {
+        assertThat(loaded.await(10, TimeUnit.SECONDS)).isTrue();
+        call(patch(answerPath(answer))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"version\":0,\"attachmentIds\":[" + b + "]}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.version").value(1));
+        committed.countDown();
+        var result = reading.get(10, TimeUnit.SECONDS);
+        assertThat(((Number) result.get("version")).longValue()).isZero();
+        var asset = (Map<?, ?>) ((List<?>) result.get("attachments")).getFirst();
+        assertThat(((Number) asset.get("assetId")).longValue()).isEqualTo(a);
+        assertThat(asset.get("available")).isEqualTo(true);
+      } finally {
+        committed.countDown();
+      }
+    }
+    call(get(answerPath(answer)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.version").value(1))
+        .andExpect(jsonPath("$.attachments[0].assetId").value(b));
+  }
+
+  @Test
+  @DisplayName("#31-S13 기존 READ_COMMITTED 트랜잭션에서 상세를 호출해도 별도 RR 읽기를 사용한다")
+  void detailSuspendsOuterTransaction() throws Exception {
+    long a = asset(false), answer = id(json(attach(ensure(), a).andExpect(status().isCreated())));
+    var outer = new TransactionTemplate(transactions);
+    outer.setIsolationLevel(
+        org.springframework.transaction.TransactionDefinition.ISOLATION_READ_COMMITTED);
+    var callerConnection = new java.util.concurrent.atomic.AtomicInteger();
+    doAnswer(
+            inv -> {
+              assertThat(jdbc.queryForObject("select pg_backend_pid()", Integer.class))
+                  .isNotEqualTo(callerConnection.get());
+              assertThat(
+                      jdbc.queryForObject(
+                          "select current_setting('transaction_isolation')", String.class))
+                  .isEqualTo("repeatable read");
+              return inv.callRealMethod();
+            })
+        .when(answers)
+        .find(pet, answer);
+    outer.executeWithoutResult(
+        tx -> {
+          callerConnection.set(jdbc.queryForObject("select pg_backend_pid()", Integer.class));
+          var result =
+              detail.get(
+                  new com.pawmento.question.application.port.in.GetQuestionAnswerQuery(
+                      member, pet, answer));
+          assertThat(result.version()).isZero();
+        });
   }
 }

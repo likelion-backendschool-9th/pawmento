@@ -23,7 +23,7 @@ public class QuestionFileController {
       @PathVariable Long answerId,
       @PathVariable Long assetId,
       HttpServletRequest request) {
-    var pet = new QuestionAnswerQuery(request.getQueryString()).petId();
+    var pet = new QuestionAnswerQuery(request.getQueryString(), "petId").petId();
 
     var r =
         files.get(

@@ -54,10 +54,11 @@ public class QuestionAnswerWriteService
     var answer =
         answers.lock(c.petId(), c.answerId()).orElseThrow(QuestionAnswerNotFoundException::new);
     answer.requireEditable(c.memberId(), mode, c.version());
-    if (c.content() != null || attachments.changes(answer, c.attachmentIds()))
-      answer.edit(c.content() == null ? answer.getContent() : c.content(), clock.instant());
+    boolean attachmentChanged = attachments.changes(answer, c.attachmentIds());
+    if (c.content() == null && !attachmentChanged) return attachments.one(answer);
+    answer.edit(c.content() == null ? answer.getContent() : c.content(), clock.instant());
     var saved = answers.save(answer);
-    attachments.replace(c.memberId(), saved, c.attachmentIds());
+    if (attachmentChanged) attachments.replace(c.memberId(), saved, c.attachmentIds());
     return attachments.one(saved);
   }
 

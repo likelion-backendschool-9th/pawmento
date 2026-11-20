@@ -9,4 +9,5 @@ public record QuestionAttachment(
     Integer width,
     Integer height,
     boolean thumbnail,
-    boolean available) {}
+    boolean available,
+    String filename) {}

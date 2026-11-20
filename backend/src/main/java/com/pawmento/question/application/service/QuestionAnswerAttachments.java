@@ -23,6 +23,7 @@ public class QuestionAnswerAttachments {
   public void replace(Long member, QuestionAnswer answer, List<Long> requested) {
     if (requested == null) return;
     var old = links.find(answer.getId());
+    if (old.equals(requested)) return;
     var all = new TreeSet<Long>(old);
     all.addAll(requested);
     media.lock(member, answer.getPrompt().getPetId(), List.copyOf(all));

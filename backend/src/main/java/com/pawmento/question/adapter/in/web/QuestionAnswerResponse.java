@@ -29,7 +29,8 @@ record QuestionAnswerResponse(
       int sortOrder,
       boolean available,
       String contentUrl,
-      String thumbnailUrl) {}
+      String thumbnailUrl,
+      String filename) {}
 
   static QuestionAnswerResponse from(QuestionAnswerResult a) {
     return new QuestionAnswerResponse(
@@ -57,9 +58,8 @@ record QuestionAnswerResponse(
                       m.sortOrder(),
                       m.available(),
                       m.available() ? url + "/content?petId=" + a.petId() : null,
-                      m.available() && m.thumbnail()
-                          ? url + "/thumbnail?petId=" + a.petId()
-                          : null);
+                      m.available() && m.thumbnail() ? url + "/thumbnail?petId=" + a.petId() : null,
+                      m.filename());
                 })
             .toList(),
         a.answeredAt(),

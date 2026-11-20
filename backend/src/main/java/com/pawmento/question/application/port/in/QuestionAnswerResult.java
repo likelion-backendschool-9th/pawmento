@@ -30,7 +30,8 @@ public record QuestionAnswerResult(
       Integer height,
       int sortOrder,
       boolean available,
-      boolean thumbnail) {}
+      boolean thumbnail,
+      String filename) {}
 
   public static QuestionAnswerResult from(QuestionAnswer a) {
     return from(a, List.of());
@@ -61,7 +62,8 @@ public record QuestionAnswerResult(
                       m.height(),
                       i,
                       m.available(),
-                      m.thumbnail());
+                      m.thumbnail(),
+                      m.filename());
                 })
             .toList(),
         a.getAnsweredAt(),

@@ -43,7 +43,8 @@ public class LoadMediaAttachmentsService implements LoadMediaAttachmentsUseCase 
                   v == null ? null : v.width(),
                   v == null ? null : v.height(),
                   v != null && v.thumbnailSizeBytes() != null,
-                  available);
+                  available,
+                  a.getOriginalFilename());
             })
         .toList();
   }

@@ -16,6 +16,10 @@ public class QuestionAnswerReadService
   private final QuestionAnswerStorePort answers;
   private final QuestionAnswerAttachments attachments;
 
+  @Transactional(
+      readOnly = true,
+      isolation = Isolation.REPEATABLE_READ,
+      propagation = Propagation.REQUIRES_NEW)
   public QuestionAnswerResult get(GetQuestionAnswerQuery q) {
     access.currentMode(q.memberId(), q.petId());
     return attachments.one(

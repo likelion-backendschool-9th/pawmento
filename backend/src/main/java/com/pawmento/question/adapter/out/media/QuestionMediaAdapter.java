@@ -47,7 +47,8 @@ public class QuestionMediaAdapter implements QuestionMediaPort {
                     m.width(),
                     m.height(),
                     m.thumbnail(),
-                    m.available()))
+                    m.available(),
+                    m.filename()))
         .toList();
   }
 

@@ -9,4 +9,18 @@ public record MediaAttachmentMetadata(
     Integer width,
     Integer height,
     boolean thumbnail,
-    boolean available) {}
+    boolean available,
+    String filename) {
+  public MediaAttachmentMetadata(
+      Long assetId,
+      String type,
+      String mimeType,
+      long sizeBytes,
+      Long durationMs,
+      Integer width,
+      Integer height,
+      boolean thumbnail,
+      boolean available) {
+    this(assetId, type, mimeType, sizeBytes, durationMs, width, height, thumbnail, available, null);
+  }
+}
