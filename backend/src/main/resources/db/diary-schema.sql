@@ -33,13 +33,27 @@ BEGIN
     UNIQUE(diary_id,sort_order)
   );
   -- JPA also maps this table; CREATE TABLE IF NOT EXISTS alone does not add constraints after Hibernate creates it.
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='diary_attachments'::regclass AND conname='diary_attachments_diary_id_fkey') THEN
+  -- Renaming record_id does not rename its constraints. Match the definition, not its name.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='diary_attachments'::regclass AND contype='f'
+      AND confrelid='diary_entries'::regclass AND confdeltype='c'
+      AND conkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='diary_attachments'::regclass AND attname='diary_id')]::smallint[]
+      AND confkey=ARRAY[(SELECT attnum FROM pg_attribute WHERE attrelid='diary_entries'::regclass AND attname='id')]::smallint[]
+  ) THEN
     ALTER TABLE diary_attachments ADD CONSTRAINT diary_attachments_diary_id_fkey FOREIGN KEY (diary_id) REFERENCES diary_entries(id) ON DELETE CASCADE;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='diary_attachments'::regclass AND conname='diary_attachments_asset_id_fkey') THEN
     ALTER TABLE diary_attachments ADD CONSTRAINT diary_attachments_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES media_assets(id) ON DELETE RESTRICT;
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='diary_attachments'::regclass AND conname='diary_attachments_diary_id_sort_order_key') THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='diary_attachments'::regclass AND contype='u' AND cardinality(conkey)=2
+      AND conkey @> ARRAY[
+        (SELECT attnum FROM pg_attribute WHERE attrelid='diary_attachments'::regclass AND attname='diary_id'),
+        (SELECT attnum FROM pg_attribute WHERE attrelid='diary_attachments'::regclass AND attname='sort_order')
+      ]::smallint[]
+  ) THEN
     ALTER TABLE diary_attachments ADD CONSTRAINT diary_attachments_diary_id_sort_order_key UNIQUE (diary_id,sort_order);
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='diary_attachments'::regclass AND conname='diary_attachments_sort_order_check') THEN
