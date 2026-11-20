@@ -1,0 +1,328 @@
+/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕 색은 팔레트에서 파생한 값이다. */
+
+/* ---- 기록 쓰기 화면의 "장소" 항목 ---- */
+.field {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 4px;
+}
+.fieldLabel {
+  font-size: 12px;
+  color: var(--mode-muted, #6f7d62);
+}
+.attach {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px dashed var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-card);
+  color: var(--brand-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+.attach:hover {
+  background: var(--surface-subtle);
+}
+.picked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  background: var(--surface-card);
+}
+.pickedIcon {
+  display: grid;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-subtle);
+  color: var(--brand-primary);
+}
+.pickedText {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.pickedText strong {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pickedText small {
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.fieldNote {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* ---- 위치 고르기 화면 ---- */
+/* 브라우저의 모달 dialog다. 열려 있는 동안 Tab 이동이 안에서만 돌고 뒤 화면은 조작되지 않는다. */
+.dialog {
+  --map-land: #f4f3ea;
+  --map-park: #dfe8cb;
+  --map-water: #d7e6df;
+  --map-road: #fffdf7;
+  width: 100%;
+  max-width: none;
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+.dialog[data-mode="GARDEN"] {
+  --map-land: #f6f2ec;
+  --map-park: #e6e1ee;
+  --map-water: #dde3ec;
+  --map-road: #fffcf8;
+}
+.dialog::backdrop {
+  background: rgb(57 69 47 / 0.38);
+}
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--space-wash);
+}
+.bar h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+.roundButton {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--mode-border);
+  border-radius: 50%;
+  background: var(--mode-card);
+  color: var(--mode-muted);
+  cursor: pointer;
+}
+/* chevron 아이콘은 오른쪽을 가리키므로 뒤로 가기는 뒤집는다 */
+.roundButton:first-child svg {
+  transform: rotate(180deg);
+}
+
+/* 지도와 입력 카드를 함께 담는 스크롤 영역. 화면이 낮거나 키보드가 올라와 높이가 모자라면 여기서 스크롤해
+   아래의 "이 위치로 붙이기"·"위치 없이 저장하기"에 닿을 수 있다. 높이가 넉넉하면 지도가 남는 높이를 채운다. */
+.body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.mapArea {
+  position: relative;
+  flex: 1 0 auto;
+  min-height: clamp(160px, 34vh, 460px);
+  min-height: clamp(160px, 34dvh, 460px);
+  overflow: hidden;
+  background: var(--map-land);
+}
+.canvas {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+.staticMap {
+  overflow: hidden;
+  cursor: grab;
+  background:
+    linear-gradient(0deg, #ffffff40 1px, transparent 1px) 0 0 / 100% 64px,
+    linear-gradient(90deg, #ffffff40 1px, transparent 1px) 0 0 / 64px 100%,
+    var(--map-land);
+}
+.staticMap:active {
+  cursor: grabbing;
+}
+.layer {
+  position: absolute;
+  inset: -50%;
+}
+.park {
+  position: absolute;
+  left: 8%;
+  top: 6%;
+  width: 52%;
+  height: 46%;
+  border-radius: 46% 54% 52% 48%;
+  background: var(--map-park);
+}
+.river {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4%;
+  height: 28%;
+  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
+  background: var(--map-water);
+}
+.avenue {
+  position: absolute;
+  left: 34%;
+  top: 50%;
+  width: 70%;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--map-road);
+  transform: rotate(24deg);
+  transform-origin: left center;
+}
+.hint {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 8px 16px;
+  transform: translateX(-50%);
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+/* 지도 가운데에 고정. 핀 끝(아래 가운데)이 고른 좌표다 */
+.centerPin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  display: block;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+}
+.centerPin::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 76px;
+  height: 76px;
+  transform: translate(-50%, 34%);
+  border: 1.5px solid var(--brand-primary);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
+  opacity: 0.35;
+}
+.centerPin svg {
+  position: relative;
+}
+
+.sheet {
+  display: grid;
+  flex: none;
+  gap: 0;
+  padding: 14px 20px calc(22px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--mode-border);
+  border-bottom: 0;
+  border-radius: 26px 26px 0 0;
+  background: var(--surface-card);
+  box-shadow: 0 -6px 34px rgb(101 83 51 / 0.12);
+}
+.eyebrow {
+  margin: 0 0 4px;
+  font-family: Georgia, serif;
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  color: var(--text-secondary);
+}
+.sheet h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.sheet label {
+  margin: 0 0 6px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+}
+.sheet input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--surface-elevated, #fffefa);
+  font-size: 15px;
+}
+.helper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.helper svg {
+  flex: none;
+  margin-top: 2px;
+}
+.sheet :global(.button) {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 16px;
+}
+.skip {
+  margin-top: 6px;
+  padding: 10px 0 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* 화면이 낮으면 지도가 작아져 안내 문구가 가운데 핀을 가리므로 숨긴다 */
+@media (max-height: 560px) {
+  .hint {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) {
+  .dialog {
+    width: min(560px, 100%);
+    height: min(88vh, 760px);
+    height: min(88dvh, 760px);
+    margin: auto;
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgb(57 69 47 / 0.28);
+  }
+}

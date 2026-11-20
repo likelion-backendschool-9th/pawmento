@@ -11,6 +11,8 @@ import { useRef } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/shared/ui/Icon";
 import { Photo } from "@/shared/ui/Photo";
+import { LocationField } from "@/map/adapters/inbound/LocationField";
+import type { PickedLocation } from "@/map/domain/PickedLocation";
 import { PhotoPicker } from "@/shared/ui/PhotoPicker";
 import { today } from "@/shared/date";
 import { formatDate } from "@/shared/date";
@@ -60,6 +62,8 @@ export function JournalForm({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  // 지도에서 고른 위치. 서버 일기와 연결되면 저장할 때 함께 보낸다(지금 데모 저장소에는 위치가 없다)
+  const [location, setLocation] = useState<PickedLocation | null>(null);
   const dirty =
     JSON.stringify(attachments) !== JSON.stringify(record?.attachments ?? []) ||
     body !== (record?.body ?? "") ||
@@ -191,6 +195,13 @@ export function JournalForm({
               </small>
             )}
           </label>
+          {!questionAnswer && (
+            <LocationField
+              mode={pet.mode}
+              value={location}
+              onChange={setLocation}
+            />
+          )}
           <label htmlFor="memory-body">
             {questionAnswer ? "오늘의 답변" : "우리의 이야기"}
           </label>
