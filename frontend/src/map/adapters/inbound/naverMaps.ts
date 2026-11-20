@@ -2,7 +2,12 @@
 // Client ID는 브라우저에 공개되는 값이다. Client Secret은 서버에서만 쓰고 여기에는 두지 않는다.
 export type NaverLatLng = { lat(): number; lng(): number };
 export type NaverBounds = { getSW(): NaverLatLng; getNE(): NaverLatLng };
+export type NaverLatLngBounds = { extend(point: NaverLatLng): NaverLatLngBounds };
 export type NaverMap = {
+  fitBounds(
+    bounds: NaverLatLngBounds,
+    margin?: { top: number; right: number; bottom: number; left: number },
+  ): void;
   getBounds(): NaverBounds;
   getCenter(): NaverLatLng;
   setCenter(center: NaverLatLng): void;
@@ -21,6 +26,7 @@ export type NaverMapsApi = {
   LatLng: new (latitude: number, longitude: number) => NaverLatLng;
   Point: new (x: number, y: number) => unknown;
   Marker: new (options: Record<string, unknown>) => NaverMarker;
+  LatLngBounds: new (southWest: NaverLatLng, northEast: NaverLatLng) => NaverLatLngBounds;
   Polyline: new (options: Record<string, unknown>) => NaverPolyline;
   Event: {
     addListener(

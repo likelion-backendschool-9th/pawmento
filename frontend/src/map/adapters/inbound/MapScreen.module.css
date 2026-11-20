@@ -194,3 +194,38 @@
     width: 100%;
   }
 }
+
+/* "기억 핀 | 산책 길" 전환 */
+.switch {
+  display: flex;
+  width: fit-content;
+  gap: 4px;
+  margin: 0 auto 12px;
+  padding: 4px;
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+}
+.switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.switch button[aria-pressed="true"] {
+  background: var(--brand-primary);
+  color: var(--color-white);
+}
+.switch button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}

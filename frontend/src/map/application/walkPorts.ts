@@ -22,3 +22,15 @@ export interface ActiveWalkStore {
   save(owner: string, active: ActiveWalk): void;
   clear(owner: string, petId: string): void;
 }
+
+// 날짜별로 다시 보는 산책
+export type WalkDayList = {
+  walks: import("../domain/WalkRecord.ts").WalkRecord[];
+  // 실제 기록이 아닌 화면 확인용 예시 산책이 들어 있다(데모 계정)
+  sample: boolean;
+};
+
+export interface WalkHistoryRepository {
+  // date는 Asia/Seoul 기준 `YYYY-MM-DD`. 그날 시작한 산책이 startedAt 순서로 나온다.
+  listByDate(petId: string, date: string): Promise<WalkDayList>;
+}
