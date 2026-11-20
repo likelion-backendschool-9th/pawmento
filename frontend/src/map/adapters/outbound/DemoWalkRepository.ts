@@ -4,7 +4,7 @@ import type { WalkRepository } from "../../application/walkPorts.ts";
 
 // 데모 산책은 브라우저 메모리에만 둔다(새로고침하면 사라진다).
 
-type DemoWalk = { endedAt: string | null; count: number };
+type DemoWalk = { petId: string; endedAt: string | null; count: number };
 
 export class DemoWalkRepository implements WalkRepository {
   private readonly walks = new Map<string, DemoWalk>();
@@ -17,13 +17,14 @@ export class DemoWalkRepository implements WalkRepository {
 
   async start(petId: string): Promise<Walk> {
     for (const walk of this.walks.values()) {
-      if (walk.endedAt === null) {
+      // 진행 중인 산책은 반려동물 한 마리에 하나다. 다른 반려동물의 산책은 막지 않는다.
+      if (walk.petId === petId && walk.endedAt === null) {
         throw new ApplicationError("CONFLICT", "이미 진행 중인 산책이 있어요.");
       }
     }
     this.sequence += 1;
     const walkId = `${DEMO_WALK_PREFIX}${this.sequence}`;
-    this.walks.set(walkId, { endedAt: null, count: 0 });
+    this.walks.set(walkId, { petId, endedAt: null, count: 0 });
     return { walkId, petId, startedAt: this.now().toISOString() };
   }
 

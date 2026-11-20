@@ -327,6 +327,19 @@ test("#73-S3 끝났거나 중단된 산책에 좌표를 보내 409를 받으면 
   await assert.rejects(() => failing.addPoints("7", [point(0)]), (e: unknown) => e instanceof ApiError && e.status === 503);
 });
 
+test("#73-S12 다른 반려동물의 연습 산책은 막지 않고, 같은 반려동물의 중복 시작만 막는다", async () => {
+  const demo = new DemoWalkRepository(() => new Date("2026-11-20T01:00:00Z"));
+  const first = await demo.start("pet-a");
+  const other = await demo.start("pet-b"); // 다른 반려동물은 시작할 수 있다
+  assert.notEqual(first.walkId, other.walkId);
+  await assert.rejects(() => demo.start("pet-a"), (e: unknown) => e instanceof ApplicationError && e.code === "CONFLICT");
+  await assert.rejects(() => demo.start("pet-b"), (e: unknown) => e instanceof ApplicationError && e.code === "CONFLICT");
+  // 한 마리의 산책을 끝내면 그 반려동물만 다시 시작할 수 있다
+  await demo.end(first.walkId);
+  assert.ok(await demo.start("pet-a"));
+  await assert.rejects(() => demo.start("pet-b"), (e: unknown) => e instanceof ApplicationError && e.code === "CONFLICT");
+});
+
 test("#73-S12 데모 산책은 브라우저 메모리에서 시작·기록·끝내고(S2), 같은 아이의 진행 중 산책이 있으면 시작할 수 없다", async () => {
   const demo = new DemoWalkRepository(() => new Date("2026-11-20T01:00:00Z"));
   const walk = await demo.start("uuid-pet");
