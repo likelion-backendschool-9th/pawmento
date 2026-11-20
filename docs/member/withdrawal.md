@@ -1,6 +1,6 @@
 # 회원 탈퇴
 
-관련 이슈: [#NNN](https://github.com/likelion-backendschool-9th/pawmento/issues/NNN)
+관련 이슈: [#155](https://github.com/likelion-backendschool-9th/pawmento/issues/155)
 
 ## 한눈에
 - 끝나면: 회원이 탈퇴하면 바로 로그인이 풀린다. 30일 안에 다시 로그인하면 "복구하시겠습니까?"로 되살릴 수 있고, 30일이 지나면 스케줄러가 회원과 연결 정보를 지우고 제공자 연결도 끊는다.
@@ -8,111 +8,111 @@
 - 규모: 6단계
 
 ## 질문
-- Q1 (팀): 하드 삭제하면 `member` 행이 사라져 글·기록의 작성자 FK가 삭제를 막는다. community·diary·question의 작성자 컬럼을 nullable + `ON DELETE SET NULL`로 바꾸고, 작성자가 없으면 화면에 "탈퇴한 회원입니다"로 보여 주는 방식에 동의하는지. 각 도메인 담당의 스키마가 바뀐다. (답에 따라 #NNN-S14가 달라짐)
+- Q1 (팀): 하드 삭제하면 `member` 행이 사라져 글·기록의 작성자 FK가 삭제를 막는다. community·diary·question의 작성자 컬럼을 nullable + `ON DELETE SET NULL`로 바꾸고, 작성자가 없으면 화면에 "탈퇴한 회원입니다"로 보여 주는 방식에 동의하는지. 각 도메인 담당의 스키마가 바뀐다. (답에 따라 #155-S14가 달라짐)
 - Q2 (팀): 보관 중(30일)에도 작성자를 "탈퇴한 회원입니다"로 보여 줄지, 하드 삭제 뒤에만 그렇게 보여 줄지. 보관 중에도 바꾸면 각 도메인이 작성자 상태를 함께 조회해야 한다.
-- Q3: 가족이 없는 반려동물의 데이터 삭제를 탈퇴 요청 때 할지, 하드 삭제 때 할지. 요청 때 지우면 복구해도 반려동물 기록이 없다. (제안: 하드 삭제 때. 보관 중에는 그대로 두고, 복구하면 그대로 돌아온다) (답에 따라 #NNN-S5가 달라짐)
+- Q3: 가족이 없는 반려동물의 데이터 삭제를 탈퇴 요청 때 할지, 하드 삭제 때 할지. 요청 때 지우면 복구해도 반려동물 기록이 없다. (제안: 하드 삭제 때. 보관 중에는 그대로 두고, 복구하면 그대로 돌아온다) (답에 따라 #155-S5가 달라짐)
 - Q4: 다른 회원의 반려동물에 가족으로 참여 중인 회원이 탈퇴하면, 그 가족 목록에서 바로 빠질지(복구해도 다시 초대받아야 함), 보관 중에는 남겨 둘지.
 
-## 1. 탈퇴 요청 (#NNN-R1)
+## 1. 탈퇴 요청 (#155-R1)
 로그인한 회원이 탈퇴하면 탈퇴 대기 상태가 되고 로그인이 풀린다.
 
-#NNN-S1 정상 [테스트]
+#155-S1 정상 [테스트]
 - Given 이메일 회원 A가 로그인했다(소유한 반려동물 없음)
 - When  `DELETE /api/v1/members/me`에 `Content-Type: application/json`으로 보낸다
 - Then  204이고 `ACCESS_TOKEN` 쿠키를 지우는 `Set-Cookie`가 있다
 - Then  `member`의 `status`가 `WITHDRAWN`, `withdrawn_at`이 요청 시각이다
 - Then  `member`·`social_account` 행은 그대로 남아 있다
 
-#NNN-S2 기존 토큰 거부 [테스트]
+#155-S2 기존 토큰 거부 [테스트]
 - Given A가 탈퇴하기 전에 받은 `ACCESS_TOKEN`(만료 전)
 - When  그 쿠키로 `GET /api/v1/members/me`를 부른다
 - Then  401 `UNAUTHORIZED`다
 
-#NNN-S3 로그인 안 함·형식 [테스트]
+#155-S3 로그인 안 함·형식 [테스트]
 - 쿠키 없이 부르면 401
 - `Content-Type: application/json` 없이 부르면 415이고 상태가 바뀌지 않는다
 
-## 2. 반려동물 소유권 넘기기 (#NNN-R2)
+## 2. 반려동물 소유권 넘기기 (#155-R2)
 소유한 반려동물이 있으면 탈퇴할 때 소유권을 가족에게 넘긴다. 복구해도 돌려받지 않는다.
 
-#NNN-S4 고른 가족에게 넘김 [테스트]
+#155-S4 고른 가족에게 넘김 [테스트]
 - Given A가 반려동물 보리의 소유자이고, 가족 B·C가 있다
 - When  `DELETE /api/v1/members/me`에 `{"transfers":[{"petId":1,"toMemberId":"C의 id"}]}`를 보낸다
 - Then  204이고 보리의 소유자가 C다
 - Then  A는 보리의 구성원이 아니다
 
-#NNN-S5 넘길 가족이 없음 (Q3) [테스트]
+#155-S5 넘길 가족이 없음 (Q3) [테스트]
 - Given A가 반려동물 콩이의 소유자이고 가족이 없다
 - When  탈퇴한다
 - Then  204이고 콩이와 기록은 하드 삭제 때 함께 지워진다(Q3 제안안 기준)
 
-#NNN-S6 잘못 고름 [테스트]
+#155-S6 잘못 고름 [테스트]
 - Given 보리의 가족이 아닌 회원 D를 넘길 대상으로 보낸다
 - Then  400 `VALIDATION`이고 A의 상태와 보리의 소유자가 그대로다
 
-#NNN-S7 고르지 않음 [테스트]
+#155-S7 고르지 않음 [테스트]
 - Given A가 보리의 소유자이고 가족 B(먼저 가입)·C가 있다
 - When  `transfers` 없이 탈퇴한다
 - Then  보리의 소유자는 가장 먼저 연결된 가족 B다
 
-## 3. 보관 중 로그인 → 복구 안내 (#NNN-R3)
+## 3. 보관 중 로그인 → 복구 안내 (#155-R3)
 30일 안에 본인 확인(비밀번호·소셜 인증)을 마치면, 로그인 대신 복구를 물어본다.
 
-#NNN-S8 이메일 로그인 [테스트]
+#155-S8 이메일 로그인 [테스트]
 - Given A가 탈퇴한 지 10일 지났다
 - When  `POST /api/v1/auth/login`에 A의 이메일과 맞는 비밀번호를 보낸다
 - Then  409 `WITHDRAWAL_PENDING`이고 `ACCESS_TOKEN` 쿠키가 없다
 - Then  `MEMBER_RESTORE` 쿠키(HttpOnly, SameSite=Lax, HTTPS면 Secure, Path=`/api/v1/auth/restore`, 10분)를 받는다
 
-#NNN-S9 소셜 로그인 [테스트]
+#155-S9 소셜 로그인 [테스트]
 - Given 구글로만 가입한 회원 G가 탈퇴한 지 10일 지났다
 - When  `POST /api/v1/auth/oauth/google`로 G의 구글 계정 인증을 마친다
 - Then  S8과 같이 409 `WITHDRAWAL_PENDING`과 `MEMBER_RESTORE` 쿠키다(새 가입이 아니다)
 
-#NNN-S10 비밀번호 틀림 [테스트]
+#155-S10 비밀번호 틀림 [테스트]
 - Given 탈퇴 대기 중인 A
 - When  틀린 비밀번호로 로그인한다
 - Then  401이고 `MEMBER_RESTORE` 쿠키가 없다(탈퇴 대기인지 알려 주지 않는다)
 
-## 4. 복구 (#NNN-R4)
+## 4. 복구 (#155-R4)
 복구 안내를 받은 브라우저에서 복구하면 탈퇴 전 상태로 돌아오고 로그인된다.
 
-#NNN-S11 정상 [테스트]
+#155-S11 정상 [테스트]
 - Given S8로 `MEMBER_RESTORE` 쿠키를 받았다
 - When  `POST /api/v1/auth/restore`에 `Content-Type: application/json`으로 보낸다
 - Then  200과 회원 정보, `ACCESS_TOKEN` 쿠키를 받는다
 - Then  `status`가 `ACTIVE`, `withdrawn_at`이 비어 있다
 - Then  S4에서 넘긴 보리의 소유자는 그대로 C다
 
-#NNN-S12 복구 확인 실패 [테스트]
+#155-S12 복구 확인 실패 [테스트]
 - When  쿠키 없이, 만료된 쿠키로, 이미 한 번 쓴 쿠키로 각각 복구한다
 - Then  모두 403 `FORBIDDEN`이고 상태가 바뀌지 않는다
 
-## 5. 보관 중 가입 막기 (#NNN-R5)
+## 5. 보관 중 가입 막기 (#155-R5)
 보관 중인 회원의 이메일로는 새로 가입하지 않고 복구로 안내한다.
 
-#NNN-S13 같은 이메일 [테스트]
+#155-S13 같은 이메일 [테스트]
 - Given 탈퇴 대기 중인 A(`a@pawmento.dev`)
 - When  `POST /api/v1/auth/signup`에 `a@pawmento.dev`로 가입한다
 - Then  409 `CONFLICT`이고 메시지에 "로그인하면 복구할 수 있어요" 안내가 있다
 - 같은 이메일의 다른 제공자 계정으로 처음 소셜 로그인해도 같은 409다
 
-## 6. 하드 삭제 (#NNN-R6)
+## 6. 하드 삭제 (#155-R6)
 탈퇴하고 30일이 지나면 스케줄러가 제공자 연결을 끊고 회원을 지운다.
 
-#NNN-S14 정상 (Q1) [테스트]
+#155-S14 정상 (Q1) [테스트]
 - Given A가 탈퇴한 지 31일 지났고, 카카오가 연결돼 있으며, 커뮤니티 글 1개를 썼다
 - When  하드 삭제 작업을 실행한다
 - Then  카카오 연결 끊기 포트가 A의 카카오 id로 한 번 불린다
 - Then  `member`·`social_account`에 A가 없다
 - Then  A의 글은 남아 있고 작성자가 비어 있다(Q1 기준)
 
-#NNN-S15 아직 30일 전 [테스트]
+#155-S15 아직 30일 전 [테스트]
 - Given B가 탈퇴한 지 29일 지났다
 - When  하드 삭제 작업을 실행한다
 - Then  B는 그대로 남아 있다
 
-#NNN-S16 끊기 실패 [테스트]
+#155-S16 끊기 실패 [테스트]
 - Given A의 카카오 연결 끊기가 실패한다
 - When  하드 삭제 작업을 실행한다
 - Then  A는 지워지고, `social_unlink_retry`에 `(KAKAO, A의 카카오 id, 시도 1회)`가 남는다
@@ -121,11 +121,11 @@
 - Given 3회 모두 실패한다
 - Then  행을 지우고 에러 로그를 남긴다
 
-#NNN-S17 이미 끊긴 연결 [테스트]
+#155-S17 이미 끊긴 연결 [테스트]
 - Given 사용자가 제공자 쪽에서 이미 연결을 끊었다(카카오 "연결되지 않은 사용자", 구글 `invalid_token`)
 - Then  성공으로 보고 `social_unlink_retry`에 남기지 않는다
 
-#NNN-S18 삭제 직전 복구 [테스트]
+#155-S18 삭제 직전 복구 [테스트]
 - Given A가 탈퇴한 지 30일이 지났고, 삭제 작업과 A의 복구 요청이 동시에 온다
 - Then  복구가 먼저 끝나면 A는 지워지지 않는다. 삭제가 먼저 끝나면 복구는 403이다
 
