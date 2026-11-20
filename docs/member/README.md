@@ -53,7 +53,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | --- | --- | --- |
 | `POST /api/v1/auth/signup` | `email`, `password`(8~72자), `nickname`(1~20자) | 201, 회원 정보 |
 | `POST /api/v1/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
-| `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(네이버만). `provider`는 `google`·`kakao`·`naver` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
+| `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(선택). `provider`는 `google`·`kakao` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
 | `POST /api/v1/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
 | `GET /api/v1/members/me` | 없음 | 200, 회원 정보 |
 
