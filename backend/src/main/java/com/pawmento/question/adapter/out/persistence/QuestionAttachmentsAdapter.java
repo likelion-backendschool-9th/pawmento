@@ -3,59 +3,47 @@ package com.pawmento.question.adapter.out.persistence;
 import com.pawmento.question.application.port.out.QuestionAttachmentsPort;
 import java.util.*;
 import java.util.function.Supplier;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.*;
 
 @Component
+@RequiredArgsConstructor
 public class QuestionAttachmentsAdapter implements QuestionAttachmentsPort {
-  private final JdbcTemplate jdbc;
-  private final NamedParameterJdbcTemplate named;
-
-  public QuestionAttachmentsAdapter(JdbcTemplate jdbc) {
-    this.jdbc = jdbc;
-    this.named = new NamedParameterJdbcTemplate(jdbc);
-  }
+  private final QuestionAttachmentJpaRepository rows;
 
   public Map<Long, List<Long>> findAll(List<Long> ids) {
     if (ids.isEmpty()) return Map.of();
     return run(
         () -> {
           Map<Long, List<Long>> result = new HashMap<>();
-          named.query(
-              "select answer_id,asset_id from question_answer_attachment where answer_id in (:ids)"
-                  + " order by answer_id,sort_order",
-              Map.of("ids", ids),
-              r -> {
-                result.computeIfAbsent(r.getLong(1), k -> new ArrayList<>()).add(r.getLong(2));
-              });
+          for (var row : rows.findForParents(ids))
+            result
+                .computeIfAbsent(row.getId().getAnswerId(), k -> new ArrayList<>())
+                .add(row.getId().getAssetId());
           return result;
         });
   }
 
+  @Transactional
   public void replace(Long id, List<Long> assets) {
     run(
         () -> {
-          jdbc.update("delete from question_answer_attachment where answer_id=?", id);
-          for (int i = 0; i < assets.size(); i++)
-            jdbc.update(
-                "insert into question_answer_attachment(answer_id,asset_id,sort_order)"
-                    + " values(?,?,?)",
-                id,
-                assets.get(i),
-                i);
+          // Remove managed links and flush before inserting reused composite IDs/order slots.
+          // Bulk delete would leave previously loaded link entities stale in this transaction.
+          rows.deleteById_AnswerId(id);
+          rows.flush();
+          rows.saveAllAndFlush(
+              IntStream.range(0, assets.size())
+                  .mapToObj(i -> QuestionAttachmentJpaEntity.from(id, assets.get(i), i))
+                  .toList());
           return null;
         });
   }
 
   public boolean existsByAssetId(Long id) {
-    return run(
-        () ->
-            Boolean.TRUE.equals(
-                jdbc.queryForObject(
-                    "select exists(select 1 from question_answer_attachment where asset_id=?)",
-                    Boolean.class,
-                    id)));
+    return run(() -> rows.existsById_AssetId(id));
   }
 
   private static <T> T run(Supplier<T> action) {

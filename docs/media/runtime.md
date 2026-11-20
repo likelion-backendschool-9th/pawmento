@@ -38,6 +38,8 @@
 
 ## 다이어리 첨부 연결 (#32)
 
+첨부 CRUD는 DiaryAttachmentJpaEntity·복합 식별자·JpaRepository로 처리한다. 기존 diary_attachments의 ID·순서·FK를 보존하며 교체 시 삭제 flush 후 새 연결을 저장한다. 스키마 초기화 SQL은 JPA의 테이블 생성 후에도 필요한 제약을 보장한다.
+
 - 생성·수정 `attachmentIds`는 최대 5개이며 중복은 거부한다. 파일당 기존 15MiB 제한으로 전체는 최대 75MiB다. 수정 생략은 유지, 빈 배열은 해제이며 content 명시적 null은 400이다. 본문 없는 첨부 일기는 가능하지만 둘 다 없는 최종 상태는 거부한다.
 - 부모 version 검사·부모 행 잠금 후 관련 자산을 ID 순서로 잠그고 첨부 관계·참조 수·삭제 작업을 같은 트랜잭션에서 변경한다. 유지 자산은 참조를 해제하지 않고 순서만 바꾼다. 마지막 참조만 삭제 예약하며 물리 파일 I/O는 기존 작업자가 수행한다.
 - GET/HEAD `/diaries/{diaryId}/attachments/{assetId}?petId=...`와 `/thumbnail`은 현재 아이 접근·실제 첨부 관계를 검사한다. 음성 Range·HEAD와 private/no-store를 제공하고 미연결 미리보기를 우회하지 않는다.
@@ -87,7 +89,7 @@ PR #64에서 임시 `com.pawmento.record`·`com.pawmento.memory` 샘플과 `/rec
 
 ## 질문 답변 첨부
 
-- question은 QUESTION_ANSWER_ATTACHMENT 파일만 연결한다. 기존 미디어 입력 포트에 목적 문자열을 추가했고 기존 생성자는 DIARY_ATTACHMENT 기본값을 유지한다.
+- question의 첨부 CRUD도 JPA 엔티티·복합 식별자·JpaRepository로 처리하며 기존 테이블·ID·순서를 유지한다. question은 QUESTION_ANSWER_ATTACHMENT 파일만 연결한다. 기존 미디어 입력 포트에 목적 문자열을 추가했고 기존 생성자는 DIARY_ATTACHMENT 기본값을 유지한다.
 - 연결·교체·삭제는 답변·질문 완료·진행·미디어 참조 수·삭제 작업과 같은 트랜잭션이다. 실제 질문 첨부 연결도 미디어 정리/직접 삭제의 참조 검사에 포함한다.
 - 인증 원본/Range/HEAD: `/api/v1/questions/answers/{answerId}/attachments/{assetId}/content?petId=`. 이미지 썸네일은 `/thumbnail`이다. 부모 접근·실제 연결 검사 후에만 파일을 연다. 소유자 범위이며 가족·프론트 연결은 후속이다.
 - 요청·응답·제한은 [질문 첨부 계약](../question/question-flow.md#사진음성-첨부-연결-계약)을 따른다.
