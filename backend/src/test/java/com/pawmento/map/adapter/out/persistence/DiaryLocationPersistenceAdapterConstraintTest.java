@@ -21,7 +21,7 @@ class DiaryLocationPersistenceAdapterConstraintTest {
 
 	private final DiaryLocationJpaRepository repository = mock(DiaryLocationJpaRepository.class);
 
-	private final DiaryLocationPersistenceAdapter adapter = new DiaryLocationPersistenceAdapter(repository);
+	private final DiaryLocationPersistenceAdapter adapter = new DiaryLocationPersistenceAdapter(repository, mock(jakarta.persistence.EntityManager.class));
 
 	private DiaryLocation newLocation() {
 		return DiaryLocation.create(100L, 10L, 1L, 37.0, 127.0, null);

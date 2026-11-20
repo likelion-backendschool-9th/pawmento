@@ -13,6 +13,7 @@ import com.pawmento.diary.application.port.in.*;
 import com.pawmento.map.application.exception.*;
 import com.pawmento.map.application.port.in.*;
 import com.pawmento.map.application.port.out.*;
+import com.pawmento.map.domain.DiaryLocationValue;
 import com.pawmento.media.application.port.out.SaveMediaAssetPort;
 import com.pawmento.media.domain.*;
 import com.pawmento.pet.application.port.in.*;

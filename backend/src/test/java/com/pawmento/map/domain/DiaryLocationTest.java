@@ -175,4 +175,64 @@ class DiaryLocationTest {
 		assertThat(location.getSourceRevision()).isEqualTo(4L);
 	}
 
+	@Test
+	@DisplayName("#44-S6 도메인이 최초 반영·재전송·오래된 revision·계약 위반을 판정한다")
+	void decidesIncomingRevision() {
+		var value = new DiaryLocationValue(37, 127, "공원");
+		var current =
+				new DiaryLocationState(
+						10L, 1L, 2L, 3L, 37, 127, "공원", LocationSource.MANUAL, null, 7);
+		assertThat(DiaryLocation.assess(null, 2L, 3L, 0, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.APPLIED);
+		assertThat(DiaryLocation.assess(null, 2L, 3L, 0, null))
+				.isEqualTo(DiaryLocation.ApplyDecision.DUPLICATE);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 6, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.STALE);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 7, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.DUPLICATE);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 8, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.APPLIED);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 8, null))
+				.isEqualTo(DiaryLocation.ApplyDecision.APPLIED);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 7, null))
+				.isEqualTo(DiaryLocation.ApplyDecision.CONTRACT_VIOLATION);
+		assertThat(DiaryLocation.assess(current, 2L, 3L, 7, new DiaryLocationValue(38, 127, "공원")))
+				.isEqualTo(DiaryLocation.ApplyDecision.CONTRACT_VIOLATION);
+		assertThat(DiaryLocation.assess(current, 20L, 3L, 8, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.CONTRACT_VIOLATION);
+		assertThat(DiaryLocation.assess(current, 2L, 30L, 6, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.CONTRACT_VIOLATION);
+		var corrupt =
+				new DiaryLocationState(
+						10L, 1L, 2L, 3L, 37, 127, "공원", LocationSource.MANUAL, 99L, 7);
+		assertThat(DiaryLocation.assess(corrupt, 2L, 3L, 7, value))
+				.isEqualTo(DiaryLocation.ApplyDecision.CONTRACT_VIOLATION);
+	}
+
+	@Test
+	@DisplayName("#44-S6 입력 포트의 위치 값도 기존 도메인 좌표·장소명 규칙을 적용한다")
+	void inputValueUsesDomainPolicy() {
+		assertThat(new DiaryLocationValue(-0.0, 180, "  공원  "))
+				.isEqualTo(new DiaryLocationValue(0.0, 180, "공원"));
+		assertThat(new DiaryLocationValue(-90, -180, " ").placeName()).isNull();
+		assertThatThrownBy(() -> new DiaryLocationValue(Double.NaN, 0, null))
+				.isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> new DiaryLocationValue(0, 181, null))
+				.isInstanceOf(InvalidCoordinatesException.class);
+		assertThatThrownBy(() -> new DiaryLocationValue(0, 0, "가".repeat(256)))
+				.isInstanceOf(InvalidDiaryLocationException.class);
+	}
+	@Test
+	@DisplayName("#44-S6 명시적 정정도 관측 이후 바뀐 행은 STALE이고 같은 관측값만 반영한다")
+	void decidesReconciliation() {
+		var value = new DiaryLocationValue(37, 127, "공원");
+		var observed = new DiaryLocationState(10L, 1L, 2L, 3L, 37, 127, "공원", LocationSource.MANUAL, null, 7);
+		var changed = new DiaryLocationState(10L, 1L, 2L, 3L, 37, 127, "공원", LocationSource.MANUAL, null, 8);
+		assertThat(DiaryLocation.assessReconciliation(changed, observed, value)).isEqualTo(DiaryLocation.ApplyDecision.STALE);
+		assertThat(DiaryLocation.assessReconciliation(null, observed, null)).isEqualTo(DiaryLocation.ApplyDecision.STALE);
+		assertThat(DiaryLocation.assessReconciliation(observed, observed, null)).isEqualTo(DiaryLocation.ApplyDecision.APPLIED);
+		assertThat(DiaryLocation.assessReconciliation(null, null, null)).isEqualTo(DiaryLocation.ApplyDecision.DUPLICATE);
+		assertThat(DiaryLocation.assessReconciliation(null, null, value)).isEqualTo(DiaryLocation.ApplyDecision.APPLIED);
+	}
+
 }

@@ -24,7 +24,7 @@ public class DiaryLocationManager {
       if (state != null
           && (!Objects.equals(state.petId(), entry.getPetId())
               || !Objects.equals(state.createdBy(), entry.getCreatedBy())
-              || !"MANUAL".equals(state.source())
+              || state.source() != DiaryMapSnapshot.Source.MANUAL
               || state.sourceAssetId() != null
               || state.revision() < 0)) throw invalid();
       entry.initializeLocationIntent(state == null ? DiaryLocationIntent.none() : intent(state));
@@ -102,7 +102,7 @@ public class DiaryLocationManager {
     if (s == null
         || !Objects.equals(s.petId(), e.getPetId())
         || !Objects.equals(s.createdBy(), e.getCreatedBy())
-        || !"MANUAL".equals(s.source())
+        || s.source() != DiaryMapSnapshot.Source.MANUAL
         || s.sourceAssetId() != null
         || s.revision() != e.getVersion()) return false;
     try {

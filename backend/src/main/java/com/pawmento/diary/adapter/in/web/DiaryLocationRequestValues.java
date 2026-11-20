@@ -12,18 +12,24 @@ final class DiaryLocationRequestValues {
     if (value == null) return DiaryLocationChange.keep();
     if (!value.isObject() || !value.has("mode") || !value.get("mode").isString())
       throw new InvalidDiaryRequestException();
-    String mode = value.get("mode").asText();
-    if (!Set.of("NONE", "MANUAL", "AUTO").contains(mode)) throw new InvalidDiaryRequestException();
+    DiaryLocationChange.Kind mode;
+    try {
+      mode = DiaryLocationChange.Kind.valueOf(value.get("mode").asText());
+    } catch (IllegalArgumentException e) {
+      throw new InvalidDiaryRequestException();
+    }
+    if (mode == DiaryLocationChange.Kind.KEEP) throw new InvalidDiaryRequestException();
     Set<String> allowed =
-        mode.equals("MANUAL")
+        mode == DiaryLocationChange.Kind.MANUAL
             ? Set.of("mode", "latitude", "longitude", "placeName")
             : Set.of("mode");
     long known = allowed.stream().filter(value::has).count();
     if (known != value.size()) throw new InvalidDiaryRequestException();
     return switch (mode) {
-      case "NONE" -> DiaryLocationChange.none();
-      case "AUTO" -> DiaryLocationChange.auto();
-      default ->
+      case NONE -> DiaryLocationChange.none();
+      case AUTO -> DiaryLocationChange.auto();
+      case KEEP -> throw new InvalidDiaryRequestException();
+      case MANUAL ->
           DiaryLocationChange.manual(
               coordinate(value.get("latitude")),
               coordinate(value.get("longitude")),

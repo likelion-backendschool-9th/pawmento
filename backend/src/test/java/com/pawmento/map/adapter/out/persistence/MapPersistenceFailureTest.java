@@ -49,7 +49,7 @@ class MapPersistenceFailureTest {
 	private final WalkPersistenceAdapter walkAdapter = new WalkPersistenceAdapter(walks, points,
 			mock(EntityManager.class));
 
-	private final DiaryLocationPersistenceAdapter locationAdapter = new DiaryLocationPersistenceAdapter(locations);
+	private final DiaryLocationPersistenceAdapter locationAdapter = new DiaryLocationPersistenceAdapter(locations, mock(EntityManager.class));
 
 	private final DataAccessResourceFailureException dbDown = new DataAccessResourceFailureException(
 			"internal database details");

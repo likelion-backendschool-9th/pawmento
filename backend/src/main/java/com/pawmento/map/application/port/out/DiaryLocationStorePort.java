@@ -1,14 +1,17 @@
 package com.pawmento.map.application.port.out;
 
-import com.pawmento.map.application.port.in.*;
 import java.util.Optional;
 
+import com.pawmento.map.domain.DiaryLocationState;
+import com.pawmento.map.domain.DiaryLocationValue;
+
 public interface DiaryLocationStorePort {
-  Optional<DiaryLocationState> read(Long diaryId);
+	Optional<DiaryLocationState> read(Long diaryId);
 
-  Optional<DiaryLocationState> lock(Long diaryId);
+	Optional<DiaryLocationState> lock(Long diaryId);
 
-  void write(Long diaryId, Long petId, Long createdBy, long revision, DiaryLocationValue location);
+	void write(
+			Long diaryId, Long petId, Long createdBy, long revision, DiaryLocationValue location);
 
-  void remove(Long diaryId);
+	void remove(Long diaryId);
 }

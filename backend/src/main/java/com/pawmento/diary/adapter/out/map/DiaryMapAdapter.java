@@ -1,8 +1,17 @@
 package com.pawmento.diary.adapter.out.map;
 
-import com.pawmento.diary.application.port.out.*;
+import com.pawmento.diary.application.port.out.DiaryMapPort;
+import com.pawmento.diary.application.port.out.DiaryMapSnapshot;
 import com.pawmento.diary.domain.DiaryLocationIntent;
-import com.pawmento.map.application.port.in.*;
+import com.pawmento.map.application.port.in.ApplyDiaryLocationCommand;
+import com.pawmento.map.application.port.in.ApplyDiaryLocationUseCase;
+import com.pawmento.map.application.port.in.GetDiaryLocationUseCase;
+import com.pawmento.map.application.port.in.ReconcileDiaryLocationCommand;
+import com.pawmento.map.application.port.in.ReconcileDiaryLocationUseCase;
+import com.pawmento.map.application.port.in.ResolveLocationAddressUseCase;
+import com.pawmento.map.domain.DiaryLocationState;
+import com.pawmento.map.domain.DiaryLocationValue;
+import com.pawmento.map.domain.LocationSource;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -27,7 +36,7 @@ public class DiaryMapAdapter implements DiaryMapPort {
                     s.latitude(),
                     s.longitude(),
                     s.placeName(),
-                    s.source(),
+                    s.source() == null ? null : DiaryMapSnapshot.Source.valueOf(s.source().name()),
                     s.sourceAssetId(),
                     s.revision()));
   }
@@ -61,7 +70,7 @@ public class DiaryMapAdapter implements DiaryMapPort {
                 expected.latitude(),
                 expected.longitude(),
                 expected.placeName(),
-                expected.source(),
+                expected.source() == null ? null : LocationSource.valueOf(expected.source().name()),
                 expected.sourceAssetId(),
                 expected.revision());
     return Result.valueOf(

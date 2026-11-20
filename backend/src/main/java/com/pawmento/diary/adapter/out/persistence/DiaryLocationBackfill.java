@@ -30,7 +30,7 @@ final class DiaryLocationBackfill {
                 return new Item(id, rs.getLong("version"), DiaryLocationIntent.none(), false);
               if (!Objects.equals(rs.getObject("pet_id"), rs.getObject("pin_pet"))
                   || !Objects.equals(rs.getObject("created_by"), rs.getObject("pin_author"))
-                  || !"MANUAL".equals(rs.getString("source"))
+                  || !DiaryLocationIntent.Mode.MANUAL.name().equals(rs.getString("source"))
                   || rs.getObject("source_asset_id") != null
                   || rs.getLong("source_revision") < 0)
                 throw new DiaryLocationDataInvalidException("위치 초기 이관이 충돌했습니다. diaryId=" + id);

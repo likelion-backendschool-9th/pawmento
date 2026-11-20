@@ -8,6 +8,10 @@ public record DiaryMapSnapshot(
     double latitude,
     double longitude,
     String placeName,
-    String source,
+    Source source,
     Long sourceAssetId,
-    long revision) {}
+    long revision) {
+  public enum Source {
+    MANUAL
+  }
+}

@@ -1,39 +1,51 @@
 package com.pawmento.map.application.service;
 
-import com.pawmento.map.application.exception.DiaryLocationContractViolation;
-import com.pawmento.map.application.port.in.*;
-import com.pawmento.map.application.port.out.DiaryLocationStorePort;
-import java.util.Objects;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.*;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.pawmento.map.application.exception.DiaryLocationContractViolation;
+import com.pawmento.map.application.port.in.ApplyDiaryLocationCommand;
+import com.pawmento.map.application.port.in.ApplyDiaryLocationUseCase;
+import com.pawmento.map.application.port.in.DiaryLocationApplyResult;
+import com.pawmento.map.application.port.out.DiaryLocationStorePort;
+import com.pawmento.map.domain.DiaryLocation;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ApplyDiaryLocationService implements ApplyDiaryLocationUseCase {
-  private final DiaryLocationStorePort store;
+	private final DiaryLocationStorePort store;
 
-  @Override
-  @Transactional(propagation = Propagation.MANDATORY)
-  public DiaryLocationApplyResult apply(ApplyDiaryLocationCommand c) {
-    var old = store.lock(c.diaryId()).orElse(null);
-    if (old != null) {
-      if (!Objects.equals(old.petId(), c.petId())
-          || !Objects.equals(old.createdBy(), c.createdBy()))
-        throw new DiaryLocationContractViolation();
-      if (c.revision() < old.revision()) return DiaryLocationApplyResult.STALE;
-      if (c.revision() == old.revision()) {
-        if (c.location() != null
-            && "MANUAL".equals(old.source())
-            && old.sourceAssetId() == null
-            && Objects.equals(old.value(), c.location())) return DiaryLocationApplyResult.DUPLICATE;
-        throw new DiaryLocationContractViolation();
-      }
-    }
-    if (c.location() == null) {
-      if (old == null) return DiaryLocationApplyResult.DUPLICATE;
-      store.remove(c.diaryId());
-    } else store.write(c.diaryId(), c.petId(), c.createdBy(), c.revision(), c.location());
-    return DiaryLocationApplyResult.APPLIED;
-  }
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
+	public DiaryLocationApplyResult apply(ApplyDiaryLocationCommand command) {
+		var current = store.lock(command.diaryId()).orElse(null);
+		var decision =
+				DiaryLocation.assess(
+						current,
+						command.petId(),
+						command.createdBy(),
+						command.revision(),
+						command.location());
+		return switch (decision) {
+			case STALE -> DiaryLocationApplyResult.STALE;
+			case DUPLICATE -> DiaryLocationApplyResult.DUPLICATE;
+			case CONTRACT_VIOLATION -> throw new DiaryLocationContractViolation();
+			case APPLIED -> {
+				if (command.location() == null) {
+					store.remove(command.diaryId());
+				} else {
+					store.write(
+							command.diaryId(),
+							command.petId(),
+							command.createdBy(),
+							command.revision(),
+							command.location());
+				}
+				yield DiaryLocationApplyResult.APPLIED;
+			}
+		};
+	}
 }

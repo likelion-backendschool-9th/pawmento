@@ -303,4 +303,37 @@ class DiaryLocationPersistenceAdapterTest {
 		assertThat(indexes).contains(DiaryLocationJpaEntity.PIN_LOOKUP_INDEX, "uk_diary_location_diary");
 	}
 
+	@Test
+	@DisplayName("#44-S6 지도 입력 포트가 JPA 저장·조회와 같은 엔티티를 수정하고 삭제한다")
+	void mutationAndPinQueriesShareJpaContext() {
+		save(700L, PET, MEMBER, 37, 127);
+		assertThat(adapter.loadByDiaryId(700L).orElseThrow().getSourceRevision()).isZero();
+		assertThat(adapter.lock(700L)).isPresent();
+		adapter.write(
+				700L,
+				PET,
+				MEMBER,
+				3,
+				new com.pawmento.map.domain.DiaryLocationValue(38, 128, "새 공원"));
+		var loaded = adapter.loadByDiaryId(700L).orElseThrow();
+		assertThat(loaded.getSourceRevision()).isEqualTo(3);
+		assertThat(loaded.getPlaceName()).isEqualTo("새 공원");
+		assertThat(adapter.loadInArea(MEMBER, PET, MapArea.of(37.5, 127.5, 38.5, 128.5), 10))
+				.extracting(DiaryLocation::getSourceRevision)
+				.containsExactly(3L);
+		adapter.remove(700L);
+		assertThat(adapter.read(700L)).isEmpty();
+		assertThat(adapter.loadInArea(MEMBER, PET, MapArea.of(37.5, 127.5, 38.5, 128.5), 10))
+				.isEmpty();
+	}
+
+	@Test
+	@DisplayName("#44-S6 잠금 후에는 미리 읽어 둔 엔티티도 최신 DB 관측 상태로 갱신한다")
+	void lockRefreshesPreviouslyReadEntity() {
+		save(701L, PET, MEMBER, 37, 127);
+		assertThat(adapter.read(701L).orElseThrow().revision()).isZero();
+		jdbcTemplate.update("update diary_location set source_revision=5 where diary_id=701");
+		assertThat(adapter.lock(701L).orElseThrow().revision()).isEqualTo(5);
+		assertThat(adapter.loadByDiaryId(701L).orElseThrow().getSourceRevision()).isEqualTo(5);
+	}
 }

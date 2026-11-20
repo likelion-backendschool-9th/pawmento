@@ -1,5 +1,7 @@
 package com.pawmento.map.domain;
 
+import java.util.Objects;
+
 import com.pawmento.map.domain.exception.InvalidDiaryLocationException;
 
 /**
@@ -79,7 +81,7 @@ public class DiaryLocation {
 	}
 
 	// 비었거나 공백뿐이면 장소 이름이 없는 것으로 본다
-	private static String normalizePlaceName(String placeName) {
+	public static String normalizePlaceName(String placeName) {
 		if (placeName == null || placeName.isBlank()) {
 			return null;
 		}
@@ -88,6 +90,54 @@ public class DiaryLocation {
 			throw InvalidDiaryLocationException.placeNameTooLong(PLACE_NAME_MAX_LENGTH);
 		}
 		return trimmed;
+	}
+
+	public enum ApplyDecision {
+		APPLIED,
+		DUPLICATE,
+		STALE,
+		CONTRACT_VIOLATION
+	}
+
+	/** 일기가 보장한 식별자·revision과 현재 핀을 비교한다. 정정 경로는 별도 관측값으로 검사한다. */
+	public static ApplyDecision assess(
+			DiaryLocationState current,
+			Long petId,
+			Long createdBy,
+			long revision,
+			DiaryLocationValue requested) {
+		if (current == null) {
+			return requested == null ? ApplyDecision.DUPLICATE : ApplyDecision.APPLIED;
+		}
+		if (!Objects.equals(current.petId(), petId)
+				|| !Objects.equals(current.createdBy(), createdBy)) {
+			return ApplyDecision.CONTRACT_VIOLATION;
+		}
+		if (revision < current.revision()) {
+			return ApplyDecision.STALE;
+		}
+		if (revision == current.revision()) {
+			if (requested != null
+					&& current.source() == LocationSource.MANUAL
+					&& current.sourceAssetId() == null
+					&& Double.compare(current.latitude(), requested.latitude()) == 0
+					&& Double.compare(current.longitude(), requested.longitude()) == 0
+					&& Objects.equals(
+							normalizePlaceName(current.placeName()), requested.placeName())) {
+				return ApplyDecision.DUPLICATE;
+			}
+			return ApplyDecision.CONTRACT_VIOLATION;
+		}
+		return ApplyDecision.APPLIED;
+	}
+
+	/** 정정은 revision을 덮어쓸 수 있지만, 관측 이후 바뀐 핀을 덮어쓰면 안 된다. */
+	public static ApplyDecision assessReconciliation(DiaryLocationState current, DiaryLocationState expected,
+			DiaryLocationValue requested) {
+		if (!Objects.equals(current, expected)) {
+			return ApplyDecision.STALE;
+		}
+		return current == null && requested == null ? ApplyDecision.DUPLICATE : ApplyDecision.APPLIED;
 	}
 
 	public Long getId() {
