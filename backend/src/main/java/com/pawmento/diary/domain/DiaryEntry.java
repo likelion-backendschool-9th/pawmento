@@ -15,6 +15,8 @@ public final class DiaryEntry {
   private final Instant createdAt;
   private Instant updatedAt;
   private final Long version;
+  // null은 기존 행의 미이관 상태다. 명시적인 NONE으로 간주해 기존 핀을 지우지 않는다.
+  private DiaryLocationIntent locationIntent;
 
   private DiaryEntry(
       Long id,
@@ -60,7 +62,9 @@ public final class DiaryEntry {
       boolean hasAttachments) {
     requireContent(content, hasAttachments);
     requireDate(date, now);
-    return new DiaryEntry(null, petId, memberId, content, date, now, now, 0L);
+    var entry = new DiaryEntry(null, petId, memberId, content, date, now, now, 0L);
+    entry.locationIntent = DiaryLocationIntent.none();
+    return entry;
   }
 
   public static DiaryEntry restore(
@@ -74,6 +78,29 @@ public final class DiaryEntry {
       Long version) {
     if (id == null || id <= 0) throw new InvalidDiaryEntryException();
     return new DiaryEntry(id, petId, author, content, date, createdAt, updatedAt, version);
+  }
+
+  public static DiaryEntry restore(
+      Long id,
+      Long petId,
+      Long author,
+      String content,
+      LocalDate date,
+      Instant createdAt,
+      Instant updatedAt,
+      Long version,
+      DiaryLocationIntent intent) {
+    var entry = restore(id, petId, author, content, date, createdAt, updatedAt, version);
+    entry.locationIntent = intent;
+    return entry;
+  }
+
+  public void changeLocation(Long memberId, DiaryLocationIntent intent, Instant now) {
+    requireAuthor(memberId);
+    Objects.requireNonNull(intent, "명시적인 위치 값이 필요합니다.");
+    Objects.requireNonNull(now, "서버 시각이 필요합니다.");
+    this.locationIntent = intent;
+    this.updatedAt = now;
   }
 
   public void requireAuthor(Long memberId) {

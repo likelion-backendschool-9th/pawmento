@@ -7,6 +7,20 @@ BEGIN
     ALTER TABLE diary_entries ADD CONSTRAINT fk_diary_entries_pet
       FOREIGN KEY (pet_id) REFERENCES pets(id) ON DELETE RESTRICT NOT DEFERRABLE;
   END IF;
+  -- 기존 행은 미이관(NULL)으로 남겨 NONE으로 기존 지도 값을 덮어쓰지 않는다.
+  ALTER TABLE diary_entries ADD COLUMN IF NOT EXISTS location_mode VARCHAR(16);
+  ALTER TABLE diary_entries ADD COLUMN IF NOT EXISTS location_latitude DOUBLE PRECISION;
+  ALTER TABLE diary_entries ADD COLUMN IF NOT EXISTS location_longitude DOUBLE PRECISION;
+  ALTER TABLE diary_entries ADD COLUMN IF NOT EXISTS location_place_name VARCHAR(255);
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint
+      WHERE conname='ck_diary_entries_location_intent' AND conrelid='diary_entries'::regclass) THEN
+    ALTER TABLE diary_entries ADD CONSTRAINT ck_diary_entries_location_intent CHECK (
+      (location_mode IS NULL AND location_latitude IS NULL AND location_longitude IS NULL AND location_place_name IS NULL)
+      OR (location_mode IS NOT NULL AND location_mode='NONE' AND location_latitude IS NULL AND location_longitude IS NULL AND location_place_name IS NULL)
+      OR (location_mode IS NOT NULL AND location_mode='MANUAL' AND location_latitude IS NOT NULL AND location_longitude IS NOT NULL
+          AND location_latitude BETWEEN -90 AND 90 AND location_longitude BETWEEN -180 AND 180)
+    );
+  END IF;
   CREATE INDEX IF NOT EXISTS ix_diary_entries_pet_date_id
     ON diary_entries(pet_id, recorded_date DESC, id DESC);
   -- 복합 인덱스의 첫 컬럼으로 FK 검사와 petId 존재 조회도 처리한다.

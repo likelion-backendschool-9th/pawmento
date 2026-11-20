@@ -1,6 +1,7 @@
 package com.pawmento.diary.adapter.out.persistence;
 
 import com.pawmento.diary.domain.DiaryEntry;
+import com.pawmento.diary.domain.DiaryLocationIntent;
 import jakarta.persistence.*;
 import java.time.*;
 import lombok.*;
@@ -34,6 +35,19 @@ public class DiaryEntryJpaEntity {
 
   @Version private Long version;
 
+  @Enumerated(EnumType.STRING)
+  @Column(length = 16)
+  private DiaryLocationIntent.Mode locationMode;
+
+  @Column(columnDefinition = "double precision")
+  private Double locationLatitude;
+
+  @Column(columnDefinition = "double precision")
+  private Double locationLongitude;
+
+  @Column(length = 255)
+  private String locationPlaceName;
+
   static DiaryEntryJpaEntity from(DiaryEntry e) {
     var row = new DiaryEntryJpaEntity();
     row.id = e.getId();
@@ -44,11 +58,28 @@ public class DiaryEntryJpaEntity {
     row.createdAt = e.getCreatedAt();
     row.updatedAt = e.getUpdatedAt();
     row.version = e.getVersion();
+    var location = e.getLocationIntent();
+    row.locationMode = location == null ? null : location.mode();
+    row.locationLatitude = location == null ? null : location.latitude();
+    row.locationLongitude = location == null ? null : location.longitude();
+    row.locationPlaceName = location == null ? null : location.placeName();
     return row;
   }
 
   DiaryEntry toDomain() {
-    return DiaryEntry.restore(
-        id, petId, createdBy, content, recordedDate, createdAt, updatedAt, version);
+    try {
+      if (locationMode == null
+          && (locationLatitude != null || locationLongitude != null || locationPlaceName != null))
+        throw new IllegalStateException("위치 모드 없이 저장된 좌표가 있습니다.");
+      var intent =
+          locationMode == null
+              ? null
+              : new DiaryLocationIntent(
+                  locationMode, locationLatitude, locationLongitude, locationPlaceName);
+      return DiaryEntry.restore(
+          id, petId, createdBy, content, recordedDate, createdAt, updatedAt, version, intent);
+    } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {
+      throw new IllegalStateException("저장된 일기 위치 원본이 올바르지 않습니다.", failure);
+    }
   }
 }

@@ -15,7 +15,9 @@ class DiaryWritePolicyTest {
   private final LoadDiaryEntryPort load = mock(LoadDiaryEntryPort.class);
   private final Clock clock = Clock.fixed(Instant.parse("2026-11-17T15:00:00Z"), ZoneOffset.UTC);
   private final DiaryWriteFeatures[] unsupported = {
-    new DiaryWriteFeatures(null, true), new DiaryWriteFeatures(java.util.List.of(1L), true)
+    new DiaryWriteFeatures(null, true),
+    new DiaryWriteFeatures(java.util.List.of(1L), true),
+    new DiaryWriteFeatures(null, DiaryLocationChange.manual(37.0, 127.0, "공원"))
   };
 
   @Test
