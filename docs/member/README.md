@@ -8,6 +8,7 @@
 | --- | --- | --- |
 | [#14](https://github.com/likelion-backendschool-9th/pawmento/issues/14) | 인증 기반: 가입, 로그인, 로그아웃, 내 정보 조회, 현재 회원 id 꺼내기 | [auth-base.md](auth-base.md) |
 | [#40](https://github.com/likelion-backendschool-9th/pawmento/issues/40) | 소셜 로그인: 구글·카카오·네이버 | [social-login.md](social-login.md) |
+| [#109](https://github.com/likelion-backendschool-9th/pawmento/issues/109) | 소셜 계정 연결·해제와 저장 구조 분리 | [social-account-link.md](social-account-link.md) |
 
 ## 도메인 담당이 쓰는 방법
 
@@ -53,7 +54,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | --- | --- | --- |
 | `POST /api/v1/auth/signup` | `email`, `password`(8~72자), `nickname`(1~20자) | 201, 회원 정보 |
 | `POST /api/v1/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
-| `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(네이버만). `provider`는 `google`·`kakao`·`naver` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
+| `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(선택). `provider`는 `google`·`kakao` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
 | `POST /api/v1/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
 | `GET /api/v1/members/me` | 없음 | 200, 회원 정보 |
 

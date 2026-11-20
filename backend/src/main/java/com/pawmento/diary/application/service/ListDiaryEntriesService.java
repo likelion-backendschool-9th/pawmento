@@ -26,6 +26,10 @@ public class ListDiaryEntriesService implements ListDiaryEntriesUseCase {
     long total = counts.count(query.petId(), filter);
     long pages = total / filter.size() + (total % filter.size() == 0 ? 0 : 1);
     return new ListDiaryEntriesResult(
-        results.many(query.petId(), result), filter.page(), filter.size(), total, pages);
+        results.many(query.petId(), result, query.memberId()),
+        filter.page(),
+        filter.size(),
+        total,
+        pages);
   }
 }

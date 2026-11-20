@@ -234,14 +234,10 @@ class DiaryScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S23 미연동 위치와 잘못된 첨부 입력을 성공처럼 무시하지 않는다")
+  @DisplayName("#32-S23 (고침 #32) 형식 오류는 400, 유효한 미연동 위치는 409로 거부한다")
   void unsupported() throws Exception {
     long pet = pet(9001), id = create(pet);
-    for (String extra :
-        List.of(
-            "\"location\":{\"mode\":\"MANUAL\",\"latitude\":37.5,\"longitude\":127.0}",
-            "\"location\":{\"mode\":\"AUTO\"}",
-            "\"location\":{\"mode\":\"MANUAL\"}")) {
+    for (String extra : List.of("\"location\":{\"mode\":\"AUTO\"}")) {
       call(
               9001,
               json(
@@ -257,6 +253,10 @@ class DiaryScenarioTest {
         List.of(
             "\"attachmentIds\":null",
             "\"attachmentIds\":{}",
+            "\"location\":{\"mode\":\"MANUAL\"}",
+            "\"location\":{\"mode\":\"MANUAL\",\"latitude\":\"37\",\"longitude\":127}",
+            "\"location\":{\"mode\":\"MANUAL\",\"latitude\":91,\"longitude\":127}",
+            "\"location\":{\"mode\":\"MANUAL\",\"latitude\":37,\"longitude\":127,\"revision\":1}",
             "\"location\":null",
             "\"location\":{\"mode\":\"BAD\"}"))
       call(

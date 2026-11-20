@@ -12,5 +12,4 @@ public class InvalidDiaryLocationException extends RuleViolationException {
 	public static InvalidDiaryLocationException placeNameTooLong(int maxLength) {
 		return new InvalidDiaryLocationException("장소 이름은 " + maxLength + "자 이하여야 합니다.");
 	}
-
 }

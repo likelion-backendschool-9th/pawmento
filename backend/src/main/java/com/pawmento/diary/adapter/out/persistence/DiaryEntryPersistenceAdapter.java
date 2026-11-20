@@ -26,10 +26,19 @@ public class DiaryEntryPersistenceAdapter
         CountDiaryEntriesPort,
         LoadDiaryCalendarPort {
   private final DiaryEntryJpaRepository rows;
+  @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
   public Optional<DiaryEntry> findForUpdate(Long id) {
     try {
-      return read(() -> rows.findForUpdate(id).map(DiaryEntryJpaEntity::toDomain));
+      return read(
+          () ->
+              rows.findForUpdate(id)
+                  .map(
+                      row -> {
+                        entityManager.refresh(
+                            row, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+                        return row.toDomain();
+                      }));
     } catch (org.springframework.dao.OptimisticLockingFailureException
         | jakarta.persistence.OptimisticLockException failure) {
       throw new DiaryVersionConflictException(failure);
@@ -57,8 +66,17 @@ public class DiaryEntryPersistenceAdapter
         throw failure;
       }
     }
+    var location = e.getLocationIntent();
     if (rows.updateVersion(
-            e.getId(), e.getVersion(), e.getContent(), e.getRecordedDate(), e.getUpdatedAt())
+            e.getId(),
+            e.getVersion(),
+            e.getContent(),
+            e.getRecordedDate(),
+            e.getUpdatedAt(),
+            location == null ? null : location.mode(),
+            location == null ? null : location.latitude(),
+            location == null ? null : location.longitude(),
+            location == null ? null : location.placeName())
         != 1) throw new DiaryVersionConflictException();
     return DiaryEntry.restore(
         e.getId(),
@@ -68,7 +86,8 @@ public class DiaryEntryPersistenceAdapter
         e.getRecordedDate(),
         e.getCreatedAt(),
         e.getUpdatedAt(),
-        e.getVersion() + 1);
+        e.getVersion() + 1,
+        e.getLocationIntent());
   }
 
   public void delete(Long id, Long version) {

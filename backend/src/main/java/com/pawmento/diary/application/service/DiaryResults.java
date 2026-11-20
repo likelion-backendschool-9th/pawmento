@@ -16,10 +16,18 @@ public class DiaryResults {
   private final DiaryMediaPort media;
 
   public GetDiaryEntryResult one(DiaryEntry entry) {
-    return many(entry.getPetId(), List.of(entry)).getFirst();
+    return many(entry.getPetId(), List.of(entry), entry.getCreatedBy()).getFirst();
+  }
+
+  public GetDiaryEntryResult one(DiaryEntry entry, Long requester) {
+    return many(entry.getPetId(), List.of(entry), requester).getFirst();
   }
 
   public List<GetDiaryEntryResult> many(Long pet, List<DiaryEntry> entries) {
+    return many(pet, entries, null);
+  }
+
+  public List<GetDiaryEntryResult> many(Long pet, List<DiaryEntry> entries, Long requester) {
     var links = attachments.findAll(entries.stream().map(DiaryEntry::getId).toList());
     var ids = links.values().stream().flatMap(List::stream).distinct().toList();
     var meta =
@@ -31,7 +39,9 @@ public class DiaryResults {
         .map(
             e ->
                 GetDiaryEntryResult.from(
-                    e, links.getOrDefault(e.getId(), List.of()).stream().map(meta::get).toList()))
+                    e,
+                    links.getOrDefault(e.getId(), List.of()).stream().map(meta::get).toList(),
+                    requester))
         .toList();
   }
 }

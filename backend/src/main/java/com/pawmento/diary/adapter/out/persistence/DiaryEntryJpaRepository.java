@@ -52,13 +52,19 @@ public interface DiaryEntryJpaRepository extends JpaRepository<DiaryEntryJpaEnti
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
       "update DiaryEntryJpaEntity e set e.content = :content, e.recordedDate = :date, e.updatedAt ="
-          + " :now, e.version = e.version + 1 where e.id = :id and e.version = :version")
+          + " :now, e.locationMode=:locationMode, e.locationLatitude=:latitude,"
+          + " e.locationLongitude=:longitude, e.locationPlaceName=:placeName, e.version = e.version"
+          + " + 1 where e.id = :id and e.version = :version")
   int updateVersion(
       @Param("id") Long id,
       @Param("version") Long version,
       @Param("content") String content,
       @Param("date") LocalDate date,
-      @Param("now") Instant now);
+      @Param("now") Instant now,
+      @Param("locationMode") com.pawmento.diary.domain.DiaryLocationIntent.Mode locationMode,
+      @Param("latitude") Double latitude,
+      @Param("longitude") Double longitude,
+      @Param("placeName") String placeName);
 
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query("delete from DiaryEntryJpaEntity e where e.id = :id and e.version = :version")

@@ -56,4 +56,29 @@ class HexagonalArchitectureTest {
 			}
 		}
 	}
+	@Test
+	@DisplayName("#44-S6 diary 어댑터 전체는 지도 입력 포트만 참조하고 지도 입력 계약은 도메인을 노출하지 않는다")
+	void mapBoundaryUsesInputContracts() throws IOException {
+		try (var paths = Files.walk(ROOT.resolve("diary/adapter"))) {
+			for (var path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
+				var source = Files.readString(path);
+				var imports = IMPORT.matcher(source);
+				while (imports.find()) {
+					String dependency = imports.group(1);
+					if (dependency.startsWith("com.pawmento.map.")) {
+						assertThat(dependency).as("%s -> %s", path, dependency)
+							.startsWith("com.pawmento.map.application.port.in.");
+					}
+				}
+				// import 없이 쓴 완전 수식 참조도 직접 의존이다.
+				assertThat(source).as("%s", path).doesNotContain("com.pawmento.map.domain.");
+			}
+		}
+		try (var paths = Files.walk(ROOT.resolve("map/application/port/in"))) {
+			for (var path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
+				assertThat(Files.readString(path)).as("%s", path).doesNotContain("com.pawmento.map.domain.");
+			}
+		}
+	}
+
 }

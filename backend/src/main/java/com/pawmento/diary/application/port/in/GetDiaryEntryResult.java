@@ -12,13 +12,25 @@ public record GetDiaryEntryResult(
     Instant createdAt,
     Instant updatedAt,
     Long version,
-    java.util.List<DiaryAttachment> attachments) {
+    java.util.List<DiaryAttachment> attachments,
+    Location location) {
+  public record Location(String mode, Double latitude, Double longitude, String placeName) {}
+
   public GetDiaryEntryResult {
     attachments = java.util.List.copyOf(attachments);
   }
 
   public static GetDiaryEntryResult from(
-      DiaryEntry e, java.util.List<DiaryAttachment> attachments) {
+      DiaryEntry e, java.util.List<DiaryAttachment> attachments, Long requester) {
+    var original = e.getLocationIntent();
+    Location location =
+        original == null || !e.getCreatedBy().equals(requester)
+            ? null
+            : new Location(
+                original.mode().name(),
+                original.latitude(),
+                original.longitude(),
+                original.placeName());
     return new GetDiaryEntryResult(
         e.getId(),
         e.getPetId(),
@@ -28,19 +40,16 @@ public record GetDiaryEntryResult(
         e.getCreatedAt(),
         e.getUpdatedAt(),
         e.getVersion(),
-        attachments);
+        attachments,
+        location);
+  }
+
+  public static GetDiaryEntryResult from(
+      DiaryEntry e, java.util.List<DiaryAttachment> attachments) {
+    return from(e, attachments, e.getCreatedBy());
   }
 
   public static GetDiaryEntryResult from(DiaryEntry e) {
-    return new GetDiaryEntryResult(
-        e.getId(),
-        e.getPetId(),
-        e.getCreatedBy(),
-        e.getContent(),
-        e.getRecordedDate(),
-        e.getCreatedAt(),
-        e.getUpdatedAt(),
-        e.getVersion(),
-        java.util.List.of());
+    return from(e, java.util.List.of());
   }
 }

@@ -16,9 +16,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.TestcontainersConfiguration;
-import com.pawmento.map.application.exception.DiaryLocationAlreadyExistsException;
+import com.pawmento.map.domain.DiaryLocationState;
+import com.pawmento.map.domain.DiaryLocationValue;
 import com.pawmento.map.domain.MapArea;
 import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.domain.LocationSource;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -49,8 +51,15 @@ class DiaryLocationPersistenceAdapterTest {
 		entityManager.clear();
 	}
 
+	private Long insert(DiaryLocation location) {
+		adapter.lock(location.getDiaryId());
+		adapter.write(location.getDiaryId(), location.getPetId(), location.getCreatedBy(), location.getSourceRevision(),
+			new DiaryLocationValue(location.getLatitude(), location.getLongitude(), location.getPlaceName()));
+		return adapter.read(location.getDiaryId()).orElseThrow().rowId();
+	}
+
 	private Long save(long diaryId, long petId, long memberId, double latitude, double longitude) {
-		Long id = adapter.save(DiaryLocation.create(diaryId, petId, memberId, latitude, longitude, null));
+		Long id = insert(DiaryLocation.create(diaryId, petId, memberId, latitude, longitude, null));
 		flushAndClear();
 		return id;
 	}
@@ -58,78 +67,82 @@ class DiaryLocationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#19-S1 위치를 저장하고 기록 번호로 다시 읽으면 같은 값이다")
 	void saveAndLoad() {
-		Long id = adapter.save(DiaryLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
+		Long id = insert(DiaryLocation.create(100L, PET, MEMBER, 37.4979, 127.0276, "강남역"));
 		flushAndClear();
 
-		DiaryLocation loaded = adapter.loadByDiaryId(100L).orElseThrow();
+		DiaryLocationState loaded = adapter.read(100L).orElseThrow();
 
 		assertThat(id).isNotNull();
-		assertThat(loaded.getId()).isEqualTo(id);
-		assertThat(loaded.getDiaryId()).isEqualTo(100L);
-		assertThat(loaded.getPetId()).isEqualTo(PET);
-		assertThat(loaded.getCreatedBy()).isEqualTo(MEMBER);
-		assertThat(loaded.getLatitude()).isEqualTo(37.4979);
-		assertThat(loaded.getLongitude()).isEqualTo(127.0276);
-		assertThat(loaded.getPlaceName()).isEqualTo("강남역");
+		assertThat(loaded.rowId()).isEqualTo(id);
+		assertThat(loaded.diaryId()).isEqualTo(100L);
+		assertThat(loaded.petId()).isEqualTo(PET);
+		assertThat(loaded.createdBy()).isEqualTo(MEMBER);
+		assertThat(loaded.latitude()).isEqualTo(37.4979);
+		assertThat(loaded.longitude()).isEqualTo(127.0276);
+		assertThat(loaded.placeName()).isEqualTo("강남역");
 	}
 
 	@Test
 	@DisplayName("#19-S1 위치가 없는 기록은 빈 값을 받는다")
 	void loadMissing() {
-		assertThat(adapter.loadByDiaryId(999L)).isEmpty();
+		assertThat(adapter.read(999L)).isEmpty();
 	}
 
 	@Test
 	@DisplayName("#19-S1 같은 기록에 다시 저장하면 새로 쌓이지 않고 바뀐다")
 	void saveAgainUpdates() {
-		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
+		Long id = save(100L, PET, MEMBER, 37, 127);
+		adapter.lock(100L);
+		adapter.write(100L, PET, MEMBER, 1, new DiaryLocationValue(35.1796, 129.0756, "부산"));
+		flushAndClear();
+		var loaded = adapter.read(100L).orElseThrow();
+		assertThat(loaded.rowId()).isEqualTo(id);
+		assertThat(loaded.placeName()).isEqualTo("부산");
+		assertThat(loaded.latitude()).isEqualTo(35.1796);
+		assertThat(loaded.longitude()).isEqualTo(129.0756);
+		assertThat(loaded.revision()).isEqualTo(1);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from diary_location", Long.class)).isEqualTo(1L);
+	}
 
-		DiaryLocation existing = adapter.loadByDiaryId(100L).orElseThrow();
-		existing.move(35.1796, 129.0756, "부산");
-		Long updatedId = adapter.save(existing);
+	@Test
+	@DisplayName("#44-S13 새 위치를 저장하면 출처 MANUAL·revision 0으로 저장되고 다시 읽어도 같다. 새 열은 NOT NULL이고 기본값이 있다")
+	void sourceColumnsAreStoredWithDefaults() {
+		insert(DiaryLocation.create(300L, PET, MEMBER, 37.5, 127.0, "강남역"));
 		flushAndClear();
 
-		assertThat(updatedId).isEqualTo(id);
-		assertThat(jdbcTemplate.queryForObject("select count(*) from diary_location", Long.class)).isEqualTo(1L);
-		// 컨텍스트를 비운 뒤라 DB 행의 값을 직접 확인한다
-		Map<String, Object> row = jdbcTemplate
-			.queryForMap("select latitude, longitude, place_name from diary_location where diary_id = 100");
-		assertThat(row.get("latitude")).isEqualTo(35.1796);
-		assertThat(row.get("longitude")).isEqualTo(129.0756);
-		assertThat(row.get("place_name")).isEqualTo("부산");
-		assertThat(adapter.loadByDiaryId(100L).orElseThrow().getPlaceName()).isEqualTo("부산");
+		DiaryLocationState loaded = adapter.read(300L).orElseThrow();
+		Map<String, Object> row = jdbcTemplate.queryForMap(
+				"select source, source_asset_id, source_revision from diary_location where diary_id = 300");
+		assertThat(loaded.source()).isEqualTo(LocationSource.MANUAL);
+		assertThat(loaded.sourceAssetId()).isNull();
+		assertThat(loaded.revision()).isZero();
+		assertThat(row.get("source")).isEqualTo("MANUAL");
+		assertThat(row.get("source_asset_id")).isNull();
+		assertThat(((Number) row.get("source_revision")).longValue()).isZero();
+
+		List<Map<String, Object>> columns = jdbcTemplate.queryForList("""
+				select column_name, is_nullable, column_default
+				from information_schema.columns
+				where table_name = 'diary_location' and column_name in ('source', 'source_asset_id', 'source_revision')
+				""");
+		assertThat(columns).extracting(column -> column.get("column_name"))
+			.containsExactlyInAnyOrder("source", "source_asset_id", "source_revision");
+		for (Map<String, Object> column : columns) {
+			String name = (String) column.get("column_name");
+			// 출처 자산만 비어 있을 수 있다. 출처와 revision은 NOT NULL이고 기존 행을 채울 기본값이 있다
+			assertThat(column.get("is_nullable")).as(name).isEqualTo("source_asset_id".equals(name) ? "YES" : "NO");
+			assertThat(column.get("column_default") != null).as(name).isEqualTo(!"source_asset_id".equals(name));
+		}
 	}
 
 	@Test
-	@DisplayName("#19-S1 같은 기록에 위치를 새로 두 번 넣으려 하면 DB가 막고, 이미 있다는 오류를 받는다")
+	@DisplayName("#19-S1 같은 기록의 중복 행은 DB 유일 제약이 막는다")
 	void uniquePerRecord() {
-		save(100L, PET, MEMBER, 37.0, 127.0);
-
-		assertThatThrownBy(() -> save(100L, PET, MEMBER, 36.0, 128.0))
-			.isInstanceOf(DiaryLocationAlreadyExistsException.class)
-			.hasCauseInstanceOf(DataIntegrityViolationException.class);
-	}
-
-	@Test
-	@DisplayName("#19-S1 저장된 적 없는 id의 위치를 바꾸려 하면 오류가 난다")
-	void updateMissing() {
-		DiaryLocation ghost = DiaryLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null);
-
-		assertThatThrownBy(() -> adapter.save(ghost)).isInstanceOf(IllegalStateException.class);
-	}
-
-	@Test
-	@DisplayName("#19-S7 다른 기록·작성자의 값을 담은 위치로 저장된 위치를 덮어쓸 수 없다")
-	void cannotOverwriteWithDifferentOwner() {
-		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
-		DiaryLocation otherRecord = DiaryLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null);
-		DiaryLocation otherMember = DiaryLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null);
-		DiaryLocation otherPet = DiaryLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null);
-
-		assertThatThrownBy(() -> adapter.save(otherRecord)).isInstanceOf(IllegalStateException.class);
-		assertThatThrownBy(() -> adapter.save(otherMember)).isInstanceOf(IllegalStateException.class);
-		assertThatThrownBy(() -> adapter.save(otherPet)).isInstanceOf(IllegalStateException.class);
-		assertThat(adapter.loadByDiaryId(100L).orElseThrow().getLatitude()).isEqualTo(37.0);
+		save(100L, PET, MEMBER, 37, 127);
+		assertThatThrownBy(() -> jdbcTemplate.update("""
+			insert into diary_location(diary_id,pet_id,created_by,latitude,longitude,created_at,updated_at)
+			values(100,10,1,36,128,now(),now())
+			""")).isInstanceOf(DataIntegrityViolationException.class);
 	}
 
 	@Test
@@ -137,22 +150,10 @@ class DiaryLocationPersistenceAdapterTest {
 	void delete() {
 		save(100L, PET, MEMBER, 37.0, 127.0);
 
-		adapter.deleteByDiaryId(100L);
-		adapter.deleteByDiaryId(100L);
+		adapter.remove(100L);
+		adapter.remove(100L);
 
-		assertThat(adapter.loadByDiaryId(100L)).isEmpty();
-	}
-
-	@Test
-	@DisplayName("#19-S4 지운 위치를 같은 트랜잭션에서 그 id로 바꾸려 하면 오류가 난다")
-	void deletedLocationIsNotServedFromCache() {
-		// 저장한 엔티티가 영속성 컨텍스트에 남아 있는 상태에서 지워야 의미가 있어서, 여기서는 컨텍스트를 비우지 않는다
-		Long id = adapter.save(DiaryLocation.create(100L, PET, MEMBER, 37.0, 127.0, null));
-		DiaryLocation stale = DiaryLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
-
-		adapter.deleteByDiaryId(100L);
-
-		assertThatThrownBy(() -> adapter.save(stale)).isInstanceOf(IllegalStateException.class);
+		assertThat(adapter.read(100L)).isEmpty();
 	}
 
 	@Test
@@ -162,7 +163,7 @@ class DiaryLocationPersistenceAdapterTest {
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).hasSize(1);
 
-		adapter.deleteByDiaryId(100L);
+		adapter.remove(100L);
 
 		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).isEmpty();
 	}
@@ -256,8 +257,7 @@ class DiaryLocationPersistenceAdapterTest {
 		flushAndClear();
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
 
-		assertThatThrownBy(() -> adapter.loadByDiaryId(500L)).isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class)
-			.hasCauseInstanceOf(com.pawmento.map.domain.exception.InvalidDiaryLocationException.class);
+		assertThat(adapter.read(500L).orElseThrow().placeName()).isEqualTo(emojiName);
 		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10))
 			.isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class);
 	}
@@ -271,4 +271,37 @@ class DiaryLocationPersistenceAdapterTest {
 		assertThat(indexes).contains(DiaryLocationJpaEntity.PIN_LOOKUP_INDEX, "uk_diary_location_diary");
 	}
 
+	@Test
+	@DisplayName("#44-S6 지도 입력 포트가 JPA 저장·조회와 같은 엔티티를 수정하고 삭제한다")
+	void mutationAndPinQueriesShareJpaContext() {
+		save(700L, PET, MEMBER, 37, 127);
+		assertThat(adapter.read(700L).orElseThrow().revision()).isZero();
+		assertThat(adapter.lock(700L)).isPresent();
+		adapter.write(
+				700L,
+				PET,
+				MEMBER,
+				3,
+				new com.pawmento.map.domain.DiaryLocationValue(38, 128, "새 공원"));
+		var loaded = adapter.read(700L).orElseThrow();
+		assertThat(loaded.revision()).isEqualTo(3);
+		assertThat(loaded.placeName()).isEqualTo("새 공원");
+		assertThat(adapter.loadInArea(MEMBER, PET, MapArea.of(37.5, 127.5, 38.5, 128.5), 10))
+				.extracting(DiaryLocation::getSourceRevision)
+				.containsExactly(3L);
+		adapter.remove(700L);
+		assertThat(adapter.read(700L)).isEmpty();
+		assertThat(adapter.loadInArea(MEMBER, PET, MapArea.of(37.5, 127.5, 38.5, 128.5), 10))
+				.isEmpty();
+	}
+
+	@Test
+	@DisplayName("#44-S6 잠금 후에는 미리 읽어 둔 엔티티도 최신 DB 관측 상태로 갱신한다")
+	void lockRefreshesPreviouslyReadEntity() {
+		save(701L, PET, MEMBER, 37, 127);
+		assertThat(adapter.read(701L).orElseThrow().revision()).isZero();
+		jdbcTemplate.update("update diary_location set source_revision=5 where diary_id=701");
+		assertThat(adapter.lock(701L).orElseThrow().revision()).isEqualTo(5);
+		assertThat(adapter.read(701L).orElseThrow().revision()).isEqualTo(5);
+	}
 }

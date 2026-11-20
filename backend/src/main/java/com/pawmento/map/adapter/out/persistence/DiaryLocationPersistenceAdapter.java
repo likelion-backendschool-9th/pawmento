@@ -4,74 +4,94 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import org.hibernate.exception.ConstraintViolationException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
-import com.pawmento.map.application.exception.DiaryLocationAlreadyExistsException;
 import com.pawmento.map.application.exception.DiaryLocationPersistenceUnavailableException;
-import com.pawmento.map.application.port.out.DeleteDiaryLocationPort;
+import com.pawmento.map.application.port.out.DiaryLocationStorePort;
 import com.pawmento.map.application.port.out.LoadMapPinsPort;
-import com.pawmento.map.application.port.out.LoadDiaryLocationPort;
-import com.pawmento.map.application.port.out.SaveDiaryLocationPort;
-import com.pawmento.map.domain.MapArea;
 import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.domain.DiaryLocationState;
+import com.pawmento.map.domain.DiaryLocationValue;
+import com.pawmento.map.domain.MapArea;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
 
 @Component
 class DiaryLocationPersistenceAdapter
-		implements SaveDiaryLocationPort, LoadDiaryLocationPort, DeleteDiaryLocationPort, LoadMapPinsPort {
+		implements LoadMapPinsPort,
+			DiaryLocationStorePort {
 
 	private final DiaryLocationJpaRepository diaryLocationJpaRepository;
 
-	DiaryLocationPersistenceAdapter(DiaryLocationJpaRepository diaryLocationJpaRepository) {
+	private final EntityManager entityManager;
+
+	DiaryLocationPersistenceAdapter(DiaryLocationJpaRepository diaryLocationJpaRepository, EntityManager entityManager) {
 		this.diaryLocationJpaRepository = diaryLocationJpaRepository;
+		this.entityManager = entityManager;
 	}
 
 	@Override
-	public Long save(DiaryLocation location) {
-		return execute(() -> {
-			DiaryLocationJpaEntity entity;
-			if (location.getId() == null) {
-				entity = DiaryLocationJpaEntity.from(location);
-			}
-			else {
-				entity = diaryLocationJpaRepository.findById(location.getId())
-					.orElseThrow(() -> new IllegalStateException("저장된 위치를 찾을 수 없습니다. id=" + location.getId()));
-				// 기록·반려동물·작성자는 바뀌지 않는다. 다른 위치의 id로 덮어쓰는 일을 막는다
-				if (!entity.hasSameReferences(location)) {
-					throw new IllegalStateException("저장된 위치와 기록·반려동물·작성자가 다릅니다. id=" + location.getId());
-				}
-				entity.updateLocation(location);
-			}
-			try {
-				return diaryLocationJpaRepository.save(entity).getId();
-			}
-			catch (DataIntegrityViolationException e) {
-				// 기록당 위치는 하나다. 처음 저장하는 요청이 겹치면 DB의 유일 제약이 막는다.
-				// 그 제약을 어긴 경우만 "이미 있는 위치"로 보고, 다른 무결성 오류는 저장소 오류로 바뀐다
-				if (isRecordUniqueViolation(e)) {
-					throw new DiaryLocationAlreadyExistsException(location.getDiaryId(), e);
-				}
-				throw e;
-			}
-		});
-	}
-
-	private boolean isRecordUniqueViolation(DataIntegrityViolationException e) {
-		return e.getCause() instanceof ConstraintViolationException violation
-				&& DiaryLocationJpaEntity.DIARY_UNIQUE_CONSTRAINT.equalsIgnoreCase(violation.getConstraintName());
+	public Optional<DiaryLocationState> read(Long diaryId) {
+		return execute(
+				() ->
+						diaryLocationJpaRepository
+								.findByDiaryId(diaryId)
+								.map(
+										entity -> {
+											entityManager.refresh(entity);
+											return entity.toState();
+										}));
 	}
 
 	@Override
-	public Optional<DiaryLocation> loadByDiaryId(Long diaryId) {
-		return execute(() -> diaryLocationJpaRepository.findByDiaryId(diaryId).map(DiaryLocationJpaEntity::toDomain));
+	public Optional<DiaryLocationState> lock(Long diaryId) {
+		return execute(
+				() -> {
+					// 행이 없는 최초 삽입도 직렬화한다. 데이터 읽기·쓰기는 모두 같은 JPA 문맥을 쓴다.
+					entityManager
+							.createNativeQuery(
+									"select true from"
+										+ " pg_advisory_xact_lock(hashtextextended(:key,0))",
+									Boolean.class)
+							.setParameter("key", "pawmento-map-location:" + diaryId)
+							.getResultList();
+					return diaryLocationJpaRepository
+							.findByDiaryId(diaryId)
+							.map(
+									entity -> {
+										// 사전 조회가 남긴 엔티티도 잠금을 얻은 시점의 DB 값으로 다시 읽는다.
+										entityManager.refresh(
+												entity, LockModeType.PESSIMISTIC_WRITE);
+										return entity.toState();
+									});
+				});
 	}
 
 	@Override
-	public void deleteByDiaryId(Long diaryId) {
-		// 엔티티를 찾아 지운다. 한 번에 지우는 쿼리와 달리 영속성 컨텍스트와 어긋나지 않는다
-		execute(() -> diaryLocationJpaRepository.findByDiaryId(diaryId).ifPresent(diaryLocationJpaRepository::delete));
+	public void write(
+			Long diaryId, Long petId, Long createdBy, long revision, DiaryLocationValue location) {
+		execute(
+				() -> {
+					var entity =
+							diaryLocationJpaRepository
+									.findByDiaryId(diaryId)
+									.orElseGet(DiaryLocationJpaEntity::new);
+					entity.replaceState(diaryId, petId, createdBy, revision, location);
+					diaryLocationJpaRepository.saveAndFlush(entity);
+				});
+	}
+
+	@Override
+	public void remove(Long diaryId) {
+		execute(
+				() -> {
+					diaryLocationJpaRepository
+							.findByDiaryId(diaryId)
+							.ifPresent(diaryLocationJpaRepository::delete);
+					diaryLocationJpaRepository.flush();
+				});
 	}
 
 	@Override

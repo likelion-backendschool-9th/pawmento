@@ -15,7 +15,7 @@
 - When  `POST /api/v1/auth/oauth/google`에 `{"code":"abc","state":"x7k2","redirectUri":"http://localhost:3000/auth/callback/google"}`를 보낸다
 - Then  200과 회원 정보(`id`, `email`, `nickname: "다윗"`, `role: "USER"`)를 받는다
 - Then  `ACCESS_TOKEN` 쿠키(HttpOnly, SameSite=Lax)를 받고, 그 쿠키로 `GET /api/v1/members/me`가 된다
-- Then  `member`에 `provider: GOOGLE`, `provider_user_id: "g-123"`, `password_hash: null`인 행이 하나 생긴다
+- Then  `member`에 `password_hash: null`인 행이 하나, `social_account`에 그 회원의 `provider: GOOGLE`, `provider_user_id: "g-123"`인 행이 하나 생긴다 (고침 #109: 로그인 방법을 `member`에서 `social_account`로 분리)
 
 #40-S2 닉네임 맞추기 [테스트]
 - Given 제공자가 이름을 주지 않거나 21자 이상을 준다
@@ -41,7 +41,7 @@
 #40-S5 소셜 로그인 실패 [테스트]
 - Given `dawit@gmail.com`으로 이메일 가입한 회원이 있다
 - When  같은 이메일의 구글 계정으로 처음 소셜 로그인한다
-- Then  409와 `code: "CONFLICT"`, "처음 가입한 방법으로 로그인해 주세요" 문구를 받는다
+- Then  409와 `code: "CONFLICT"`, "처음 가입한 방법으로 로그인한 뒤 마이페이지에서 연결해 주세요" 문구를 받는다 (고침 #109: 소셜 계정 연결이 생겨 연결 방법을 안내, #109-S15)
 - Then  쿠키를 받지 못하고 `member` 행 수가 늘지 않는다
 - Given 같은 이메일로 구글 가입한 회원이 있고, 카카오로 처음 로그인해도 같다
 
@@ -114,10 +114,11 @@
 - Then  `member` 행은 하나만 생긴다
 
 ## 범위 밖
-- 계정 연결·해제(한 회원에 여러 로그인 방법 붙이기): 이메일 인증이 생긴 뒤 다룬다
+- 계정 연결·해제(한 회원에 여러 로그인 방법 붙이기): [소셜 계정 연결·해제](social-account-link.md)에서 다룬다 (고침 #109: 11/18 회의에서 MVP에 넣기로 함)
 - 소셜 회원의 비밀번호 설정, refresh 토큰, 회원 탈퇴: 스프린트 1 이후 member에서 다룬다
 - 로그인 화면과 콜백 화면(`/auth/callback/{provider}`), state 생성·비교: 프론트엔드 이슈에서 다룬다
 - iOS 홈 화면 PWA에서 리다이렉트 동작 확인: 프론트엔드 이슈에서 다룬다
+- 네이버 로그인(#40-S12): 이번 범위에서 빼고 후속으로 다룬다. 정한 것의 네이버 이메일 기준과 참고의 네이버 응답 형식은 그때 그대로 쓴다 (고침 #40: 팀 계획 범위는 구글·카카오)
 
 ## 작업 순서
 1. 회원에 가입 방식과 소셜 계정 정보 추가, 소셜 회원의 비밀번호 로그인 차단 — S10의 기반
