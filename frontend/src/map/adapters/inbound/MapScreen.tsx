@@ -1,0 +1,180 @@
+"use client";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useApp } from "@/app/AppProvider";
+import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
+import { Icon } from "@/shared/ui/Icon";
+import { PageHeading } from "@/workspace/adapters/inbound/WorkspaceUi";
+import type { MapBounds } from "@/map/domain/MapBounds";
+import type { MapPinList } from "@/map/application/ports";
+import { DEFAULT_MAP_CENTER } from "./mapCanvas";
+import { NaverMapCanvas } from "./NaverMapCanvas";
+import { StaticMapCanvas } from "./StaticMapCanvas";
+import { pinMarkup, type PinMode } from "./pinMarkup";
+import styles from "./MapScreen.module.css";
+
+type Props = { pet: { id: string; name: string; mode: PinMode } };
+
+const REQUEST_DELAY_MS = 250;
+
+export function MapScreen({ pet }: Props) {
+  const { dependencies } = useApp();
+  const garden = pet.mode === "GARDEN";
+  // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
+  const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
+  const [naverFailed, setNaverFailed] = useState(false);
+  const [bounds, setBounds] = useState<MapBounds | null>(null);
+  const [result, setResult] = useState<MapPinList | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const request = useRef(0);
+
+  useEffect(() => {
+    if (!bounds) return;
+    const current = ++request.current;
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setError("");
+      dependencies.map
+        .listPins(pet.id, bounds)
+        .then((list) => {
+          if (current !== request.current) return; // 더 최근 요청이 있으면 버린다
+          setResult(list);
+          setSelectedId((id) =>
+            list.pins.some((pin) => pin.diaryId === id) ? id : null,
+          );
+        })
+        .catch((cause) => {
+          if (current !== request.current) return;
+          setError(
+            cause instanceof Error
+              ? cause.message
+              : "기억을 불러오지 못했어요.",
+          );
+        })
+        .finally(() => {
+          if (current === request.current) setLoading(false);
+        });
+    }, REQUEST_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [bounds, pet.id, dependencies, attempt]);
+
+  const onBoundsChange = useCallback(
+    (next: MapBounds) => setBounds(next),
+    [],
+  );
+  const pins = result?.pins ?? [];
+  const selected = pins.find((pin) => pin.diaryId === selectedId) ?? null;
+  const unit = garden ? "송이" : "개";
+  const canvasProps = {
+    center: DEFAULT_MAP_CENTER,
+    pins,
+    selectedId,
+    mode: pet.mode,
+    onSelect: setSelectedId,
+    onBoundsChange,
+  };
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="OUR MEMORY MAP"
+        title="추억 지도"
+        body={`${pet.name}와 함께 다녀온 곳을 지도에서 다시 만나 보세요.`}
+      >
+        <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
+          <Icon name="plus" size={17} />
+          기록 남기기
+        </Link>
+      </PageHeading>
+      <ArchiveNavigation petId={pet.id} active="map" />
+      <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
+        {clientId && !naverFailed ? (
+          <NaverMapCanvas
+            {...canvasProps}
+            clientId={clientId}
+            onUnavailable={() => setNaverFailed(true)}
+          />
+        ) : (
+          <StaticMapCanvas {...canvasProps} />
+        )}
+
+        {result && !error && (
+          <div className={styles.chip} role="status">
+            <span
+              className={styles.chipIcon}
+              dangerouslySetInnerHTML={{
+                __html: pinMarkup(pet.mode).replace(
+                  /width="\d+" height="\d+"/,
+                  'width="18" height="26"',
+                ),
+              }}
+            />
+            이 지역의 기억 <b>{pins.length}{unit}</b>
+          </div>
+        )}
+
+        {result?.truncated && (
+          <p className={styles.notice} role="status">
+            기억이 많아서 일부만 보여요. 지도를 확대해 보세요.
+          </p>
+        )}
+
+        {error && (
+          <div className={styles.message} role="alert">
+            <strong>기억을 불러오지 못했어요</strong>
+            <p>{error}</p>
+            <button
+              type="button"
+              className="button primary"
+              onClick={() => setAttempt((count) => count + 1)}
+            >
+              다시 불러오기
+            </button>
+          </div>
+        )}
+
+        {result && !error && pins.length === 0 && !loading && (
+          <div className={styles.message}>
+            <strong>이 지역에는 붙인 기억이 아직 없어요</strong>
+            <p>
+              기록을 쓸 때 위치를 붙이면 {pet.name}와 함께한 곳이 하나씩 모여요.
+            </p>
+            <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
+              기록 쓰러 가기
+            </Link>
+          </div>
+        )}
+
+        {selected && (
+          <aside className={styles.sheet} aria-label="선택한 기억">
+            <div className={styles.grab} aria-hidden="true" />
+            <p className={styles.eyebrow}>{garden ? "기억의 정원" : "기억의 장소"}</p>
+            <h2>{selected.placeName ?? "이름 없는 장소"}</h2>
+            {result?.sample ? (
+              <p className={styles.muted}>
+                화면을 확인하기 위한 예시 기억이에요.
+              </p>
+            ) : (
+              <Link
+                className="button primary"
+                href={`/pets/${pet.id}/diary/${selected.diaryId}`}
+              >
+                기억 펼쳐보기
+                <Icon name="arrow" size={17} />
+              </Link>
+            )}
+          </aside>
+        )}
+      </div>
+      {result?.sample && (
+        <p className={styles.note}>
+          데모 계정에서는 서울숲 근처의 예시 기억을 보여 드려요. 로그인하면 내
+          기록의 위치가 나타나요.
+        </p>
+      )}
+    </>
+  );
+}

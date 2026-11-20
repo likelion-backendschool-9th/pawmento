@@ -17,7 +17,7 @@ test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의�
   const source = resolve("src");
   for (const path of files(source)) {
     const name = relative(source, path);
-    if (!/^(auth|workspace|life|pets|diary|question)\/(domain|application)\//.test(name) &&
+    if (!/^(auth|workspace|life|pets|diary|question|map)\/(domain|application)\//.test(name) &&
         !name.startsWith("shared/application/")) continue;
     const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
     function visit(node: ts.Node) {
@@ -52,4 +52,16 @@ test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리
   const error = new ApplicationError("CONFLICT", "월 한도를 초과했어요.");
   assert.equal(error.code, "CONFLICT");
   assert.equal("status" in error, false);
+});
+
+test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
+  const folder = resolve("src/map/adapters/inbound");
+  for (const path of files(folder)) {
+    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+    for (const node of file.statements) {
+      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|shared\/http/, relative(folder, path));
+      }
+    }
+  }
 });

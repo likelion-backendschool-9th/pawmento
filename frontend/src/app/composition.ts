@@ -12,6 +12,10 @@ import { createAuthUseCases } from "../auth/application/auth.ts";
 import { SessionAuthRepository } from "../auth/adapters/outbound/SessionAuthRepository.ts";
 import { createPetUseCases } from "../pets/application/useCases.ts";
 import { HttpPetListRepository } from "../pets/adapters/outbound/HttpPetListRepository.ts";
+import { createMapUseCases } from "../map/application/useCases.ts";
+import { HttpMapPinRepository } from "../map/adapters/outbound/HttpMapPinRepository.ts";
+import { DemoMapPinRepository } from "../map/adapters/outbound/DemoMapPinRepository.ts";
+import { PetScopedMapPinRepository } from "../map/adapters/outbound/PetScopedMapPinRepository.ts";
 
 export function createDependencies() {
   const http = createApiClient();
@@ -39,6 +43,12 @@ export function createDependencies() {
     ),
     auth: createAuthUseCases(new SessionAuthRepository(http)),
     pets: createPetUseCases(new HttpPetListRepository(http)),
+    map: createMapUseCases(
+      new PetScopedMapPinRepository(
+        new HttpMapPinRepository(http),
+        new DemoMapPinRepository(),
+      ),
+    ),
   };
 }
 export type Dependencies = ReturnType<typeof createDependencies>;
