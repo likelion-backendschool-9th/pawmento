@@ -29,7 +29,7 @@ public class QuestionAnswerController {
         create.create(
             new CreateQuestionAnswerCommand(
                 member,
-                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
+                QuestionPetQuery.petId(request.getQueryString()),
                 promptId,
                 values.content(),
                 values.attachmentIds()));
@@ -59,9 +59,7 @@ public class QuestionAnswerController {
     return QuestionAnswerResponse.from(
         get.get(
             new GetQuestionAnswerQuery(
-                member,
-                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
-                answerId)));
+                member, QuestionPetQuery.petId(request.getQueryString()), answerId)));
   }
 
   @PatchMapping("/answers/{answerId}")
@@ -75,7 +73,7 @@ public class QuestionAnswerController {
         edit.edit(
             new EditQuestionAnswerCommand(
                 member,
-                new QuestionAnswerQuery(request.getQueryString(), "petId").petId(),
+                QuestionPetQuery.petId(request.getQueryString()),
                 answerId,
                 values.content(),
                 values.version(),
