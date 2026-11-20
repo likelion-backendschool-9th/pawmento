@@ -121,6 +121,7 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 - 가족에서 나가거나 권한이 회수되면 이후 읽기·쓰기 요청 모두 거부한다. JWT에 로그인 정보가 남아 있어도 멤버십은 서버에서 재확인한다.
 - 미인증 401, 관리자 API·읽기 전용 역할의 쓰기·타 가족 답변 변경 403, 비가족/없는 아이·질문·답변 및 경로 불일치 404, 잘못된 입력 400, 중복 답변·버전·모드 충돌 409다. 기존 `{code, message}` 에러 형식을 따른다.
 - ADMIN만 질문 풀을 관리한다. 관리자 역할이 개인 가족 답변 열람 권한을 자동 부여하지 않는다.
+- 후속 관리자 질문 API는 question 도메인의 단일 루트를 지키기 위해 `/questions/admin` 아래에 둔다. 보안 설정은 `/api/v1/questions/admin` 및 `/api/v1/questions/admin/**`를 명시적으로 `hasRole("ADMIN")` 검사한 뒤 일반 인증 규칙을 적용한다. `/admin/**` 접두어에 의존하지 않는다. 각 관리자 입력 유스케이스도 질문의 관리자 확인 출력 포트로 member 입력 포트의 현재 역할을 확인해 웹을 거치지 않은 호출·역할 회수를 검증한다. member 조회 DTO·엔티티를 question 핵심에 노출하지 않으며 미인증 401·일반 회원/역할 회수 403·조회 장애는 서버 오류로 구분한다. 전역 메서드 보안 설정을 이번 문서에서 추가하지 않는다. (고침 #31: 관리자 경로 변경에 따른 권한 경계 명시)
 - `com.pawmento.question`의 domain/application/adapter 구조를 사용한다. 입력 포트 후보는 `CreateQuestionUseCase`, `EditQuestionUseCase`, `ListQuestionUseCase`, `EnsureCurrentQuestionPromptUseCase`, `GetCurrentQuestionPromptUseCase`, `ListQuestionPromptUseCase`, `GetQuestionPromptUseCase`, 답변 CRUD·목록 유스케이스다.
 - 시간과 질문 선택은 주입 가능한 Clock·출력 포트로 분리한다. 애플리케이션은 Spring Security·웹 DTO·다이어리 저장소를 참조하지 않는다.
 - 질문 답변 저장 트랜잭션은 question 안에서 끝난다. **record/diary 입력 포트를 호출해 기록 행을 만드는 구조는 사용하지 않는다.** media 참조 획득/해제 포트만 공유하며, 답변·첨부 연결·파일 참조 수·공통 진행 변경을 같은 DB 트랜잭션으로 저장한다.
