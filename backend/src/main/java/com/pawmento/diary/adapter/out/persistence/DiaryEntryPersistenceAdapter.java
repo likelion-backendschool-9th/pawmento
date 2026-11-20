@@ -26,10 +26,19 @@ public class DiaryEntryPersistenceAdapter
         CountDiaryEntriesPort,
         LoadDiaryCalendarPort {
   private final DiaryEntryJpaRepository rows;
+  @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
   public Optional<DiaryEntry> findForUpdate(Long id) {
     try {
-      return read(() -> rows.findForUpdate(id).map(DiaryEntryJpaEntity::toDomain));
+      return read(
+          () ->
+              rows.findForUpdate(id)
+                  .map(
+                      row -> {
+                        entityManager.refresh(
+                            row, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+                        return row.toDomain();
+                      }));
     } catch (org.springframework.dao.OptimisticLockingFailureException
         | jakarta.persistence.OptimisticLockException failure) {
       throw new DiaryVersionConflictException(failure);

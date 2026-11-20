@@ -70,7 +70,8 @@ public class DiaryEntryJpaEntity {
     try {
       if (locationMode == null
           && (locationLatitude != null || locationLongitude != null || locationPlaceName != null))
-        throw new IllegalStateException("위치 모드 없이 저장된 좌표가 있습니다.");
+        throw new com.pawmento.diary.application.exception.DiaryLocationDataInvalidException(
+            "위치 모드 없이 저장된 좌표가 있습니다.");
       var intent =
           locationMode == null
               ? null
@@ -79,7 +80,8 @@ public class DiaryEntryJpaEntity {
       return DiaryEntry.restore(
           id, petId, createdBy, content, recordedDate, createdAt, updatedAt, version, intent);
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {
-      throw new IllegalStateException("저장된 일기 위치 원본이 올바르지 않습니다.", failure);
+      throw new com.pawmento.diary.application.exception.DiaryLocationDataInvalidException(
+          "저장된 일기 위치 원본이 올바르지 않습니다.", failure);
     }
   }
 }

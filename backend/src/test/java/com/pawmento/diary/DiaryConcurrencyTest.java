@@ -41,6 +41,7 @@ class DiaryConcurrencyTest {
   @Autowired EditDiaryEntryUseCase edit;
   @Autowired DeleteDiaryEntryUseCase deletion;
   @MockitoSpyBean LoadDiaryEntryPort load;
+  @MockitoSpyBean com.pawmento.diary.application.port.out.SaveDiaryEntryPort save;
 
   long pet() {
     return pets.create(new CreatePetCommand(9001L, "보리", "DOG", null, null)).petId();
@@ -111,19 +112,18 @@ class DiaryConcurrencyTest {
     long pet = pet();
     var inserted = new CountDownLatch(1);
     var commit = new CountDownLatch(1);
+    doAnswer(
+            invocation -> {
+              Object saved = invocation.callRealMethod();
+              inserted.countDown();
+              waitFor(commit);
+              return saved;
+            })
+        .when(save)
+        .save(any());
     try (var pool = Executors.newFixedThreadPool(2)) {
       try {
-        var created =
-            pool.submit(
-                () ->
-                    tx.execute(
-                        status -> {
-                          int result = createRequest(pet);
-                          assertThat(result).isEqualTo(201);
-                          inserted.countDown();
-                          waitFor(commit);
-                          return result;
-                        }));
+        var created = pool.submit(() -> createRequest(pet));
         waitFor(inserted);
         var deleted = pool.submit(() -> deletePetRequest(pet));
         blockedOn("delete from pets");
@@ -134,6 +134,7 @@ class DiaryConcurrencyTest {
         commit.countDown();
       }
     }
+    reset(save);
     assertThat(jdbc.queryForObject("select count(*) from pets where id=?", Long.class, pet))
         .isEqualTo(1L);
     Long id = jdbc.queryForObject("select id from diary_entries where pet_id=?", Long.class, pet);
@@ -203,7 +204,8 @@ class DiaryConcurrencyTest {
     doAnswer(
             invocation -> {
               Object entry = invocation.callRealMethod();
-              barrier.await(8, TimeUnit.SECONDS);
+              if (org.springframework.transaction.support.TransactionSynchronizationManager
+                  .isActualTransactionActive()) barrier.await(8, TimeUnit.SECONDS);
               return entry;
             })
         .when(load)

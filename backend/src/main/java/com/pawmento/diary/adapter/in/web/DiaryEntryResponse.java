@@ -12,7 +12,8 @@ public record DiaryEntryResponse(
     Instant createdAt,
     Instant updatedAt,
     Long version,
-    java.util.List<AttachmentResponse> attachments) {
+    java.util.List<AttachmentResponse> attachments,
+    GetDiaryEntryResult.Location location) {
   public record AttachmentResponse(
       Long assetId,
       String type,
@@ -53,6 +54,7 @@ public record DiaryEntryResponse(
                           : null,
                       a.available());
                 })
-            .toList());
+            .toList(),
+        r.location());
   }
 }

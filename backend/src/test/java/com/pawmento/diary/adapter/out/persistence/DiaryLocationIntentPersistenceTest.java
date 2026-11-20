@@ -137,8 +137,99 @@ class DiaryLocationIntentPersistenceTest {
             + " location_mode='MANUAL',location_latitude=91,location_longitude=127 where id=?",
         entry.getId());
     assertThatThrownBy(() -> reload(entry.getId()))
-        .isInstanceOf(IllegalStateException.class)
+        .isInstanceOf(
+            com.pawmento.diary.application.exception.DiaryLocationDataInvalidException.class)
         .hasCauseInstanceOf(
             com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException.class);
+  }
+
+  @Test
+  @DisplayName("#44-S13 기존의 정상 핀만 미이관 원본으로 백필하며 revision을 맞추고 재적용으로 사용자 값을 덮지 않는다")
+  void backfillAndRepeat() {
+    var entry = create();
+    jdbc.update("update diary_entries set location_mode=null,version=5 where id=?", entry.getId());
+    jdbc.update(
+        "insert into"
+            + " diary_location(diary_id,pet_id,created_by,latitude,longitude,place_name,created_at,updated_at)"
+            + " values(?,?,?,?,?,?,?,?)",
+        entry.getId(),
+        entry.getPetId(),
+        9001L,
+        -0.0,
+        127.123456789,
+        "공원",
+        java.sql.Timestamp.from(now),
+        java.sql.Timestamp.from(now));
+    var before =
+        jdbc.queryForMap(
+            "select created_at,updated_at,id from diary_location where diary_id=?", entry.getId());
+    DiaryLocationBackfill.run(jdbc);
+    DiaryLocationBackfill.run(jdbc);
+    var loaded = reload(entry.getId());
+    assertThat(loaded.getLocationIntent())
+        .isEqualTo(DiaryLocationIntent.manual(0.0, 127.123456789, "공원"));
+    assertThat(loaded.getVersion()).isEqualTo(5);
+    assertThat(
+            jdbc.queryForObject(
+                "select source_revision from diary_location where diary_id=?",
+                Long.class,
+                entry.getId()))
+        .isEqualTo(5L);
+    assertThat(
+            jdbc.queryForMap(
+                "select created_at,updated_at,id from diary_location where diary_id=?",
+                entry.getId()))
+        .isEqualTo(before);
+    loaded.changeLocation(9001L, DiaryLocationIntent.none(), now.plusSeconds(1));
+    adapter.save(loaded);
+    DiaryLocationBackfill.run(jdbc);
+    assertThat(reload(entry.getId()).getLocationIntent()).isEqualTo(DiaryLocationIntent.none());
+  }
+
+  @Test
+  @DisplayName("#44-S13 초기 이관의 아이·작성자 충돌은 자동 재귀속이나 다른 행의 부분 백필 없이 중단한다")
+  void refusesInitialConflict() {
+    var first = create();
+    var second = create();
+    jdbc.update(
+        "update diary_entries set location_mode=null where id in (?,?)",
+        first.getId(),
+        second.getId());
+    jdbc.update(
+        "insert into"
+            + " diary_location(diary_id,pet_id,created_by,latitude,longitude,created_at,updated_at)"
+            + " values(?,?,9002,1,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+        second.getId(),
+        second.getPetId());
+    var pin = jdbc.queryForMap("select * from diary_location where diary_id=?", second.getId());
+    assertThatThrownBy(() -> DiaryLocationBackfill.run(jdbc))
+        .isInstanceOf(
+            com.pawmento.diary.application.exception.DiaryLocationDataInvalidException.class);
+    assertThat(
+            jdbc.queryForObject(
+                "select count(*) from diary_entries where id in (?,?) and location_mode is null",
+                Long.class,
+                first.getId(),
+                second.getId()))
+        .isEqualTo(2L);
+    assertThat(jdbc.queryForMap("select * from diary_location where diary_id=?", second.getId()))
+        .isEqualTo(pin);
+  }
+
+  @Test
+  @DisplayName("#44-S13 부모 없는 기존 지도 위치는 보존하고 초기 이관을 중단한다")
+  void refusesOrphanPin() {
+    long id = 9000000 + create().getId();
+    jdbc.update(
+        "insert into"
+            + " diary_location(diary_id,pet_id,created_by,latitude,longitude,created_at,updated_at)"
+            + " values(?,1,9001,1,2,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",
+        id);
+    var before = jdbc.queryForMap("select * from diary_location where diary_id=?", id);
+    assertThatThrownBy(() -> DiaryLocationBackfill.run(jdbc))
+        .isInstanceOf(
+            com.pawmento.diary.application.exception.DiaryLocationDataInvalidException.class);
+    assertThat(jdbc.queryForMap("select * from diary_location where diary_id=?", id))
+        .isEqualTo(before);
   }
 }

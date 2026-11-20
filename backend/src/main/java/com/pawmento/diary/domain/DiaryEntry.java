@@ -95,6 +95,11 @@ public final class DiaryEntry {
     return entry;
   }
 
+  public void initializeLocationIntent(DiaryLocationIntent intent) {
+    if (locationIntent != null) throw new IllegalStateException("이미 초기화한 위치 원본입니다.");
+    this.locationIntent = Objects.requireNonNull(intent);
+  }
+
   public void changeLocation(Long memberId, DiaryLocationIntent intent, Instant now) {
     requireAuthor(memberId);
     Objects.requireNonNull(intent, "명시적인 위치 값이 필요합니다.");

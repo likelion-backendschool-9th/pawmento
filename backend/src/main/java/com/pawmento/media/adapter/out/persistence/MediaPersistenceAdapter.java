@@ -67,7 +67,13 @@ public class MediaPersistenceAdapter
   public Optional<MediaAsset> findForUpdate(Long id) {
     return MediaPersistenceOperations.execute(
         () -> {
-          return repository.findForUpdate(id).map(MediaAssetJpaEntity::toDomain);
+          return repository
+              .findForUpdate(id)
+              .map(
+                  row -> {
+                    entityManager.refresh(row, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+                    return row.toDomain();
+                  });
         });
   }
 

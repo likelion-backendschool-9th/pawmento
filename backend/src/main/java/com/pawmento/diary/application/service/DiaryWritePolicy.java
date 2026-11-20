@@ -7,6 +7,8 @@ final class DiaryWritePolicy {
   private DiaryWritePolicy() {}
 
   static void requireSupported(DiaryWriteFeatures features) {
-    if (features.locationRequested()) throw new DiaryFeatureUnavailableException();
+    if (features.location().kind()
+        == com.pawmento.diary.application.port.in.DiaryLocationChange.Kind.AUTO)
+      throw new DiaryFeatureUnavailableException();
   }
 }

@@ -237,10 +237,7 @@ class DiaryScenarioTest {
   @DisplayName("#32-S23 (고침 #32) 형식 오류는 400, 유효한 미연동 위치는 409로 거부한다")
   void unsupported() throws Exception {
     long pet = pet(9001), id = create(pet);
-    for (String extra :
-        List.of(
-            "\"location\":{\"mode\":\"MANUAL\",\"latitude\":37.5,\"longitude\":127.0}",
-            "\"location\":{\"mode\":\"AUTO\"}")) {
+    for (String extra : List.of("\"location\":{\"mode\":\"AUTO\"}")) {
       call(
               9001,
               json(

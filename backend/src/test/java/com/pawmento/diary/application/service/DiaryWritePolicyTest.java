@@ -17,20 +17,21 @@ class DiaryWritePolicyTest {
   private final DiaryWriteFeatures[] unsupported = {
     new DiaryWriteFeatures(null, true),
     new DiaryWriteFeatures(java.util.List.of(1L), true),
-    new DiaryWriteFeatures(null, DiaryLocationChange.manual(37.0, 127.0, "공원"))
+    new DiaryWriteFeatures(null, DiaryLocationChange.auto())
   };
 
   @Test
   @DisplayName("#32-S23 웹을 거치지 않은 생성도 미지원 위치를 거부하고 저장하지 않는다")
   void createPolicy() {
     var service =
-        new CreateDiaryEntryService(
+        new CreateDiaryEntryTransaction(
             access,
             mock(DiaryAttachmentsPort.class),
             mock(DiaryMediaPort.class),
             mock(DiaryResults.class),
             save,
-            clock);
+            clock,
+            mock(DiaryLocationManager.class));
     for (var features : unsupported)
       assertThatThrownBy(
               () ->
@@ -45,14 +46,15 @@ class DiaryWritePolicyTest {
   @DisplayName("#32-S23 웹을 거치지 않은 수정도 미지원 위치를 거부하고 원본에 접근하지 않는다")
   void editPolicy() {
     var service =
-        new EditDiaryEntryService(
+        new EditDiaryEntryTransaction(
             access,
             mock(DiaryAttachmentsPort.class),
             mock(DiaryMediaPort.class),
             mock(DiaryResults.class),
             load,
             save,
-            clock);
+            clock,
+            mock(DiaryLocationManager.class));
     for (var features : unsupported)
       assertThatThrownBy(
               () -> service.edit(new EditDiaryEntryCommand(1L, 2L, 3L, "일기", null, 0L, features)))
