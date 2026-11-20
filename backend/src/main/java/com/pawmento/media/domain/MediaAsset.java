@@ -226,8 +226,12 @@ public class MediaAsset {
   }
 
   public void requireAttached(Long requestedPetId) {
+    requireAttached(requestedPetId, MediaPurpose.DIARY_ATTACHMENT);
+  }
+
+  public void requireAttached(Long requestedPetId, MediaPurpose requestedPurpose) {
     if (!petId.equals(requestedPetId)
-        || purpose != MediaPurpose.DIARY_ATTACHMENT
+        || purpose != requestedPurpose
         || status != MediaUploadStatus.READY
         || referenceCount <= 0)
       throw new MediaStateConflictException(

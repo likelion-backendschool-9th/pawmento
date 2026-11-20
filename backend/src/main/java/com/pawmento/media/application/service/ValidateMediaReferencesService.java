@@ -29,7 +29,7 @@ public class ValidateMediaReferencesService implements ValidateMediaReferencesUs
                 a ->
                     !Objects.equals(a.uploaderMemberId(), c.memberId())
                         || !Objects.equals(a.petId(), c.petId())
-                        || a.purpose() != MediaPurpose.DIARY_ATTACHMENT))
+                        || a.purpose() != MediaPurpose.valueOf(c.purpose())))
       throw new MediaAssetNotFoundException();
     for (var id : c.requested())
       if (!c.previous().contains(id)) {

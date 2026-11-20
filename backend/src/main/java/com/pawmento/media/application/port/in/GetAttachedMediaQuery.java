@@ -1,4 +1,12 @@
 package com.pawmento.media.application.port.in;
 
-// 호출하는 부모 도메인이 현재 열람 권한과 실제 연결 관계를 먼저 확인한다.
-public record GetAttachedMediaQuery(Long petId, Long assetId, boolean thumbnail) {}
+// Parent domain checks current read access and the actual attachment relationship first.
+public record GetAttachedMediaQuery(Long petId, Long assetId, boolean thumbnail, String purpose) {
+  public GetAttachedMediaQuery(Long petId, Long assetId, boolean thumbnail) {
+    this(petId, assetId, thumbnail, "DIARY_ATTACHMENT");
+  }
+
+  public GetAttachedMediaQuery {
+    MediaReferencePurpose.require(purpose);
+  }
+}

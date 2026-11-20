@@ -14,10 +14,11 @@ public class QuestionAnswerReadService
     implements GetQuestionAnswerUseCase, ListQuestionAnswersUseCase, HasQuestionAnswersUseCase {
   private final CheckQuestionPetAccessPort access;
   private final QuestionAnswerStorePort answers;
+  private final QuestionAnswerAttachments attachments;
 
   public QuestionAnswerResult get(GetQuestionAnswerQuery q) {
     access.currentMode(q.memberId(), q.petId());
-    return QuestionAnswerResult.from(
+    return attachments.one(
         answers.find(q.petId(), q.answerId()).orElseThrow(QuestionAnswerNotFoundException::new));
   }
 
@@ -37,7 +38,7 @@ public class QuestionAnswerReadService
             q.to(),
             q.page(),
             q.size());
-    var items = answers.list(filter).stream().map(QuestionAnswerResult::from).toList();
+    var items = attachments.many(q.petId(), answers.list(filter));
     long count = answers.count(filter);
     return new QuestionAnswersPage(
         items, q.page(), q.size(), count, count / q.size() + (count % q.size() == 0 ? 0 : 1));

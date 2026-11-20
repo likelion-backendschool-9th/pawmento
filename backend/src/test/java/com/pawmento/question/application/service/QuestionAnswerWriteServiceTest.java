@@ -52,9 +52,17 @@ class QuestionAnswerWriteServiceTest {
                   a.getUpdatedAt(),
                   0);
             });
+    var attachments = mock(QuestionAnswerAttachments.class);
+    when(attachments.one(any())).thenAnswer(inv -> QuestionAnswerResult.from(inv.getArgument(0)));
     var service =
         new QuestionAnswerWriteService(
-            access, names, answers, progress, prompts, Clock.fixed(now, ZoneOffset.UTC));
+            access,
+            names,
+            answers,
+            progress,
+            prompts,
+            Clock.fixed(now, ZoneOffset.UTC),
+            attachments);
     var result = service.create(new CreateQuestionAnswerCommand(5L, 2L, 10L, "두 번째 사람의 답변"));
     assertThat(result.completedNow()).isFalse();
     assertThat(result.nextAssignmentRequired()).isFalse();

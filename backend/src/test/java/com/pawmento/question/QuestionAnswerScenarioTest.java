@@ -252,7 +252,7 @@ class QuestionAnswerScenarioTest {
         List.of(
             "{\"content\":\"답변\",\"authorMemberId\":1}",
             "{\"content\":\"답변\",\"answeredDate\":\"2000-01-01\"}",
-            "{\"content\":\"답변\",\"attachmentIds\":[1]}",
+            "{\"content\":\"답변\",\"attachmentIds\":[0]}",
             "{\"content\":true}",
             "{\"content\":\" \"}"))
       call(post(createPath(prompt)).contentType(MediaType.APPLICATION_JSON).content(body))

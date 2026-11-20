@@ -50,4 +50,15 @@ interface QuestionAnswerJpaRepository extends JpaRepository<QuestionAnswerJpaEnt
       @Param("author") Long author,
       @Param("fromDate") LocalDate from,
       @Param("toDate") LocalDate to);
+
+  @Modifying(flushAutomatically = true)
+  @Query(
+      "update QuestionAnswerJpaEntity a set"
+          + " a.content=:content,a.updatedAt=:updatedAt,a.version=a.version+1 where a.id=:id and"
+          + " a.version=:version")
+  int updateVersion(
+      @Param("id") Long id,
+      @Param("version") long version,
+      @Param("content") String content,
+      @Param("updatedAt") java.time.Instant updatedAt);
 }

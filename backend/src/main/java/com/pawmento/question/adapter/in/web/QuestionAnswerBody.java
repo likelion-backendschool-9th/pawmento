@@ -4,7 +4,7 @@ import com.pawmento.question.adapter.in.web.exception.InvalidQuestionRequestExce
 import java.util.Set;
 import tools.jackson.databind.JsonNode;
 
-record QuestionAnswerBody(String content, long version) {
+record QuestionAnswerBody(String content, long version, java.util.List<Long> attachmentIds) {
   static QuestionAnswerBody parse(JsonNode body, boolean editing) {
     if (body == null || !body.isObject()) throw new InvalidQuestionRequestException();
     Set<String> allowed =
@@ -17,9 +17,16 @@ record QuestionAnswerBody(String content, long version) {
     if ((content == null && !editing) || (content != null && !content.isString()))
       throw new InvalidQuestionRequestException();
     var attachments = body.get("attachmentIds");
-    // Text phase: explicitly reject attachments rather than silently dropping uploaded file IDs.
-    if (attachments != null && (!attachments.isArray() || !attachments.isEmpty()))
-      throw new InvalidQuestionRequestException();
+    java.util.List<Long> ids = null;
+    if (attachments != null) {
+      if (!attachments.isArray()) throw new InvalidQuestionRequestException();
+      ids = new java.util.ArrayList<>();
+      for (var id : attachments) {
+        if (!id.isIntegralNumber() || !id.canConvertToLong() || id.longValue() <= 0)
+          throw new InvalidQuestionRequestException();
+        ids.add(id.longValue());
+      }
+    }
     long version = 0;
     if (editing) {
       var value = body.get("version");
@@ -29,6 +36,6 @@ record QuestionAnswerBody(String content, long version) {
           || value.longValue() < 0) throw new InvalidQuestionRequestException();
       version = value.longValue();
     }
-    return new QuestionAnswerBody(content == null ? null : content.stringValue(), version);
+    return new QuestionAnswerBody(content == null ? null : content.stringValue(), version, ids);
   }
 }
