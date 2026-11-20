@@ -20,6 +20,10 @@ import { HttpMapPinRepository } from "../src/map/adapters/outbound/HttpMapPinRep
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
+import {
+  isOpenableDiary,
+  pinDetail,
+} from "../src/map/adapters/inbound/pinDetail.ts";
 
 const SEOUL_FOREST: MapBounds = {
   minLatitude: 37.5407,
@@ -203,4 +207,18 @@ test("#19-R6 지도 비밀 키는 프론트엔드 코드에 두지 않는다", (
       path,
     );
   }
+});
+
+test("#19-S9 서버에만 있는 일기 id의 핀은 상세 링크를 열지 않는다(서버 일기 상세 연결 전)", () => {
+  // 브라우저에 저장된 기록
+  const diaries = [{ id: "6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", petId: "pet-a" }];
+
+  // API에만 있는 diaryId는 상세 화면이 찾지 못해 404가 되므로 열지 않는다
+  assert.equal(isOpenableDiary(diaries, "pet-a", "7"), false);
+  assert.equal(pinDetail(false, isOpenableDiary(diaries, "pet-a", "7")), "NOT_READY");
+  // 다른 반려동물의 기록 id도 열지 않는다
+  assert.equal(isOpenableDiary(diaries, "pet-b", diaries[0].id), false);
+  // 브라우저에 있는 기록의 핀만 열고, 예시 핀은 늘 예시로 안내한다
+  assert.equal(pinDetail(false, isOpenableDiary(diaries, "pet-a", diaries[0].id)), "OPEN");
+  assert.equal(pinDetail(true, true), "SAMPLE");
 });

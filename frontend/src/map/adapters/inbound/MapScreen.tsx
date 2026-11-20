@@ -10,14 +10,19 @@ import type { MapPinList } from "@/map/application/ports";
 import { DEFAULT_MAP_CENTER } from "./mapCanvas";
 import { NaverMapCanvas } from "./NaverMapCanvas";
 import { StaticMapCanvas } from "./StaticMapCanvas";
+import { pinDetail } from "./pinDetail";
 import { pinMarkup, type PinMode } from "./pinMarkup";
 import styles from "./MapScreen.module.css";
 
-type Props = { pet: { id: string; name: string; mode: PinMode } };
+type Props = {
+  pet: { id: string; name: string; mode: PinMode };
+  // 일기 상세 화면이 열 수 있는 기록인가(브라우저에 저장된 기록만 연다)
+  canOpenDiary: (diaryId: string) => boolean;
+};
 
 const REQUEST_DELAY_MS = 250;
 
-export function MapScreen({ pet }: Props) {
+export function MapScreen({ pet, canOpenDiary }: Props) {
   const { dependencies } = useApp();
   const garden = pet.mode === "GARDEN";
   // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
@@ -153,19 +158,29 @@ export function MapScreen({ pet }: Props) {
             <div className={styles.grab} aria-hidden="true" />
             <p className={styles.eyebrow}>{garden ? "기억의 정원" : "기억의 장소"}</p>
             <h2>{selected.placeName ?? "이름 없는 장소"}</h2>
-            {result?.sample ? (
-              <p className={styles.muted}>
-                화면을 확인하기 위한 예시 기억이에요.
-              </p>
-            ) : (
-              <Link
-                className="button primary"
-                href={`/pets/${pet.id}/diary/${selected.diaryId}`}
-              >
-                기억 펼쳐보기
-                <Icon name="arrow" size={17} />
-              </Link>
-            )}
+            {(() => {
+              const detail = pinDetail(
+                Boolean(result?.sample),
+                canOpenDiary(selected.diaryId),
+              );
+              if (detail === "OPEN")
+                return (
+                  <Link
+                    className="button primary"
+                    href={`/pets/${pet.id}/diary/${selected.diaryId}`}
+                  >
+                    기억 펼쳐보기
+                    <Icon name="arrow" size={17} />
+                  </Link>
+                );
+              return (
+                <p className={styles.muted}>
+                  {detail === "SAMPLE"
+                    ? "화면을 확인하기 위한 예시 기억이에요."
+                    : "기억 상세 화면은 곧 열려요. 지금은 지도에서 장소만 볼 수 있어요."}
+                </p>
+              );
+            })()}
           </aside>
         )}
       </div>
