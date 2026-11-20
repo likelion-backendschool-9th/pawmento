@@ -28,4 +28,34 @@ class QuestionPersistenceFailureTest {
     assertThatThrownBy(() -> adapter.loadByMode(QuestionMode.GARDEN)).isSameAs(invalid);
     assertThatThrownBy(() -> adapter.loadByMode(null)).isInstanceOf(IllegalArgumentException.class);
   }
+
+  @Test
+  @DisplayName("#31-S3 EntityManager 직접 잠금의 일시 장애도 503이며 무결성·계약 위반은 그대로 남긴다")
+  void nativeLockFailurePolicy() {
+    for (RuntimeException failure :
+        new RuntimeException[] {
+          new jakarta.persistence.LockTimeoutException("lock timeout"),
+          new jakarta.persistence.QueryTimeoutException("query timeout"),
+          new org.hibernate.exception.JDBCConnectionException(
+              "lost", new java.sql.SQLException("connection")),
+          new IllegalStateException("wrapped", new java.sql.SQLTransientConnectionException("pool"))
+        }) {
+      assertThatThrownBy(
+              () ->
+                  QuestionPersistenceOperations.execute(
+                      () -> {
+                        throw failure;
+                      }))
+          .isInstanceOf(QuestionPersistenceUnavailableException.class)
+          .hasCause(failure);
+    }
+    var invalid = new DataIntegrityViolationException("broken relation");
+    assertThatThrownBy(
+            () ->
+                QuestionPersistenceOperations.execute(
+                    () -> {
+                      throw invalid;
+                    }))
+        .isSameAs(invalid);
+  }
 }
