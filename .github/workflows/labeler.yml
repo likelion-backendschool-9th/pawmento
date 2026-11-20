@@ -1,23 +1,45 @@
 name: PR path labels
 
-# PR에서 바뀐 경로를 보고 backend·frontend 라벨을 붙인다. 규칙은 .github/labeler.yml
+# PR에서 바뀐 경로를 보고 backend·frontend 라벨을 붙인다
 # 제목 유형 라벨(meta.yml)과 달리 커밋이 추가될 때(synchronize)도 다시 본다
 # pull_request_target은 쓰지 않는다. 팀원이 이 저장소 브랜치에서 PR을 열므로 pull_request로 충분하고,
 # 포크 PR에 쓰기 권한을 주지 않는다 (포크 PR에서는 토큰이 읽기 전용이라 라벨이 붙지 않는다)
+# actions/labeler는 쓰지 않는다. 이벤트 시점의 라벨 목록으로 PR 라벨 전체를 덮어써서,
+# 동시에 도는 meta.yml이 붙인 제목 유형 라벨을 지운다 (#146)
 on:
   pull_request:
     types: [opened, reopened, synchronize]
 
 permissions:
-  contents: read         # .github/labeler.yml을 읽는다
-  pull-requests: write   # 라벨을 붙인다
+  pull-requests: write   # 바뀐 파일을 읽고 라벨을 붙인다
 
 jobs:
   label:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # 붙이기만 하고 떼지 않는다. 해당 경로 변경을 되돌린 PR의 라벨은 직접 지운다
-      - uses: actions/labeler@v7
-        with:
-          sync-labels: false
+      - name: Label by changed paths
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          files=$(gh api --paginate "repos/$REPO/pulls/$NUMBER/files" --jq '.[].filename')
+
+          # 경로 규칙: 바뀐 파일 중 하나라도 접두사로 시작하면 라벨을 붙인다
+          labels=()
+          if grep -q '^backend/' <<<"$files"; then labels+=(backend); fi
+          if grep -q '^frontend/' <<<"$files"; then labels+=(frontend); fi
+
+          if [ ${#labels[@]} -eq 0 ]; then
+            exit 0
+          fi
+
+          # 붙이기만 하고 떼지 않는다(POST). 다른 라벨은 그대로 두고, 경로 변경을 되돌린 PR의 라벨은 직접 지운다
+          args=()
+          for label in "${labels[@]}"; do
+            args+=(-f "labels[]=$label")
+          done
+          gh api --silent -X POST "repos/$REPO/issues/$NUMBER/labels" "${args[@]}"
