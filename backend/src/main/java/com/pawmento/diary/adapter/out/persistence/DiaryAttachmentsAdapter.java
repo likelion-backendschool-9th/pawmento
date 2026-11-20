@@ -4,66 +4,56 @@ import com.pawmento.diary.application.exception.DiaryPersistenceUnavailableExcep
 import com.pawmento.diary.application.port.out.DiaryAttachmentsPort;
 import java.util.*;
 import java.util.function.Supplier;
-import org.springframework.dao.*;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import java.util.stream.IntStream;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessResourceFailureException;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.*;
 
 @Component
+@RequiredArgsConstructor
 public class DiaryAttachmentsAdapter implements DiaryAttachmentsPort {
-  private final JdbcTemplate jdbc;
-  private final NamedParameterJdbcTemplate named;
-
-  public DiaryAttachmentsAdapter(JdbcTemplate jdbc) {
-    this.jdbc = jdbc;
-    this.named = new NamedParameterJdbcTemplate(jdbc);
-  }
+  private final DiaryAttachmentJpaRepository rows;
 
   public Map<Long, List<Long>> findAll(List<Long> ids) {
     if (ids.isEmpty()) return Map.of();
     return run(
         () -> {
           Map<Long, List<Long>> result = new HashMap<>();
-          named.query(
-              "select diary_id,asset_id from diary_attachments where diary_id in (:ids) order by"
-                  + " diary_id,sort_order",
-              Map.of("ids", ids),
-              r -> {
-                result.computeIfAbsent(r.getLong(1), k -> new ArrayList<>()).add(r.getLong(2));
-              });
+          for (var row : rows.findForParents(ids))
+            result
+                .computeIfAbsent(row.getId().getDiaryId(), k -> new ArrayList<>())
+                .add(row.getId().getAssetId());
           return result;
         });
   }
 
+  @Transactional
   public void replace(Long id, List<Long> assets) {
     run(
         () -> {
-          jdbc.update("delete from diary_attachments where diary_id=?", id);
-          for (int i = 0; i < assets.size(); i++)
-            jdbc.update(
-                "insert into diary_attachments(diary_id,asset_id,sort_order) values(?,?,?)",
-                id,
-                assets.get(i),
-                i);
+          // Remove managed links and flush before inserting reused composite IDs/order slots.
+          // Bulk delete would leave previously loaded link entities stale in this transaction.
+          rows.deleteById_DiaryId(id);
+          rows.flush();
+          rows.saveAllAndFlush(
+              IntStream.range(0, assets.size())
+                  .mapToObj(i -> DiaryAttachmentJpaEntity.from(id, assets.get(i), i))
+                  .toList());
           return null;
         });
   }
 
   public boolean existsByAssetId(Long id) {
-    return run(
-        () ->
-            Boolean.TRUE.equals(
-                jdbc.queryForObject(
-                    "select exists(select 1 from diary_attachments where asset_id=?)",
-                    Boolean.class,
-                    id)));
+    return run(() -> rows.existsById_AssetId(id));
   }
 
   private static <T> T run(Supplier<T> action) {
     try {
       return action.get();
-    } catch (DataAccessResourceFailureException | TransientDataAccessResourceException e) {
-      throw new DiaryPersistenceUnavailableException(e);
+    } catch (DataAccessResourceFailureException | TransientDataAccessResourceException failure) {
+      throw new DiaryPersistenceUnavailableException(failure);
     }
   }
 }
