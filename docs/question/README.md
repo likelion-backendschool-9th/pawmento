@@ -1,6 +1,6 @@
 # 질문 관리와 가족 질문·답변
 
-백엔드 개발 설계 초안이다. 관리자의 모드별 질문 풀, 가족 공통 질문 진행, 가족 구성원의 개별 답변을 다룬다. 아래 ‘확정한 사용자 요구’는 사용자가 정한 동작이고, 데이터·API·권한의 세부 설계는 구현 전 검토할 제안이다.
+백엔드 개발 설계 초안이다. 초기 데이터로 준비한 모드별 질문 풀, 가족 공통 질문 진행, 가족 구성원의 개별 답변을 다룬다. 관리자 질문 관리 API·화면은 사용자 질문·답변 흐름 이후에 구현한다. 아래 ‘확정한 사용자 요구’는 사용자가 정한 동작이고, 데이터·API·권한의 세부 설계는 구현 전 검토할 제안이다.
 
 ## 관련 문서와 이슈
 
@@ -11,6 +11,7 @@
 | 공통 파일 업로드 | [미디어 설계](../media/README.md). 사진·음성 녹음 업로드도 이번 구현 범위 |
 | 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 개발 이슈 | [#31](https://github.com/likelion-backendschool-9th/pawmento/issues/31) |
+| 첫 구현 단위 | [현재 질문과 답변부터 구현하기](question-flow.md) — 초기 데이터·배정·답변·공통 진행 우선 |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
 ## 요구사항
@@ -37,7 +38,7 @@
 
 | 개념 | 이름 | 의미 |
 | --- | --- | --- |
-| 관리자가 등록한 질문 | `Question` | ACTIVE/GARDEN 분류, 질문 본문·활성 여부 |
+| 질문 풀의 원본 질문 | `Question` | ACTIVE/GARDEN 분류, 질문 본문·활성 여부 |
 | 아이에게 제시된 질문 | `QuestionPrompt` | 특정 아이·모드에 배정된 질문 회차, 당시 질문 스냅샷 |
 | 가족 구성원의 답변 | `QuestionAnswer` | 배정된 질문에 남긴 개인 답변, 작성자·등록일 |
 | 가족 공통 진행 위치 | `QuestionProgress` | 아이·모드마다 하나인 현재 질문 포인터 |
@@ -66,11 +67,11 @@
 
 ## 데이터 구조 제안
 
-질문 데이터는 실제 diary 저장소와 별도 테이블로 보관한다. 삭제된 record·memory 샘플이나 `records` 테이블을 재사용한다는 전제를 두지 않으며 질문 답변 ID는 지도 계약의 `diaryId`와 독립이다. (고침 #80: 폐기 샘플과 diary 물리 테이블 이름 전제 제거)
+질문 데이터는 실제 diary 저장소와 별도 테이블로 보관한다. 테이블 이름은 기존 단수 `question`, `question_prompt`, `question_progress`, `question_answer`를 유지하며 공통 이름 정리는 #29의 결정을 따른다. (고침 #31: 일부 테이블만 복수화하지 않음) 삭제된 record·memory 샘플이나 `records` 테이블을 재사용한다는 전제를 두지 않으며 질문 답변 ID는 지도 계약의 `diaryId`와 독립이다. (고침 #80: 폐기 샘플과 diary 물리 테이블 이름 전제 제거)
 
 | 테이블 | 핵심 필드·제약 |
 | --- | --- |
-| `question` | `id`, `mode`(ACTIVE/GARDEN), `content`(300), `enabled`, `created_at`, `updated_at`, `version` |
+| `question` | `id`, `seed_key`(초기 데이터용·nullable UNIQUE), `mode`(ACTIVE/GARDEN), `content`(300), `enabled`, `created_at`, `updated_at`, `version` |
 | `question_prompt` | `id`, `pet_id`, `mode`, `question_id`, `question_snapshot`(300), `sequence`, `assigned_at`, `completed_at`(nullable); UNIQUE(`pet_id`, `mode`, `sequence`) |
 | `question_progress` | `pet_id`, `mode`, `current_prompt_id`(nullable), `next_sequence`, `version`; PK(`pet_id`, `mode`) |
 | `question_answer` | `id`, `prompt_id`, `author_member_id`, `author_name_snapshot`, `content`(3000), `answered_at`, `answered_date`, `updated_at`, `version`; UNIQUE(`prompt_id`, `author_member_id`) |
@@ -87,22 +88,22 @@
 
 ## API 제안
 
-경로는 공통 `/api/v1` 접두사를 제외했다. 최신 `WebConfig`가 접두사를 적용하므로 개별 컨트롤러에 중복 작성하지 않는다.
+경로는 공통 `/api/v1` 접두사를 제외했다. 최신 `WebConfig`가 접두사를 적용하므로 개별 컨트롤러에 중복 작성하지 않는다. 질문·답변과 후속 관리자 API 모두 `/questions` 루트 아래에 둔다. 사용자 API의 petId는 필수 양의 Long 쿼리이며 관리자 질문 풀 API는 아이 범위를 받지 않는다. (고침 #31: 사용자 흐름 우선 계획과 공통 API 경로 기준 반영)
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `GET /admin/questions` | `mode`, `enabled` 선택, `page`, `size` | 200, 질문 목록 |
-| `POST /admin/questions` | `mode`, `content` | 201, 생성 질문 |
-| `PATCH /admin/questions/{questionId}` | `content`, `enabled`, `version` | 200, 변경 질문. 모드 변경 대신 해당 모드 질문 신규 등록 |
-| `POST /pets/{petId}/question-prompts/current` | 없음. 서버가 현재 pet 모드 확인 | 새 배정 201, 기존 질문 200 |
-| `GET /pets/{petId}/question-prompts/current` | 없음 | 200, 현재 질문. 미배정은 `prompt: null` |
-| `GET /pets/{petId}/question-prompts` | `mode` 선택, `page`, `size` | 200, 가족 공통 질문 이력·답변 수·내 답변 ID |
-| `GET /pets/{petId}/question-prompts/{promptId}` | 없음 | 200, 질문과 가족 답변 목록 |
-| `POST /pets/{petId}/question-prompts/{promptId}/answers` | `content`, `attachmentIds` | 201, 내 답변·질문 완료 여부·다음 배정 필요 여부 |
-| `GET /pets/{petId}/question-answers` | `mode`, `promptId`, `authorMemberId`, `from`, `to` 선택, `page`, `size` | 200, 가족 답변 이력 |
-| `GET /pets/{petId}/question-answers/{answerId}` | 없음 | 200, 답변 상세 |
-| `PATCH /pets/{petId}/question-answers/{answerId}` | `content`, `attachmentIds`, `version` | 200, 본인 답변 변경 |
-| `DELETE /pets/{petId}/question-answers/{answerId}` | 없음 | 204, 본인 답변 삭제 |
+| `GET /questions/admin` | `mode`, `enabled` 선택, `page`, `size` | 200, 질문 목록 |
+| `POST /questions/admin` | `mode`, `content` | 201, 생성 질문 |
+| `PATCH /questions/admin/{questionId}` | `content`, `enabled`, `version` | 200, 변경 질문. 모드 변경 대신 해당 모드 질문 신규 등록 |
+| `POST /questions/prompts/current?petId={petId}` | 없음. 서버가 현재 pet 모드 확인 | 새 배정 201, 기존 질문 200 |
+| `GET /questions/prompts/current?petId={petId}` | 없음 | 200, 현재 질문. 미배정은 `prompt: null` |
+| `GET /questions/prompts?petId={petId}` | `mode` 선택, `page`, `size` | 200, 가족 공통 질문 이력·답변 수·내 답변 ID |
+| `GET /questions/prompts/{promptId}?petId={petId}` | 없음 | 200, 질문과 가족 답변 목록 |
+| `POST /questions/prompts/{promptId}/answers?petId={petId}` | `content`, `attachmentIds` | 201, 내 답변·질문 완료 여부·다음 배정 필요 여부 |
+| `GET /questions/answers?petId={petId}` | `mode`, `promptId`, `authorMemberId`, `from`, `to` 선택, `page`, `size` | 200, 가족 답변 이력 |
+| `GET /questions/answers/{answerId}?petId={petId}` | 없음 | 200, 답변 상세 |
+| `PATCH /questions/answers/{answerId}?petId={petId}` | `content`, `attachmentIds`, `version` | 200, 본인 답변 변경 |
+| `DELETE /questions/answers/{answerId}?petId={petId}` | 없음 | 204, 본인 답변 삭제 |
 
 PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는다. `attachmentIds: []`는 첨부 전체 제거다. 답변 내용은 공백 제거 후 1~3,000자이며, 질문·모드·작성자·등록일 필드는 수정할 수 없다.
 
@@ -120,6 +121,7 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 - 가족에서 나가거나 권한이 회수되면 이후 읽기·쓰기 요청 모두 거부한다. JWT에 로그인 정보가 남아 있어도 멤버십은 서버에서 재확인한다.
 - 미인증 401, 관리자 API·읽기 전용 역할의 쓰기·타 가족 답변 변경 403, 비가족/없는 아이·질문·답변 및 경로 불일치 404, 잘못된 입력 400, 중복 답변·버전·모드 충돌 409다. 기존 `{code, message}` 에러 형식을 따른다.
 - ADMIN만 질문 풀을 관리한다. 관리자 역할이 개인 가족 답변 열람 권한을 자동 부여하지 않는다.
+- 후속 관리자 질문 API는 question 도메인의 단일 루트를 지키기 위해 `/questions/admin` 아래에 둔다. 보안 설정은 `/api/v1/questions/admin` 및 `/api/v1/questions/admin/**`를 명시적으로 `hasRole("ADMIN")` 검사한 뒤 일반 인증 규칙을 적용한다. `/admin/**` 접두어에 의존하지 않는다. 각 관리자 입력 유스케이스도 질문의 관리자 확인 출력 포트로 member 입력 포트의 현재 역할을 확인해 웹을 거치지 않은 호출·역할 회수를 검증한다. member 조회 DTO·엔티티를 question 핵심에 노출하지 않으며 미인증 401·일반 회원/역할 회수 403·조회 장애는 서버 오류로 구분한다. 전역 메서드 보안 설정을 이번 문서에서 추가하지 않는다. (고침 #31: 관리자 경로 변경에 따른 권한 경계 명시)
 - `com.pawmento.question`의 domain/application/adapter 구조를 사용한다. 입력 포트 후보는 `CreateQuestionUseCase`, `EditQuestionUseCase`, `ListQuestionUseCase`, `EnsureCurrentQuestionPromptUseCase`, `GetCurrentQuestionPromptUseCase`, `ListQuestionPromptUseCase`, `GetQuestionPromptUseCase`, 답변 CRUD·목록 유스케이스다.
 - 시간과 질문 선택은 주입 가능한 Clock·출력 포트로 분리한다. 애플리케이션은 Spring Security·웹 DTO·다이어리 저장소를 참조하지 않는다.
 - 질문 답변 저장 트랜잭션은 question 안에서 끝난다. **record/diary 입력 포트를 호출해 기록 행을 만드는 구조는 사용하지 않는다.** media 참조 획득/해제 포트만 공유하며, 답변·첨부 연결·파일 참조 수·공통 진행 변경을 같은 DB 트랜잭션으로 저장한다.
@@ -139,7 +141,7 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 아래는 현재 데모와의 차이를 해소할 구현 항목이다. 이 문서 수정만으로 프론트 동작이 바뀐 것은 아니다.
 
 1. 기존 `Memory` 혼합 모델에서 `DiaryEntry`와 `QuestionAnswer`를 분리한다. `DIARY` 질문 타입·질문용 `recordedDate`·하루 한 답변 검증을 제거한다.
-2. 질문 풀에 `mode`를 추가하고 관리자 화면에서 ACTIVE/GARDEN 분류를 관리한다.
+2. 초기 데이터로 ACTIVE/GARDEN 질문을 준비하고 현재 질문 API에 연결한다. 관리자 화면의 질문 관리 기능은 사용자 흐름을 연결한 뒤 구현한다.
 3. 날짜 해시 선정 `PoolQuestionRepository.findForDate`를 공통 현재 질문 배정/조회 포트로 교체한다. 자정마다 새 질문을 계산하지 않는다.
 4. 답변 편집기의 날짜 입력을 없애고 저장 결과의 등록일·작성자 이름을 표시한다. 이력 날짜 필터는 `answeredDate`를 사용한다.
 5. 가족이 먼저 답해 현재 질문이 바뀌었어도 이미 열어둔 질문 제출은 과거 질문에 대한 내 답변으로 저장할 수 있다. 다른 가족 답변 때문에 내 입력을 버리거나 새 질문에 붙이지 않는다.
@@ -153,6 +155,7 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 
 | 확인 방법 | 시나리오 |
 | --- | --- |
+| 테스트 | #31-S21 초기 모드별 질문 데이터·재적용 중복 방지·기존 수정/비활성 보존·모드 충돌 롤백 (고침 #31: 관리자 기능보다 사용자 질문 흐름 우선) |
 | 테스트 | #31-S1 ADMIN 질문 등록·수정·활성 전환, 모드 필수·300자 제한·권한 검사 |
 | 테스트 | #31-S2 ACTIVE 일상 풀·GARDEN 기억 풀 분리, 반대 모드 질문 배정 금지 |
 | 테스트 | #31-S3 같은 아이·모드·가족의 동시 첫 진입 시 현재 질문 하나로 수렴 |
@@ -174,14 +177,9 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 | 직접 | #31-S19 사진·음성 녹음을 포함한 답변 저장·재접속·가족 열람·재생 (고침 #31: 저장 용량을 고려해 사진·음성 녹음만 허용) |
 | 직접 | #31-S20 두 가족 계정으로 같은 질문 확인 → A 답변 → 공통 다음 질문 → B의 이전 질문 답변 → 작성자·날짜 확인 |
 
-## 작업 순서 제안
+## 작업 순서
 
-1. pet/가족 멤버십·역할 포트 계약, 미정 항목 확인, 기능 이슈 작성.
-2. 모드별 관리자 질문 풀과 권한 테스트.
-3. 질문 배정·공통 진행 저장소, 동시 배정·모드별 재개 테스트.
-4. 공통 media의 업로드·검증·열람·참조 획득/해제 포트를 구현한다. 파일 구현 순서는 [media 문서](../media/README.md)를 따른다.
-5. 독립 답변 CRUD·가족 이력·첨부·작성자·실제 등록일, 첫 답변과 진행 갱신 트랜잭션.
-6. 질문 UI·명칭·데모 저장소 이관, 공통 업로더·HTTP 어댑터 연결과 두 계정 확인.
+[현재 질문과 답변부터 구현하기 — 구현 순서와 완료 경계](question-flow.md#구현-순서와-완료-경계)를 단일 기준으로 삼는다. 관리자 기능은 사용자 질문·답변 흐름 이후이며, 소유자 범위의 구현을 가족 기능 완료로 표시하지 않는다.
 
 ## 범위 밖과 아직 정하지 않은 것
 
