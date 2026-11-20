@@ -89,3 +89,40 @@
 #115 재리뷰: DB 이관은 #32-S28, 브라우저 이관은 #32-S29로 등록한다. #32-S1/S2의 기존 CRUD·인증/권한 시나리오를 변경하지 않는다. 질문의 공백 거부·활성 풀 전체 순환은 #12-S3, 완료 배정 기반 이력과 마지막 답변 삭제 후 재답변은 #12-S10 (고침 #32)에서 확인한다.
 
 #115 추가 재리뷰: `workspace-migration.test.ts` #32-S29에 질문 풀 이관이 필요한 저장소(5MiB 한도·512바이트 여유)의 기존 회원 확인→SharedWorkspaceRepository 조회 검사를 추가했다. `life.test.ts` #32-S29에서 무변경 회원 확인은 저장 생략, 이름 변경·신규 회원은 직렬 저장함을 확인한다. 실제 AppProvider의 기존 데모 진입과 열람자/모드별 빈 질문 안내는 브라우저 직접 확인 범위이며 실행 결과는 PR에 기록한다.
+
+## 다이어리 위치 입력·원본 저장 준비 (#32, #44)
+
+- `DiaryScenarioTest` #32-S23은 유효한 미연동 MANUAL/AUTO의 409를 유지한다. 좌표가 없는 MANUAL처럼 형식이 잘못된 요청은 웹 입력 단계 400으로 분리했다. 오류 입력을 성공으로 무시하지 않는 기존 검증은 유지하며 위치 연결 완료로 표시하지 않는다.
+- `DiaryLocationRequestValuesTest` #44-S2/S4/S7은 JSON 생략/명시 NONE/MANUAL/AUTO·좌표/장소명·서버 필드 주입 거부와 코어 입력 보존을 검사한다. 실제 지도 입력 포트/주소 조회 호출은 아직 검사하지 않는다.
+- `DiaryLocationIntentPersistenceTest` #44-S4/S13은 실제 PostgreSQL에서 위치 원본 저장·본문 수정 보존·버전 충돌·NONE 전환·미이관 NULL과 기존 핀 보존·스키마 반복 적용·double precision 왕복을 검사한다. 지도 행의 초기 백필·명시적 정정·일기 삭제와 핀의 원자성은 후속 map 연결 범위다.
+- `DiaryEntryTest`와 `DiaryLocationIntentTest`는 위치 작성자와 값 불변식을 검사한다. 이 준비 작업만으로 #44-S4/S13 전체 또는 #32-S12/S16~S18을 완료 처리하지 않는다.
+
+## 수동 위치의 실제 지도 연결 (#32, #44)
+
+| 기존 확인 | 현재 검사 | 범위·후속 |
+| --- | --- | --- |
+| #32-S23의 MANUAL/AUTO 미지원 409 | DiaryScenarioTest·DiaryWritePolicyTest | 유효한 MANUAL은 실제 저장으로 전환하고 AUTO만 409 유지. 잘못된 MANUAL JSON은 400 유지 |
+| #44-S4/S7/S8 준비 단계의 입력·저장 검사 | DiaryLocationScenarioTest | 실제 API 생성→핀 조회→위치만 PATCH→KEEP→NONE→삭제, 주소 TX 경계·255자·권한 응답·첨부 사전 검사. AUTO/가족/프론트는 제외 |
+| #44-S6 revision·부모 경합 | DiaryLocationScenarioTest atomicApply/manualEditDeleteRace/staleReconcile | 동시 최초 삽입 APPLIED/DUPLICATE, STALE, 계약 위반, 관측 경합과 실제 핀 수정/삭제 경합·오래된 요청의 핀 부활 금지 |
+| #44-S7 전체 롤백 | DiaryLocationScenarioTest rollbackCreateAndEdit/rollbackDelete/deletionJobRollback | 지도 DB 쓰기/삭제 후 실패를 주입해 부모·첨부·참조·실제 핀·물리 삭제 작업 등록을 원자적으로 취소 |
+| #44-S13 미이관 상태 보존 | DiaryLocationIntentPersistenceTest | 원본 값 왕복 외 정상 핀 백필·revision 맞춤·반복 적용·초기 ID 충돌/고아 핀 보존 및 중단 추가 |
+| DiaryConcurrencyTest #32-S22 첫 생성/아이 삭제의 바깥 TX latch | 동일 테스트의 SaveDiaryEntryPort spy latch | HTTP를 감싼 바깥 TX 대신 실제 DB 쓰기 내부에서 첫 INSERT 후 커밋 전 대기. 반대 실행 순서·기록/아이 보존 검사 유지 |
+| DiaryAttachmentScenarioTest #32-S10 참조 획득/만료 정리의 바깥 TX latch | 동일 테스트의 DiaryMediaPort.change spy latch | 실제 참조 획득 후 DB TX 안에서 대기·만료 정리의 잠금 대기·참조/파일/작업 보존 유지 |
+
+사전 조회로 열린 JPA 문맥은 부모·자산 잠금 후 refresh하며, 실제 저장 시 소유권·버전·상태를 다시 검사한다. 최초 연결 단계에서는 기존 실행 테스트와 경합 검사를 유지했다. 이후 미사용 포트 제거에 따른 검사 변경은 아래 대응표에 기록한다. 이전 준비 단계에서 'map 호출 미검사'로 남긴 범위 중 MANUAL/NONE은 위 테스트로 연결했다.
+
+
+## 지도 입력 포트 경계와 미사용 저장 포트 정리 (#19, #44, #72)
+
+| 기존 검사 | 현재 검사 | 자동 확인에서 빠지는 범위·이유 |
+| --- | --- | --- |
+| DiaryLocationPersistenceAdapterTest #19-S1/S4/S5, #44-S13의 save/load/delete | 같은 테스트의 lock/write/read/remove 및 loadInArea | 기존 포트 3개와 save/load/delete 구현을 제거했다. 왕복·수정·물리 삭제·핀 필터·출처 기본값·JPA 문맥 검사는 운영 포트로 유지 |
+| #19-S1 uniquePerRecord와 ConstraintTest의 중복 생성→409 변환 | uniquePerRecord의 실제 DB 유일 제약, DiaryLocationScenarioTest.atomicApply #44-S6 | 이제 최초 삽입을 직렬화하여 APPLIED/DUPLICATE로 수렴한다. 제거한 예외의 제약 이름 대소문자 비교·409 변환은 검사하지 않음. 다른 무결성 오류 전달은 MapPersistenceFailureTest #72-S10으로 유지 |
+| #19-S1 updateMissing, #19-S4 deletedLocationIsNotServedFromCache | #44-S6 mutationAndPinQueriesShareJpaContext, lockRefreshesPreviouslyReadEntity 및 경합 시나리오 | 제거된 행 ID 기반 save의 유령 ID 거절은 검사하지 않음. 운영 포트는 diaryId로 반영하며 삭제 뒤 read/핀 조회에 캐시가 남지 않는지 검사 |
+| #19-S7 cannotOverwriteWithDifferentOwner | DiaryLocationTest.decidesIncomingRevision #44-S6, DiaryLocationScenarioTest.atomicApply/authorAndVersion #44-S6/S8 | 구 save의 행 ID·다른 diaryId 대조는 제거. 현재 계약의 pet/작성자 불일치 판정과 실제 포트 경합·HTTP 작성자 권한을 검사 |
+| MapPinScenarioTest #19의 SaveDiaryLocationPort fixture | DiaryLocationStorePort lock/write fixture | 핀 목록 HTTP 검증 범위는 유지 |
+| 내부 ID의 400 예외 검사 | GetDiaryLocationServiceTest #44-S6 | 내부 ID·관측값 계약 위반과 손상 관측값 무검증 보존을 검사. 사용자 MANUAL JSON 오류 400 검사는 기존 diary 파서·시나리오에 유지 |
+
+DiaryLocationContractErrorTest #44-S6은 실제 전역 MVC advice에서 내부 ID·좌표 오류가 400으로 처리되지 않고 ServletException으로 컨테이너에 전파되는지 검사한다. 실제 서버의 HTTP 500 응답 본문은 이 검사 범위가 아니다.
+
+DiaryLocationState.value()는 사용하지 않아 제거했다. 관측 상태는 원본 그대로 유지하며 새 좌표 입력만 지도 서비스에서 도메인 값으로 변환한다. HexagonalArchitectureTest.mapBoundaryUsesInputContracts #44-S6으로 기존 구조 검사를 이동했다. 기존 단일 DiaryMapAdapter 파일·DiaryLocation 이름 필터 대신 diary/adapter 전체 및 map/application/port/in 전체를 재귀 조회한다. 기존 import 검사와 도메인 타입 노출 금지를 유지하고 완전 수식 map.domain 참조도 검사한다. 이름이 다른 새 전달 타입·어댑터도 포함되며 기존 자동 확인에서 빠지는 범위는 없다. 소스 문자열 기반의 기존 저장소 검사 방식을 재사용하며 바이트코드 의존성 분석을 대체하지는 않는다. DiaryLocationPortValuesTest #44-S6은 LocationSource·입력 계약·diary 관측값의 출처 이름 집합 일치와 모든 현행 출처의 지도 경계 왕복을 검사한다. 이 정리로 AUTO/GPS·가족 공유·프론트 검증이 추가되는 것은 아니다.

@@ -13,11 +13,20 @@ import org.springframework.jdbc.core.JdbcTemplate;
 @Configuration(proxyBeanMethods = false)
 class DiarySchemaConfiguration {
   @Bean
-  InitializingBean diarySchema(EntityManagerFactory entityManagerFactory, DataSource dataSource) {
-    return () ->
-        new JdbcTemplate(dataSource)
-            .execute(
-                new ClassPathResource("db/diary-schema.sql")
-                    .getContentAsString(StandardCharsets.UTF_8));
+  InitializingBean diarySchema(
+      EntityManagerFactory entityManagerFactory,
+      DataSource dataSource,
+      org.springframework.transaction.PlatformTransactionManager transactionManager) {
+    return () -> {
+      var jdbc = new JdbcTemplate(dataSource);
+      var sql =
+          new ClassPathResource("db/diary-schema.sql").getContentAsString(StandardCharsets.UTF_8);
+      new org.springframework.transaction.support.TransactionTemplate(transactionManager)
+          .executeWithoutResult(
+              status -> {
+                jdbc.execute(sql);
+                DiaryLocationBackfill.run(jdbc);
+              });
+    };
   }
 }

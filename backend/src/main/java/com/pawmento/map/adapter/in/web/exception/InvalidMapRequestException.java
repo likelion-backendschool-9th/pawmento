@@ -17,8 +17,24 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 한 번만 보내 주세요.");
 	}
 
-	public static InvalidMapRequestException invalid(String name, String expected) {
-		return new InvalidMapRequestException(name + "는 " + expected + " 입력해 주세요.");
+	public static InvalidMapRequestException invalidNumber(String name) {
+		return new InvalidMapRequestException(name + "는 숫자로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException invalidPositiveInteger(String name) {
+		return new InvalidMapRequestException(name + "는 1 이상의 정수로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException invalidDate(String name) {
+		return new InvalidMapRequestException(name + "는 YYYY-MM-DD 형식으로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException latitudeOutOfRange() {
+		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
+	}
+
+	public static InvalidMapRequestException longitudeOutOfRange() {
+		return new InvalidMapRequestException(CoordinateRange.LONGITUDE_MESSAGE);
 	}
 
 	public static InvalidMapRequestException malformedEncoding() {

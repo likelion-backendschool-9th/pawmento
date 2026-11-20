@@ -49,7 +49,7 @@ class MapPersistenceFailureTest {
 	private final WalkPersistenceAdapter walkAdapter = new WalkPersistenceAdapter(walks, points,
 			mock(EntityManager.class));
 
-	private final DiaryLocationPersistenceAdapter locationAdapter = new DiaryLocationPersistenceAdapter(locations);
+	private final DiaryLocationPersistenceAdapter locationAdapter = new DiaryLocationPersistenceAdapter(locations, mock(EntityManager.class));
 
 	private final DataAccessResourceFailureException dbDown = new DataAccessResourceFailureException(
 			"internal database details");
@@ -94,16 +94,16 @@ class MapPersistenceFailureTest {
 	@Test
 	@DisplayName("#72-S10 기록 위치 저장소의 모든 메서드는 DB 장애를 저장소 일시 장애 예외로 바꾸고 원인을 보존한다")
 	void locationAdapterTranslatesEveryMethod() {
-		when(locations.save(any())).thenThrow(dbDown);
+
 		when(locations.findByDiaryId(anyLong())).thenThrow(dbDown);
 		when(locations.findInArea(anyLong(), anyLong(), anyDouble(), anyDouble(), anyDouble(), anyDouble(),
 				any(Pageable.class)))
 			.thenThrow(dbDown);
 
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
-		expectLocationUnavailable(() -> locationAdapter.save(DiaryLocation.create(1L, 10L, 1L, 37.5, 127.0, null)));
-		expectLocationUnavailable(() -> locationAdapter.loadByDiaryId(1L));
-		expectLocationUnavailable(() -> locationAdapter.deleteByDiaryId(1L));
+		expectLocationUnavailable(() -> locationAdapter.write(1L, 10L, 1L, 0, new com.pawmento.map.domain.DiaryLocationValue(37.5, 127, null)));
+		expectLocationUnavailable(() -> locationAdapter.read(1L));
+		expectLocationUnavailable(() -> locationAdapter.remove(1L));
 		expectLocationUnavailable(() -> locationAdapter.loadInArea(1L, 10L, area, 10));
 	}
 
@@ -139,13 +139,14 @@ class MapPersistenceFailureTest {
 
 			assertThatThrownBy(() -> walkAdapter.loadById(1L)).as(failure.getClass().getSimpleName())
 				.isSameAs(failure);
-			assertThatThrownBy(() -> locationAdapter.loadByDiaryId(1L)).isSameAs(failure);
+			assertThatThrownBy(() -> locationAdapter.read(1L)).isSameAs(failure);
 		}
 		// 기록 위치 저장: 유일 제약이 아닌 무결성 오류는 이미 있다는 오류도, 503도 아니다
 		DataIntegrityViolationException other = new DataIntegrityViolationException("not null violated");
-		when(locations.save(any())).thenThrow(other);
+		org.mockito.Mockito.doReturn(java.util.Optional.empty()).when(locations).findByDiaryId(1L);
+		when(locations.saveAndFlush(any())).thenThrow(other);
 
-		assertThatThrownBy(() -> locationAdapter.save(DiaryLocation.create(1L, 10L, 1L, 37.5, 127.0, null)))
+		assertThatThrownBy(() -> locationAdapter.write(1L, 10L, 1L, 0, new com.pawmento.map.domain.DiaryLocationValue(37.5, 127, null)))
 			.isSameAs(other);
 	}
 

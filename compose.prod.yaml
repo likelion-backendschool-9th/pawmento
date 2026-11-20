@@ -37,6 +37,9 @@ services:
       # 구글 로그인 키 (docs/member/social-login.md). 비어 있으면 구글 로그인만 401로 막힌다
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # 카카오 로그인 키. 비어 있으면 카카오 로그인만 401로 막힌다
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
 
   frontend:
     image: ghcr.io/${GITHUB_OWNER:?GITHUB_OWNER를 .env에 설정하세요}/pawmento-frontend:${IMAGE_TAG:?IMAGE_TAG를 설정하세요}

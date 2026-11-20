@@ -35,16 +35,7 @@ final class DiaryRequestValues {
 
   static DiaryWriteFeatures features(JsonNode attachments, JsonNode location) {
     if (attachments != null && !attachments.isArray()) throw new InvalidDiaryRequestException();
-    boolean locationRequested = false;
-    if (location != null) {
-      if (!location.isObject()
-          || !location.has("mode")
-          || !location.get("mode").isString()
-          || !java.util.Set.of("AUTO", "MANUAL", "NONE").contains(location.get("mode").asText()))
-        throw new InvalidDiaryRequestException();
-      locationRequested = !"NONE".equals(location.get("mode").asText());
-      if (!locationRequested && location.size() != 1) throw new InvalidDiaryRequestException();
-    }
+    var locationChange = DiaryLocationRequestValues.parse(location);
     java.util.List<Long> ids = null;
     if (attachments != null) {
       ids = new java.util.ArrayList<>();
@@ -56,7 +47,7 @@ final class DiaryRequestValues {
       if (new java.util.HashSet<>(ids).size() != ids.size())
         throw new InvalidDiaryRequestException();
     }
-    return new DiaryWriteFeatures(ids, locationRequested);
+    return new DiaryWriteFeatures(ids, locationChange);
   }
 
   static void id(Long id) {

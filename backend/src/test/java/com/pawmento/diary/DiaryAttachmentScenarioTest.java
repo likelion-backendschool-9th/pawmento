@@ -49,6 +49,7 @@ class DiaryAttachmentScenarioTest {
   @Autowired TransactionTemplate tx;
   @MockitoSpyBean ReadMediaFilePort files;
   @MockitoSpyBean DiaryAttachmentsPort links;
+  @MockitoSpyBean DiaryMediaPort diaryMedia;
   @Autowired Clock clock;
 
   long pet() {
@@ -398,28 +399,22 @@ class DiaryAttachmentScenarioTest {
     long p = pet(), a = asset(p, false);
     var acquired = new CountDownLatch(1);
     var commit = new CountDownLatch(1);
+    doAnswer(
+            invocation -> {
+              invocation.callRealMethod();
+              jdbc.update(
+                  "update media_assets set unattached_expires_at=? where id=?",
+                  java.sql.Timestamp.from(clock.instant()),
+                  a);
+              acquired.countDown();
+              if (!commit.await(10, TimeUnit.SECONDS)) throw new AssertionError("commit timeout");
+              return null;
+            })
+        .when(diaryMedia)
+        .change(eq(9001L), eq(p), anyList(), anyList());
     try (var pool = Executors.newFixedThreadPool(2)) {
       try {
-        var write =
-            pool.submit(
-                () ->
-                    tx.execute(
-                        status -> {
-                          var r = create(p, "", a);
-                          jdbc.update(
-                              "update media_assets set unattached_expires_at=? where id=?",
-                              java.sql.Timestamp.from(clock.instant()),
-                              a);
-                          acquired.countDown();
-                          try {
-                            if (!commit.await(10, TimeUnit.SECONDS))
-                              throw new AssertionError("commit timeout");
-                          } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new AssertionError(e);
-                          }
-                          return r;
-                        }));
+        var write = pool.submit(() -> create(p, "", a));
         assertThat(acquired.await(10, TimeUnit.SECONDS)).isTrue();
         var cleaner = pool.submit(() -> cleanup.schedule(a));
         org.awaitility.Awaitility.await()
@@ -440,6 +435,7 @@ class DiaryAttachmentScenarioTest {
         assertThat(jobs(a)).isZero();
       } finally {
         commit.countDown();
+        reset(diaryMedia);
       }
     }
   }

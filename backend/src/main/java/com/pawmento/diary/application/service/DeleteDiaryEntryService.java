@@ -14,6 +14,7 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
   private final DiaryMediaPort media;
   private final LoadDiaryEntryPort load;
   private final DeleteDiaryEntryPort deletion;
+  private final DiaryLocationManager location;
 
   @Override
   @Transactional
@@ -24,9 +25,12 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
     DiaryEntryAccess.version(entry, c.version());
     entry = DiaryEntryAccess.locked(load, c.petId(), c.diaryId());
     DiaryEntryAccess.version(entry, c.version());
+    DiaryLocationManager.next(entry.getVersion());
+    var observed = location.observe(entry);
     var previous = attachments.find(entry.getId());
     media.lock(c.memberId(), c.petId(), previous);
     deletion.delete(entry.getId(), c.version());
     media.change(c.memberId(), c.petId(), previous, java.util.List.of());
+    location.deleted(entry, observed);
   }
 }

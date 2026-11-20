@@ -44,8 +44,8 @@
 | `created_by` | diary가 전달한 일기의 원 작성자 회원 ID. 요청 본문에서 받지 않으며 1단계 핀 조회의 접근 기준이다 |
 | `latitude`, `longitude` | 위도, 경도 |
 | `place_name` | 장소 이름 또는 주소. 비어 있을 수 있다 |
-| `source`, `source_asset_id` | MANUAL/PHOTO_EXIF와 사진 자산 ID |
-| `source_revision` | 존재하는 위치 행의 높은 revision만 갱신. 위치 없음/일기 삭제 시 행을 실제 삭제하며 삭제 표시는 없음 (고침 #53: 부모 트랜잭션으로 동시성 보호) |
+| `source`, `source_asset_id` | 위치의 출처와 사진 자산 ID. 지금은 `MANUAL`(직접 고른 위치)만 있고 `source_asset_id`는 비어 있다. 사진 GPS에서 고른 위치(`PHOTO_EXIF`)는 위치 동의 정책이 정해진 뒤에 더한다. `source`는 NOT NULL이고 기존 행을 채우도록 기본값 `MANUAL`을 둔다 (고침 #44: 열 추가) |
+| `source_revision` | 이 위치를 마지막으로 반영한 revision(다이어리가 확정한 버전). NOT NULL이고 기본값 0이라 기존 행도 0이다. 존재하는 위치 행의 높은 revision만 갱신. 위치 없음/일기 삭제 시 행을 실제 삭제하며 삭제 표시는 없음 (고침 #53: 부모 트랜잭션으로 동시성 보호, 고침 #44: 열 추가) |
 | `created_at`, `updated_at` | 저장·수정 시각 |
 
 산책로는 `walks`와 `walk_points` 두 테이블에 따로 저장한다. 필드와 제약은 [walk-route.md](walk-route.md#데이터-구조)에 있다.

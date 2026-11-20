@@ -45,4 +45,21 @@ class DiaryEntryTest {
         .isInstanceOf(DiaryAuthorDeniedException.class);
     assertThat(entry.getContent()).isEqualTo("기억");
   }
+
+  @Test
+  @DisplayName("#44-S4 새 일기의 NONE과 기존 미이관 상태를 구분하며 작성자만 위치를 변경한다")
+  void locationIntent() {
+    var entry = DiaryEntry.create(1L, 2L, "일기", LocalDate.of(2026, 11, 17), now);
+    assertThat(entry.getLocationIntent()).isEqualTo(DiaryLocationIntent.none());
+    var legacy = DiaryEntry.restore(3L, 1L, 2L, "일기", LocalDate.of(2026, 11, 17), now, now, 0L);
+    assertThat(legacy.getLocationIntent()).isNull();
+    var manual = DiaryLocationIntent.manual(37.0, 127.0, "공원");
+    assertThatThrownBy(() -> entry.changeLocation(3L, manual, now.plusSeconds(1)))
+        .isInstanceOf(DiaryAuthorDeniedException.class);
+    assertThat(entry.getLocationIntent()).isEqualTo(DiaryLocationIntent.none());
+    entry.changeLocation(2L, manual, now.plusSeconds(1));
+    assertThat(entry.getLocationIntent()).isEqualTo(manual);
+    assertThat(entry.getCreatedAt()).isEqualTo(now);
+    assertThat(entry.getUpdatedAt()).isEqualTo(now.plusSeconds(1));
+  }
 }
