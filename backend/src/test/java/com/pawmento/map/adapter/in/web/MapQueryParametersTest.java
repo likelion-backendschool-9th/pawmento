@@ -121,6 +121,44 @@ class MapQueryParametersTest {
 	}
 
 	@Test
+	@DisplayName("#19-S5 double로 반올림되기 전의 십진수로 범위를 검사한다. 90.000000000000001은 위도 범위 밖이다")
+	void rangeIsCheckedOnTheDecimalValue() {
+		for (String value : new String[] { "90.000000000000001", "-90.000000000000001" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("lat=" + value, "lat").latitude("lat")).as("lat=%s", value)
+				.isInstanceOf(InvalidMapRequestException.class)
+				.hasMessage("위도는 -90 이상 90 이하로 입력해 주세요.");
+		}
+		for (String value : new String[] { "180.000000000000001", "-180.000000000000001" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("lng=" + value, "lng").longitude("lng")).as("lng=%s", value)
+				.hasMessage("경도는 -180 이상 180 이하로 입력해 주세요.");
+		}
+	}
+
+	@Test
+	@DisplayName("#19-S5 영역의 최솟값이 최댓값보다 크면 십진수로 비교해 거절한다. double로는 같아지는 1e-400과 0도 거절한다")
+	void areaOrderIsCheckedOnTheDecimalValue() {
+		String[] names = { "minLat", "minLng", "maxLat", "maxLng" };
+		for (String query : new String[] { "minLat=1e-400&minLng=0&maxLat=0&maxLng=0",
+				"minLat=0&minLng=37.0000000000000001&maxLat=0&maxLng=37",
+				"minLat=38&minLng=0&maxLat=37&maxLng=0" }) {
+			assertThatThrownBy(
+					() -> MapQueryParameters.parse(query, names).area("minLat", "minLng", "maxLat", "maxLng"))
+				.as(query)
+				.isInstanceOf(InvalidMapRequestException.class)
+				.hasMessage("영역의 최솟값은 최댓값보다 클 수 없습니다.");
+		}
+		MapQueryParameters.Area area = MapQueryParameters
+			.parse("minLat=-1e-400&minLng=0&maxLat=0&maxLng=0", names)
+			.area("minLat", "minLng", "maxLat", "maxLng");
+		assertThat(area.minLatitude()).isZero();
+		assertThat(area.maxLongitude()).isZero();
+		MapQueryParameters.Area same = MapQueryParameters.parse("minLat=1&minLng=2&maxLat=1&maxLng=2", names)
+			.area("minLat", "minLng", "maxLat", "maxLng");
+		assertThat(same.minLatitude()).isEqualTo(1.0);
+		assertThat(same.maxLongitude()).isEqualTo(2.0);
+	}
+
+	@Test
 	@DisplayName("#73-S7 잘못된 인코딩은 받는 키에서만 거절하고, 이 API가 받지 않는 키는 값과 인코딩을 보지 않는다")
 	void encodingIsCheckedOnlyForAcceptedKeys() {
 		assertThatThrownBy(() -> parse("petId=%ZZ")).isInstanceOf(InvalidMapRequestException.class)

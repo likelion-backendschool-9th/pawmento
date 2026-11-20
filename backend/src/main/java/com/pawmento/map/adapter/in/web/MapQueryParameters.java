@@ -1,6 +1,7 @@
 package com.pawmento.map.adapter.in.web;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
@@ -79,37 +80,66 @@ final class MapQueryParameters {
 				// 아래에서 형식 오류로 거절한다
 			}
 		}
-		throw InvalidMapRequestException.invalid(name, "1 이상의 정수로");
+		throw InvalidMapRequestException.invalidPositiveInteger(name);
+	}
+
+	/** 핀 조회 영역. 값은 범위와 순서를 십진수로 검사한 뒤 조회용 double로 바꾼 것이다. */
+	record Area(double minLatitude, double minLongitude, double maxLatitude, double maxLongitude) {
+	}
+
+	/**
+	 * 영역의 네 값을 읽는다. 범위와 최솟값 ≤ 최댓값 검사는 입력한 십진수 그대로 한다. double로 바꾼 뒤에 검사하면 반올림 때문에
+	 * 90.000000000000001이 90.0이 되거나 1e-400과 0이 같아져서 범위와 순서 규칙을 통과한다.
+	 */
+	Area area(String minLatitude, String minLongitude, String maxLatitude, String maxLongitude) {
+		BigDecimal minLat = latitudeDecimal(minLatitude);
+		BigDecimal minLng = longitudeDecimal(minLongitude);
+		BigDecimal maxLat = latitudeDecimal(maxLatitude);
+		BigDecimal maxLng = longitudeDecimal(maxLongitude);
+		if (minLat.compareTo(maxLat) > 0 || minLng.compareTo(maxLng) > 0) {
+			throw InvalidMapRequestException.areaReversed();
+		}
+		return new Area(minLat.doubleValue(), minLng.doubleValue(), maxLat.doubleValue(), maxLng.doubleValue());
 	}
 
 	// -90 이상 90 이하의 위도. 숫자가 아니거나 NaN·무한대이거나 범위를 벗어나면 거절한다
 	double latitude(String name) {
-		double value = decimal(name);
-		if (Math.abs(value) > CoordinateRange.MAX_LATITUDE_DEGREES) {
+		return latitudeDecimal(name).doubleValue();
+	}
+
+	// -180 이상 180 이하의 경도
+	double longitude(String name) {
+		return longitudeDecimal(name).doubleValue();
+	}
+
+	private BigDecimal latitudeDecimal(String name) {
+		BigDecimal value = decimal(name);
+		if (value.abs().compareTo(BigDecimal.valueOf(CoordinateRange.MAX_LATITUDE_DEGREES)) > 0) {
 			throw InvalidMapRequestException.latitudeOutOfRange();
 		}
 		return value;
 	}
 
-	// -180 이상 180 이하의 경도
-	double longitude(String name) {
-		double value = decimal(name);
-		if (Math.abs(value) > CoordinateRange.MAX_LONGITUDE_DEGREES) {
+	private BigDecimal longitudeDecimal(String name) {
+		BigDecimal value = decimal(name);
+		if (value.abs().compareTo(BigDecimal.valueOf(CoordinateRange.MAX_LONGITUDE_DEGREES)) > 0) {
 			throw InvalidMapRequestException.longitudeOutOfRange();
 		}
 		return value;
 	}
 
-	private double decimal(String name) {
+	private BigDecimal decimal(String name) {
 		String value = required(name);
-		if (DECIMAL.matcher(value).matches()) {
-			double number = Double.parseDouble(value);
-			// 1e999처럼 범위를 넘는 지수는 무한대가 된다. 숫자로 인정하지 않는다
-			if (Double.isFinite(number)) {
-				return number;
+		// 1e999처럼 double로 나타낼 수 없게 큰 지수는 숫자로 인정하지 않는다
+		if (DECIMAL.matcher(value).matches() && Double.isFinite(Double.parseDouble(value))) {
+			try {
+				return new BigDecimal(value);
+			}
+			catch (NumberFormatException ignored) {
+				// 아래에서 형식 오류로 거절한다
 			}
 		}
-		throw InvalidMapRequestException.invalid(name, "숫자로");
+		throw InvalidMapRequestException.invalidNumber(name);
 	}
 
 	// 정확히 YYYY-MM-DD인 날짜. offset 접미사(Z, +09:00)나 시각, 달력에 없는 날(2026-02-30)은 거절한다
@@ -123,7 +153,7 @@ final class MapQueryParameters {
 				// 아래에서 형식 오류로 거절한다
 			}
 		}
-		throw InvalidMapRequestException.invalid(name, "YYYY-MM-DD 형식으로");
+		throw InvalidMapRequestException.invalidDate(name);
 	}
 
 	private String required(String name) {

@@ -304,6 +304,27 @@ class MapPinScenarioTest {
 	}
 
 	@Test
+	@DisplayName("#19-S5 double로 반올림하면 통과하는 값도 십진수로 검사해 400이다. 위도 90.000000000000001과 1e-400 대 0의 역전")
+	void decimalPrecisionIsNotRoundedAway() throws Exception {
+		Guardian me = signUpAndLogin();
+
+		mockMvc
+			.perform(withRawQuery("petId=" + PET
+					+ "&minLatitude=37.0&minLongitude=126.0&maxLatitude=90.000000000000001&maxLongitude=128.0")
+				.cookie(me.cookie()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("위도는 -90 이상 90 이하로 입력해 주세요."));
+		mockMvc
+			.perform(withRawQuery("petId=" + PET
+					+ "&minLatitude=1e-400&minLongitude=126.0&maxLatitude=0&maxLongitude=128.0")
+				.cookie(me.cookie()))
+			.andExpect(status().isBadRequest())
+			.andExpect(jsonPath("$.code").value("VALIDATION"))
+			.andExpect(jsonPath("$.message").value("영역의 최솟값은 최댓값보다 클 수 없습니다."));
+	}
+
+	@Test
 	@DisplayName("#19-S5 petId는 1 이상의 정수만 받고, 영역 값은 십진수만 받는다. 0, 음수, 소수, 범위를 넘는 정수, NaN·16진수·접미사는 400이다")
 	void strictNumbers() throws Exception {
 		Guardian me = signUpAndLogin();

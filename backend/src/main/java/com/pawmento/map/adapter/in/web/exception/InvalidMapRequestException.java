@@ -17,8 +17,21 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 한 번만 보내 주세요.");
 	}
 
-	public static InvalidMapRequestException invalid(String name, String expected) {
-		return new InvalidMapRequestException(name + "는 " + expected + " 입력해 주세요.");
+	public static InvalidMapRequestException invalidNumber(String name) {
+		return new InvalidMapRequestException(name + "는 숫자로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException invalidPositiveInteger(String name) {
+		return new InvalidMapRequestException(name + "는 1 이상의 정수로 입력해 주세요.");
+	}
+
+	public static InvalidMapRequestException invalidDate(String name) {
+		return new InvalidMapRequestException(name + "는 YYYY-MM-DD 형식으로 입력해 주세요.");
+	}
+
+	// 도메인의 영역 규칙(MapArea)과 같은 문구. 웹 어댑터는 도메인을 import하지 않아 문구를 따로 둔다
+	public static InvalidMapRequestException areaReversed() {
+		return new InvalidMapRequestException("영역의 최솟값은 최댓값보다 클 수 없습니다.");
 	}
 
 	public static InvalidMapRequestException latitudeOutOfRange() {
