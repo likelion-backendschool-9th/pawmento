@@ -1,5 +1,7 @@
 package com.pawmento.map.domain;
 
+import java.math.BigDecimal;
+
 import com.pawmento.map.domain.exception.InvalidMapAreaException;
 
 /**
@@ -29,6 +31,19 @@ public class MapArea {
 
 	public static MapArea of(double minLatitude, double minLongitude, double maxLatitude, double maxLongitude) {
 		return new MapArea(minLatitude, minLongitude, maxLatitude, maxLongitude);
+	}
+
+	/**
+	 * 요청에서 받은 십진수 그대로 순서를 검사한 뒤 double로 바꾼다. double로 바꾼 뒤에 비교하면 1e-400과 0처럼 서로 다른 값이
+	 * 같아져서 "최솟값이 최댓값보다 클 수 없다"는 규칙을 통과한다.
+	 */
+	public static MapArea of(BigDecimal minLatitude, BigDecimal minLongitude, BigDecimal maxLatitude,
+			BigDecimal maxLongitude) {
+		if (minLatitude.compareTo(maxLatitude) > 0 || minLongitude.compareTo(maxLongitude) > 0) {
+			throw new InvalidMapAreaException();
+		}
+		return new MapArea(minLatitude.doubleValue(), minLongitude.doubleValue(), maxLatitude.doubleValue(),
+				maxLongitude.doubleValue());
 	}
 
 	public double getMinLatitude() {
