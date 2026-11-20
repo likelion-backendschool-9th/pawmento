@@ -1,4 +1,4 @@
-import type { AuthRepository } from "../../application/auth.ts";
+import type { AuthRepository, SessionSource } from "../../application/auth.ts";
 import type { Credentials } from "../../domain/account.ts";
 import { DemoAuthRepository } from "./DemoAuthRepository.ts";
 import { HttpAuthRepository } from "./HttpAuthRepository.ts";
@@ -11,7 +11,7 @@ import type { ApiClient } from "../../../shared/http/apiClient.ts";
 export class SessionAuthRepository implements AuthRepository {
   private readonly http: HttpAuthRepository;
   private readonly demo = new DemoAuthRepository();
-  private source: "http" | "demo" | null = null;
+  private source: SessionSource = null;
 
   constructor(api: ApiClient) {
     this.http = new HttpAuthRepository(api);
@@ -80,8 +80,8 @@ export class SessionAuthRepository implements AuthRepository {
     return this.http.update(nickname);
   }
 
-  /** 테스트·화면에서 현재 세션 출처를 구분할 때 쓴다 */
-  sessionSource() {
+  /** 지금 세션의 출처. 앱 컨텍스트가 읽어 화면에 알린다 */
+  sessionSource(): SessionSource {
     return this.source;
   }
 }

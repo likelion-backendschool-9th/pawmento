@@ -67,4 +67,7 @@ export class DemoAuthRepository implements AuthRepository {
     if (entry) entry.account = this.account;
     return this.account;
   }
+  sessionSource(): "demo" {
+    return "demo";
+  }
 }
