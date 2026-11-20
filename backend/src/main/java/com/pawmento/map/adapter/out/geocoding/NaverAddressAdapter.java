@@ -18,7 +18,7 @@ import com.pawmento.map.application.port.out.LoadAddressPort;
 
 /**
  * 네이버 Reverse Geocoding으로 좌표를 주소로 바꾼다.
- * 키가 없거나, 호출이 실패하거나, 시간이 오래 걸리면 빈 값을 돌려준다. 예외를 밖으로 던지지 않는다.
+ * 키가 없거나 외부 호출이 실패하면 빈 값을 돌려준다. 내부 프로그래밍 오류는 전파한다.
  */
 @Component
 class NaverAddressAdapter implements LoadAddressPort {
@@ -75,7 +75,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 				.body(ReverseGeocodeResponse.class);
 			return Optional.ofNullable(response).flatMap(NaverAddressAdapter::toAddress);
 		}
-		catch (RuntimeException e) {
+		catch (org.springframework.web.client.RestClientException e) {
 			// 요청 헤더(키)는 로그에 남기지 않는다
 			log.warn("주소 조회에 실패했습니다: {}", e.getClass().getSimpleName());
 			return Optional.empty();
@@ -96,7 +96,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 	}
 
 	private static Optional<Result> findResult(ReverseGeocodeResponse response, String name) {
-		return response.results().stream().filter(result -> name.equals(result.name())).findFirst();
+		return response.results().stream().filter(java.util.Objects::nonNull).filter(result -> name.equals(result.name())).findFirst();
 	}
 
 	// 시·도, 시·군·구, (도로명 또는 동·리), 번호 순으로 이어 붙인다

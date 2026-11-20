@@ -2,14 +2,16 @@ package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
 
+import org.hibernate.annotations.ColumnDefault;
+
 import com.pawmento.global.exception.RuleViolationException;
 import com.pawmento.map.application.exception.StoredLocationInvalidException;
 import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.domain.DiaryLocationState;
+import com.pawmento.map.domain.DiaryLocationValue;
 import com.pawmento.map.domain.LocationSource;
 
 import jakarta.persistence.Column;
-import org.hibernate.annotations.ColumnDefault;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -82,29 +84,33 @@ class DiaryLocationJpaEntity {
 	protected DiaryLocationJpaEntity() {
 	}
 
-	static DiaryLocationJpaEntity from(DiaryLocation location) {
-		DiaryLocationJpaEntity entity = new DiaryLocationJpaEntity();
-		entity.diaryId = location.getDiaryId();
-		entity.petId = location.getPetId();
-		entity.createdBy = location.getCreatedBy();
-		entity.source = location.getSource();
-		entity.sourceAssetId = location.getSourceAssetId();
-		entity.sourceRevision = location.getSourceRevision();
-		entity.updateLocation(location);
-		return entity;
+	// 정정 경로에서는 손상된 식별자·메타데이터도 일기 원본으로 바꾼다.
+	void replaceState(
+			Long diaryId, Long petId, Long createdBy, long revision, DiaryLocationValue location) {
+		this.diaryId = diaryId;
+		this.petId = petId;
+		this.createdBy = createdBy;
+		this.latitude = location.latitude();
+		this.longitude = location.longitude();
+		this.placeName = location.placeName();
+		this.source = LocationSource.MANUAL;
+		this.sourceAssetId = null;
+		this.sourceRevision = revision;
 	}
 
-	// 좌표와 장소 이름만 바꾼다. 기록·반려동물·작성자는 바뀌지 않는다
-	void updateLocation(DiaryLocation location) {
-		this.latitude = location.getLatitude();
-		this.longitude = location.getLongitude();
-		this.placeName = location.getPlaceName();
-	}
-
-	// 기록·반려동물·작성자 id가 모두 같은지 비교한다. 권한 검사가 아니라 같은 위치 행인지 확인하는 용도다
-	boolean hasSameReferences(DiaryLocation location) {
-		return diaryId.equals(location.getDiaryId()) && petId.equals(location.getPetId())
-				&& createdBy.equals(location.getCreatedBy());
+	// 정정과 삭제는 손상된 메타데이터도 관측해야 하므로 도메인 복원 검사를 적용하지 않는다.
+	DiaryLocationState toState() {
+		return new DiaryLocationState(
+				id,
+				diaryId,
+				petId,
+				createdBy,
+				latitude,
+				longitude,
+				placeName,
+				source,
+				sourceAssetId,
+				sourceRevision);
 	}
 
 	// 저장된 행이 도메인 규칙에 맞지 않으면 요청 입력 오류(400)가 아니라 저장 데이터 오류(500)다.

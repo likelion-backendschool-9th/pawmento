@@ -12,6 +12,11 @@ import org.springframework.stereotype.Component;
 public class DiaryMediaAdapter implements DiaryMediaPort {
   private final ChangeMediaReferencesUseCase references;
   private final LockMediaReferencesUseCase locks;
+  private final ValidateMediaReferencesUseCase validation;
+
+  public void validate(Long member, Long pet, List<Long> previous, List<Long> requested) {
+    validation.validate(new ValidateMediaReferencesCommand(member, pet, previous, requested));
+  }
 
   public void lock(Long member, Long pet, List<Long> ids) {
     locks.lock(new LockMediaReferencesCommand(member, pet, ids));
