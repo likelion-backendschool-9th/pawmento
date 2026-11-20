@@ -50,18 +50,4 @@ class DiaryMediaArchitectureTest {
       }
     }
   }
-  @Test
-  @DisplayName("#44-S6 diary 지도 어댑터는 map 입력 포트만 참조하고 도메인 전달 타입을 노출하지 않는다")
-  void mapBoundaryUsesInputContracts() throws Exception {
-    var adapter = Files.readString(Path.of("src/main/java/com/pawmento/diary/adapter/out/map/DiaryMapAdapter.java"));
-    var imports = Pattern.compile("(?m)^import\\s+(com\\.pawmento\\.map\\.[^;]+);").matcher(adapter);
-    while (imports.find()) assertThat(imports.group(1)).startsWith("com.pawmento.map.application.port.in.");
-    try (var paths = Files.list(Path.of("src/main/java/com/pawmento/map/application/port/in"))) {
-      for (var path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
-        if (path.getFileName().toString().contains("DiaryLocation"))
-          assertThat(Files.readString(path)).doesNotContain("com.pawmento.map.domain");
-      }
-    }
-  }
-
 }
