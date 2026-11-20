@@ -11,6 +11,7 @@ import {
   MAX_POINTS_PER_REQUEST,
   MAX_POINTS_PER_WALK,
   pathDistance,
+  DEMO_WALK_PREFIX,
   type WalkPoint,
 } from "../src/map/domain/Walk.ts";
 import { WalkRecorder } from "../src/map/application/WalkRecorder.ts";
@@ -32,16 +33,25 @@ const point = (n: number, extra: Partial<WalkPoint> = {}): WalkPoint => ({
   ...extra,
 });
 
-function fakeRepository(sent: WalkPoint[][] = [], failOn: number[] = []): WalkRepository & { calls: number } {
+function fakeRepository(
+  sent: WalkPoint[][] = [],
+  failOn: number[] = [],
+  closedOn: number[] = [],
+  endStatus: "ENDED" | "INTERRUPTED" = "ENDED",
+): WalkRepository & { calls: number } {
   const repo = {
     calls: 0,
     start: async (petId: string) => ({ walkId: "5", petId, startedAt: "2026-11-20T01:00:00Z" }),
     addPoints: async (_walkId: string, points: readonly WalkPoint[]) => {
       repo.calls += 1;
       if (failOn.includes(repo.calls)) throw new ApplicationError("NETWORK", "연결이 끊겼어요.");
+      if (closedOn.includes(repo.calls)) throw new ApplicationError("WALK_CLOSED", "이미 끝난 산책이에요.");
       sent.push([...points]);
     },
-    end: async () => ({ status: "ENDED" as const, endedAt: "2026-11-20T01:30:00Z" }),
+    end: async () => ({
+      status: endStatus,
+      endedAt: endStatus === "ENDED" ? "2026-11-20T01:30:00Z" : null,
+    }),
   };
   return repo;
 }
@@ -136,10 +146,15 @@ test("#73-S6 보내다 실패하면 보낸 만큼만 인정하고 남은 좌표�
   assert.equal(sent.flat().length, 150, "같은 좌표가 두 번 나가지 않았다");
 });
 
-test("#73-S6 같은 시각의 점과 산책 한도(5,000개)를 넘는 점은 모으지 않는다", () => {
+
+test("#73-S6 같은 시각의 점은 모으지 않는다", () => {
   const recorder = new WalkRecorder(fakeRepository(), "5");
   assert.equal(recorder.record(point(0)), true);
   assert.equal(recorder.record(point(0, { latitude: 37.6 })), false, "같은 시각");
+  assert.equal(recorder.points.length, 1);
+});
+
+test("#73-S14 산책 한도(5,000개)를 넘는 점은 모으지 않는다", () => {
   const full = new WalkRecorder(fakeRepository(), "5", {
     points: Array.from({ length: MAX_POINTS_PER_WALK }, (_, i) => point(i)),
     sentCount: MAX_POINTS_PER_WALK,
@@ -156,61 +171,90 @@ test("#73-S6 동시에 두 번 보내도 한 번에 하나씩 보내 좌표가 �
   assert.equal(new Set(sent.flat().map((p) => p.recordedAt)).size, 8);
 });
 
-test("#73-S1 산책을 시작하고 끝낸다. 끝낼 때 남은 좌표를 먼저 보내고, 못 보내면 끝내지 않는다", async () => {
-  const sent: WalkPoint[][] = [];
+
+function memoryStore() {
   const memory = new Map<string, ActiveWalk>();
   const store: ActiveWalkStore = {
-    load: (petId) => memory.get(petId) ?? null,
-    save: (active) => void memory.set(active.walk.petId, active),
-    clear: (petId) => void memory.delete(petId),
+    load: (owner, petId) => memory.get(`${owner}:${petId}`) ?? null,
+    save: (owner, active) => void memory.set(`${owner}:${active.walk.petId}`, active),
+    clear: (owner, petId) => void memory.delete(`${owner}:${petId}`),
   };
+  return { memory, store };
+}
+
+test("#73-S2 산책을 끝낼 때 남은 좌표를 먼저 보내고, 못 보내면 끝내지 않는다", async () => {
+  const sent: WalkPoint[][] = [];
+  const { memory, store } = memoryStore();
   const walks = createWalkUseCases(fakeRepository(sent, [1]), store);
 
-  const { walk, recorder } = await walks.start("10");
-  assert.equal(walk.walkId, "5");
-  assert.equal(memory.get("10")?.walk.walkId, "5", "시작하면 이어 갈 수 있게 남긴다");
+  const { walk, recorder } = await walks.start("u1", "10");
+  assert.equal(memory.get("u1:10")?.walk.walkId, "5", "시작하면 이어 갈 수 있게 남긴다");
   recorder.record(point(0));
-  walks.remember(walk, recorder);
-  assert.equal(memory.get("10")?.points.length, 1);
+  walks.remember("u1", walk, recorder);
+  assert.equal(memory.get("u1:10")?.points.length, 1);
 
   // 첫 전송이 실패하므로 끝내기도 실패하고 산책 기록은 남는다
-  await assert.rejects(() => walks.end(walk, recorder), /연결이 끊겼어요/);
-  assert.ok(memory.has("10"));
+  await assert.rejects(() => walks.end("u1", walk, recorder), /연결이 끊겼어요/);
+  assert.ok(memory.has("u1:10"));
   // 다시 끝내면 남은 좌표를 보내고 끝난다
-  const result = await walks.end(walk, recorder);
+  const result = await walks.end("u1", walk, recorder);
   assert.equal(result.status, "ENDED");
+  assert.equal(result.complete, true);
   assert.equal(sent.flat().length, 1);
-  assert.equal(memory.has("10"), false);
+  assert.equal(memory.has("u1:10"), false);
 
-  // 연결이 계속 불안정하면 남은 좌표를 포기하고 끝낼 수 있다
+  // 연결이 계속 불안정하면 남은 좌표를 포기하고 끝낼 수 있다. 이때는 일부가 저장되지 않았다고 알린다
   const second = createWalkUseCases(fakeRepository([], [1, 2, 3]), store);
-  const started = await second.start("10");
+  const started = await second.start("u1", "10");
   started.recorder.record(point(0));
-  const forced = await second.end(started.walk, started.recorder, { flush: false });
+  const forced = await second.end("u1", started.walk, started.recorder, { flush: false });
   assert.equal(forced.status, "ENDED");
+  assert.equal(forced.complete, false);
+});
+
+test("#73-S3 서버가 이미 닫은 산책이면 더 모으거나 보내지 않고, 종료 결과(INTERRUPTED)를 그대로 알린다", async () => {
+  const sent: WalkPoint[][] = [];
+  const repo = fakeRepository(sent, [], [1], "INTERRUPTED"); // 첫 전송이 WALK_CLOSED(409)
+  const { memory, store } = memoryStore();
+  const walks = createWalkUseCases(repo, store);
+  const { walk, recorder } = await walks.start("u1", "10");
+  recorder.record(point(0));
+
+  await assert.rejects(
+    () => recorder.flush(),
+    (e: unknown) => e instanceof ApplicationError && e.code === "WALK_CLOSED",
+  );
+  assert.equal(recorder.closed, true);
+  assert.equal(recorder.record(point(1)), false, "닫힌 산책에는 더 모으지 않는다");
+  await recorder.flush(); // 다시 보내려 하지 않는다
+  assert.equal(repo.calls, 1);
+
+  // 끝내기는 같은 전송을 되풀이하지 않고 종료 응답만 받는다
+  const result = await walks.end("u1", walk, recorder);
+  assert.equal(repo.calls, 1);
+  assert.equal(result.status, "INTERRUPTED");
+  assert.equal(result.endedAt, null);
+  assert.equal(result.complete, false, "못 보낸 좌표가 남았다");
+  assert.equal(memory.has("u1:10"), false);
 });
 
 test("#73-S1 새로고침 전에 걷던 산책은 이어 갈 수 있다(보낸 개수도 이어진다)", async () => {
-  const memory = new Map<string, ActiveWalk>();
-  const store: ActiveWalkStore = {
-    load: (petId) => memory.get(petId) ?? null,
-    save: (active) => void memory.set(active.walk.petId, active),
-    clear: (petId) => void memory.delete(petId),
-  };
+  const { store } = memoryStore();
   const sent: WalkPoint[][] = [];
   const walks = createWalkUseCases(fakeRepository(sent), store);
-  const { walk, recorder } = await walks.start("10");
+  const { walk, recorder } = await walks.start("u1", "10");
   for (let i = 0; i < 6; i += 1) recorder.record(point(i));
   await recorder.flush();
   recorder.record(point(6));
-  walks.remember(walk, recorder);
+  walks.remember("u1", walk, recorder);
 
-  const resumed = walks.resume("10");
+  const resumed = walks.resume("u1", "10");
   assert.ok(resumed);
   assert.equal(resumed.recorder.points.length, 7);
   assert.equal(resumed.recorder.sentCount, 6);
   assert.equal(resumed.recorder.pendingCount, 1);
-  assert.equal(walks.resume("99"), null);
+  assert.equal(walks.resume("u1", "99"), null);
+  assert.equal(walks.resume("u2", "10"), null, "다른 계정의 진행 중 산책은 이어 가지 않는다");
 });
 
 test("#73-S1 서버에는 petId를 정수로, 좌표는 recordedAt과 함께 보내고 409는 사용자 문구로 바꾼다", async () => {
@@ -246,12 +290,12 @@ test("#73-S1 서버에는 petId를 정수로, 좌표는 recordedAt과 함께 보
   assert.deepEqual(ended, { status: "ENDED", endedAt: "2026-11-20T01:30:00Z" });
 });
 
-test("#73-S3 서버가 409를 주면 시작은 CONFLICT, 좌표 전송은 WALK_CLOSED로 알린다", async () => {
-  const conflict = new ApiError(409, "CONFLICT", "state conflict");
+
+test("#73-S12 이미 진행 중인 산책이 있어 서버가 409를 주면 시작은 CONFLICT로 알린다", async () => {
   const repo = new HttpWalkRepository(
     fakeApi({
       post: () => {
-        throw conflict;
+        throw new ApiError(409, "CONFLICT", "state conflict");
       },
     }),
   );
@@ -259,11 +303,20 @@ test("#73-S3 서버가 409를 주면 시작은 CONFLICT, 좌표 전송은 WALK_C
     () => repo.start("10"),
     (error: unknown) => error instanceof ApplicationError && error.code === "CONFLICT",
   );
+});
+
+test("#73-S3 끝났거나 중단된 산책에 좌표를 보내 409를 받으면 WALK_CLOSED로 알리고, 다른 오류는 그대로 올린다", async () => {
+  const repo = new HttpWalkRepository(
+    fakeApi({
+      post: () => {
+        throw new ApiError(409, "CONFLICT", "state conflict");
+      },
+    }),
+  );
   await assert.rejects(
     () => repo.addPoints("7", [point(0)]),
     (error: unknown) => error instanceof ApplicationError && error.code === "WALK_CLOSED",
   );
-  // 409가 아닌 오류는 그대로 올린다
   const failing = new HttpWalkRepository(
     fakeApi({
       post: () => {
@@ -274,7 +327,7 @@ test("#73-S3 서버가 409를 주면 시작은 CONFLICT, 좌표 전송은 WALK_C
   await assert.rejects(() => failing.addPoints("7", [point(0)]), (e: unknown) => e instanceof ApiError && e.status === 503);
 });
 
-test("#73-S1 데모 산책은 브라우저 메모리에서 시작·기록·끝내고, 같은 아이의 진행 중 산책이 있으면 시작할 수 없다", async () => {
+test("#73-S12 데모 산책은 브라우저 메모리에서 시작·기록·끝내고(S2), 같은 아이의 진행 중 산책이 있으면 시작할 수 없다", async () => {
   const demo = new DemoWalkRepository(() => new Date("2026-11-20T01:00:00Z"));
   const walk = await demo.start("uuid-pet");
   assert.match(walk.walkId, /^demo-walk-/);
@@ -312,7 +365,8 @@ test("#73-S1 서버 반려동물(양의 정수 id)은 서버로, 데모는 메�
   assert.equal(calls.length, 3, "데모 산책은 서버를 부르지 않는다");
 });
 
-test("#73-S1 진행 중인 산책을 브라우저에 남기고 이어 가며, 망가진 값이나 다른 아이의 값은 무시한다", () => {
+
+test("#73-S1 진행 중인 서버 산책을 계정별로 브라우저에 남기고 이어 가며, 망가진 값이나 다른 아이·계정의 값은 무시한다", () => {
   const data = new Map<string, string>();
   const storage = {
     getItem: (key: string) => data.get(key) ?? null,
@@ -325,19 +379,21 @@ test("#73-S1 진행 중인 산책을 브라우저에 남기고 이어 가며, �
     points: [point(0), point(1)],
     sentCount: 1,
   };
-  assert.equal(store.load("10"), null);
-  store.save(active);
-  assert.deepEqual(store.load("10"), active);
-  assert.equal(store.load("11"), null, "다른 아이의 산책은 읽지 않는다");
+  assert.equal(store.load("u1", "10"), null);
+  store.save("u1", active);
+  assert.deepEqual(store.load("u1", "10"), active);
+  assert.equal(store.load("u1", "11"), null, "다른 아이의 산책은 읽지 않는다");
+  assert.equal(store.load("u2", "10"), null, "같은 아이를 쓰는 다른 계정의 산책은 읽지 않는다");
 
-  data.set("pawmento.activeWalk.v1.10", "{깨진 값");
-  assert.equal(store.load("10"), null);
-  data.set("pawmento.activeWalk.v1.10", JSON.stringify({ ...active, sentCount: 99 }));
-  assert.equal(store.load("10"), null, "보낸 개수가 점 개수보다 크면 버린다");
+  const storedKey = [...data.keys()][0];
+  data.set(storedKey, "{깨진 값");
+  assert.equal(store.load("u1", "10"), null);
+  data.set(storedKey, JSON.stringify({ ...active, sentCount: 99 }));
+  assert.equal(store.load("u1", "10"), null, "보낸 개수가 점 개수보다 크면 버린다");
 
-  store.save(active);
-  store.clear("10");
-  assert.equal(store.load("10"), null);
+  store.save("u1", active);
+  store.clear("u1", "10");
+  assert.equal(store.load("u1", "10"), null);
 
   // 저장소를 못 쓰는 환경에서도 오류 없이 지나간다
   const broken = new LocalActiveWalkStore({
@@ -351,8 +407,34 @@ test("#73-S1 진행 중인 산책을 브라우저에 남기고 이어 가며, �
       throw Error("denied");
     },
   });
-  assert.doesNotThrow(() => broken.save(active));
-  assert.equal(broken.load("10"), null);
-  assert.doesNotThrow(() => broken.clear("10"));
-  assert.equal(new LocalActiveWalkStore(null).load("10"), null);
+  assert.doesNotThrow(() => broken.save("u1", active));
+  assert.equal(broken.load("u1", "10"), null);
+  assert.doesNotThrow(() => broken.clear("u1", "10"));
+  assert.equal(new LocalActiveWalkStore(null).load("u1", "10"), null);
+});
+
+test("#73-S1 데모 산책은 데모 저장소처럼 메모리에만 남기고, 브라우저 저장소에 남은 데모 값은 복원하지 않는다", () => {
+  const data = new Map<string, string>();
+  const storage = {
+    getItem: (key: string) => data.get(key) ?? null,
+    setItem: (key: string, value: string) => void data.set(key, value),
+    removeItem: (key: string) => void data.delete(key),
+  };
+  const demo: ActiveWalk = {
+    walk: { walkId: `${DEMO_WALK_PREFIX}1`, petId: "uuid-pet", startedAt: "2026-11-20T01:00:00Z" },
+    points: [point(0)],
+    sentCount: 0,
+  };
+  const store = new LocalActiveWalkStore(storage);
+  store.save("u1", demo);
+  assert.equal(data.size, 0, "데모 산책은 localStorage에 쓰지 않는다");
+  assert.deepEqual(store.load("u1", "uuid-pet"), demo, "같은 앱 안에서는 이어 갈 수 있다");
+  assert.equal(new LocalActiveWalkStore(storage).load("u1", "uuid-pet"), null, "새로고침(새 저장소)하면 데모 산책도 사라진다");
+
+  // 예전에 저장소에 남은 데모 값은 복원 대상이 아니다
+  data.set("pawmento.activeWalk.v2.u1.uuid-pet", JSON.stringify(demo));
+  assert.equal(new LocalActiveWalkStore(storage).load("u1", "uuid-pet"), null);
+
+  store.clear("u1", "uuid-pet");
+  assert.equal(store.load("u1", "uuid-pet"), null);
 });

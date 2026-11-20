@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { loadNaverMaps, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "./naverMaps";
 import { DEFAULT_MAP_CENTER } from "./mapCanvas";
 import type { WalkCanvasProps } from "./walkCanvas";
@@ -18,6 +18,8 @@ export function NaverWalkCanvas({
   const map = useRef<NaverMap | null>(null);
   const line = useRef<NaverPolyline | null>(null);
   const marker = useRef<NaverMarker | null>(null);
+  // 지도가 만들어진 뒤에만 길을 그릴 수 있다. 준비되면 그동안 쌓인(또는 복원된) 좌표를 다시 적용한다.
+  const [ready, setReady] = useState(false);
   const latestProps = useRef({ onUnavailable });
   useEffect(() => {
     latestProps.current = { onUnavailable };
@@ -52,10 +54,12 @@ export function NaverWalkCanvas({
           position: new maps.LatLng(start.latitude, start.longitude),
           icon: { content: HERE, anchor: new maps.Point(14, 14) },
         });
+        setReady(true);
       })
       .catch(() => latestProps.current.onUnavailable());
     return () => {
       cancelled = true;
+      setReady(false);
       line.current?.setMap(null);
       marker.current?.setMap(null);
       map.current?.destroy();
@@ -75,7 +79,7 @@ export function NaverWalkCanvas({
       marker.current.setPosition(position);
       map.current.setCenter(position);
     }
-  }, [points, current]);
+  }, [ready, points, current]);
 
   return <div ref={element} className={styles.canvas} role="application" aria-label="걷는 길 지도" />;
 }

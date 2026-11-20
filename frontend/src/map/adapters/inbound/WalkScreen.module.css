@@ -111,6 +111,12 @@
   font-weight: 600;
   backdrop-filter: blur(10px);
 }
+.paused i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
 .rec i {
   width: 8px;
   height: 8px;

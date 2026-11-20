@@ -2,7 +2,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/shared/ui/Icon";
-import { formatDistance, formatDuration, pathDistance } from "@/map/domain/Walk";
+import {
+  formatDistance,
+  formatDuration,
+  isServerPetId,
+  pathDistance,
+} from "@/map/domain/Walk";
 import { NaverWalkCanvas } from "./NaverWalkCanvas";
 import { StaticWalkCanvas } from "./StaticWalkCanvas";
 import { useWalkSession } from "./useWalkSession";
@@ -14,12 +19,15 @@ export function WalkScreen({ pet }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
   const [naverFailed, setNaverFailed] = useState(false);
   const session = useWalkSession(pet.id);
-  const { phase, points, seconds, location, error, unsent, closed } = session;
+  const { phase, points, seconds, location, error, unsent, closed, outcome } = session;
   const back = `/pets/${pet.id}/map`;
   const distance = formatDistance(pathDistance(points));
   const current = points.length > 0 ? points[points.length - 1] : null;
   const walking = phase === "walking" || phase === "ending";
   const canvasProps = { points, current };
+  // 이 브라우저에서 만든 반려동물은 서버에 없어서 산책도 이 브라우저 안에서만 연습으로 기록된다.
+  const practice = !isServerPetId(pet.id);
+  const recording = location === "ok" && !closed;
 
   return (
     <section className={styles.screen} aria-label="산책 기록">
@@ -39,9 +47,13 @@ export function WalkScreen({ pet }: Props) {
               <Icon name="paw" size={15} />
               {pet.name}와 산책 중
             </span>
-            <span className={styles.chip + " " + styles.rec}>
+            <span className={styles.chip + " " + (recording ? styles.rec : styles.paused)}>
               <i aria-hidden="true" />
-              기록 중
+              {closed || location === "denied" || location === "unsupported"
+                ? "기록 멈춤"
+                : location === "waiting"
+                  ? "위치 찾는 중"
+                  : "기록 중"}
             </span>
           </>
         )}
@@ -50,8 +62,25 @@ export function WalkScreen({ pet }: Props) {
       <div className={styles.card}>
         {phase === "ended" ? (
           <>
-            <p className={styles.eyebrow}>산책을 마쳤어요</p>
-            <h2>{pet.name}와 함께 걸은 길이 저장됐어요</h2>
+            <p className={styles.eyebrow}>
+              {outcome?.status === "INTERRUPTED" ? "산책이 중단됐어요" : "산책을 마쳤어요"}
+            </p>
+            <h2>
+              {outcome?.status === "INTERRUPTED"
+                ? "위치가 한동안 오지 않아 서버가 산책을 먼저 닫았어요"
+                : outcome?.complete === false
+                  ? "걸은 길의 일부만 저장됐어요"
+                  : practice
+                    ? `${pet.name}와 함께 걸은 길을 연습으로 기록했어요`
+                    : `${pet.name}와 함께 걸은 길이 저장됐어요`}
+            </h2>
+            {(outcome?.status === "INTERRUPTED" || outcome?.complete === false) && (
+              <p className={styles.warn} role="status">
+                {outcome?.status === "INTERRUPTED"
+                  ? "닫히기 전까지 서버에 도착한 길만 남아 있어요."
+                  : "연결이 불안정해 서버에 보내지 못한 길이 있어요."}
+              </p>
+            )}
             <dl className={styles.stats}>
               <div><dt>걸은 시간</dt><dd>{formatDuration(seconds)}</dd></div>
               <div><dt>거리</dt><dd>{distance.value}<small>{distance.unit}</small></dd></div>
@@ -79,7 +108,12 @@ export function WalkScreen({ pet }: Props) {
             )}
             {closed && (
               <p className={styles.warn} role="alert">
-                이 산책은 이미 닫혔어요. 끝내기를 눌러 마무리해 주세요.
+                서버가 이 산책을 이미 닫아서 이후 길은 기록되지 않아요. 끝내기를 눌러 마무리해 주세요.
+              </p>
+            )}
+            {practice && (
+              <p className={styles.notice}>
+                이 반려동물은 이 브라우저에만 저장돼 있어서 산책도 서버가 아닌 이 브라우저에서 연습으로만 기록돼요.
               </p>
             )}
             {unsent && !closed && (
@@ -107,6 +141,11 @@ export function WalkScreen({ pet }: Props) {
             <p className={styles.eyebrow}>WALK</p>
             <h2>{pet.name}와 산책을 시작할까요?</h2>
             <p className={styles.notice}>걷는 동안 지나온 길을 지도에 그려 드려요.</p>
+            {practice && (
+              <p className={styles.notice}>
+                이 반려동물은 이 브라우저에만 저장돼 있어서 산책도 서버가 아닌 이 브라우저에서 연습으로만 기록돼요.
+              </p>
+            )}
             {error && <p className={styles.warn} role="alert">{error}</p>}
             <button
               type="button"

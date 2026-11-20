@@ -18,6 +18,17 @@ export type WalkEnd = {
 export type WalkPoint = MapPoint & { recordedAt: string };
 
 // 서버의 한도(docs/map/walk-route.md)
+// 서버의 반려동물 id는 양의 정수다. 브라우저에서 만든 반려동물(UUID)은 서버에 물을 수 없어 데모 산책으로 기록한다.
+const SERVER_PET_ID = /^[1-9][0-9]*$/;
+export const isServerPetId = (petId: string): boolean => SERVER_PET_ID.test(petId);
+
+// 데모 산책은 서버가 없어서 브라우저 메모리에만 둔다(새로고침하면 사라진다).
+export const DEMO_WALK_PREFIX = "demo-walk-";
+export const isDemoWalkId = (walkId: string): boolean => walkId.startsWith(DEMO_WALK_PREFIX);
+
+// 끝낸 결과. complete가 false면 서버에 저장하지 못한 좌표가 남아 있다.
+export type WalkOutcome = WalkEnd & { complete: boolean };
+
 export const MAX_POINTS_PER_REQUEST = 100;
 export const MAX_POINTS_PER_WALK = 5000;
 

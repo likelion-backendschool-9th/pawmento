@@ -4,6 +4,7 @@ import {
   MAX_POINTS_PER_WALK,
   type WalkPoint,
 } from "../domain/Walk.ts";
+import { ApplicationError } from "../../shared/application/ApplicationError.ts";
 import type { WalkRepository } from "./walkPorts.ts";
 
 // 걷는 동안 모은 좌표를 서버로 보내는 일을 맡는다. 보내지 못한 좌표는 남겨 두었다가 다음에 다시 보낸다.
@@ -14,6 +15,7 @@ export class WalkRecorder {
   private readonly all: WalkPoint[];
   private sent: number;
   private flushing: Promise<void> | null = null;
+  private closedByServer = false;
 
   constructor(
     repository: WalkRepository,
@@ -37,13 +39,18 @@ export class WalkRecorder {
     return this.sent;
   }
 
+  // 서버가 이 산책을 이미 닫았다(끝났거나 중단됐다). 이후 좌표는 모으지도 보내지도 않는다.
+  get closed(): boolean {
+    return this.closedByServer;
+  }
+
   get pendingCount(): number {
     return this.all.length - this.sent;
   }
 
   // 점 하나를 모은다. 잘못된 점, 같은 시각의 점, 산책 한도(5,000개)를 넘는 점은 모으지 않고 false를 돌려준다.
   record(point: WalkPoint): boolean {
-    if (!isValidWalkPoint(point)) return false;
+    if (this.closedByServer || !isValidWalkPoint(point)) return false;
     if (this.all.length >= MAX_POINTS_PER_WALK) return false;
     const last = this.all[this.all.length - 1];
     if (last && last.recordedAt === point.recordedAt) return false;
@@ -55,9 +62,16 @@ export class WalkRecorder {
   // 동시에 두 번 불러도 한 번에 하나씩만 보낸다.
   flush(): Promise<void> {
     const run = async () => {
-      while (this.sent < this.all.length) {
+      while (!this.closedByServer && this.sent < this.all.length) {
         const batch = this.all.slice(this.sent, this.sent + MAX_POINTS_PER_REQUEST);
-        await this.repository.addPoints(this.walkId, batch);
+        try {
+          await this.repository.addPoints(this.walkId, batch);
+        } catch (cause) {
+          if (cause instanceof ApplicationError && cause.code === "WALK_CLOSED") {
+            this.closedByServer = true;
+          }
+          throw cause;
+        }
         this.sent += batch.length;
       }
     };

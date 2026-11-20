@@ -7,6 +7,7 @@ import {
   FLUSH_EVERY_POINTS,
   SAMPLE_INTERVAL_MS,
   type Walk,
+  type WalkOutcome,
   type WalkPoint,
 } from "@/map/domain/Walk";
 
@@ -15,8 +16,10 @@ export type LocationState = "waiting" | "ok" | "denied" | "unsupported";
 
 // 산책 한 번의 흐름(시작 → 위치 모으기 → 서버로 보내기 → 끝내기)을 화면에 이어 주는 훅이다.
 export function useWalkSession(petId: string) {
-  const { dependencies } = useApp();
+  const { dependencies, account } = useApp();
   const walks = dependencies.walk;
+  // 진행 중인 산책은 계정별로 따로 남긴다
+  const owner = account?.id ?? null;
   const [phase, setPhase] = useState<WalkPhase>("checking");
   const [walk, setWalk] = useState<Walk | null>(null);
   const [points, setPoints] = useState<WalkPoint[]>([]);
@@ -24,7 +27,8 @@ export function useWalkSession(petId: string) {
   const [location, setLocation] = useState<LocationState>("waiting");
   const [error, setError] = useState("");
   const [unsent, setUnsent] = useState(false); // 서버로 못 보낸 좌표가 있다
-  const [closed, setClosed] = useState(false); // 서버가 이미 닫은 산책이다
+  const [closed, setClosed] = useState(false); // 서버가 이미 닫은 산책이다(이후 좌표는 기록하지 않는다)
+  const [outcome, setOutcome] = useState<WalkOutcome | null>(null);
   const recorder = useRef<WalkRecorder | null>(null);
   const latest = useRef<{ latitude: number; longitude: number } | null>(null);
   const lastSampleAt = useRef(0);
@@ -41,13 +45,14 @@ export function useWalkSession(petId: string) {
   // 새로고침 전에 걷던 산책이 있으면 이어 간다
   useEffect(() => {
     // 브라우저 저장소는 화면이 뜬 뒤에만 읽을 수 있어, 한 박자 뒤에 읽는다.
+    if (!owner) return;
     const timer = setTimeout(() => {
-      const resumed = walks.resume(petId);
+      const resumed = walks.resume(owner, petId);
       if (resumed) begin(resumed.walk, resumed.recorder);
       else setPhase("idle");
     }, 0);
     return () => clearTimeout(timer);
-  }, [walks, petId, begin]);
+  }, [walks, owner, petId, begin]);
 
   const send = useCallback(async () => {
     const active = recorder.current;
@@ -74,15 +79,19 @@ export function useWalkSession(petId: string) {
         };
         setLocation("ok");
       },
-      (failure) => setLocation(failure.code === failure.PERMISSION_DENIED ? "denied" : "waiting"),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 },
+      (failure) => {
+        // 위치를 못 받는 동안에는 마지막 좌표를 다시 쓰지 않는다. 새 위치를 받을 때까지 기록을 멈춘다.
+        latest.current = null;
+        setLocation(failure.code === failure.PERMISSION_DENIED ? "denied" : "waiting");
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 },
     );
     return () => navigator.geolocation.clearWatch(id);
   }, [walking]);
 
   // 1초마다 시간을 갱신하고, 15초마다 지금 위치를 한 점으로 모은다
   useEffect(() => {
-    if (!walking || !walk) return;
+    if (!walking || !walk || !owner) return;
     const timer = setInterval(() => {
       const current = Date.now();
       setNow(current);
@@ -96,11 +105,11 @@ export function useWalkSession(petId: string) {
       lastSampleAt.current = current;
       if (!added) return;
       setPoints([...active.points]);
-      walks.remember(walk, active);
+      walks.remember(owner, walk, active);
       if (active.pendingCount >= FLUSH_EVERY_POINTS) void send();
     }, 1000);
     return () => clearInterval(timer);
-  }, [walking, walk, walks, send]);
+  }, [walking, walk, owner, walks, send]);
 
   // 걷는 동안 화면이 꺼지지 않게 한다(지원하는 브라우저에서만)
   useEffect(() => {
@@ -124,10 +133,12 @@ export function useWalkSession(petId: string) {
   }, [walking]);
 
   const start = useCallback(async () => {
+    if (!owner) return;
     setError("");
+    setOutcome(null);
     setPhase("starting");
     try {
-      const started = await walks.start(petId);
+      const started = await walks.start(owner, petId);
       setClosed(false);
       setUnsent(false);
       latest.current = null;
@@ -137,15 +148,15 @@ export function useWalkSession(petId: string) {
       setError(cause instanceof Error ? cause.message : "산책을 시작하지 못했어요.");
       setPhase("idle");
     }
-  }, [walks, petId, begin]);
+  }, [walks, owner, petId, begin]);
 
   const finish = useCallback(
     async (options: { flush: boolean } = { flush: true }) => {
-      if (!walk || !recorder.current) return;
+      if (!walk || !recorder.current || !owner) return;
       setError("");
       setPhase("ending");
       try {
-        await walks.end(walk, recorder.current, options);
+        setOutcome(await walks.end(owner, walk, recorder.current, options));
         setPhase("ended");
       } catch (cause) {
         setUnsent(true);
@@ -155,15 +166,28 @@ export function useWalkSession(petId: string) {
         setPhase("walking");
       }
     },
-    [walk, walks],
+    [walk, owner, walks],
   );
 
   // 서버가 이미 닫은 산책은 이어 갈 수 없으니 기록을 비운다
   const leave = useCallback(() => {
-    walks.forget(petId);
-  }, [walks, petId]);
+    if (owner) walks.forget(owner, petId);
+  }, [walks, owner, petId]);
 
   const supported = typeof navigator === "undefined" || "geolocation" in navigator;
   const seconds = walk ? elapsedSeconds(walk.startedAt, now) : 0;
-  return { phase, walk, points, seconds, location: supported ? location : "unsupported" as LocationState, error, unsent, closed, start, finish, leave };
+  return {
+    phase,
+    walk,
+    points,
+    seconds,
+    location: supported ? location : ("unsupported" as LocationState),
+    error,
+    unsent,
+    closed,
+    outcome,
+    start,
+    finish,
+    leave,
+  };
 }

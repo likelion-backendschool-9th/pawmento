@@ -16,8 +16,9 @@ export type ActiveWalk = {
   sentCount: number;
 };
 
+// 진행 중인 산책은 로그인한 계정(owner)별로 따로 둔다. 같은 반려동물을 여러 계정이 쓰더라도 서로의 경로가 섞이지 않는다.
 export interface ActiveWalkStore {
-  load(petId: string): ActiveWalk | null;
-  save(active: ActiveWalk): void;
-  clear(petId: string): void;
+  load(owner: string, petId: string): ActiveWalk | null;
+  save(owner: string, active: ActiveWalk): void;
+  clear(owner: string, petId: string): void;
 }

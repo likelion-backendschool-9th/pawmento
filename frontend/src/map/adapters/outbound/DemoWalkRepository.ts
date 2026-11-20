@@ -1,9 +1,8 @@
 import { ApplicationError } from "../../../shared/application/ApplicationError.ts";
-import type { Walk, WalkEnd, WalkPoint } from "../../domain/Walk.ts";
+import { DEMO_WALK_PREFIX, type Walk, type WalkEnd, type WalkPoint } from "../../domain/Walk.ts";
 import type { WalkRepository } from "../../application/walkPorts.ts";
 
-// 데모 계정은 서버가 없어서 산책을 브라우저 메모리에만 둔다(새로고침하면 사라진다).
-export const DEMO_WALK_PREFIX = "demo-walk-";
+// 데모 산책은 브라우저 메모리에만 둔다(새로고침하면 사라진다).
 
 type DemoWalk = { endedAt: string | null; count: number };
 
