@@ -16,6 +16,11 @@ import { createMapUseCases } from "../map/application/useCases.ts";
 import { HttpMapPinRepository } from "../map/adapters/outbound/HttpMapPinRepository.ts";
 import { DemoMapPinRepository } from "../map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../map/adapters/outbound/PetScopedMapPinRepository.ts";
+import { createWalkUseCases } from "../map/application/walkUseCases.ts";
+import { HttpWalkRepository } from "../map/adapters/outbound/HttpWalkRepository.ts";
+import { DemoWalkRepository } from "../map/adapters/outbound/DemoWalkRepository.ts";
+import { PetScopedWalkRepository } from "../map/adapters/outbound/PetScopedWalkRepository.ts";
+import { LocalActiveWalkStore } from "../map/adapters/outbound/LocalActiveWalkStore.ts";
 
 export function createDependencies() {
   const http = createApiClient();
@@ -43,6 +48,13 @@ export function createDependencies() {
     ),
     auth: createAuthUseCases(new SessionAuthRepository(http)),
     pets: createPetUseCases(new HttpPetListRepository(http)),
+    walk: createWalkUseCases(
+      new PetScopedWalkRepository(
+        new HttpWalkRepository(http),
+        new DemoWalkRepository(),
+      ),
+      new LocalActiveWalkStore(),
+    ),
     map: createMapUseCases(
       new PetScopedMapPinRepository(
         new HttpMapPinRepository(http),
