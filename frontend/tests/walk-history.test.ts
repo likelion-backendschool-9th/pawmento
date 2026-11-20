@@ -4,6 +4,8 @@ import { ApplicationError } from "../src/shared/application/ApplicationError.ts"
 import { ApiError, type ApiClient } from "../src/shared/http/apiClient.ts";
 import {
   datesEndingAt,
+  followToday,
+  msUntilNextSeoulMidnight,
   formatClock,
   formatHourMinute,
   formatTimeRange,
@@ -17,7 +19,7 @@ import {
   weekdayLabel,
   type WalkRecord,
 } from "../src/map/domain/WalkRecord.ts";
-import { fitRoutes } from "../src/map/domain/WalkRoutes.ts";
+import { fitRoutes, routeMarks } from "../src/map/domain/WalkRoutes.ts";
 import { createWalkHistoryUseCases } from "../src/map/application/walkHistoryUseCases.ts";
 import type { WalkDayList, WalkHistoryRepository } from "../src/map/application/walkPorts.ts";
 import { HttpWalkHistoryRepository } from "../src/map/adapters/outbound/HttpWalkHistoryRepository.ts";
@@ -159,7 +161,7 @@ test("#73-S7 여러 날을 한꺼번에 읽고, 한 날이 실패해도 나머�
 
 test("#73-S7 데모 계정은 오늘 기준 예시 산책을 보여 준다. 3일 전에는 자정을 넘겨 중단된 산책이 함께 나온다", async () => {
   const demo = new DemoWalkRepository(() => NOW);
-  const day = await demo.listByDate("uuid-pet", "2026-11-17");
+  const day = await demo.listByDate("uuid-pet", "2026-11-17", { sample: true });
   assert.equal(day.sample, true);
   assert.equal(day.walks.length, 2);
   assert.deepEqual(day.walks.map((w) => w.status), ["ENDED", "INTERRUPTED"]);
@@ -176,7 +178,21 @@ test("#73-S7 데모 계정은 오늘 기준 예시 산책을 보여 준다. 3일
 
 test("#73-S8 예시도 기록도 없는 날은 빈 목록이다", async () => {
   const demo = new DemoWalkRepository(() => NOW);
-  assert.deepEqual(await demo.listByDate("uuid-pet", "2026-11-18"), { walks: [], sample: false });
+  assert.deepEqual(await demo.listByDate("uuid-pet", "2026-11-18", { sample: true }), { walks: [], sample: false });
+});
+
+test("#73-S9 일반 계정의 브라우저 반려동물에는 예시 산책을 섞지 않는다. 데모 계정에만 섞는다", async () => {
+  const demo = new DemoWalkRepository(() => NOW);
+  // 예시가 있는 날(3일 전)이어도 옵션이 없으면 빈 목록이다
+  assert.deepEqual(await demo.listByDate("ordinary-pet", "2026-11-17"), { walks: [], sample: false });
+  assert.deepEqual(await demo.listByDate("ordinary-pet", "2026-11-17", { sample: false }), { walks: [], sample: false });
+  assert.equal((await demo.listByDate("demo-pet", "2026-11-17", { sample: true })).walks.length, 2);
+  // 일반 계정이 직접 기록한 연습 산책은 그대로 나온다
+  const walk = await demo.start("ordinary-pet");
+  await demo.addPoints(walk.walkId, [{ latitude: 37.5, longitude: 127, recordedAt: "2026-11-20T03:00:15Z" }]);
+  const today = await demo.listByDate("ordinary-pet", "2026-11-20");
+  assert.deepEqual(today.walks.map((w) => w.walkId), [walk.walkId]);
+  assert.equal(today.sample, false);
 });
 
 test("#73-S7 이 앱에서 기록한 연습 산책이 그날 목록에 들어가고, 다른 반려동물의 산책은 섞이지 않는다", async () => {
@@ -201,8 +217,8 @@ test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 �
     listByDate: async (pet, date) => (calls.push(`server:${pet}:${date}`), { walks: [], sample: false }),
   };
   const repo = new PetScopedWalkHistoryRepository(server, new DemoWalkRepository(() => NOW));
-  await repo.listByDate("10", "2026-11-17");
-  const demo = await repo.listByDate("6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", "2026-11-17");
+  await repo.listByDate("10", "2026-11-17", { sample: true });
+  const demo = await repo.listByDate("6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", "2026-11-17", { sample: true });
   assert.deepEqual(calls, ["server:10:2026-11-17"]);
   assert.equal(demo.sample, true);
 });
@@ -217,7 +233,7 @@ test("#73-S7 시작·끝 시각을 \"오전 10:00 – 10:42\"로 적고, 오전�
 
 test("#73-S7 그날의 산책을 한 화면(0~100)에 맞춰 그린다. 비율은 유지하고 점 하나여도 깨지지 않는다", () => {
   const demo = new DemoWalkRepository(() => NOW);
-  return demo.listByDate("uuid-pet", "2026-11-17").then((day) => {
+  return demo.listByDate("uuid-pet", "2026-11-17", { sample: true }).then((day) => {
     const routes = fitRoutes(day.walks);
     assert.equal(routes.length, 2);
     for (const route of routes) {
@@ -236,4 +252,54 @@ test("#73-S7 그날의 산책을 한 화면(0~100)에 맞춰 그린다. 비율�
     assert.deepEqual(fitRoutes([]), []);
     assert.deepEqual(fitRoutes([{ ...walk, points: [] }])[0]?.path ?? [], []);
   });
+});
+
+test("#73-S7 한국 자정까지 남은 시간을 계산한다", () => {
+  const hour = 60 * 60 * 1000;
+  // 한국 시각 11월 20일 23:59:00 = UTC 14:59:00 → 1분 남음
+  assert.equal(msUntilNextSeoulMidnight(Date.parse("2026-11-20T14:59:00Z")), 60_000);
+  // 한국 시각 11월 21일 00:00:00 정각이면 다음 자정까지 24시간
+  assert.equal(msUntilNextSeoulMidnight(Date.parse("2026-11-20T15:00:00Z")), 24 * hour);
+  assert.equal(msUntilNextSeoulMidnight(Date.parse("2026-11-20T03:00:00Z")), 12 * hour);
+});
+
+test("#73-S7 한국 날짜가 바뀌면 오늘과 다음 주 상한을 옮긴다. 오늘을 보고 있었다면 새 오늘로 따라간다", () => {
+  const before = { today: "2026-11-20", weekEnd: "2026-11-20", selected: "2026-11-20" };
+  // 같은 날이면 그대로(같은 객체)
+  assert.equal(followToday(before, "2026-11-20"), before);
+  // 자정 뒤: 오늘을 보고 있었으므로 새 오늘로 이동하고, 21일을 고를 수 있다
+  assert.deepEqual(followToday(before, "2026-11-21"), {
+    today: "2026-11-21",
+    weekEnd: "2026-11-21",
+    selected: "2026-11-21",
+  });
+});
+
+test("#73-S7 과거를 보고 있던 경우 날짜가 바뀌어도 보던 날을 유지하고, 범위 밖으로 밀리면 새 오늘로 옮긴다", () => {
+  // 20일 기준 이전 주(14~...)를 보던 중
+  const past = { today: "2026-11-20", weekEnd: "2026-11-13", selected: "2026-11-11" };
+  assert.deepEqual(followToday(past, "2026-11-21"), { today: "2026-11-21", weekEnd: "2026-11-13", selected: "2026-11-11" });
+  // 오늘을 보는 주에서 맨 앞 날(14일)을 골랐는데 21일이 되면 주가 15~21로 바뀌어 14일은 범위 밖
+  const first = { today: "2026-11-20", weekEnd: "2026-11-20", selected: "2026-11-14" };
+  assert.deepEqual(followToday(first, "2026-11-21"), { today: "2026-11-21", weekEnd: "2026-11-21", selected: "2026-11-21" });
+  // 범위 안의 날을 골랐다면 그대로 둔다
+  const inside = { today: "2026-11-20", weekEnd: "2026-11-20", selected: "2026-11-18" };
+  assert.equal(followToday(inside, "2026-11-21").selected, "2026-11-18");
+});
+
+test("#73-S7 예시 지도와 네이버 지도가 같은 상태별 표시를 따른다: 끝남·진행 중은 출발점, 중단은 \"중단\" 표시", () => {
+  assert.deepEqual(routeMarks("ENDED"), { startDot: true, pausedTag: false });
+  assert.deepEqual(routeMarks("IN_PROGRESS"), { startDot: true, pausedTag: false });
+  assert.deepEqual(routeMarks("INTERRUPTED"), { startDot: false, pausedTag: true });
+});
+
+test("#73-S7 사용 사례는 예시 옵션을 저장소에 그대로 전달한다", async () => {
+  const seen: unknown[] = [];
+  const repo: WalkHistoryRepository = {
+    listByDate: async (_pet, _date, options) => (seen.push(options), { walks: [], sample: false }),
+  };
+  const history = createWalkHistoryUseCases(repo);
+  await history.listDays("10", ["2026-11-18"], { sample: true });
+  await history.listDay("10", "2026-11-18");
+  assert.deepEqual(seen, [{ sample: true }, undefined]);
 });

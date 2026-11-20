@@ -1,23 +1,60 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/app/AppProvider";
+import { isDemoAccount } from "@/auth/domain/account";
 import type { WalkDayList } from "@/map/application/walkPorts";
-import { datesEndingAt, seoulDate, shiftDate } from "@/map/domain/WalkRecord";
+import {
+  datesEndingAt,
+  followToday,
+  msUntilNextSeoulMidnight,
+  seoulDate,
+  shiftDate,
+  type WalkDayNavigation,
+} from "@/map/domain/WalkRecord";
 
 const WEEK = 7;
 
 // 한 주(7일)의 산책을 읽어 주간 막대와 선택한 날의 목록에 쓴다.
 export function useWalkHistory(petId: string) {
-  const { dependencies } = useApp();
-  const [today] = useState(() => seoulDate(Date.now()));
-  const [weekEnd, setWeekEnd] = useState(today);
-  const [selected, setSelected] = useState(today);
+  const { dependencies, account } = useApp();
+  // 화면 확인용 예시 산책은 데모 계정에만 보여 준다
+  const sample = isDemoAccount(account);
+  const [navigation, setNavigation] = useState<WalkDayNavigation>(() => {
+    const today = seoulDate(Date.now());
+    return { today, weekEnd: today, selected: today };
+  });
+  const { today, weekEnd, selected } = navigation;
   const [days, setDays] = useState<Record<string, WalkDayList>>({});
   const [failed, setFailed] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const dates = useMemo(() => datesEndingAt(weekEnd, WEEK), [weekEnd]);
+
+  // 한국 날짜가 바뀌면 "오늘"과 다음 주 상한을 갱신한다. 자정 경계와 탭으로 돌아왔을 때 다시 계산한다.
+  const syncToday = useCallback(() => {
+    setNavigation((current) => followToday(current, seoulDate(Date.now()), WEEK));
+  }, []);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => {
+      timer = setTimeout(() => {
+        syncToday();
+        schedule();
+      }, msUntilNextSeoulMidnight(Date.now()) + 500);
+    };
+    schedule();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncToday();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", syncToday);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", syncToday);
+    };
+  }, [syncToday]);
 
   useEffect(() => {
     let cancelled = false;
@@ -26,7 +63,7 @@ export function useWalkHistory(petId: string) {
       setLoading(true);
       setError("");
       dependencies.walkHistory
-        .listDays(petId, dates)
+        .listDays(petId, dates, { sample })
         .then((result) => {
           if (cancelled) return;
           setDays((current) => ({ ...current, ...result.byDate }));
@@ -44,16 +81,18 @@ export function useWalkHistory(petId: string) {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [dependencies, petId, dates, attempt]);
+  }, [dependencies, petId, dates, sample, attempt]);
 
-  const moveWeek = useCallback(
-    (direction: -1 | 1) => {
-      const next = shiftDate(weekEnd, direction * WEEK);
-      const end = next > today ? today : next;
-      setWeekEnd(end);
-      setSelected(end);
-    },
-    [weekEnd, today],
+  const moveWeek = useCallback((direction: -1 | 1) => {
+    setNavigation((current) => {
+      const next = shiftDate(current.weekEnd, direction * WEEK);
+      const end = next > current.today ? current.today : next;
+      return { ...current, weekEnd: end, selected: end };
+    });
+  }, []);
+  const select = useCallback(
+    (date: string) => setNavigation((current) => ({ ...current, selected: date })),
+    [],
   );
 
   const current = days[selected];
@@ -62,7 +101,7 @@ export function useWalkHistory(petId: string) {
     dates,
     days,
     selected,
-    select: setSelected,
+    select,
     walks: current?.walks ?? [],
     sample: Object.values(days).some((day) => day.sample),
     // 선택한 날을 아직 못 읽었거나 읽는 중이다
@@ -71,6 +110,10 @@ export function useWalkHistory(petId: string) {
     error,
     canGoNext: weekEnd < today,
     moveWeek,
-    retry: () => setAttempt((count) => count + 1),
+    // 다시 불러올 때 날짜가 바뀌었는지도 함께 확인한다
+    retry: () => {
+      syncToday();
+      setAttempt((count) => count + 1);
+    },
   };
 }

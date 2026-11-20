@@ -2,10 +2,12 @@
 import { useEffect, useRef, useState } from "react";
 import { loadNaverMaps, type NaverMap, type NaverMapsApi, type NaverMarker, type NaverPolyline } from "./naverMaps";
 import { DEFAULT_MAP_CENTER } from "./mapCanvas";
+import { routeMarks } from "@/map/domain/WalkRoutes";
 import type { WalkRoutesCanvasProps } from "./walkRoutesCanvas";
 import styles from "./WalkHistory.module.css";
 
 const TAG = `<span class="${styles.mapTag}">중단</span>`;
+const START = `<span class="${styles.mapStart}"></span>`;
 // 위쪽 날짜 막대와 아래쪽 목록에 가리지 않도록 경로를 맞출 때 비워 두는 여백(px)
 const FIT_MARGIN = { top: 150, right: 36, bottom: 300, left: 36 };
 
@@ -64,7 +66,8 @@ export function NaverWalkRoutesCanvas({
     walks.forEach((walk) => {
       if (walk.points.length === 0) return;
       const path = walk.points.map((p) => new maps.LatLng(p.latitude, p.longitude));
-      const paused = walk.status !== "ENDED" && walk.status !== "IN_PROGRESS";
+      const marks = routeMarks(walk.status);
+      const paused = marks.pausedTag;
       const active = selectedId === null || walk.walkId === selectedId;
       const line = new maps.Polyline({
         map: current,
@@ -79,6 +82,16 @@ export function NaverWalkRoutesCanvas({
       });
       maps.Event.addListener(line, "click", () => latest.current.onSelect(walk.walkId));
       shapes.current.push(line);
+      // 예시 지도와 같은 표시: 끝났거나 진행 중이면 출발점, 중단되면 "중단" 표시. 점이 하나뿐인 산책도 출발점은 그린다.
+      if (marks.startDot) {
+        shapes.current.push(
+          new maps.Marker({
+            map: current,
+            position: path[0],
+            icon: { content: START, anchor: new maps.Point(9, 9) },
+          }),
+        );
+      }
       if (paused) {
         shapes.current.push(
           new maps.Marker({

@@ -1,6 +1,6 @@
 import { ApplicationError } from "../../shared/application/ApplicationError.ts";
 import { isValidDate } from "../domain/WalkRecord.ts";
-import type { WalkDayList, WalkHistoryRepository } from "./walkPorts.ts";
+import type { WalkDayList, WalkHistoryOptions, WalkHistoryRepository } from "./walkPorts.ts";
 
 export type WalkDays = {
   // 날짜 → 그날의 산책. 불러오지 못한 날은 error에 이유가 있다.
@@ -10,20 +10,28 @@ export type WalkDays = {
 
 export function createWalkHistoryUseCases(repository: WalkHistoryRepository) {
   return {
-    async listDay(petId: string, date: string): Promise<WalkDayList> {
+    async listDay(
+      petId: string,
+      date: string,
+      options?: WalkHistoryOptions,
+    ): Promise<WalkDayList> {
       if (!petId.trim() || !isValidDate(date)) {
         throw new ApplicationError("VALIDATION", "날짜를 확인해 주세요.");
       }
-      return repository.listByDate(petId, date);
+      return repository.listByDate(petId, date, options);
     },
 
     // 주간 막대에 산책이 있는 날을 점으로 보여 주려고 여러 날을 한꺼번에 읽는다. 한 날이 실패해도 나머지는 보여 준다.
-    async listDays(petId: string, dates: readonly string[]): Promise<WalkDays> {
+    async listDays(
+      petId: string,
+      dates: readonly string[],
+      options?: WalkHistoryOptions,
+    ): Promise<WalkDays> {
       if (!petId.trim() || dates.some((date) => !isValidDate(date))) {
         throw new ApplicationError("VALIDATION", "날짜를 확인해 주세요.");
       }
       const settled = await Promise.allSettled(
-        dates.map((date) => repository.listByDate(petId, date)),
+        dates.map((date) => repository.listByDate(petId, date, options)),
       );
       const byDate: Record<string, WalkDayList> = {};
       const failed: string[] = [];

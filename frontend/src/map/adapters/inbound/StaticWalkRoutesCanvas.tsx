@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import type { WalkRecord } from "@/map/domain/WalkRecord";
-import { fitRoutes } from "@/map/domain/WalkRoutes";
+import { fitRoutes, routeMarks } from "@/map/domain/WalkRoutes";
 import type { WalkRoutesCanvasProps } from "./walkRoutesCanvas";
 import styles from "./WalkHistory.module.css";
 
@@ -14,7 +14,8 @@ export function StaticWalkRoutesCanvas({ walks, selectedId, onSelect }: WalkRout
       <span className={styles.river} aria-hidden="true" />
       <svg className={styles.routes} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         {routes.map((route) => {
-          const paused = route.status !== "ENDED" && route.status !== "IN_PROGRESS";
+          const marks = routeMarks(route.status);
+          const paused = marks.pausedTag;
           const active = selectedId === null || route.walkId === selectedId;
           const line = route.path.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
           const start = route.path[0];

@@ -30,7 +30,12 @@ export type WalkDayList = {
   sample: boolean;
 };
 
+export type WalkHistoryOptions = {
+  // 화면 확인용 예시 산책을 섞는다. 데모 계정에서만 true로 준다(일반 계정의 반려동물에는 섞지 않는다).
+  sample?: boolean;
+};
+
 export interface WalkHistoryRepository {
   // date는 Asia/Seoul 기준 `YYYY-MM-DD`. 그날 시작한 산책이 startedAt 순서로 나온다.
-  listByDate(petId: string, date: string): Promise<WalkDayList>;
+  listByDate(petId: string, date: string, options?: WalkHistoryOptions): Promise<WalkDayList>;
 }

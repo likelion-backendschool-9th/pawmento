@@ -112,3 +112,28 @@ export function formatTimeRange(walk: WalkRecord): string {
     ? `${start} – ${end.slice(3)}`
     : `${start} – ${end}`;
 }
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// 다음 한국 자정까지 남은 시간(밀리초). 화면이 켜진 채 날짜가 바뀌는 순간에 "오늘"을 다시 계산하려고 쓴다.
+export function msUntilNextSeoulMidnight(nowMs: number): number {
+  const sinceMidnight = (nowMs + SEOUL_OFFSET_MS) % DAY_MS;
+  return DAY_MS - sinceMidnight;
+}
+
+// 날짜 막대의 위치: 오늘, 보고 있는 주의 마지막 날, 고른 날
+export type WalkDayNavigation = { today: string; weekEnd: string; selected: string };
+
+// 한국 날짜가 바뀌면 "오늘"과 다음 주 상한을 새 날짜로 옮긴다.
+// 지난 "오늘"을 보고 있었다면 새 오늘로 따라가고, 과거를 보고 있었다면 보던 날을 그대로 둔다.
+// 보던 날이 새 주 범위(7일) 밖으로 밀려나면 새 오늘로 옮긴다.
+export function followToday(navigation: WalkDayNavigation, now: string, span = 7): WalkDayNavigation {
+  if (navigation.today === now) return navigation;
+  const weekEnd = navigation.weekEnd === navigation.today ? now : navigation.weekEnd;
+  const first = shiftDate(weekEnd, -(span - 1));
+  const selected =
+    navigation.selected === navigation.today || navigation.selected < first || navigation.selected > weekEnd
+      ? weekEnd
+      : navigation.selected;
+  return { today: now, weekEnd, selected };
+}

@@ -1,6 +1,13 @@
 import type { WalkRecord } from "./WalkRecord.ts";
 import type { WalkStatus } from "./Walk.ts";
 
+// 경로를 그리는 쪽(네이버 지도, 예시 지도)이 같은 표시를 하도록 상태별 표시를 한 곳에서 정한다.
+// 끝났거나 진행 중인 산책은 출발점을, 중단된 산책은 마지막 점과 "중단" 표시를 그린다.
+export function routeMarks(status: WalkStatus): { startDot: boolean; pausedTag: boolean } {
+  const paused = status === "INTERRUPTED";
+  return { startDot: !paused, pausedTag: paused };
+}
+
 export type RouteView = {
   walkId: string;
   status: WalkStatus;

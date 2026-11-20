@@ -1,6 +1,11 @@
 import { ApplicationError } from "../../../shared/application/ApplicationError.ts";
 import { DEMO_WALK_PREFIX, type Walk, type WalkEnd, type WalkPoint } from "../../domain/Walk.ts";
-import type { WalkDayList, WalkHistoryRepository, WalkRepository } from "../../application/walkPorts.ts";
+import type {
+  WalkDayList,
+  WalkHistoryOptions,
+  WalkHistoryRepository,
+  WalkRepository,
+} from "../../application/walkPorts.ts";
 import { seoulDate, type WalkRecord } from "../../domain/WalkRecord.ts";
 import { sampleWalksOn, todayInSeoul } from "./demoWalkSamples.ts";
 
@@ -52,8 +57,12 @@ export class DemoWalkRepository implements WalkRepository, WalkHistoryRepository
     return { status: "ENDED", endedAt: walk.endedAt };
   }
 
-  // 이 앱에서 기록한 연습 산책과 화면 확인용 예시 산책을 그날 기준으로 돌려준다.
-  async listByDate(petId: string, date: string): Promise<WalkDayList> {
+  // 이 앱에서 기록한 연습 산책을 그날 기준으로 돌려준다. 화면 확인용 예시 산책은 데모 계정(options.sample)에만 섞는다.
+  async listByDate(
+    petId: string,
+    date: string,
+    options: WalkHistoryOptions = {},
+  ): Promise<WalkDayList> {
     const mine: WalkRecord[] = [...this.walks.entries()]
       .filter(([, walk]) => walk.petId === petId && seoulDate(walk.startedAt) === date)
       .map(([walkId, walk]) => ({
@@ -63,7 +72,9 @@ export class DemoWalkRepository implements WalkRepository, WalkHistoryRepository
         status: walk.endedAt === null ? ("IN_PROGRESS" as const) : ("ENDED" as const),
         points: [...walk.points],
       }));
-    const samples = sampleWalksOn(date, todayInSeoul(this.now()));
+    const samples = options.sample
+      ? sampleWalksOn(date, todayInSeoul(this.now()))
+      : [];
     const walks = [...samples, ...mine].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
     return { walks, sample: samples.length > 0 };
   }
