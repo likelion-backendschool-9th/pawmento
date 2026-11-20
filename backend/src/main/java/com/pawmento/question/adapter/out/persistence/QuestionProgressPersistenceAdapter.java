@@ -1,5 +1,6 @@
 package com.pawmento.question.adapter.out.persistence;
 
+import com.pawmento.question.application.exception.StoredQuestionInvalidException;
 import com.pawmento.question.application.port.out.QuestionProgressStorePort;
 import com.pawmento.question.domain.QuestionMode;
 import com.pawmento.question.domain.QuestionProgress;
@@ -45,7 +46,10 @@ class QuestionProgressPersistenceAdapter implements QuestionProgressStorePort {
         () ->
             prompts
                 .findById(promptId)
-                .orElseThrow(() -> new IllegalStateException("현재 질문 행을 찾을 수 없습니다."))
+                .orElseThrow(
+                    () ->
+                        new StoredQuestionInvalidException(
+                            new IllegalStateException("현재 질문 행을 찾을 수 없습니다.")))
                 .toDomain());
   }
 

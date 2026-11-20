@@ -1,6 +1,7 @@
 package com.pawmento.question.domain;
 
 import com.pawmento.question.domain.exception.InvalidQuestionException;
+import com.pawmento.question.domain.exception.QuestionProgressInconsistentException;
 import java.util.List;
 import lombok.Getter;
 
@@ -51,6 +52,6 @@ public final class QuestionProgress {
         || !petId.equals(prompt.getPetId())
         || mode != prompt.getMode()
         || !prompt.getId().equals(currentPromptId))
-      throw new IllegalStateException("현재 질문과 진행 상태가 다릅니다.");
+      throw new QuestionProgressInconsistentException();
   }
 }

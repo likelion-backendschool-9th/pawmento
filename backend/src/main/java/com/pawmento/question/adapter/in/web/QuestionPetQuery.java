@@ -1,6 +1,6 @@
 package com.pawmento.question.adapter.in.web;
 
-import com.pawmento.global.exception.RuleViolationException;
+import com.pawmento.question.adapter.in.web.exception.InvalidQuestionRequestException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
@@ -33,12 +33,6 @@ final class QuestionPetQuery {
       return id;
     } catch (NumberFormatException e) {
       throw new InvalidQuestionRequestException();
-    }
-  }
-
-  static final class InvalidQuestionRequestException extends RuleViolationException {
-    InvalidQuestionRequestException() {
-      super("petId는 필수 양의 정수 쿼리입니다.");
     }
   }
 }

@@ -64,6 +64,7 @@ class QuestionProgressTest {
             () ->
                 progress.requireCurrent(
                     QuestionPrompt.restore(10L, 2L, QuestionMode.ACTIVE, 1L, "질문", 1, NOW)))
-        .isInstanceOf(IllegalStateException.class);
+        .isInstanceOf(
+            com.pawmento.question.domain.exception.QuestionProgressInconsistentException.class);
   }
 }

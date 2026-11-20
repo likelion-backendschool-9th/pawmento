@@ -38,8 +38,12 @@ public class EnsureCurrentQuestionPromptService implements EnsureCurrentQuestion
         progress.candidates(
             questions.loadByMode(mode), store.lastQuestionId(command.petId(), mode));
     if (candidates.isEmpty()) throw new QuestionPoolEmptyException();
-    var chosen = selection.select(candidates);
-    if (!candidates.contains(chosen)) throw new IllegalStateException("선택기가 질문 풀 밖의 질문을 반환했습니다.");
+    var selected = selection.select(candidates);
+    var chosen =
+        candidates.stream()
+            .filter(candidate -> selected != null && candidate.getId().equals(selected.getId()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("선택기가 질문 풀 밖의 질문을 반환했습니다."));
     var prompt =
         QuestionPrompt.assign(
             command.petId(), mode, chosen, progress.getNextSequence(), clock.instant());
