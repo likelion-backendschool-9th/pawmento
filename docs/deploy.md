@@ -76,6 +76,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 | 서버 접속 정보 (`DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_SSH_KEY`, `DEPLOY_PORT`, `DEPLOY_HOST_FINGERPRINT`) | GitHub 환경 `develop`의 Secrets | 배포 작업만 읽는다 |
 | 앱 비밀값 (DB 비밀번호, 인증 키 등) | 서버의 `.env` (`.env.prod.example` 참고) | 워크플로 로그와 이미지에 남지 않는다 |
 | 알림 웹훅 (`CAMPFIRE_WEBHOOK_URL`) | 저장소 Secrets | 노출돼도 피해가 적고, 환경 지정 없이 읽어야 한다 |
+| 네이버 지도 Client ID (`NAVER_MAP_CLIENT_ID`) | 저장소 Variables (Secrets가 아님) | 브라우저 번들에 공개되는 값이라 비밀이 아니다. 프론트를 빌드할 때 필요해서 서버 `.env`로는 넘길 수 없다. Client Secret은 서버 `.env`에만 둔다 |
 
 서버 접속 정보를 넣을 때 주의할 것:
 
