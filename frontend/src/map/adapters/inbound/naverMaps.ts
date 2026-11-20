@@ -4,6 +4,7 @@ export type NaverLatLng = { lat(): number; lng(): number };
 export type NaverBounds = { getSW(): NaverLatLng; getNE(): NaverLatLng };
 export type NaverMap = {
   getBounds(): NaverBounds;
+  getCenter(): NaverLatLng;
   destroy(): void;
 };
 export type NaverMarker = { setMap(map: NaverMap | null): void };
