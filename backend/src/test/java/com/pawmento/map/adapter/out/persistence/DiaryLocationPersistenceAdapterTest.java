@@ -19,6 +19,7 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.map.application.exception.DiaryLocationAlreadyExistsException;
 import com.pawmento.map.domain.MapArea;
 import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.domain.LocationSource;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -101,6 +102,37 @@ class DiaryLocationPersistenceAdapterTest {
 	}
 
 	@Test
+	@DisplayName("#44-S13 새 위치를 저장하면 출처 MANUAL·revision 0으로 저장되고 다시 읽어도 같다. 새 열은 NOT NULL이고 기본값이 있다")
+	void sourceColumnsAreStoredWithDefaults() {
+		adapter.save(DiaryLocation.create(300L, PET, MEMBER, 37.5, 127.0, "강남역"));
+		flushAndClear();
+
+		DiaryLocation loaded = adapter.loadByDiaryId(300L).orElseThrow();
+		Map<String, Object> row = jdbcTemplate.queryForMap(
+				"select source, source_asset_id, source_revision from diary_location where diary_id = 300");
+		assertThat(loaded.getSource()).isEqualTo(LocationSource.MANUAL);
+		assertThat(loaded.getSourceAssetId()).isNull();
+		assertThat(loaded.getSourceRevision()).isZero();
+		assertThat(row.get("source")).isEqualTo("MANUAL");
+		assertThat(row.get("source_asset_id")).isNull();
+		assertThat(((Number) row.get("source_revision")).longValue()).isZero();
+
+		List<Map<String, Object>> columns = jdbcTemplate.queryForList("""
+				select column_name, is_nullable, column_default
+				from information_schema.columns
+				where table_name = 'diary_location' and column_name in ('source', 'source_asset_id', 'source_revision')
+				""");
+		assertThat(columns).extracting(column -> column.get("column_name"))
+			.containsExactlyInAnyOrder("source", "source_asset_id", "source_revision");
+		for (Map<String, Object> column : columns) {
+			String name = (String) column.get("column_name");
+			// 출처 자산만 비어 있을 수 있다. 출처와 revision은 NOT NULL이고 기존 행을 채울 기본값이 있다
+			assertThat(column.get("is_nullable")).as(name).isEqualTo("source_asset_id".equals(name) ? "YES" : "NO");
+			assertThat(column.get("column_default") != null).as(name).isEqualTo(!"source_asset_id".equals(name));
+		}
+	}
+
+	@Test
 	@DisplayName("#19-S1 같은 기록에 위치를 새로 두 번 넣으려 하면 DB가 막고, 이미 있다는 오류를 받는다")
 	void uniquePerRecord() {
 		save(100L, PET, MEMBER, 37.0, 127.0);
@@ -113,7 +145,7 @@ class DiaryLocationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#19-S1 저장된 적 없는 id의 위치를 바꾸려 하면 오류가 난다")
 	void updateMissing() {
-		DiaryLocation ghost = DiaryLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null);
+		DiaryLocation ghost = DiaryLocation.restore(12345L, 100L, PET, MEMBER, 37.0, 127.0, null, LocationSource.MANUAL, null, 0);
 
 		assertThatThrownBy(() -> adapter.save(ghost)).isInstanceOf(IllegalStateException.class);
 	}
@@ -122,9 +154,9 @@ class DiaryLocationPersistenceAdapterTest {
 	@DisplayName("#19-S7 다른 기록·작성자의 값을 담은 위치로 저장된 위치를 덮어쓸 수 없다")
 	void cannotOverwriteWithDifferentOwner() {
 		Long id = save(100L, PET, MEMBER, 37.0, 127.0);
-		DiaryLocation otherRecord = DiaryLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null);
-		DiaryLocation otherMember = DiaryLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null);
-		DiaryLocation otherPet = DiaryLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null);
+		DiaryLocation otherRecord = DiaryLocation.restore(id, 101L, PET, MEMBER, 36.0, 128.0, null, LocationSource.MANUAL, null, 0);
+		DiaryLocation otherMember = DiaryLocation.restore(id, 100L, PET, MEMBER + 1, 36.0, 128.0, null, LocationSource.MANUAL, null, 0);
+		DiaryLocation otherPet = DiaryLocation.restore(id, 100L, PET + 1, MEMBER, 36.0, 128.0, null, LocationSource.MANUAL, null, 0);
 
 		assertThatThrownBy(() -> adapter.save(otherRecord)).isInstanceOf(IllegalStateException.class);
 		assertThatThrownBy(() -> adapter.save(otherMember)).isInstanceOf(IllegalStateException.class);
@@ -148,7 +180,7 @@ class DiaryLocationPersistenceAdapterTest {
 	void deletedLocationIsNotServedFromCache() {
 		// 저장한 엔티티가 영속성 컨텍스트에 남아 있는 상태에서 지워야 의미가 있어서, 여기서는 컨텍스트를 비우지 않는다
 		Long id = adapter.save(DiaryLocation.create(100L, PET, MEMBER, 37.0, 127.0, null));
-		DiaryLocation stale = DiaryLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null);
+		DiaryLocation stale = DiaryLocation.restore(id, 100L, PET, MEMBER, 36.0, 128.0, null, LocationSource.MANUAL, null, 0);
 
 		adapter.deleteByDiaryId(100L);
 

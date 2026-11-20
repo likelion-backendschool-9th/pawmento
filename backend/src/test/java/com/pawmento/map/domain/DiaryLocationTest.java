@@ -93,7 +93,7 @@ class DiaryLocationTest {
 	@Test
 	@DisplayName("#19-S1 같은 기록의 위치를 바꾸면 좌표와 장소 이름이 바뀌고 기록·작성자는 그대로다")
 	void move() {
-		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전");
+		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전", LocationSource.MANUAL, null, 0);
 
 		location.move(35.1796, 129.0756, "부산");
 
@@ -108,7 +108,7 @@ class DiaryLocationTest {
 	@Test
 	@DisplayName("#19-S2 바꾸는 값이 규칙에 어긋나면 아무것도 바뀌지 않는다")
 	void moveKeepsValuesOnFailure() {
-		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전");
+		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전", LocationSource.MANUAL, null, 0);
 
 		assertThatThrownBy(() -> location.move(35.0, 129.0, "가".repeat(256)))
 			.isInstanceOf(InvalidDiaryLocationException.class);
@@ -122,10 +122,57 @@ class DiaryLocationTest {
 	@Test
 	@DisplayName("#19-S1 저장된 값을 되살릴 때도 같은 규칙을 검사하고 id가 필요하다")
 	void restoreValidates() {
-		assertThatThrownBy(() -> DiaryLocation.restore(null, 1L, 2L, 3L, 0.0, 0.0, null))
+		assertThatThrownBy(() -> DiaryLocation.restore(null, 1L, 2L, 3L, 0.0, 0.0, null, LocationSource.MANUAL, null, 0))
 			.isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> DiaryLocation.restore(1L, 1L, 2L, 3L, 100.0, 0.0, null))
+		assertThatThrownBy(() -> DiaryLocation.restore(1L, 1L, 2L, 3L, 100.0, 0.0, null, LocationSource.MANUAL, null, 0))
 			.isInstanceOf(InvalidCoordinatesException.class);
+	}
+
+
+	@Test
+	@DisplayName("#44-S6 새 위치는 직접 고른 위치(MANUAL)이고 출처 자산이 없으며 revision 0에서 시작한다")
+	void createStartsAsManualWithRevisionZero() {
+		DiaryLocation location = DiaryLocation.create(1L, 2L, 3L, 37.0, 127.0, null);
+
+		assertThat(location.getSource()).isEqualTo(LocationSource.MANUAL);
+		assertThat(location.getSourceAssetId()).isNull();
+		assertThat(location.getSourceRevision()).isZero();
+	}
+
+	@Test
+	@DisplayName("#44-S6 저장된 값으로 다시 만들면 출처와 revision을 그대로 가진다")
+	void restoreKeepsSourceAndRevision() {
+		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, null, LocationSource.MANUAL, null,
+				7);
+
+		assertThat(location.getSource()).isEqualTo(LocationSource.MANUAL);
+		assertThat(location.getSourceAssetId()).isNull();
+		assertThat(location.getSourceRevision()).isEqualTo(7L);
+	}
+
+	@Test
+	@DisplayName("#44-S6 출처가 없거나 직접 고른 위치에 자산이 있거나 revision이 음수이면 프로그래밍 오류로 거절한다")
+	void sourceInvariants() {
+		assertThatThrownBy(() -> DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, null, null, null, 0))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(
+				() -> DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, null, LocationSource.MANUAL, 5L, 0))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(
+				() -> DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, null, LocationSource.MANUAL, null, -1))
+			.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	@DisplayName("#44-S6 위치를 옮겨도 출처와 revision은 바뀌지 않는다")
+	void moveKeepsSourceAndRevision() {
+		DiaryLocation location = DiaryLocation.restore(10L, 1L, 2L, 3L, 37.0, 127.0, "이전", LocationSource.MANUAL, null,
+				4);
+
+		location.move(36.0, 128.0, "새 이름");
+
+		assertThat(location.getSource()).isEqualTo(LocationSource.MANUAL);
+		assertThat(location.getSourceRevision()).isEqualTo(4L);
 	}
 
 }

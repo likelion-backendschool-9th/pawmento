@@ -5,9 +5,14 @@ import java.time.Instant;
 import com.pawmento.global.exception.RuleViolationException;
 import com.pawmento.map.application.exception.StoredLocationInvalidException;
 import com.pawmento.map.domain.DiaryLocation;
+import com.pawmento.map.domain.LocationSource;
 
 import jakarta.persistence.Column;
+import org.hibernate.annotations.ColumnDefault;
+
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -54,6 +59,20 @@ class DiaryLocationJpaEntity {
 	@Column(length = DiaryLocation.PLACE_NAME_MAX_LENGTH)
 	private String placeName;
 
+	// 위치의 출처와 마지막으로 반영한 revision. 이미 행이 있는 테이블에 열을 더할 때 ddl-auto update가 NOT NULL 열을 기본값 없이
+	// 추가하지 못하므로, 기존 행에 채울 값을 열 기본값(@ColumnDefault)으로 둔다. 기존 행은 직접 고른 위치(MANUAL)이고 revision은 0이다
+	@Enumerated(EnumType.STRING)
+	@Column(nullable = false, length = 20)
+	@ColumnDefault("'MANUAL'")
+	private LocationSource source = LocationSource.MANUAL;
+
+	// 사진에서 고른 위치일 때의 자산 id. 직접 고른 위치는 비어 있다
+	private Long sourceAssetId;
+
+	@Column(nullable = false)
+	@ColumnDefault("0")
+	private long sourceRevision;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -68,6 +87,9 @@ class DiaryLocationJpaEntity {
 		entity.diaryId = location.getDiaryId();
 		entity.petId = location.getPetId();
 		entity.createdBy = location.getCreatedBy();
+		entity.source = location.getSource();
+		entity.sourceAssetId = location.getSourceAssetId();
+		entity.sourceRevision = location.getSourceRevision();
 		entity.updateLocation(location);
 		return entity;
 	}
@@ -91,7 +113,8 @@ class DiaryLocationJpaEntity {
 	// Spring MVC가 cause의 RuleViolationException(400 핸들러)을 따라가지 않는다
 	DiaryLocation toDomain() {
 		try {
-			return DiaryLocation.restore(id, diaryId, petId, createdBy, latitude, longitude, placeName);
+			return DiaryLocation.restore(id, diaryId, petId, createdBy, latitude, longitude, placeName, source,
+					sourceAssetId, sourceRevision);
 		}
 		catch (RuleViolationException e) {
 			throw new StoredLocationInvalidException("저장된 위치가 도메인 규칙에 맞지 않습니다. id=" + id, e);
