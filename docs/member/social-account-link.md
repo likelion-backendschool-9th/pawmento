@@ -233,10 +233,15 @@
 1. PR 1 머지 전에 자동 배포를 끈다: GitHub 환경 `develop`의 `DEPLOY_HOST`를 잠시 지운다. 머지하면 검사·이미지 업로드만 되고 서버는 그대로다.
 2. 지금 서버에서 도는 이미지 태그(`sha-<이전 커밋>`)와 PR 1 머지 커밋 태그(`sha-<PR 1 커밋>`)를 적어 둔다.
 3. 배포 워크플로가 하던 설정 복사를 직접 한다. PR 1 머지 커밋의 `compose.yaml`, `compose.prod.yaml`, `nginx/proxy.conf`를 꺼내 서버에 올려 둔다(아직 덮어쓰지 않음).
+   꺼내기에 실패하면 `>`가 빈 파일을 남기므로, `set -euo pipefail`로 실행하고 파일이 비어 있지 않은지(`test -s`) 확인한 뒤에만 서버로 보낸다.
    ```bash
+   set -euo pipefail
    git fetch origin
    mkdir -p after-109/nginx
-   for f in compose.yaml compose.prod.yaml nginx/proxy.conf; do git show <PR 1 커밋>:$f > after-109/$f; done
+   for f in compose.yaml compose.prod.yaml nginx/proxy.conf; do
+     git show <PR 1 커밋>:$f > after-109/$f
+     test -s after-109/$f
+   done
    scp -r after-109 <서버>:~/pawmento/
    ```
 4. 이전 SQL `migrate-109.sql`을 만들어 서버 `~/pawmento`에 올린다. `social_account` 생성문은 PR 1의 `SocialAccountJpaEntity`로 로컬에서 `ddl-auto: update`가 만든 DDL(컬럼·유니크 제약 2개·외래 키·CHECK)을 그대로 복사한다. 건수가 다르면 `RAISE`로 멈추므로 `COMMIT`까지 가지 않고 전부 롤백된다.
