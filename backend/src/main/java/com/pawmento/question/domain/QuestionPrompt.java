@@ -13,6 +13,7 @@ public final class QuestionPrompt {
   private final String questionSnapshot;
   private final long sequence;
   private final Instant assignedAt;
+  private Instant completedAt;
 
   private QuestionPrompt(
       Long id,
@@ -33,6 +34,25 @@ public final class QuestionPrompt {
     this.questionSnapshot = validated.getContent();
     this.sequence = sequence;
     this.assignedAt = assignedAt;
+  }
+
+  public void complete(Instant now) {
+    if (now == null) throw new InvalidQuestionException();
+    if (completedAt == null) completedAt = now;
+  }
+
+  public static QuestionPrompt restore(
+      Long id,
+      Long petId,
+      QuestionMode mode,
+      Long questionId,
+      String snapshot,
+      long sequence,
+      Instant assignedAt,
+      Instant completedAt) {
+    var prompt = restore(id, petId, mode, questionId, snapshot, sequence, assignedAt);
+    prompt.completedAt = completedAt;
+    return prompt;
   }
 
   public static QuestionPrompt assign(

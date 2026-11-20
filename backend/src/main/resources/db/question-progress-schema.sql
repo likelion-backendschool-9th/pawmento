@@ -7,5 +7,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='question_progress'::regclass AND conname='fk_question_progress_current') THEN
     ALTER TABLE question_progress ADD CONSTRAINT fk_question_progress_current FOREIGN KEY(current_prompt_id,pet_id,mode) REFERENCES question_prompt(id,pet_id,mode) ON DELETE RESTRICT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='question_answer'::regclass AND conname='fk_question_answer_prompt') THEN
+    ALTER TABLE question_answer ADD CONSTRAINT fk_question_answer_prompt FOREIGN KEY(prompt_id,pet_id,mode) REFERENCES question_prompt(id,pet_id,mode) ON DELETE RESTRICT;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conrelid='question_answer'::regclass AND conname='fk_question_answer_pet') THEN
+    ALTER TABLE question_answer ADD CONSTRAINT fk_question_answer_pet FOREIGN KEY(pet_id) REFERENCES pets(id) ON DELETE RESTRICT;
+  END IF;
 END;
 $schema$;

@@ -47,6 +47,11 @@ public final class QuestionProgress {
     nextSequence = next;
   }
 
+  public void completeCurrent(QuestionPrompt prompt) {
+    requireCurrent(prompt);
+    currentPromptId = null;
+  }
+
   public void requireCurrent(QuestionPrompt prompt) {
     if (prompt == null
         || !petId.equals(prompt.getPetId())
