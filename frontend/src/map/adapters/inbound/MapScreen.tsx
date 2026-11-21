@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
+import { isDemoAccount } from "@/auth/domain/account";
 import { ArchiveNavigation } from "@/shared/ui/ArchiveNavigation";
 import { Icon } from "@/shared/ui/Icon";
 import { PageHeading } from "@/workspace/adapters/inbound/WorkspaceUi";
@@ -24,7 +25,9 @@ type Props = {
 const REQUEST_DELAY_MS = 250;
 
 export function MapScreen({ pet, canOpenDiary }: Props) {
-  const { dependencies } = useApp();
+  const { dependencies, account } = useApp();
+  // 화면 확인용 예시 핀은 데모 계정에만 보여 준다
+  const sample = isDemoAccount(account);
   const garden = pet.mode === "GARDEN";
   // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
@@ -46,7 +49,7 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
       setLoading(true);
       setError("");
       dependencies.map
-        .listPins(pet.id, bounds)
+        .listPins(pet.id, bounds, { sample })
         .then((list) => {
           if (current !== request.current) return; // 더 최근 요청이 있으면 버린다
           setResult(list);
@@ -67,7 +70,7 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
         });
     }, REQUEST_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [bounds, pet.id, dependencies, attempt]);
+  }, [bounds, pet.id, dependencies, sample, attempt]);
 
   const onBoundsChange = useCallback(
     (next: MapBounds) => setBounds(next),

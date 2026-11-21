@@ -9,6 +9,11 @@ export type MapPinList = {
   sample: boolean;
 };
 
+export type MapPinOptions = {
+  // 화면 확인용 예시 핀을 섞는다. 데모 계정에서만 true로 준다(일반 계정의 반려동물에는 섞지 않는다).
+  sample?: boolean;
+};
+
 export interface MapPinRepository {
-  list(petId: string, bounds: MapBounds): Promise<MapPinList>;
+  list(petId: string, bounds: MapBounds, options?: MapPinOptions): Promise<MapPinList>;
 }
