@@ -47,6 +47,15 @@ public class PostcardUsagePersistenceAdapter implements PostcardUsagePort {
   }
 
   @Override
+  public void refundMember(LocalDate date, Long memberId) {
+    jdbc.update(
+        "UPDATE postcard_daily_usage SET count = count - 1"
+            + " WHERE usage_date = ? AND member_id = ? AND count > 0",
+        date,
+        memberId);
+  }
+
+  @Override
   public long memberCount(LocalDate date, Long memberId) {
     return jdbc
         .queryForList(

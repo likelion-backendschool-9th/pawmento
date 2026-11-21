@@ -1,6 +1,5 @@
 package com.pawmento.postcard.application.service;
 
-import com.pawmento.postcard.application.exception.InvalidPostcardSourceException;
 import com.pawmento.postcard.application.port.in.*;
 import com.pawmento.postcard.application.port.out.*;
 import com.pawmento.postcard.domain.Postcard;
@@ -21,13 +20,15 @@ public class RequestPostcardService implements RequestPostcardUseCase {
   private final PostcardUsagePort usage;
   private final SavePostcardPort save;
   private final StorePostcardFilePort files;
+  private final GeneratePostcardImagePort generator;
   private final Clock clock;
 
   @Override
   @Transactional
   public RequestPostcardResult request(RequestPostcardCommand c) {
     var pet = pets.loadOwned(c.memberId(), c.petId());
-    var kind = kind(c.sourceKind());
+    // 형식은 웹 요청이 확인한다.
+    var kind = PostcardSourceKind.valueOf(c.sourceKind());
     var source = sources.load(c.memberId(), c.petId(), kind, c.sourceId());
     var postcard =
         Postcard.request(
@@ -43,6 +44,7 @@ public class RequestPostcardService implements RequestPostcardUseCase {
             pet.garden(),
             source.photoAssetId() != null,
             c.consent(),
+            generator.name(),
             clock.instant());
     var today = postcard.getRequestedOn();
     var counts = usage.lock(today, c.memberId());
@@ -55,13 +57,5 @@ public class RequestPostcardService implements RequestPostcardUseCase {
       save.attachSourcePhoto(id, files.storeSourcePhoto(id, photo));
     }
     return new RequestPostcardResult(id, postcard.getStatus().name());
-  }
-
-  private static PostcardSourceKind kind(String value) {
-    try {
-      return PostcardSourceKind.valueOf(value);
-    } catch (IllegalArgumentException | NullPointerException e) {
-      throw new InvalidPostcardSourceException();
-    }
   }
 }

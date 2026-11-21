@@ -45,6 +45,9 @@ public class PostcardJpaEntity {
   @Column(length = 64)
   private String sourcePhotoKey;
 
+  @Column(nullable = false, length = 32)
+  private String generator;
+
   @Column(nullable = false, length = 120)
   private String title;
 
@@ -60,6 +63,9 @@ public class PostcardJpaEntity {
 
   @Column(length = 64)
   private String imageKey;
+
+  @Column(length = 32)
+  private String imageContentType;
 
   @Column(nullable = false)
   private LocalDate requestedOn;
@@ -83,11 +89,13 @@ public class PostcardJpaEntity {
     row.sourcePetSpecies = p.getSourcePetSpecies();
     row.sourcePetBreed = p.getSourcePetBreed();
     row.sourcePhotoKey = p.getSourcePhotoKey();
+    row.generator = p.getGenerator();
     row.title = p.getTitle();
     row.text = p.getText();
     row.status = p.getStatus();
     row.errorMessage = p.getErrorMessage();
     row.imageKey = p.getImageKey();
+    row.imageContentType = p.getImageContentType();
     row.requestedOn = p.getRequestedOn();
     row.createdAt = p.getCreatedAt();
     row.processingStartedAt = p.getProcessingStartedAt();
@@ -107,11 +115,13 @@ public class PostcardJpaEntity {
         sourcePetSpecies,
         sourcePetBreed,
         sourcePhotoKey,
+        generator,
         title,
         text,
         status,
         errorMessage,
         imageKey,
+        imageContentType,
         requestedOn,
         createdAt,
         processingStartedAt,
