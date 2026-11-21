@@ -64,7 +64,8 @@ public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePe
 				if (cause instanceof PSQLException sql
 						&& sql.getServerErrorMessage() != null
 						&& ("fk_diary_entries_pet".equals(sql.getServerErrorMessage().getConstraint())
-								|| "fk_question_answer_pet".equals(sql.getServerErrorMessage().getConstraint()))
+								|| "fk_question_answer_pet".equals(sql.getServerErrorMessage().getConstraint())
+								|| "fk_postcard_pet".equals(sql.getServerErrorMessage().getConstraint()))
 						// PostgreSQL RESTRICT는 23001, 일반 FK 위반은 23503이다.
 						&& ("23001".equals(sql.getSQLState()) || "23503".equals(sql.getSQLState()))) {
 					throw new PetHasRecordsException(failure);

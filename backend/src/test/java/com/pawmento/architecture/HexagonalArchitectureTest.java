@@ -11,15 +11,15 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-// 현재 수정 범위 member/pet의 import 경계를 고정한다. 동작 테스트를 대체하지 않는다.
+// 현재 수정 범위 member/pet/postcard의 import 경계를 고정한다. 동작 테스트를 대체하지 않는다.
 class HexagonalArchitectureTest {
 	private static final Path ROOT = Path.of("src/main/java/com/pawmento");
 	private static final Pattern IMPORT = Pattern.compile("(?m)^import\\s+(?:static\\s+)?([^;]+);");
 
 	@Test
-	@DisplayName("#52-S9 member/pet의 핵심은 JPA·웹·어댑터에 의존하지 않는다")
+	@DisplayName("#52-S9 member/pet/postcard의 핵심은 JPA·웹·어댑터에 의존하지 않는다")
 	void coreDoesNotDependOnTechnology() throws IOException {
-		for (String domain : List.of("member", "pet")) {
+		for (String domain : List.of("member", "pet", "postcard")) {
 			try (var paths = Files.walk(ROOT.resolve(domain))) {
 				for (Path path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
 					String relative = ROOT.relativize(path).toString();
@@ -30,6 +30,9 @@ class HexagonalArchitectureTest {
 							String allowed = "java\\..*|lombok\\.Getter|com\\.pawmento\\." + domain + "\\.domain\\..*";
 							if (domain.equals("pet")) {
 								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|PermissionDeniedException)";
+							}
+							if (domain.equals("postcard")) {
+								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|StateConflictException)";
 							}
 							if (domain.equals("member")) {
 								allowed += "|com\\.pawmento\\.global\\.exception\\.(RuleViolationException|StateConflictException)";
