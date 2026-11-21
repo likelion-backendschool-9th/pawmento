@@ -1,6 +1,7 @@
 package com.pawmento.postcard.adapter.out.persistence;
 
 import com.pawmento.postcard.application.exception.PostcardPetNotFoundException;
+import com.pawmento.postcard.application.port.out.ExistsPostcardsPort;
 import com.pawmento.postcard.application.port.out.LoadPostcardPort;
 import com.pawmento.postcard.application.port.out.SavePostcardPort;
 import com.pawmento.postcard.domain.Postcard;
@@ -12,7 +13,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class PostcardPersistenceAdapter implements SavePostcardPort, LoadPostcardPort {
+public class PostcardPersistenceAdapter
+    implements SavePostcardPort, LoadPostcardPort, ExistsPostcardsPort {
   static final String PET_FK = "fk_postcard_pet";
 
   private final PostcardJpaRepository postcards;
@@ -38,6 +40,11 @@ public class PostcardPersistenceAdapter implements SavePostcardPort, LoadPostcar
   @Override
   public Optional<Postcard> findById(Long postcardId) {
     return postcards.findById(postcardId).map(PostcardJpaEntity::toDomain);
+  }
+
+  @Override
+  public boolean existsByPetId(Long petId) {
+    return postcards.existsByPetId(petId);
   }
 
   static boolean violates(Throwable failure, String constraint) {
