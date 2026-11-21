@@ -17,6 +17,8 @@ import {
   type MapBounds,
 } from "../src/map/domain/MapBounds.ts";
 import { HttpMapPinRepository } from "../src/map/adapters/outbound/HttpMapPinRepository.ts";
+import { isDemoAccount } from "../src/auth/domain/account.ts";
+import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
@@ -229,7 +231,7 @@ test("#19-S9 서버에만 있는 일기 id의 핀은 상세 링크를 열지 않
   assert.equal(pinDetail(true, true), "SAMPLE");
 });
 
-test("#19-S9 일반 계정의 브라우저 반려동물에는 예시 핀을 섞지 않는다. 데모 계정에만 섞는다", async () => {
+test("#19-S10 일반 계정의 브라우저 반려동물에는 예시 핀을 섞지 않는다. 데모 계정에만 섞는다", async () => {
   const demo = new DemoMapPinRepository();
   for (const options of [undefined, {}, { sample: false }]) {
     assert.deepEqual(await demo.list("ordinary-pet", SEOUL_FOREST, options), {
@@ -250,4 +252,27 @@ test("#19-S9 일반 계정의 브라우저 반려동물에는 예시 핀을 섞�
   await map.listPins("10", SEOUL_FOREST, { sample: true });
   await map.listPins("10", SEOUL_FOREST);
   assert.deepEqual(seen, [{ sample: true }, undefined]);
+});
+
+test("#19-S10 데모 여부는 이메일이 아니라 데모 세션이 만든 계정인지로 판단한다. 이메일이 @pawmento.local인 일반 계정은 예시 핀을 받지 않는다", async () => {
+  // 서버 로그인으로 받은 일반 계정: 이메일 도메인이 같아도 데모가 아니다
+  for (const account of [
+    { id: "42", email: "member@pawmento.local", nickname: "일반 회원" },
+    { id: "demo", email: "demo@pawmento.local", nickname: "이름만 같은 일반 계정" },
+    { id: "demo-google", email: "google@pawmento.local", nickname: "접두사만 같은 일반 계정" },
+  ]) {
+    assert.equal(isDemoAccount(account), false, account.id);
+  }
+  assert.equal(isDemoAccount(null), false);
+  assert.equal(isDemoAccount(undefined), false);
+
+  // 데모 인증 저장소가 만든 계정은 모두 데모다(가입 없이 둘러보기, 소셜 데모, 탭 안 가입)
+  const auth = new DemoAuthRepository();
+  assert.equal(isDemoAccount(await auth.startDemo()), true);
+  assert.equal(isDemoAccount(await auth.signInDemoProvider("google")), true);
+  assert.equal(isDemoAccount(await auth.signInDemoProvider("kakao")), true);
+  await auth.signUp({ email: "tab@example.com", password: "tab-demo-pass", nickname: "탭" });
+  assert.equal(isDemoAccount(await auth.signIn({ email: "tab@example.com", password: "tab-demo-pass" })), true);
+  // 닉네임을 바꿔도 데모 표시가 유지된다
+  assert.equal(isDemoAccount(await auth.update("새 이름")), true);
 });
