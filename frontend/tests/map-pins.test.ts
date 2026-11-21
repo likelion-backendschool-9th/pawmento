@@ -276,3 +276,13 @@ test("#19-S10 데모 여부는 이메일이 아니라 데모 세션이 만든 �
   // 닉네임을 바꿔도 데모 표시가 유지된다
   assert.equal(isDemoAccount(await auth.update("새 이름")), true);
 });
+
+test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 두르고 선택하지 않은 핀에는 후광이 없다", () => {
+  const plain = pinMarkup("ACTIVE", false);
+  const selected = pinMarkup("ACTIVE", true);
+  assert.equal((plain.match(/<circle/g) ?? []).length, 0);
+  // 채운 원(fill)과 고리(stroke) 후광이 하나씩 있다
+  assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
+});

@@ -87,6 +87,8 @@
 
 .chip,
 .notice {
+  /* 표시 전용이라 클릭은 뒤에 있는 핀으로 통과시킨다 */
+  pointer-events: none;
   position: absolute;
   z-index: 4;
   left: 14px;
@@ -103,7 +105,8 @@
   backdrop-filter: blur(10px);
 }
 .chip {
-  top: 14px;
+  /* 시안: 지도 아래 왼쪽. 핀을 선택하면 숨겨 선택 카드와 겹치지 않는다 */
+  bottom: 14px;
 }
 .chip b {
   font-weight: 650;
@@ -185,6 +188,14 @@
   font-size: 12.5px;
 }
 
+/* PC에서는 선택 카드가 지도 폭 전체로 늘어나지 않게 폭을 제한하고 왼쪽 아래에 붙인다 */
+@media (min-width: 768px) {
+  .sheet {
+    right: auto;
+    width: min(440px, calc(100% - 24px));
+  }
+}
+
 @media (max-width: 767px) {
   .stage {
     height: min(72vh, 620px);
@@ -228,4 +239,54 @@
 .switch button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* 빈 화면 일러스트: 발자국 원 + 핀 배지 (시안 08) */
+.emptyArt {
+  position: relative;
+  display: block;
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 14px;
+}
+.emptyCircle {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: var(--mode-subtle);
+  color: var(--brand-primary);
+}
+.emptyBadge {
+  position: absolute;
+  right: -6px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--mode-border);
+  border-radius: 50%;
+  background: var(--surface-card);
+  color: var(--brand-primary);
+}
+.textButton {
+  display: block;
+  margin: 12px auto 0;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.textButton:hover {
+  color: var(--text-primary);
+}
+.textButton:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
