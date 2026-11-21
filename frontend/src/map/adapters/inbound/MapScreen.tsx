@@ -12,6 +12,7 @@ import { NaverMapCanvas } from "./NaverMapCanvas";
 import { StaticMapCanvas } from "./StaticMapCanvas";
 import { pinDetail } from "./pinDetail";
 import { pinMarkup, type PinMode } from "./pinMarkup";
+import { WalkHistory } from "./WalkHistory";
 import styles from "./MapScreen.module.css";
 
 type Props = {
@@ -35,6 +36,8 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const request = useRef(0);
+  // 지도에 무엇을 보여 줄까: 기억 핀 또는 날짜별 산책 길
+  const [view, setView] = useState<"pins" | "walks">("pins");
 
   useEffect(() => {
     if (!bounds) return;
@@ -99,6 +102,20 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
         </Link>
       </PageHeading>
       <ArchiveNavigation petId={pet.id} active="map" />
+      <div className={styles.switch} role="group" aria-label="지도 보기">
+        <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
+          <Icon name="pin" size={16} />
+          기억 핀
+        </button>
+        <button type="button" aria-pressed={view === "walks"} onClick={() => setView("walks")}>
+          <Icon name="route" size={16} />
+          산책 길
+        </button>
+      </div>
+      {view === "walks" ? (
+        <WalkHistory pet={pet} />
+      ) : (
+      <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
         {clientId && !naverFailed ? (
           <NaverMapCanvas
@@ -193,6 +210,8 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
           데모 계정에서는 서울숲 근처의 예시 기억을 보여 드려요. 로그인하면 내
           기록의 위치가 나타나요.
         </p>
+      )}
+      </>
       )}
     </>
   );
