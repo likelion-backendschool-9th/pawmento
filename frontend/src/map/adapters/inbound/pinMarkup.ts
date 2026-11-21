@@ -14,8 +14,9 @@ const FLOWER = `<g>${[0, 72, 144, 216, 288]
 // 끝(좌표 위치)이 아래 가운데인 40x58 핀. 선택하면 후광이 생긴다.
 export function pinMarkup(mode: PinMode, selected = false): string {
   const glyph = mode === "GARDEN" ? FLOWER : PAW;
+  // 선택한 핀은 "채운 원 + 얇은 고리" 두 겹의 후광을 두른다(시안 02)
   const halo = selected
-    ? `<circle cx="0" cy="-34" r="34" fill="var(--brand-primary)" opacity=".16"/>`
+    ? `<circle cx="0" cy="-34" r="30" fill="var(--brand-primary)" opacity=".16"/><circle cx="0" cy="-34" r="43" fill="none" stroke="var(--brand-primary)" stroke-width="1.6" opacity=".28"/>`
     : "";
   return `<svg width="${selected ? 58 : 40}" height="${selected ? 84 : 58}" viewBox="-20 -58 40 60" style="overflow:visible;display:block" aria-hidden="true">
     ${halo}

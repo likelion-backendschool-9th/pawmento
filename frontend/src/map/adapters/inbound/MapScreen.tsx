@@ -130,7 +130,8 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
           <StaticMapCanvas {...canvasProps} />
         )}
 
-        {result && !error && (
+        {/* 기억이 하나도 없으면 칩을 숨기고, 핀을 선택하면 선택 카드에 자리를 내준다 */}
+        {result && !error && pins.length > 0 && !selected && (
           <div className={styles.chip} role="status">
             <span
               className={styles.chipIcon}
@@ -167,6 +168,14 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
 
         {result && !error && pins.length === 0 && !loading && (
           <div className={styles.message}>
+            <span className={styles.emptyArt} aria-hidden="true">
+              <span className={styles.emptyCircle}>
+                <Icon name="paw" size={34} />
+              </span>
+              <span className={styles.emptyBadge}>
+                <Icon name="pin" size={16} />
+              </span>
+            </span>
             <strong>이 지역에는 붙인 기억이 아직 없어요</strong>
             <p>
               기록을 쓸 때 위치를 붙이면 {pet.name}와 함께한 곳이 하나씩 모여요.
@@ -174,6 +183,13 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
             <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
               기록 쓰러 가기
             </Link>
+            <button
+              type="button"
+              className={styles.textButton}
+              onClick={() => setView("walks")}
+            >
+              산책 길 보기
+            </button>
           </div>
         )}
 
