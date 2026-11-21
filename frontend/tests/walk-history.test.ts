@@ -5,6 +5,8 @@ import { ApiError, type ApiClient } from "../src/shared/http/apiClient.ts";
 import {
   datesEndingAt,
   followToday,
+  initialNavigation,
+  walkHistoryPath,
   msUntilNextSeoulMidnight,
   formatClock,
   formatHourMinute,
@@ -304,7 +306,7 @@ test("#73-S7 사용 사례는 예시 옵션을 저장소에 그대로 전달한�
   assert.deepEqual(seen, [{ sample: true }, undefined]);
 });
 
-test("#73-S1 걷는 중인 길은 출발점부터 지금 위치까지 한 화면(0~100)에 맞춰 그린다. 점이 하나여도 깨지지 않는다", () => {
+test("#73-S15 걷는 중인 길은 출발점부터 지금 위치까지 한 화면(0~100)에 맞춰 그린다. 점이 하나여도 깨지지 않는다", () => {
   assert.deepEqual(fitPoints([]), []);
   // 북쪽으로 24걸음(위도 증가) + 동쪽으로 조금 걷는 길
   const path = Array.from({ length: 25 }, (_, i) => ({
@@ -324,4 +326,25 @@ test("#73-S1 걷는 중인 길은 출발점부터 지금 위치까지 한 화면
   // 길이 계속 늘어나도 항상 화면 안에 들어온다(걸을수록 줄어든다)
   const longer = fitPoints([...path, { latitude: 37.5445 + 0.02, longitude: 127.0374 }]);
   assert.ok(longer.every((p) => p.y >= 0 && p.y <= 100));
+});
+
+test("#73-S16 산책을 끝낸 뒤 열 날짜는 산책이 시작한 한국 날짜다. 자정을 넘겨 끝나도 시작한 날을 연다", () => {
+  // 11월 17일 23:50(한국)에 시작해 18일 00:10에 끝낸 산책
+  const startedAt = "2026-11-17T14:50:00Z";
+  assert.equal(seoulDate(startedAt), "2026-11-17");
+  assert.equal(seoulDate("2026-11-17T15:10:00Z"), "2026-11-18", "끝난 시각은 18일이다");
+  assert.equal(walkHistoryPath("10", seoulDate(startedAt)), "/pets/10/map/walks/2026-11-17");
+  // 날짜가 없거나 올바르지 않으면 날짜 없는 주소(오늘)로 간다
+  for (const bad of [null, undefined, "", "2026-02-30", "어제", "2026-11-17T00:00:00"]) {
+    assert.equal(walkHistoryPath("10", bad), "/pets/10/map/walks", String(bad));
+  }
+});
+
+test("#73-S16 산책 길 화면은 요청한 날짜가 올바르고 오늘을 넘지 않을 때만 그날을 열고, 아니면 오늘을 연다", () => {
+  const today = "2026-11-18";
+  assert.deepEqual(initialNavigation(today, "2026-11-17"), { today, weekEnd: "2026-11-17", selected: "2026-11-17" });
+  assert.deepEqual(initialNavigation(today, "2026-11-18"), { today, weekEnd: today, selected: today });
+  for (const bad of [null, undefined, "", "2026-11-19", "2026-02-30", "abc"]) {
+    assert.deepEqual(initialNavigation(today, bad), { today, weekEnd: today, selected: today }, String(bad));
+  }
 });

@@ -20,7 +20,11 @@ import { StaticWalkRoutesCanvas } from "./StaticWalkRoutesCanvas";
 import { useWalkHistory } from "./useWalkHistory";
 import styles from "./WalkHistory.module.css";
 
-type Props = { pet: { id: string; name: string; mode: string } };
+type Props = {
+  pet: { id: string; name: string; mode: string };
+  // 처음 열 날짜(YYYY-MM-DD). 없으면 오늘이다.
+  initialDate?: string | null;
+};
 
 const STATUS_LABEL: Record<WalkRecord["status"], string> = {
   ENDED: "끝냄",
@@ -36,10 +40,10 @@ function summary(walk: WalkRecord): string {
 }
 
 // "산책 길" 보기: 날짜를 고르면 그날의 산책 경로를 지도에 그리고 아래에 목록으로 보여 준다.
-export function WalkHistory({ pet }: Props) {
+export function WalkHistory({ pet, initialDate }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
   const [naverFailed, setNaverFailed] = useState(false);
-  const history = useWalkHistory(pet.id);
+  const history = useWalkHistory(pet.id, initialDate);
   const { walks, selected } = history;
   const [pickedId, setPickedId] = useState<string | null>(null);
   // 날짜를 바꾸면 선택을 첫 산책으로 되돌린다. 고른 산책이 그날에 없으면 첫 산책을 쓴다.

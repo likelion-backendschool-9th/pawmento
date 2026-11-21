@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/shared/ui/Icon";
 import {
   formatDistance,
@@ -8,6 +8,7 @@ import {
   isServerPetId,
   pathDistance,
 } from "@/map/domain/Walk";
+import { seoulDate, walkHistoryPath } from "@/map/domain/WalkRecord";
 import { NaverWalkCanvas } from "./NaverWalkCanvas";
 import { StaticWalkCanvas } from "./StaticWalkCanvas";
 import { useWalkSession } from "./useWalkSession";
@@ -19,7 +20,19 @@ export function WalkScreen({ pet }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
   const [naverFailed, setNaverFailed] = useState(false);
   const session = useWalkSession(pet.id);
-  const { phase, points, seconds, location, error, unsent, closed, outcome } = session;
+  const { phase, points, seconds, location, error, unsent, closed, outcome, walk } = session;
+  // 끝난 산책은 시작한 날(한국 시각)의 산책 길로 보여 준다. 자정을 넘겨 끝난 산책도 시작한 날에 속한다.
+  const historyPath = walkHistoryPath(pet.id, walk ? seoulDate(walk.startedAt) : null);
+  // 카드 높이에 맞춰 경로 영역을 잡는다. 카드가 길어지거나 화면이 낮아도 경로가 카드에 가려지지 않는다.
+  const card = useRef<HTMLDivElement>(null);
+  const [cardHeight, setCardHeight] = useState(0);
+  useEffect(() => {
+    const element = card.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => setCardHeight(element.offsetHeight));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const back = `/pets/${pet.id}/map`;
   const distance = formatDistance(pathDistance(points));
   const current = points.length > 0 ? points[points.length - 1] : null;
@@ -30,7 +43,11 @@ export function WalkScreen({ pet }: Props) {
   const recording = location === "ok" && !closed;
 
   return (
-    <section className={styles.screen} aria-label="산책 기록">
+    <section
+      className={styles.screen}
+      aria-label="산책 기록"
+      style={{ "--card-height": `${cardHeight}px` } as React.CSSProperties}
+    >
       {clientId && !naverFailed ? (
         <NaverWalkCanvas {...canvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
       ) : (
@@ -59,7 +76,7 @@ export function WalkScreen({ pet }: Props) {
         )}
       </header>
 
-      <div className={styles.card}>
+      <div className={styles.card} ref={card}>
         <div className={styles.grab} aria-hidden="true" />
         {phase === "ended" ? (
           <>
@@ -86,7 +103,7 @@ export function WalkScreen({ pet }: Props) {
               <div><dt>걸은 시간</dt><dd>{formatDuration(seconds)}</dd></div>
               <div><dt>거리</dt><dd>{distance.value}<small>{distance.unit}</small></dd></div>
             </dl>
-            <Link className="button primary" href={`/pets/${pet.id}/map/walks`}>
+            <Link className="button primary" href={historyPath}>
               <Icon name="route" size={17} />
               산책 길 보기
             </Link>

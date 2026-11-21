@@ -22,11 +22,18 @@ type Props = {
   canOpenDiary: (diaryId: string) => boolean;
   // 처음 보여 줄 보기. 기본은 기억 핀이고, 산책이 끝난 뒤에는 산책 길로 들어온다.
   initialView?: "pins" | "walks";
+  // 산책 길을 처음 열 날짜(YYYY-MM-DD)
+  initialDate?: string | null;
 };
 
 const REQUEST_DELAY_MS = 250;
 
-export function MapScreen({ pet, canOpenDiary, initialView = "pins" }: Props) {
+export function MapScreen({
+  pet,
+  canOpenDiary,
+  initialView = "pins",
+  initialDate = null,
+}: Props) {
   const { dependencies, account } = useApp();
   // 화면 확인용 예시 핀은 데모 계정에만 보여 준다
   const sample = isDemoAccount(account);
@@ -125,7 +132,7 @@ export function MapScreen({ pet, canOpenDiary, initialView = "pins" }: Props) {
         </button>
       </div>
       {view === "walks" ? (
-        <WalkHistory pet={pet} />
+        <WalkHistory pet={pet} initialDate={initialDate} />
       ) : (
       <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>

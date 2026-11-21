@@ -19,11 +19,11 @@
   right: 0;
   width: 100%;
 }
-/* 걸은 길 전체를 위쪽 칩과 아래쪽 카드 사이에 맞춰 그린다 */
+/* 걸은 길 전체를 위쪽 칩과 실제 카드 윗면 사이에 맞춰 그린다(카드 높이는 화면에서 재서 --card-height로 넘긴다) */
 .routes {
-  top: 80px;
-  bottom: 360px;
-  height: max(140px, calc(100% - 440px));
+  top: 76px;
+  bottom: calc(var(--card-height, 300px) + 28px);
+  height: max(48px, calc(100% - 76px - var(--card-height, 300px) - 28px));
 }
 .park {
   position: absolute;
@@ -147,6 +147,9 @@
   left: 50%;
   bottom: max(16px, env(safe-area-inset-bottom));
   width: min(440px, calc(100% - 28px));
+  /* 낮은 화면에서는 카드 안에서 스크롤해 경로 영역을 남긴다 */
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
   transform: translateX(-50%);
   display: grid;
   gap: 12px;
