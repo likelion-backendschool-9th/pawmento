@@ -20,11 +20,13 @@ type Props = {
   pet: { id: string; name: string; mode: PinMode };
   // 일기 상세 화면이 열 수 있는 기록인가(브라우저에 저장된 기록만 연다)
   canOpenDiary: (diaryId: string) => boolean;
+  // 처음 보여 줄 보기. 기본은 기억 핀이고, 산책이 끝난 뒤에는 산책 길로 들어온다.
+  initialView?: "pins" | "walks";
 };
 
 const REQUEST_DELAY_MS = 250;
 
-export function MapScreen({ pet, canOpenDiary }: Props) {
+export function MapScreen({ pet, canOpenDiary, initialView = "pins" }: Props) {
   const { dependencies, account } = useApp();
   // 화면 확인용 예시 핀은 데모 계정에만 보여 준다
   const sample = isDemoAccount(account);
@@ -40,7 +42,7 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
   const [attempt, setAttempt] = useState(0);
   const request = useRef(0);
   // 지도에 무엇을 보여 줄까: 기억 핀 또는 날짜별 산책 길
-  const [view, setView] = useState<"pins" | "walks">("pins");
+  const [view, setView] = useState<"pins" | "walks">(initialView);
   // 빈 화면의 "산책 길 보기"를 키보드로 눌러 화면이 바뀌어도 초점을 잃지 않게, 위쪽 전환 버튼으로 옮긴다
   const walksSwitch = useRef<HTMLButtonElement>(null);
 

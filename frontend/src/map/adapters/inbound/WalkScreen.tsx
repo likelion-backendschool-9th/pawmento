@@ -47,7 +47,7 @@ export function WalkScreen({ pet }: Props) {
               <Icon name="paw" size={15} />
               {pet.name}와 산책 중
             </span>
-            <span className={styles.chip + " " + (recording ? styles.rec : styles.paused)}>
+            <span className={styles.chip + " " + styles.status + " " + (recording ? styles.rec : styles.paused)}>
               <i aria-hidden="true" />
               {closed || location === "denied" || location === "unsupported"
                 ? "기록 멈춤"
@@ -60,6 +60,7 @@ export function WalkScreen({ pet }: Props) {
       </header>
 
       <div className={styles.card}>
+        <div className={styles.grab} aria-hidden="true" />
         {phase === "ended" ? (
           <>
             <p className={styles.eyebrow}>
@@ -85,7 +86,11 @@ export function WalkScreen({ pet }: Props) {
               <div><dt>걸은 시간</dt><dd>{formatDuration(seconds)}</dd></div>
               <div><dt>거리</dt><dd>{distance.value}<small>{distance.unit}</small></dd></div>
             </dl>
-            <Link className="button primary" href={back}>
+            <Link className="button primary" href={`/pets/${pet.id}/map/walks`}>
+              <Icon name="route" size={17} />
+              산책 길 보기
+            </Link>
+            <Link className={styles.link} href={back}>
               지도로 돌아가기
             </Link>
           </>
@@ -104,7 +109,10 @@ export function WalkScreen({ pet }: Props) {
             ) : location === "waiting" ? (
               <p className={styles.notice} role="status">현재 위치를 찾는 중이에요…</p>
             ) : (
-              <p className={styles.notice}>화면을 켜 두어야 경로가 끊기지 않고 기록돼요</p>
+              <p className={styles.notice}>
+                <Icon name="phone" size={18} />
+                화면을 켜 두어야 경로가 끊기지 않고 기록돼요.
+              </p>
             )}
             {closed && (
               <p className={styles.warn} role="alert">
@@ -128,6 +136,7 @@ export function WalkScreen({ pet }: Props) {
               disabled={phase === "ending"}
               onClick={() => void session.finish()}
             >
+              <Icon name="stop" size={18} />
               {phase === "ending" ? "끝내는 중…" : "산책 끝내기"}
             </button>
             {error && (

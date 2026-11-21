@@ -109,6 +109,13 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
         <path d="M12 7.5V12l3 2" />
       </>
     ),
+    phone: (
+      <>
+        <rect x="7" y="2.5" width="10" height="19" rx="2.4" />
+        <path d="M11 18.5h2" />
+      </>
+    ),
+    stop: <rect x="6" y="6" width="12" height="12" rx="3" />,
     arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
     chevron: <path d="m9 5 7 7-7 7" />,
     down: <path d="m6 9 6 6 6-6" />,

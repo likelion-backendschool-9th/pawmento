@@ -19,7 +19,7 @@ import {
   weekdayLabel,
   type WalkRecord,
 } from "../src/map/domain/WalkRecord.ts";
-import { fitRoutes, routeMarks } from "../src/map/domain/WalkRoutes.ts";
+import { fitPoints, fitRoutes, routeMarks } from "../src/map/domain/WalkRoutes.ts";
 import { createWalkHistoryUseCases } from "../src/map/application/walkHistoryUseCases.ts";
 import type { WalkDayList, WalkHistoryRepository } from "../src/map/application/walkPorts.ts";
 import { HttpWalkHistoryRepository } from "../src/map/adapters/outbound/HttpWalkHistoryRepository.ts";
@@ -302,4 +302,26 @@ test("#73-S7 사용 사례는 예시 옵션을 저장소에 그대로 전달한�
   await history.listDays("10", ["2026-11-18"], { sample: true });
   await history.listDay("10", "2026-11-18");
   assert.deepEqual(seen, [{ sample: true }, undefined]);
+});
+
+test("#73-S1 걷는 중인 길은 출발점부터 지금 위치까지 한 화면(0~100)에 맞춰 그린다. 점이 하나여도 깨지지 않는다", () => {
+  assert.deepEqual(fitPoints([]), []);
+  // 북쪽으로 24걸음(위도 증가) + 동쪽으로 조금 걷는 길
+  const path = Array.from({ length: 25 }, (_, i) => ({
+    latitude: 37.5445 + i * 0.00012,
+    longitude: 127.0374 + Math.sin(i / 3) * 0.0003,
+  }));
+  const view = fitPoints(path);
+  assert.equal(view.length, 25);
+  for (const point of view) {
+    assert.ok(point.x >= 0 && point.x <= 100 && point.y >= 0 && point.y <= 100, JSON.stringify(point));
+  }
+  // 출발점(첫 점)은 아래쪽, 지금 위치(마지막 점)는 위쪽에 놓인다(북쪽이 위)
+  assert.ok(view[view.length - 1].y < view[0].y);
+  // 점이 하나뿐이어도 숫자가 깨지지 않는다
+  const single = fitPoints([path[0]]);
+  assert.ok(Number.isFinite(single[0].x) && Number.isFinite(single[0].y));
+  // 길이 계속 늘어나도 항상 화면 안에 들어온다(걸을수록 줄어든다)
+  const longer = fitPoints([...path, { latitude: 37.5445 + 0.02, longitude: 127.0374 }]);
+  assert.ok(longer.every((p) => p.y >= 0 && p.y <= 100));
 });
