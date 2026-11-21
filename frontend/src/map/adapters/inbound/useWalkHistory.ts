@@ -6,6 +6,7 @@ import type { WalkDayList } from "@/map/application/walkPorts";
 import {
   datesEndingAt,
   followToday,
+  initialNavigation,
   msUntilNextSeoulMidnight,
   seoulDate,
   shiftDate,
@@ -15,14 +16,13 @@ import {
 const WEEK = 7;
 
 // 한 주(7일)의 산책을 읽어 주간 막대와 선택한 날의 목록에 쓴다.
-export function useWalkHistory(petId: string) {
+export function useWalkHistory(petId: string, initialDate?: string | null) {
   const { dependencies, account } = useApp();
   // 화면 확인용 예시 산책은 데모 계정에만 보여 준다
   const sample = isDemoAccount(account);
-  const [navigation, setNavigation] = useState<WalkDayNavigation>(() => {
-    const today = seoulDate(Date.now());
-    return { today, weekEnd: today, selected: today };
-  });
+  const [navigation, setNavigation] = useState<WalkDayNavigation>(() =>
+    initialNavigation(seoulDate(Date.now()), initialDate),
+  );
   const { today, weekEnd, selected } = navigation;
   const [days, setDays] = useState<Record<string, WalkDayList>>({});
   const [failed, setFailed] = useState<string[]>([]);

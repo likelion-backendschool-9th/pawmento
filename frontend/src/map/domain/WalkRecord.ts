@@ -137,3 +137,16 @@ export function followToday(navigation: WalkDayNavigation, now: string, span = 7
       : navigation.selected;
   return { today: now, weekEnd, selected };
 }
+
+// 처음 열 날짜를 정한다. 요청한 날짜가 올바른 날짜이고 오늘을 넘지 않으면 그날을, 아니면 오늘을 연다.
+// 산책을 끝낸 직후에는 그 산책이 시작한 날(한국 시각)을 열어, 자정을 넘긴 산책도 바로 보이게 한다.
+export function initialNavigation(today: string, requested?: string | null): WalkDayNavigation {
+  const day = requested && isValidDate(requested) && requested <= today ? requested : today;
+  return { today, weekEnd: day, selected: day };
+}
+
+// 산책 길 화면의 주소. 날짜를 주면 그날을 연다.
+export function walkHistoryPath(petId: string, date?: string | null): string {
+  const base = `/pets/${petId}/map/walks`;
+  return date && isValidDate(date) ? `${base}/${date}` : base;
+}
