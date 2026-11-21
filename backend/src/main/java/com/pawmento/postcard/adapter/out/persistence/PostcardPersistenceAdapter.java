@@ -6,6 +6,7 @@ import com.pawmento.postcard.domain.Postcard;
 import com.pawmento.postcard.domain.PostcardStatus;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +56,11 @@ public class PostcardPersistenceAdapter
   @Override
   public boolean existsByPetId(Long petId) {
     return postcards.existsByPetId(petId);
+  }
+
+  @Override
+  public List<Postcard> findAllById(Collection<Long> postcardIds) {
+    return postcards.findAllById(postcardIds).stream().map(PostcardJpaEntity::toDomain).toList();
   }
 
   @Override

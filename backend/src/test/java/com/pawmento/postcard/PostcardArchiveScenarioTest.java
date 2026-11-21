@@ -9,12 +9,61 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.pawmento.postcard.application.port.in.RequestPostcardCommand;
 import com.pawmento.postcard.domain.PostcardPolicy;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import com.pawmento.postcard.application.port.in.CleanupPostcardFilesUseCase;
+import java.nio.file.*;
+import java.nio.file.attribute.FileTime;
+import java.time.Duration;
 import java.util.*;
 import org.junit.jupiter.api.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
 class PostcardArchiveScenarioTest extends PostcardScenarioSupport {
+  @Autowired CleanupPostcardFilesUseCase cleanup;
+
+  Path file(String relative, Duration age) throws Exception {
+    Path path = ROOT.resolve(relative);
+    Files.createDirectories(path.getParent());
+    if (!Files.exists(path)) Files.write(path, new byte[] {1});
+    Files.setLastModifiedTime(path, FileTime.from(NOW.minus(age)));
+    return path;
+  }
+
+  @Test
+  @DisplayName("#103-S14 정리 작업은 DB와 맞지 않는 오래된 엽서 파일만 지운다")
+  void cleansMismatchedFiles() throws Exception {
+    long a = member(), pet = pet(a, "GARDEN"), diary = diary(a, pet, "공원");
+    long kept = postcard(a, pet, diarySource(diary));
+    worker.processNext();
+    long expired = postcard(a, pet, diarySource(diary));
+    jdbc.update("update postcards set status='FAILED', error_message='만료' where id=?", expired);
+    long deleted = postcard(a, pet, diarySource(diary));
+    jdbc.update("delete from postcards where id=?", deleted);
+    long rolledBack = deleted + 1000, fresh = deleted + 2000;
+    var old = Duration.ofHours(2);
+
+    Path keptImage = file("images/" + kept + ".png", old);
+    Path expiredImage = file("images/" + expired + ".png", old);
+    Path deletedImage = file("images/" + deleted + ".png", old);
+    Path rolledBackSource = file("sources/" + rolledBack + ".jpg", old);
+    Path freshImage = file("images/" + fresh + ".png", Duration.ofMinutes(10));
+    Path outside = ROOT.getParent().resolve("postcard-outside-" + fresh + ".png");
+    Files.write(outside, new byte[] {1});
+    Files.setLastModifiedTime(outside, FileTime.from(NOW.minus(old)));
+    Path otherName = file("images/notes.txt", old);
+
+    cleanup.cleanup();
+
+    assertThat(keptImage).exists();
+    assertThat(freshImage).exists();
+    assertThat(expiredImage).doesNotExist();
+    assertThat(deletedImage).doesNotExist();
+    assertThat(rolledBackSource).doesNotExist();
+    assertThat(outside).exists();
+    assertThat(otherName).exists();
+    Files.deleteIfExists(outside);
+  }
+
   @Test
   @DisplayName("#103-S8 엽서를 최신순으로 나눠 보고, 완성 엽서만 이미지를 열고, 지우면 파일도 사라진다")
   void listOpenDelete() throws Exception {
