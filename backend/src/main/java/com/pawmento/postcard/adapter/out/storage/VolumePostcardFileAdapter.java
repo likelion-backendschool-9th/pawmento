@@ -50,6 +50,15 @@ public class VolumePostcardFileAdapter implements StorePostcardFilePort {
   }
 
   @Override
+  public byte[] readImage(String key) {
+    try {
+      return Files.readAllBytes(properties.imageRoot().resolve(IMAGES).resolve(safe(key)));
+    } catch (IOException e) {
+      throw new PostcardStorageUnavailableException(e);
+    }
+  }
+
+  @Override
   public void deleteImage(String key) {
     delete(IMAGES, key);
   }

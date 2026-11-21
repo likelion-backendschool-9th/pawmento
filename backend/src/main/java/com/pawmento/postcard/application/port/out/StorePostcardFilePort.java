@@ -11,5 +11,7 @@ public interface StorePostcardFilePort {
   // images/{postcardId}.<확장자>로 저장하고 파일 이름을 돌려준다.
   String storeImage(Long postcardId, byte[] bytes, String contentType);
 
+  byte[] readImage(String key);
+
   void deleteImage(String key);
 }

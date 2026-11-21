@@ -26,7 +26,7 @@ class PostcardPetDeletionScenarioTest extends PostcardScenarioSupport {
   @DisplayName("#103-S10 일기를 모두 지워도 엽서가 남아 있으면 반려동물을 지울 수 없다")
   void postcardBlocksPetDeletion() throws Exception {
     long a = member(), pet = pet(a, "GARDEN"), diary = diary(a, pet, "공원");
-    request(a, pet, diarySource(diary)).andExpect(status().isAccepted());
+    long id = postcard(a, pet, diarySource(diary));
     deleteDiaries.delete(new DeleteDiaryEntryCommand(a, pet, diary, 0L));
 
     call(a, delete("/api/v1/pets/" + pet))
@@ -34,6 +34,11 @@ class PostcardPetDeletionScenarioTest extends PostcardScenarioSupport {
         .andExpect(jsonPath("$.code").value("CONFLICT"));
     assertThat(petRows(pet)).isOne();
     assertThat(rows(pet)).isOne();
+
+    // 엽서를 지우면 반려동물도 지울 수 있다.
+    call(a, delete("/api/v1/postcards/" + id + "?petId=" + pet)).andExpect(status().isNoContent());
+    call(a, delete("/api/v1/pets/" + pet)).andExpect(status().isNoContent());
+    assertThat(petRows(pet)).isZero();
   }
 
   // 생성 요청이 일기를 복사한 뒤 엽서를 저장하기 직전에 멈추게 한다.

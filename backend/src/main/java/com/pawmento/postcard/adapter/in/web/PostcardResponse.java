@@ -1,9 +1,7 @@
 package com.pawmento.postcard.adapter.in.web;
 
 import com.pawmento.global.web.ApiPaths;
-import com.pawmento.postcard.application.port.in.GetPostcardResult;
-import com.pawmento.postcard.application.port.in.GetPostcardUsageResult;
-import com.pawmento.postcard.application.port.in.RequestPostcardResult;
+import com.pawmento.postcard.application.port.in.*;
 import java.time.Instant;
 
 record PostcardResponse(
@@ -23,6 +21,12 @@ record PostcardResponse(
   record Created(Long postcardId, String status) {
     static Created from(RequestPostcardResult r) {
       return new Created(r.postcardId(), r.status());
+    }
+  }
+
+  record Page(java.util.List<PostcardResponse> items, Long nextCursor) {
+    static Page from(ListPostcardsResult r) {
+      return new Page(r.items().stream().map(PostcardResponse::from).toList(), r.nextCursor());
     }
   }
 
