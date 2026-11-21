@@ -21,6 +21,7 @@ public class RequestPostcardService implements RequestPostcardUseCase {
   private final PostcardUsagePort usage;
   private final SavePostcardPort save;
   private final StorePostcardFilePort files;
+  private final GeneratePostcardImagePort generator;
   private final Clock clock;
 
   @Override
@@ -43,6 +44,7 @@ public class RequestPostcardService implements RequestPostcardUseCase {
             pet.garden(),
             source.photoAssetId() != null,
             c.consent(),
+            generator.name(),
             clock.instant());
     var today = postcard.getRequestedOn();
     var counts = usage.lock(today, c.memberId());

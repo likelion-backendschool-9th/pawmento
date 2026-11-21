@@ -10,4 +10,7 @@ public interface PostcardUsagePort {
   void increment(LocalDate date, Long memberId);
 
   long memberCount(LocalDate date, Long memberId);
+
+  // 실패한 엽서의 회원당 횟수만 돌려준다. 전체 횟수는 외부를 이미 불렀으므로 줄이지 않는다.
+  void refundMember(LocalDate date, Long memberId);
 }
