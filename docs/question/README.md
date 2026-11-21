@@ -11,7 +11,7 @@
 | 공통 파일 업로드 | [미디어 설계](../media/README.md). 사진·음성 녹음 업로드도 이번 구현 범위 |
 | 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 개발 이슈 | [#31](https://github.com/likelion-backendschool-9th/pawmento/issues/31) |
-| 첫 구현 단위 | [현재 질문과 답변부터 구현하기](question-flow.md) — 초기 데이터·배정·답변·공통 진행 우선 |
+| 구현 계획 | [현재 질문과 답변부터 구현하기](question-flow.md) — 초기 데이터·배정·답변·공통 진행과 관리자 API 6단계 |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
 ## 요구사항
@@ -92,7 +92,8 @@
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `GET /questions/admin` | `mode`, `enabled` 선택, `page`, `size` | 200, 질문 목록 |
+| `GET /questions/admin` | `mode`, `enabled`, `q` 선택, `page`, `size` | 200, 질문 목록 |
+| `GET /questions/admin/{questionId}` | 없음 | 200, 비활성 항목 포함 질문 원본 상세 |
 | `POST /questions/admin` | `mode`, `content` | 201, 생성 질문 |
 | `PATCH /questions/admin/{questionId}` | `content`, `enabled`, `version` | 200, 변경 질문. 모드 변경 대신 해당 모드 질문 신규 등록 |
 | `POST /questions/prompts/current?petId={petId}` | 없음. 서버가 현재 pet 모드 확인 | 새 배정 201, 기존 질문 200 |
@@ -114,6 +115,8 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 답변 목록은 `answeredAt DESC, answerId DESC`, 질문 이력은 `assignedAt DESC, promptId DESC`로 정렬한다. `from/to`는 **답변 등록 날짜** 기준·양 끝 포함이다. 등록일이 다른 가족 답변은 각각 자신의 날짜에 조회된다. `page`는 0부터, `size` 기본 20·최대 100이며 응답은 `items`, `page`, `size`, `totalElements`, `totalPages`다.
 
 질문 상세의 가족 답변도 무제한 중첩하지 않는다. 첫 페이지와 답변 수를 제공하고 전체 답변은 답변 목록에 `promptId` 필터를 추가해 조회하는 안을 제안한다.
+
+관리자 목록 검색·상세·입력·충돌·스냅샷 보존의 세부안은 [6단계 계획](question-flow.md#6단계-관리자-질문-관리-api)을 따른다. (고침 #31: 가족 API와 독립적인 관리자 백엔드 계획 구체화)
 
 ## 가족 권한과 의존성
 
