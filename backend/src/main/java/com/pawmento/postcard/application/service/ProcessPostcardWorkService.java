@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ProcessPostcardService implements ProcessPostcardWorkUseCase {
+public class ProcessPostcardWorkService implements ProcessPostcardWorkUseCase {
   private final PostcardWorkTransactions tx;
   private final PostcardWorkPort work;
   private final LoadPostcardPort load;
