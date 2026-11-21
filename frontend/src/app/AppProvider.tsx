@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import type { Account } from "../auth/domain/account";
+import type { SessionSource } from "../auth/application/auth";
 import { emptyWorkspace } from "../workspace/domain/models";
 import type { Workspace } from "../workspace/domain/models";
 import { createDependencies, type Dependencies } from "./composition";
@@ -15,6 +16,7 @@ import { demoQuestionInputs } from "./demoQuestions";
 type Context = {
   dependencies: Dependencies;
   account: Account | null;
+  sessionSource: SessionSource;
   sessionReady: boolean;
   state: Workspace;
   loading: boolean;
@@ -30,6 +32,7 @@ const AppContext = createContext<Context | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [dependencies] = useState(createDependencies);
   const [account, setAccount] = useState<Account | null>(null);
+  const [sessionSource, setSessionSource] = useState<SessionSource>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [state, setState] = useState<Workspace>(emptyWorkspace);
   const [loading, setLoading] = useState(false);
@@ -61,13 +64,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
     if (member.status === "SUSPENDED") {
       await dependencies.auth.signOut();
+      setSessionSource(null);
       throw Error("데모 활동이 제한된 계정이에요.");
     }
     setAccount(current);
+    setSessionSource(dependencies.auth.sessionSource());
     await refresh(current);
   };
   const startDemo = async () => {
     const current = await dependencies.auth.startDemo();
+    setAccount(current);
+    setSessionSource(dependencies.auth.sessionSource());
+    setState(emptyWorkspace());
     const existing = await dependencies.workspace.load(current.id);
     if (existing.pets.length) {
       // 기존 데모로 다시 진입할 때 샘플 추가/재저장으로 기록 열람을 막지 않는다.
@@ -140,6 +148,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     await dependencies.auth.signOut();
     setAccount(null);
+    setSessionSource(null);
     setState(emptyWorkspace());
     notify("로그아웃했어요.");
   };
@@ -171,6 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       value={{
         dependencies,
         account,
+        sessionSource,
         sessionReady,
         state,
         loading,
