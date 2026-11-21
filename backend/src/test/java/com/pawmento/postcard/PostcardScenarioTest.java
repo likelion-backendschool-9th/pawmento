@@ -20,6 +20,7 @@ import com.pawmento.postcard.application.port.in.*;
 import com.pawmento.postcard.application.port.out.LoadPostcardPolicyPort;
 import com.pawmento.postcard.application.port.out.SavePostcardPort;
 import com.pawmento.postcard.domain.PostcardPolicy;
+import com.pawmento.postcard.domain.exception.PostcardConsentRequiredException;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -492,8 +493,22 @@ class PostcardScenarioTest {
     assertThat(total()).isEqualTo(totalBefore);
   }
 
+  @Test
+  @DisplayName("#103-S2 입력 포트를 직접 불러도 동의가 없으면 거절하고 엽서·횟수가 늘지 않는다")
+  void consentRequiredAtUseCase() {
+    long a = member(), pet = pet(a, "GARDEN"), diary = diary(a, pet, "공원");
+    long totalBefore = total();
+
+    assertThatThrownBy(
+            () -> requests.request(new RequestPostcardCommand(a, pet, "DIARY", diary, null, false)))
+        .isInstanceOf(PostcardConsentRequiredException.class);
+    assertThat(rows(pet)).isZero();
+    assertThat(used(a)).isZero();
+    assertThat(total()).isEqualTo(totalBefore);
+  }
+
   String command(long member, long pet, long diary) {
-    requests.request(new RequestPostcardCommand(member, pet, "DIARY", diary, null));
+    requests.request(new RequestPostcardCommand(member, pet, "DIARY", diary, null, true));
     return "accepted";
   }
 

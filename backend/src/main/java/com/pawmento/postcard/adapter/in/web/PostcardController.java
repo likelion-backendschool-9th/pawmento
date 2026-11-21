@@ -27,7 +27,12 @@ public class PostcardController {
     return PostcardResponse.Created.from(
         request.request(
             new RequestPostcardCommand(
-                memberId, petId, body.source().kind(), body.source().id(), body.note())));
+                memberId,
+                petId,
+                body.source().kind(),
+                body.source().id(),
+                body.note(),
+                Boolean.TRUE.equals(body.consent()))));
   }
 
   // 우체통 화면이 베타 표시와 오늘 남은 횟수를 그린다.

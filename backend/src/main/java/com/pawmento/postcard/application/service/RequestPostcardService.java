@@ -42,6 +42,7 @@ public class RequestPostcardService implements RequestPostcardUseCase {
             pet.breed(),
             pet.garden(),
             source.photoAssetId() != null,
+            c.consent(),
             clock.instant());
     var today = postcard.getRequestedOn();
     var counts = usage.lock(today, c.memberId());

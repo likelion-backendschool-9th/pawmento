@@ -1,6 +1,7 @@
 package com.pawmento.postcard.domain;
 
 import com.pawmento.postcard.domain.exception.InvalidPostcardException;
+import com.pawmento.postcard.domain.exception.PostcardConsentRequiredException;
 import com.pawmento.postcard.domain.exception.PostcardMaterialMissingException;
 import com.pawmento.postcard.domain.exception.PostcardModeNotAllowedException;
 import java.time.Instant;
@@ -110,7 +111,10 @@ public class Postcard {
       String petBreed,
       boolean garden,
       boolean hasPhoto,
+      boolean consent,
       Instant now) {
+    // 글과 사진을 외부 AI 서비스로 보내므로 웹이 아닌 경로도 동의 없이는 만들지 않는다.
+    if (!consent) throw new PostcardConsentRequiredException();
     if (!garden) throw new PostcardModeNotAllowedException();
     String content = sourceContent == null ? "" : sourceContent;
     String cleanNote = note == null || note.isBlank() ? null : note.strip();
