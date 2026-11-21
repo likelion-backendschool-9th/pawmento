@@ -2,6 +2,7 @@ package com.pawmento.postcard.adapter.in.web;
 
 import com.pawmento.global.web.ApiPaths;
 import com.pawmento.postcard.application.port.in.GetPostcardResult;
+import com.pawmento.postcard.application.port.in.GetPostcardUsageResult;
 import com.pawmento.postcard.application.port.in.RequestPostcardResult;
 import java.time.Instant;
 
@@ -22,6 +23,12 @@ record PostcardResponse(
   record Created(Long postcardId, String status) {
     static Created from(RequestPostcardResult r) {
       return new Created(r.postcardId(), r.status());
+    }
+  }
+
+  record Usage(boolean beta, int dailyLimit, long usedToday, long remainingToday) {
+    static Usage from(GetPostcardUsageResult r) {
+      return new Usage(r.beta(), r.dailyLimit(), r.usedToday(), r.remainingToday());
     }
   }
 

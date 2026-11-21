@@ -11,3 +11,15 @@ BEGIN
   CREATE INDEX IF NOT EXISTS ix_postcards_processing
     ON postcards(id) WHERE status = 'PROCESSING';
 END $$;
+
+-- 하루 횟수. 엽서 행과 따로 세어 엽서를 지워도 줄지 않는다.
+CREATE TABLE IF NOT EXISTS postcard_daily_total (
+  usage_date DATE PRIMARY KEY,
+  count INTEGER NOT NULL CHECK (count >= 0)
+);
+CREATE TABLE IF NOT EXISTS postcard_daily_usage (
+  usage_date DATE NOT NULL,
+  member_id BIGINT NOT NULL,
+  count INTEGER NOT NULL CHECK (count >= 0),
+  PRIMARY KEY (usage_date, member_id)
+);

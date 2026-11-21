@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class PostcardController {
   private final RequestPostcardUseCase request;
   private final GetPostcardUseCase get;
+  private final GetPostcardUsageUseCase usage;
 
   // 생성은 기다리지 않는다. 상태는 상세를 다시 불러 확인한다.
   @PostMapping
@@ -27,6 +28,13 @@ public class PostcardController {
         request.request(
             new RequestPostcardCommand(
                 memberId, petId, body.source().kind(), body.source().id(), body.note())));
+  }
+
+  // 우체통 화면이 베타 표시와 오늘 남은 횟수를 그린다.
+  @GetMapping("/usage")
+  PostcardResponse.Usage usage(@LoginMember Long memberId, HttpServletRequest http) {
+    Long petId = PostcardQueryParameters.parse(http.getQueryString(), "petId").petId();
+    return PostcardResponse.Usage.from(usage.get(new GetPostcardUsageQuery(memberId, petId)));
   }
 
   @GetMapping("/{postcardId}")

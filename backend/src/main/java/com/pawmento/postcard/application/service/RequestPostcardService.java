@@ -10,12 +10,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// 한 트랜잭션에서 확인 → 횟수 잠금·증가 → 엽서 저장 → 사진 복사를 한다.
+// 어느 단계에서 실패하든 늘린 횟수와 엽서 행이 함께 되돌아간다. 남은 복사 사진은 정리 작업이 지운다.
 @Service
 @RequiredArgsConstructor
 public class RequestPostcardService implements RequestPostcardUseCase {
   private final LoadPostcardPetPort pets;
   private final LoadPostcardSourcePort sources;
+  private final LoadPostcardPolicyPort policies;
+  private final PostcardUsagePort usage;
   private final SavePostcardPort save;
+  private final StorePostcardFilePort files;
   private final Clock clock;
 
   @Override
@@ -35,9 +40,19 @@ public class RequestPostcardService implements RequestPostcardUseCase {
             c.note(),
             pet.species(),
             pet.breed(),
-            null,
+            pet.garden(),
+            source.photoAssetId() != null,
             clock.instant());
+    var today = postcard.getRequestedOn();
+    var counts = usage.lock(today, c.memberId());
+    policies.load().requireRoom(counts.memberCount(), counts.totalCount());
+    usage.increment(today, c.memberId());
     Long id = save.save(postcard);
+    if (source.photoAssetId() != null) {
+      byte[] photo =
+          sources.photo(c.memberId(), c.petId(), kind, c.sourceId(), source.photoAssetId());
+      save.attachSourcePhoto(id, files.storeSourcePhoto(id, photo));
+    }
     return new RequestPostcardResult(id, postcard.getStatus().name());
   }
 

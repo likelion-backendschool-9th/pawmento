@@ -31,6 +31,11 @@ public class PostcardPersistenceAdapter implements SavePostcardPort, LoadPostcar
   }
 
   @Override
+  public void attachSourcePhoto(Long postcardId, String key) {
+    postcards.attachSourcePhoto(postcardId, key);
+  }
+
+  @Override
   public Optional<Postcard> findById(Long postcardId) {
     return postcards.findById(postcardId).map(PostcardJpaEntity::toDomain);
   }
