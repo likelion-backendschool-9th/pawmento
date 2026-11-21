@@ -41,6 +41,8 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
   const request = useRef(0);
   // 지도에 무엇을 보여 줄까: 기억 핀 또는 날짜별 산책 길
   const [view, setView] = useState<"pins" | "walks">("pins");
+  // 빈 화면의 "산책 길 보기"를 키보드로 눌러 화면이 바뀌어도 초점을 잃지 않게, 위쪽 전환 버튼으로 옮긴다
+  const walksSwitch = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!bounds) return;
@@ -110,7 +112,12 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
           <Icon name="pin" size={16} />
           기억 핀
         </button>
-        <button type="button" aria-pressed={view === "walks"} onClick={() => setView("walks")}>
+        <button
+          ref={walksSwitch}
+          type="button"
+          aria-pressed={view === "walks"}
+          onClick={() => setView("walks")}
+        >
           <Icon name="route" size={16} />
           산책 길
         </button>
@@ -186,7 +193,10 @@ export function MapScreen({ pet, canOpenDiary }: Props) {
             <button
               type="button"
               className={styles.textButton}
-              onClick={() => setView("walks")}
+              onClick={() => {
+                setView("walks");
+                walksSwitch.current?.focus();
+              }}
             >
               산책 길 보기
             </button>
