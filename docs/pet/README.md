@@ -9,6 +9,7 @@
 | [#45](https://github.com/likelion-backendschool-9th/pawmento/issues/45) | 설계 문서 작업(반려동물 본문 + 마이·관리자 골격) | 이 README, [manage.md](manage.md), [admin](../admin/README.md), [mypage](../mypage/README.md) |
 | [#46](https://github.com/likelion-backendschool-9th/pawmento/issues/46) | 반려동물 등록·관리(MVP, **백엔드 API**) | [manage.md](manage.md) |
 | [#72](https://github.com/likelion-backendschool-9th/pawmento/issues/72) | pet 예외의 공통 기본 예외 전환 계획 | [exception-migration.md](exception-migration.md) |
+| [#130](https://github.com/likelion-backendschool-9th/pawmento/issues/130) | 반려동물 프로필 사진 연결·조회·교체·제거 | [profile-photo.md](profile-photo.md) |
 
 ## 도메인 담당이 쓰는 방법
 
@@ -32,6 +33,7 @@
 - 이름이 같아도 가입할 수 있고, **태그로 구분**한다. (회의 2026-11-16) 태그 생성 규칙은 [manage.md](manage.md) 가정을 팀 확인 후 확정한다.
 - 기록이 있으면 삭제하지 않고 409 `CONFLICT`로 거절한다. 보관·내보내기는 미정. (#46)
 - 생일은 Asia/Seoul 기준 오늘보다 뒤면 거절한다. (#46)
+- 프로필 사진은 반려동물당 자산 ID 한 개를 연결한다. `PET_PROFILE`은 기존 IMAGE 정책을 적용하고 GPS 후보를 생성하지 않는다. [#130 계획](profile-photo.md#정한-것)
 - 예외는 [공통 예외 문서](../backend-exceptions.md)의 기본 예외를 상속하고 `GlobalExceptionHandler`로 연결한다. pet 전환 범위와 작은 작업 단위는 [#72 계획](exception-migration.md)을 따른다. (고침 #72: #62로 결정된 처리 방식을 미정 항목에서 구분)
 
 ## 데이터 구조 요약
@@ -47,7 +49,7 @@
 | `species` | `DOG` / `CAT` / `OTHER` |
 | `breed` | 품종. 비어 있을 수 있음 |
 | `birthday` | 생일(DATE). 비어 있을 수 있음 |
-| `photo_asset_id` 또는 URL | 프로필 사진. media 정책 확정 전 미정 |
+| `photo_asset_id` | 프로필 사진 자산 ID. 연결된 사진이 없으면 NULL. [#130 계획](profile-photo.md#api와-데이터-계약안) |
 | `mode` | `ACTIVE` / `GARDEN` |
 | `created_at`, `updated_at` | 시각 |
 | `version` | 동시 수정 충돌용(낙관적 잠금). 이름 수정과 모드 변경이 겹치면 409 (#46, PR #48) |
@@ -56,7 +58,6 @@
 
 - 태그 자동 생성 규칙(형식·유니크 범위: 전역 vs 소유자 단위) — 가정은 소유자+tag
 - 대표(선택) 아이를 서버에 둘지, 클라이언트만 둘지
-- 프로필 사진 업로드(media 초기 용도는 diary/question 첨부. 프로필은 별도 정책)
 - 가족 멤버십·역할 입력 포트의 최종 위치와 시그니처(question/diary #30 설계가 기대)
 - 기록이 있는 프로필의 보관·내보내기
 - pet 예외 전환의 공용 아키텍처 검사 변경 범위 — [#72 계획의 Q2](exception-migration.md#질문)에서 합의한다. 삭제 불가의 애플리케이션 분류와 기본 예외 4종 사용은 [확인된 결정](exception-migration.md#확인된-결정)을 따른다.
