@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { isDemoAccount } from "@/features/auth/domain/account";
+import { isDemoAccount } from "@/features/member/types/account";
 import { ApplicationError } from "@/lib/application/ApplicationError";
 import { Icon } from "@/components/Icon";
 import styles from "./Workspace.module.css";

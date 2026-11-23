@@ -9,11 +9,9 @@ import { createLifeUseCases } from "../features/life/application/useCases.ts";
 
 import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
 import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
-import { createAuthUseCases } from "../features/auth/application/auth.ts";
+import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
-import { SessionAuthRepository } from "../features/auth/adapters/outbound/SessionAuthRepository.ts";
-import { createPetUseCases } from "../features/pets/application/useCases.ts";
-import { HttpPetListRepository } from "../features/pets/adapters/outbound/HttpPetListRepository.ts";
+import { createPetApi } from "../features/pet/api/petApi.ts";
 import { createMapUseCases } from "../features/map/application/useCases.ts";
 import { HttpMapPinRepository } from "../features/map/adapters/outbound/HttpMapPinRepository.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
@@ -57,10 +55,8 @@ export function createDependencies() {
       },
       new PoolQuestionRepository(lifeRepository),
     ),
-    auth: createAuthUseCases(
-      new SessionAuthRepository(http, new DemoAuthRepository()),
-    ),
-    pets: createPetUseCases(new HttpPetListRepository(http)),
+    auth: createMemberSession(http, new DemoAuthRepository()),
+    pets: createPetApi(http),
     walk: createWalkUseCases(
       new PetScopedWalkRepository(new HttpWalkRepository(http), demoWalks),
       new LocalActiveWalkStore(),

@@ -1,4 +1,4 @@
-import { AuthScreen } from "@/features/auth/adapters/inbound/AuthScreen";
+import { AuthScreen } from "@/features/member/components/AuthScreen";
 export default function Page() {
   return <AuthScreen signUp />;
 }

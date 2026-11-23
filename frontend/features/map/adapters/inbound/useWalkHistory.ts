@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { isDemoAccount } from "@/features/auth/domain/account";
+import { isDemoAccount } from "@/features/member/types/account";
 import type { WalkDayList } from "@/features/map/application/walkPorts";
 import {
   datesEndingAt,

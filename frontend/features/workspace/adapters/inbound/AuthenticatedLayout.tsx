@@ -1,8 +1,8 @@
 "use client";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
-import { AuthScreen } from "@/features/auth/adapters/inbound/AuthScreen";
-import { resolveProtectedAccess } from "@/features/auth/application/sessionView";
+import { AuthScreen } from "@/features/member/components/AuthScreen";
+import { resolveProtectedAccess } from "@/features/member/utils/access";
 import { Shell } from "./AppShell";
 import { useCurrentPet } from "./PetContext";
 

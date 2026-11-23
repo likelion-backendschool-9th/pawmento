@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
-import { createPetUseCases } from "../features/pets/application/useCases.ts";
+import type { ApiClient } from "../lib/http/apiClient.ts";
+import { createPetApi } from "../features/pet/api/petApi.ts";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 
 function files(folder: string): string[] {
@@ -57,8 +58,23 @@ test("#52-S9 마이페이지 화면은 구체 outbound 어댑터와 HTTP 예외�
   }
 });
 
-test("#52-S6 pet 조회 유스케이스는 HTTP 없이 포트만으로 동작한다", async () => {
-  const pets = createPetUseCases({ listMine: async () => [{ id: "1", name: "콩이" }] });
+test("#52-S6 반려동물 목록 API는 조회 결과를 아이 요약으로 돌려준다", async () => {
+  const http: ApiClient = {
+    async get<T>(path: string) {
+      assert.equal(path, "/pets");
+      return [{ petId: 1, name: "콩이" }] as T;
+    },
+    post: async () => {
+      throw Error("unused");
+    },
+    patch: async () => {
+      throw Error("unused");
+    },
+    postEmpty: async () => {
+      throw Error("unused");
+    },
+  };
+  const pets = createPetApi(http);
   assert.deepEqual(await pets.listMine(), [{ id: "1", name: "콩이" }]);
 });
 
@@ -68,13 +84,12 @@ test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리
   assert.equal("status" in error, false);
 });
 
-test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
-  const folder = resolve("features/map/adapters/inbound");
-  for (const path of files(folder)) {
-    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-    for (const node of file.statements) {
-      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/, relative(folder, path));
+test("#182 회원·반려동물 API는 react·next·mocks를 가져오지 않는다", () => {
+  for (const folder of ["features/member/api", "features/pet/api"]) {
+    for (const path of files(resolve(folder))) {
+      const name = relative(resolve("."), path);
+      for (const specifier of moduleSpecifiers(path)) {
+        assert.doesNotMatch(specifier, /react|next|mocks/, `${name} → ${specifier}`);
       }
     }
   }
@@ -110,3 +125,15 @@ function moduleSpecifiers(path: string): string[] {
   }
   return found;
 }
+
+test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
+  const folder = resolve("features/map/adapters/inbound");
+  for (const path of files(folder)) {
+    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+    for (const node of file.statements) {
+      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/, relative(folder, path));
+      }
+    }
+  }
+});

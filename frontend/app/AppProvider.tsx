@@ -6,8 +6,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { Account } from "../features/auth/domain/account";
-import type { SessionSource } from "../features/auth/application/auth";
+import type { Account, SessionSource } from "../features/member/types/account";
 import { emptyWorkspace } from "../features/workspace/domain/models";
 import type { Workspace } from "../features/workspace/domain/models";
 import {

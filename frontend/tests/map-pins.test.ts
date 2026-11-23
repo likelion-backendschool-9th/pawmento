@@ -17,7 +17,7 @@ import {
   type MapBounds,
 } from "../features/map/domain/MapBounds.ts";
 import { HttpMapPinRepository } from "../features/map/adapters/outbound/HttpMapPinRepository.ts";
-import { isDemoAccount } from "../features/auth/domain/account.ts";
+import { isDemoAccount } from "../features/member/types/account.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../features/map/adapters/outbound/PetScopedMapPinRepository.ts";

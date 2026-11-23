@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { isDemoAccount } from "@/features/auth/domain/account";
+import { isDemoAccount } from "@/features/member/types/account";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { Icon } from "@/components/Icon";
 import { PageHeading } from "@/features/workspace/adapters/inbound/WorkspaceUi";
