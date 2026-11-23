@@ -54,6 +54,7 @@ public final class QuestionAnswer {
   public static QuestionAnswer create(
       QuestionPrompt prompt, Long author, String name, String content, Instant now) {
     if (now == null) throw new InvalidQuestionAnswerException();
+    now = QuestionTime.forWrite(now);
     return new QuestionAnswer(
         null,
         prompt,
@@ -89,7 +90,7 @@ public final class QuestionAnswer {
   public void edit(String content, Instant now) {
     if (now == null) throw new InvalidQuestionAnswerException();
     this.content = validate(content);
-    this.updatedAt = now;
+    this.updatedAt = QuestionTime.forWrite(now);
     this.edited = true;
   }
 
