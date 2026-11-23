@@ -27,9 +27,16 @@ final class QuestionAdminQuery {
       throw new InvalidQuestionRequestException();
     if (enabled != null && !Set.of("true", "false").contains(enabled))
       throw new InvalidQuestionRequestException();
+    String search = values.get("q");
+    if (search != null) {
+      search = search.strip();
+      if (search.length() > 300 || search.indexOf('\0') >= 0)
+        throw new InvalidQuestionRequestException();
+    }
     return ListAdminQuestionsQuery.from(member, mode,
-        enabled == null ? null : Boolean.valueOf(enabled), values.get("q"),
-        integer(values, "page", 0), integer(values, "size", 20));
+        enabled == null ? null : Boolean.valueOf(enabled), search,
+        integer(values, "page", 0, 0, Integer.MAX_VALUE),
+        integer(values, "size", 20, 1, 100));
   }
 
   private static String decode(String raw) {
@@ -55,11 +62,15 @@ final class QuestionAdminQuery {
     return URLDecoder.decode(raw, StandardCharsets.UTF_8);
   }
 
-  private static int integer(Map<String, String> values, String key, int fallback) {
+  private static int integer(Map<String, String> values, String key, int fallback, int min, int max) {
     String value = values.get(key);
     if (value == null) return fallback;
     if (!value.matches("[0-9]+")) throw new InvalidQuestionRequestException();
-    try { return Integer.parseInt(value); }
+    try {
+      int parsed = Integer.parseInt(value);
+      if (parsed < min || parsed > max) throw new InvalidQuestionRequestException();
+      return parsed;
+    }
     catch (NumberFormatException e) { throw new InvalidQuestionRequestException(); }
   }
 }

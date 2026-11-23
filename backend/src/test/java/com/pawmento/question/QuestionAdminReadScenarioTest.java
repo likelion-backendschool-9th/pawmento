@@ -42,6 +42,7 @@ class QuestionAdminReadScenarioTest {
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase signup;
   @Autowired LoginMemberUseCase login;
+  @Autowired GetMemberUseCase members;
   @Autowired ListAdminQuestionsUseCase list;
   @Autowired GetAdminQuestionUseCase detail;
   @Autowired CreatePetUseCase pets;
@@ -87,28 +88,55 @@ class QuestionAdminReadScenarioTest {
   @DisplayName("#31-S22/#14-S8 관리자 경로의 실제 요청은 무인증 401·일반 회원 403·현재 관리자 허용이다")
   void routeAccess() throws Exception {
     long id = row("ACTIVE", false, "inactive");
-    for (String url : new String[]{"/api/v1/questions/admin", "/api/v1/questions/admin/" + id}) {
+    for (String url : new String[]{"/api/v1/admin/questions", "/api/v1/admin/questions/" + id}) {
       mvc.perform(get(url)).andExpect(status().isUnauthorized());
       as(user, "USER", get(url)).andExpect(status().isForbidden());
       as(admin, "ADMIN", get(url)).andExpect(status().isOk());
     }
     // 아직 없는 관리자 쓰기 경로도 일반 인증 규칙으로 빠지지 않는다.
-    as(user, "USER", post("/api/v1/questions/admin")).andExpect(status().isForbidden());
-    as(user, "USER", patch("/api/v1/questions/admin/" + id)).andExpect(status().isForbidden());
-    as(admin, "ADMIN", request("/api/v1/questions/admin/" + id))
+    as(user, "USER", post("/api/v1/admin/questions")).andExpect(status().isForbidden());
+    as(user, "USER", patch("/api/v1/admin/questions/" + id)).andExpect(status().isForbidden());
+    as(admin, "ADMIN", request("/api/v1/admin/questions/" + id))
         .andExpect(jsonPath("enabled").value(false))
         .andExpect(jsonPath("version").value(0))
         .andExpect(jsonPath("seedKey").doesNotExist());
   }
 
   @Test
+  @DisplayName("#31-S22 관리자 공통 루트와 하위 경로를 보호하고 기존 질문 관리자 경로는 제공하지 않는다")
+  void sharedAdminNamespace() throws Exception {
+    for (String path : new String[]{"/api/v1/admin", "/api/v1/admin/reports", "/api/v1/admin/questions/123"}) {
+      mvc.perform(request(path)).andExpect(status().isUnauthorized());
+      as(user, "USER", request(path)).andExpect(status().isForbidden());
+    }
+    as(admin, "ADMIN", request("/api/v1/questions/admin")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  @DisplayName("#31-S23 관리자 목록·상세 응답은 웹 DTO의 명시적인 필드만 직렬화한다")
+  void explicitResponseFields() throws Exception {
+    long id = row("ACTIVE", true, "response");
+    var detailJson = as(admin, "ADMIN", request("/api/v1/admin/questions/" + id))
+        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    java.util.Map<String, Object> detailFields = com.jayway.jsonpath.JsonPath.read(detailJson, "$");
+    assertThat(detailFields.keySet()).containsExactlyInAnyOrder("questionId", "mode", "content",
+        "enabled", "createdAt", "updatedAt", "version");
+    var pageJson = as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix)))
+        .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+    java.util.Map<String, Object> pageFields = com.jayway.jsonpath.JsonPath.read(pageJson, "$");
+    java.util.Map<String, Object> itemFields = com.jayway.jsonpath.JsonPath.read(pageJson, "$.items[0]");
+    assertThat(pageFields.keySet()).containsExactlyInAnyOrder("items", "page", "size", "totalElements", "totalPages");
+    assertThat(itemFields.keySet()).containsExactlyInAnyOrderElementsOf(detailFields.keySet());
+  }
+
+  @Test
   @DisplayName("#31-S22 오래된 ADMIN 토큰·없는 회원과 직접 유스케이스도 현재 DB 역할을 확인한다")
   void currentRoleAndDirectCalls() throws Exception {
     long id = row("ACTIVE", true, "role");
-    as(user, "ADMIN", request("/api/v1/questions/admin")).andExpect(status().isForbidden());
+    as(user, "ADMIN", request("/api/v1/admin/questions")).andExpect(status().isForbidden());
     jdbc.update("update member set role='USER' where id=?", admin);
-    as(admin, "ADMIN", request("/api/v1/questions/admin/" + id)).andExpect(status().isForbidden());
-    as(Long.MAX_VALUE, "ADMIN", request("/api/v1/questions/admin")).andExpect(status().isForbidden());
+    as(admin, "ADMIN", request("/api/v1/admin/questions/" + id)).andExpect(status().isForbidden());
+    as(Long.MAX_VALUE, "ADMIN", request("/api/v1/admin/questions")).andExpect(status().isForbidden());
     var filter = new QuestionFilter(null, null, null, 0, 20);
     assertThatThrownBy(() -> list.list(new ListAdminQuestionsQuery(admin, filter)))
         .isInstanceOf(QuestionAdminDeniedException.class);
@@ -123,9 +151,25 @@ class QuestionAdminReadScenarioTest {
   void actualAdminCookie() throws Exception {
     var token = login.login(new LoginMemberCommand(prefix + "@example.com", "password123")).accessToken();
     var cookie = new jakarta.servlet.http.Cookie("ACCESS_TOKEN", token);
-    mvc.perform(request("/api/v1/questions/admin").cookie(cookie)).andExpect(status().isOk());
+    mvc.perform(request("/api/v1/admin/questions").cookie(cookie)).andExpect(status().isOk());
     jdbc.update("update member set role='USER' where id=?", admin);
-    mvc.perform(request("/api/v1/questions/admin").cookie(cookie)).andExpect(status().isForbidden());
+    mvc.perform(request("/api/v1/admin/questions").cookie(cookie)).andExpect(status().isForbidden());
+  }
+
+  @Test
+  @DisplayName("#31-S22 상세 직접 호출은 외부 트랜잭션의 캐시된 ADMIN 대신 진입 시점의 회수된 역할을 확인한다")
+  void detailIgnoresOuterAdminCache() {
+    long id = row("ACTIVE", true, "stale-admin");
+    var outer = new TransactionTemplate(transactions);
+    var independent = new TransactionTemplate(transactions);
+    independent.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+    outer.executeWithoutResult(ignored -> {
+      assertThat(members.get(new GetMemberQuery(admin)).role()).isEqualTo("ADMIN");
+      independent.executeWithoutResult(tx -> jdbc.update("update member set role='USER' where id=?", admin));
+      assertThat(members.get(new GetMemberQuery(admin)).role()).isEqualTo("ADMIN");
+      assertThatThrownBy(() -> detail.get(new GetAdminQuestionQuery(admin, id)))
+          .isInstanceOf(QuestionAdminDeniedException.class);
+    });
   }
 
   @Test
@@ -134,18 +178,18 @@ class QuestionAdminReadScenarioTest {
     long first = row("ACTIVE", true, "match-a");
     row("ACTIVE", false, "match-b");
     long third = row("GARDEN", true, "match-c");
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix) + "&size=2"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix) + "&size=2"))
         .andExpect(jsonPath("totalElements").value(3)).andExpect(jsonPath("totalPages").value(2))
         .andExpect(jsonPath("items.length()").value(2)).andExpect(jsonPath("items[0].questionId").value(third));
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix) + "&size=2&page=1"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix) + "&size=2&page=1"))
         .andExpect(jsonPath("items[0].questionId").value(first));
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix) + "&mode=ACTIVE&enabled=false"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix) + "&mode=ACTIVE&enabled=false"))
         .andExpect(jsonPath("totalElements").value(1)).andExpect(jsonPath("items[0].enabled").value(false));
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix) + "&page=2147483647&size=100"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix) + "&page=2147483647&size=100"))
         .andExpect(jsonPath("items.length()").value(0)).andExpect(jsonPath("totalElements").value(3));
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix + "missing")))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix + "missing")))
         .andExpect(jsonPath("totalPages").value(0)).andExpect(jsonPath("items.length()").value(0));
-    as(admin, "ADMIN", request("/api/v1/questions/admin"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions"))
         .andExpect(jsonPath("page").value(0)).andExpect(jsonPath("size").value(20));
   }
 
@@ -155,14 +199,14 @@ class QuestionAdminReadScenarioTest {
     for (String literal : new String[]{"%", "_", "\\", "!"}) {
       long id = row("ACTIVE", true, "literal" + literal);
       row("ACTIVE", true, "literal-other");
-      as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix.toUpperCase() + "LITERAL" + literal)))
+      as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix.toUpperCase() + "LITERAL" + literal)))
           .andExpect(jsonPath("totalElements").value(1)).andExpect(jsonPath("items[0].questionId").value(id));
     }
-    as(admin, "ADMIN", request("/api/v1/questions/admin?q=%20%20"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?q=%20%20"))
         .andExpect(status().isOk());
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query("x".repeat(300))))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query("x".repeat(300))))
         .andExpect(status().isOk());
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query("x".repeat(301))))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query("x".repeat(301))))
         .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("VALIDATION"));
   }
 
@@ -171,19 +215,19 @@ class QuestionAdminReadScenarioTest {
   void invalidQueries() throws Exception {
     for (String q : new String[]{"mode=", "mode=OTHER", "enabled=", "enabled=TRUE", "page=-1",
         "page=2147483648", "size=0", "size=101", "page=", "q", "q=a&q=b", "q=a&%71=b"}) {
-      as(admin, "ADMIN", get(java.net.URI.create("/api/v1/questions/admin?" + q)))
+      as(admin, "ADMIN", get(java.net.URI.create("/api/v1/admin/questions?" + q)))
           .andExpect(status().isBadRequest()).andExpect(jsonPath("code").value("VALIDATION"));
     }
-    for (String raw : new String[]{"q=%", "q=%GG", "q=%FF", "q=%E3%81"}) {
-      as(admin, "ADMIN", request("/api/v1/questions/admin").with(request -> {
+    for (String raw : new String[]{"q=%", "q=%GG", "q=%FF", "q=%E3%81", "q=%00", "q=abc%00def"}) {
+      as(admin, "ADMIN", request("/api/v1/admin/questions").with(request -> {
         request.setQueryString(raw);
         return request;
       })).andExpect(status().isBadRequest());
     }
-    as(admin, "ADMIN", request("/api/v1/questions/admin?ignored=a&ignored=b&petId=bad"))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?ignored=a&ignored=b&petId=bad"))
         .andExpect(status().isOk());
-    as(admin, "ADMIN", request("/api/v1/questions/admin/0")).andExpect(status().isBadRequest());
-    as(admin, "ADMIN", request("/api/v1/questions/admin/9223372036854775807")).andExpect(status().isNotFound());
+    as(admin, "ADMIN", request("/api/v1/admin/questions/0")).andExpect(status().isBadRequest());
+    as(admin, "ADMIN", request("/api/v1/admin/questions/9223372036854775807")).andExpect(status().isNotFound());
   }
 
   @Test
@@ -197,7 +241,7 @@ class QuestionAdminReadScenarioTest {
       requiresNew.executeWithoutResult(ignored -> row("ACTIVE", true, "snapshot-new"));
       return count;
     }).when(questionRows).count(any());
-    as(admin, "ADMIN", request("/api/v1/questions/admin?" + query(prefix)))
+    as(admin, "ADMIN", request("/api/v1/admin/questions?" + query(prefix)))
         .andExpect(jsonPath("totalElements").value(1)).andExpect(jsonPath("items.length()").value(1));
     assertThat(jdbc.queryForObject("select count(*) from question where content like ?", Long.class, prefix + "%"))
         .isEqualTo(2);

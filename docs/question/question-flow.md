@@ -124,9 +124,9 @@
 
 ### 권한과 도메인 경계 (#31-R1)
 
-- 모든 API는 `/api/v1/questions/admin` 아래에 두고 기존 `QuestionController`에 메서드를 추가한다. 전역 `/api/v1` 접두어는 WebConfig가 붙인다. 관리자 입력은 `petId`를 요구하지 않는다.
-- SecurityConfig는 `/api/v1/questions/admin`과 그 하위 경로를 일반 인증 규칙보다 먼저 `hasRole("ADMIN")`으로 보호한다. 공개 경로에는 추가하지 않는다.
-- 각 입력 유스케이스의 첫 단계에서 질문의 `CheckQuestionAdminAccessPort`로 현재 DB 역할을 재확인한다. 외부 access 어댑터가 기존 member의 `GetMemberUseCase`를 호출하고 필요한 역할 판정만 반환한다. question 핵심은 member DTO·엔티티·Spring Security를 참조하지 않는다.
+- 관리자 API는 `/api/v1/admin/questions` 아래에 두고 question의 별도 `AdminQuestionController`에 둔다. (고침 #31: PR #163 관리자 API 경로·컨트롤러 통일) 전역 `/api/v1` 접두어는 WebConfig가 붙인다. 관리자 입력은 `petId`를 요구하지 않는다.
+- SecurityConfig는 공통 `/api/v1/admin`·`/api/v1/admin/**`를 일반 인증 규칙보다 먼저 `hasRole("ADMIN")`으로 보호한다. 공개 경로에는 추가하지 않는다.
+- 각 입력 유스케이스의 첫 단계에서 질문의 `CheckQuestionAdminAccessPort`로 현재 DB 역할을 재확인한다. 목록·상세는 새 트랜잭션으로 진입해 외부 호출자의 캐시된 ADMIN 엔티티를 재사용하지 않는다. (고침 #31: 상세 직접 호출의 역할 회수 반영) 외부 access 어댑터가 기존 member의 `GetMemberUseCase`를 호출하고 필요한 역할 판정만 반환한다. question 핵심은 member DTO·엔티티·Spring Security를 참조하지 않는다.
 - 인증된 요청자의 memberId만 Command/Query로 전달한다. body의 역할·작성자 ID나 JWT의 ADMIN 값만 신뢰하지 않는다. 직접 유스케이스를 호출해도 검사가 적용된다.
 - 무인증은 401, 현재 일반 회원·역할 회수·현재 회원이 없는 인증 주체는 403이다. member 조회의 알려진 not-found만 접근 거부로 바꾸고 일시 DB 장애는 서버 오류로 전파한다. 일괄 catch로 장애를 403으로 숨기지 않는다.
 - ADMIN 권한은 질문 원본 관리에만 적용한다. 다른 회원의 반려동물·개인 답변·첨부를 관리자라는 이유로 열람하게 하지 않는다.
@@ -138,16 +138,16 @@
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `GET /questions/admin` | 선택 `mode`, `enabled`, `q`, `page`, `size` | 200: `items`, `page`, `size`, `totalElements`, `totalPages` |
-| `GET /questions/admin/{questionId}` | 양의 Long ID | 200: 비활성 항목도 포함하는 질문 원본 상세 |
-| `POST /questions/admin` | `{"mode":"ACTIVE","content":"요즘 가장 좋아하는 놀이는 무엇인가요?"}` | 201: enabled=true, version=0인 질문 원본 |
-| `PATCH /questions/admin/{questionId}` | `{"content":"함께할 때 가장 즐거운 놀이는 무엇인가요?","enabled":false,"version":0}` | 200: 변경한 질문 원본 |
+| `GET /admin/questions` | 선택 `mode`, `enabled`, `q`, `page`, `size` | 200: `items`, `page`, `size`, `totalElements`, `totalPages` |
+| `GET /admin/questions/{questionId}` | 양의 Long ID | 200: 비활성 항목도 포함하는 질문 원본 상세 |
+| `POST /admin/questions` | `{"mode":"ACTIVE","content":"요즘 가장 좋아하는 놀이는 무엇인가요?"}` | 201: enabled=true, version=0인 질문 원본 |
+| `PATCH /admin/questions/{questionId}` | `{"content":"함께할 때 가장 즐거운 놀이는 무엇인가요?","enabled":false,"version":0}` | 200: 변경한 질문 원본 |
 
 - 원본 상세 GET은 목록 이후 수정 화면이 최신 version을 다시 읽기 위한 조회다. 관리자 프론트 구현은 포함하지 않는다.
 - mode는 `ACTIVE`/`GARDEN`만 허용한다. content는 strip 후 1~300자로 기존 도메인 제한을 유지한다. 등록 enabled는 항상 true다. 동일 본문의 등록은 허용하며 본문 중복 유니크 제약은 추가하지 않는다.
 - 목록 기본값은 mode/활성 상태 전체, `page=0`, `size=20`이며 size는 1~100이다. 정렬은 `questionId DESC`로 고정하고 필터는 AND 조건으로 적용한다. 결과 없음·범위 밖 페이지는 빈 items와 실제 전체 건수/페이지 수를 반환한다. 비활성 원본도 기본 목록에 포함한다.
 - q는 strip 후 1~300자 부분 문자열 검색이며, 생략·빈 값·공백만이면 검색하지 않는다. `%`, `_`, 역슬래시는 와일드카드로 해석하지 않고 문자 자체를 찾도록 이스케이프한다. 영문은 대소문자를 구분하지 않는다. strip 후 정확히 300자는 허용하고 301자 이상은 빈 결과가 아니라 400 `VALIDATION`으로 거부한다. (고침 #31: 검색어 길이 초과 응답 확정) SQL 문자열을 조립하지 않고 JPA 바인딩 파라미터를 사용한다.
-- q의 strip 후 300자 초과, mode/enabled의 빈 값·알 수 없는 값, 음수 page, 범위 초과 size, 정수 범위 초과, 알려진 키의 중복·잘못된 인코딩은 400이다. enabled는 `true`/`false`만 받는다. 기존 쿼리 파서 방식을 재사용하되 사용자 API의 필수 petId 파서와 섞지 않는다. 정의하지 않은 쿼리 키는 기존 API 원칙대로 무시한다.
+- q의 널 문자(U+0000) 포함·strip 후 300자 초과, mode/enabled의 빈 값·알 수 없는 값, 음수 page, 범위 초과 size, 정수 범위 초과, 알려진 키의 중복·잘못된 인코딩은 400이다. enabled는 `true`/`false`만 받는다. 기존 쿼리 파서 방식을 재사용하되 사용자 API의 필수 petId 파서와 섞지 않는다. 정의하지 않은 쿼리 키는 기존 API 원칙대로 무시한다.
 - PATCH의 version은 필수 0 이상 Long이다. content/enabled는 각각 생략하면 유지하며 명시적 null은 400이다. version만 보내거나 변경 필드를 하나도 보내지 않으면 400이다. 이미 같은 값이어도 현재 권한과 version을 검사한 뒤 200으로 반환하며 version/updatedAt은 바꾸지 않는다.
 - questionId·mode·createdAt·seedKey는 생성 후 변경할 수 없다. POST에서 mode/content 외, PATCH에서 content/enabled/version 외의 body 필드는 400으로 거부한다. 모드를 바꾸려면 대상 모드에 새 질문을 등록한다.
 - 물리 삭제 API는 제공하지 않는다. enabled=false로 신규 배정만 제외하며 같은 PATCH에서 true로 다시 활성화할 수 있다.
@@ -177,6 +177,7 @@
 - Given ACTIVE 활성 12개·비활성 3개, GARDEN 활성 10개가 있고 일부 content에 `산책`, `%`, `_`가 있다.
 - When 기본 조회 및 mode/enabled/q/page/size 조합으로 조회한다.
 - Then 필터·ID 역순·전체 건수·페이지 수가 일치하고 비활성 기본 포함·빈 결과·마지막 페이지·범위 밖 페이지가 계약대로다.
+- Then 널 문자(U+0000)가 포함된 q는 SQL 실행 전에 웹 입력 예외로 400 `VALIDATION`을 반환한다. (고침 #31: PostgreSQL이 허용하지 않는 널 검색어를 경계에서 거부)
 - Then 특수문자는 문자 자체로 검색하고 잘못된 필터·중복 알려진 키·음수/초과 페이지 값은 400이다.
 - Then strip 후 q가 정확히 300자이면 200으로 검색하고, 301자이면 400 `VALIDATION`이며 검색 결과로 처리하지 않는다. (고침 #31: 검색어 길이 경계 검사 추가)
 
@@ -216,7 +217,7 @@
 ### 작업 순서와 확인 범위
 
 1. 관리자 권한·목록·상세 — S22/S23 및 S29의 경로·권한 경계.
-   - 변경 후보: 기존 QuestionController/QuestionPersistenceAdapter/QuestionJpaRepository, 관리자 Query/Result, 조회 입력 포트·서비스, 관리자 권한 출력 포트·access 어댑터, SecurityConfig.
+   - 변경 후보: AdminQuestionController, 기존 QuestionPersistenceAdapter/QuestionJpaRepository, 관리자 Query/Result, 조회 입력 포트·서비스, 관리자 권한 출력 포트·access 어댑터, SecurityConfig.
    - 확인: 관리자 웹 시나리오와 입력 유스케이스 직접 권한 검사, 목록/건수 스냅샷, 기존 사용자 API 경로 회귀.
    - 인증 문서 연계: S22는 [인증 기반 #14-S8](../member/auth-base.md)의 관리자 경로 요청 전체 검사 후속이다. 구현 PR에서 무인증 401·일반 회원 403·ADMIN 허용을 실제 경로로 검증하고, `docs/member/auth-base.md`의 S8 설명도 부분 응답 검사와 새 경로 검사를 구분하도록 함께 갱신한다. 계획 단계에서 기존 검증 완료로 바꾸지는 않는다. (고침 #31: 인증 기반 후속 검사·문서 갱신 책임 명시)
 2. 질문 등록 — S24.
@@ -251,7 +252,7 @@
 
 ## 헥사고날 경계와 API 원칙
 
-- 질문 배정·답변·첨부 파일 HTTP 진입점은 도메인 컨트롤러 하나에 두고, 답변 서비스는 입력 유스케이스별로 분리한다. 기존 경로와 쿼리 검증 범위를 유지한다. (고침 #31: 공통 구조 규칙 적용)
+- 사용자 질문 배정·답변·첨부 파일 HTTP 진입점은 QuestionController 하나에 두고 관리자 원본 API는 AdminQuestionController로 분리하며, 답변 서비스는 입력 유스케이스별로 분리한다. 일반 사용자 경로와 쿼리 검증 범위는 유지하고 관리자 경로는 `/admin/questions`로 통일한다. (고침 #31: PR #163 관리자 컨트롤러 예외 반영)
 - 상세·목록은 `REPEATABLE_READ`·`REQUIRES_NEW`로 답변과 첨부를 같은 스냅샷에서 읽는다. 수정·삭제는 각 유스케이스의 트랜잭션 안에서 공통 보조 객체로 쓰기 권한 확인 → 답변 행 잠금 → 작성자·현재 모드·기대 버전 확인 순서를 유지한다. (고침 #31: 서비스 분리 이후에도 조회 일관성과 쓰기 잠금 순서 유지)
 - 배정 생성·진행 저장·완료 변경은 같은 영속성 어댑터의 출력 포트로 처리한다. 최초 답변은 공통 진행을 먼저 잠그고 배정 행을 새로 읽은 다음 답변·첨부·완료·진행을 한 트랜잭션에서 저장한다. (고침 #31: 같은 배정 저장 대상을 통합하고 동시 최초 답변의 순서 유지)
 
@@ -259,8 +260,8 @@
 - application: 입력 포트, 접근/질문 조회/진행/답변/미디어 연계 출력 포트, 트랜잭션 조정. 핵심에서 JPA·웹·다른 도메인의 엔티티를 참조하지 않는다.
 - adapter: 웹 요청/응답, 초기 데이터 이관, JPA 저장소, pet/media 입력 포트를 호출하는 외부 연결.
 - 도메인 간 전달은 상대 입력 포트의 DTO로 하고 서비스 안에서 도메인 값으로 변환한다.
-- 공통 `/api/v1` 아래 question 도메인의 단일 루트 `/questions`를 사용한다. 컨트롤러 클래스는 `@RequestMapping("/questions")`, 질문 배정은 `/prompts`, 답변은 `/answers` 하위 경로를 사용하고 아이 범위는 필수 petId 쿼리로 받는다. (고침 #31: 도메인당 API 루트 하나로 통일) 상세 body/상태 코드 계약은 각 구현 단위에서 확정한다.
-- 관리자 질문 API는 이후 `/questions/admin`로 설계하며 이번 사용자 흐름의 선행 API로 두지 않는다. 도메인별 단일 루트를 지키기 위한 경로이며 권한 검사 방식은 [질문 상위 설계의 가족 권한과 의존성](README.md#가족-권한과-의존성)을 따른다. (고침 #31: 관리자 주소·권한 계약 동기화)
+- 일반 사용자 API는 공통 `/api/v1` 아래 question 도메인의 단일 루트 `/questions`를 사용한다. 컨트롤러 클래스는 `@RequestMapping("/questions")`, 질문 배정은 `/prompts`, 답변은 `/answers` 하위 경로를 사용하고 아이 범위는 필수 petId 쿼리로 받는다. (고침 #31: 도메인당 API 루트 하나로 통일) 상세 body/상태 코드 계약은 각 구현 단위에서 확정한다.
+- 관리자 질문 API는 이후 `/admin/questions`로 설계하며 이번 사용자 흐름의 선행 API로 두지 않는다. 관리자 공통 경로 예외를 적용하며 권한 검사 방식은 [질문 상위 설계의 가족 권한과 의존성](README.md#가족-권한과-의존성)을 따른다. (고침 #31: 관리자 주소·권한 계약 동기화)
 
 ## 시나리오와 확인 방법
 
