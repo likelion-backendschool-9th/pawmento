@@ -2,6 +2,7 @@ package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -108,6 +109,7 @@ class SocialLoginScenarioTest {
 			.andExpect(jsonPath("$.id").isNumber())
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.nickname").value("다윗"))
+			.andExpect(jsonPath("$.tag").value(matchesPattern("\\d{4}")))
 			.andExpect(jsonPath("$.role").value("USER"))
 			.andExpect(jsonPath("$.accessToken").doesNotExist())
 			.andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true))
