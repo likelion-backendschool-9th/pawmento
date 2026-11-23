@@ -1,6 +1,7 @@
 package com.pawmento.community.adapter.in.web.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -13,6 +14,8 @@ import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestComponent;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -72,10 +75,33 @@ class AdminReportControllerTest {
 	}
 
 	@Test
-	@DisplayName("#92-S5 잘못된 목록 입력은 공통 400 응답으로 변환된다")
-	void mapsBadInputToValidationError() throws Exception {
-		mvc.perform(get(REPORTS).param("size", "0").with(actor("ADMIN")))
-				.andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("VALIDATION"));
+	@DisplayName("#92-S1 명시한 목록 조회 조건을 요청 DTO에서 바인딩한다")
+	void bindsExplicitListConditions() throws Exception {
+		var query = new ListReportsQuery(ReportStatus.RESOLVED, 5, 100L);
+		when(listReports.list(query)).thenReturn(new ListReportsUseCase.Page(List.of(), null));
+
+		mvc.perform(get(REPORTS).param("status", "RESOLVED").param("size", "5").param("cursor", "100")
+						.with(actor("ADMIN")))
+				.andExpect(status().isOk());
+
+		verify(listReports).list(query);
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = '|', textBlock = """
+			status | ''      | status는 PENDING, RESOLVED, DISMISSED 중 하나여야 해요.
+			status | pending | status는 PENDING, RESOLVED, DISMISSED 중 하나여야 해요.
+			size   | ''      | size는 1 이상 50 이하의 정수여야 해요.
+			size   | 0       | size는 1 이상 50 이하의 정수여야 해요.
+			cursor | ''      | cursor는 양의 정수 신고 ID여야 해요.
+			cursor | abc     | cursor는 양의 정수 신고 ID여야 해요.
+			""")
+	@DisplayName("#92-S5 명시적으로 비었거나 잘못된 목록 입력은 기존 400 코드와 문구를 반환한다")
+	void mapsBadInputToValidationError(String field, String input, String message) throws Exception {
+		mvc.perform(get(REPORTS).param(field, input).with(actor("ADMIN")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION"))
+				.andExpect(jsonPath("$.message").value(message));
 
 		verifyNoInteractions(listReports);
 	}
