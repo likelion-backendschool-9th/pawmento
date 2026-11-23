@@ -50,4 +50,16 @@ class MemberTest {
 		member.changeNickname("12월 보호자", Instant.parse("2026-11-30T15:00:00Z"), SEOUL);
 		assertThat(member.getNickname()).isEqualTo("12월 보호자");
 	}
+
+	@Test
+	@DisplayName("#109-R2 비밀번호 로그인 가능 여부는 가입 방식이 아니라 비밀번호가 있는지로 정한다")
+	void hasPasswordDependsOnPasswordHash() {
+		Member emailMember = Member.register("a@example.com", "hash", "보호자", NOW);
+		Member socialMember = Member.registerSocial("b@example.com", "보호자", NOW);
+
+		assertThat(emailMember.hasPassword()).isTrue();
+		assertThat(socialMember.hasPassword()).isFalse();
+		assertThatThrownBy(() -> Member.register("c@example.com", null, "보호자", NOW))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
 }

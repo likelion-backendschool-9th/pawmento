@@ -1,6 +1,7 @@
 package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -25,6 +26,8 @@ import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.domain.MemberRole;
 import com.pawmento.member.domain.exception.MemberNicknameLimitException;
+import com.pawmento.member.application.exception.DuplicateSocialAccountException;
+import com.pawmento.member.domain.AuthProvider;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -71,6 +74,35 @@ class MemberPersistenceTest {
 					.containsExactlyInAnyOrder(true, false);
 		}
 		assertThat(loadMemberPort.loadById(id).orElseThrow().getNickname()).isIn("첫번째", "두번째");
+	}
+
+	@Test
+	@DisplayName("#109-S18 처음 소셜 가입은 회원과 소셜 계정을 함께 저장한다")
+	void saveSocialStoresMemberAndAccount() {
+		String email = uniqueEmail();
+		String sub = "g-" + UUID.randomUUID();
+
+		Member saved = saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", Instant.now()),
+				AuthProvider.GOOGLE, sub);
+
+		assertThat(loadMemberPort.loadByEmail(email)).map(Member::getId).contains(saved.getId());
+		assertThat(loadMemberPort.loadByProvider(AuthProvider.GOOGLE, sub)).map(Member::getId)
+				.contains(saved.getId());
+	}
+
+	@Test
+	@DisplayName("#109-S18 소셜 계정 저장이 실패하면 새 회원도 남지 않는다")
+	void saveSocialRollsBackMemberWhenAccountFails() {
+		String sub = "g-" + UUID.randomUUID();
+		saveMemberPort.saveSocial(Member.registerSocial(uniqueEmail(), "먼저", Instant.now()),
+				AuthProvider.GOOGLE, sub);
+		String newEmail = uniqueEmail();
+
+		assertThatThrownBy(() -> saveMemberPort.saveSocial(Member.registerSocial(newEmail, "나중", Instant.now()),
+				AuthProvider.GOOGLE, sub))
+				.isInstanceOf(DuplicateSocialAccountException.class);
+
+		assertThat(loadMemberPort.loadByEmail(newEmail)).isEmpty();
 	}
 
 	private boolean attempt(CyclicBarrier start, Long id, String nickname) throws Exception {
