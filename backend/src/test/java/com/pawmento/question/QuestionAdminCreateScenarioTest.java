@@ -54,6 +54,7 @@ class QuestionAdminCreateScenarioTest {
   org.springframework.beans.factory.InitializingBean seed;
   @Autowired PlatformTransactionManager transactions;
   @MockitoSpyBean SaveQuestionPort questionRows;
+  @MockitoSpyBean java.time.Clock clock;
   final JsonMapper json = JsonMapper.builder().build();
   long admin;
   long user;
@@ -114,6 +115,27 @@ class QuestionAdminCreateScenarioTest {
           .andExpect(status().isOk()).andExpect(jsonPath("totalElements").value(1))
           .andExpect(jsonPath("items[0].questionId").value(id));
     }
+  }
+
+  @Test
+  @DisplayName("#31-S24 등록 응답의 시각은 실제 DB 저장 정밀도로 목록·상세 응답과 일치한다")
+  void persistedTimestampPrecision() throws Exception {
+    doReturn(Instant.parse("2026-11-23T00:00:00.123456789Z")).when(clock).instant();
+    var created = response(as(admin, "ADMIN", post("/api/v1/admin/questions")
+        .contentType(MediaType.APPLICATION_JSON).content(body("ACTIVE", prefix)))
+        .andExpect(status().isCreated()));
+    long id = ((Number) created.get("questionId")).longValue();
+    var detail = response(as(admin, "ADMIN", get("/api/v1/admin/questions/" + id))
+        .andExpect(status().isOk()));
+    var page = response(as(admin, "ADMIN", get("/api/v1/admin/questions?q=" + prefix))
+        .andExpect(status().isOk()));
+    var listed = (Map<?, ?>) ((java.util.List<?>) page.get("items")).getFirst();
+    for (String field : new String[]{"createdAt", "updatedAt"}) {
+      assertThat(created.get(field)).as(field + " 상세").isEqualTo(detail.get(field));
+      assertThat(created.get(field)).as(field + " 목록").isEqualTo(listed.get(field));
+    }
+    var persisted = jdbc.queryForObject("select created_at from question where id=?", java.sql.Timestamp.class, id);
+    assertThat(Instant.parse((String) created.get("createdAt"))).isEqualTo(persisted.toInstant());
   }
 
   @Test
