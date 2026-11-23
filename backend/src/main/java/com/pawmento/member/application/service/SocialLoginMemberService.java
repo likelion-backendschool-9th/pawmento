@@ -42,6 +42,8 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 
 	private final Clock clock;
 
+	private final MemberTagGenerator tagGenerator;
+
 	// 제공자 HTTP 호출이 끼어 있어 메서드 전체에 @Transactional을 걸지 않는다.
 	// 외부 응답을 기다리는 동안 DB 연결을 붙잡지 않기 위해서다
 	@Override
@@ -78,7 +80,8 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 			return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
 					.orElseThrow(SocialEmailConflictException::new);
 		}
-		Member member = Member.registerSocial(profile.email(), profile.nickname(), Instant.now(clock));
+		String nickname = Member.socialNickname(profile.nickname());
+		Member member = Member.registerSocial(profile.email(), nickname, tagGenerator.next(nickname), Instant.now(clock));
 		try {
 			return saveMemberPort.saveSocial(member, profile.provider(), profile.providerUserId());
 		}

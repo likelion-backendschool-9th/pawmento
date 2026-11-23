@@ -25,6 +25,7 @@ public class SignUpMemberService implements SignUpMemberUseCase {
 	private final SaveMemberPort saveMemberPort;
 	private final HashPasswordPort passwordHasher;
 	private final Clock clock;
+	private final MemberTagGenerator tagGenerator;
 
 	@Override
 	@Transactional
@@ -32,8 +33,9 @@ public class SignUpMemberService implements SignUpMemberUseCase {
 		if (existsMemberPort.existsByEmail(Member.normalizeEmail(command.email()))) {
 			throw new DuplicateEmailException();
 		}
-		Member member = Member.register(command.email(), passwordHasher.hash(command.rawPassword()), command.nickname(),
-					Instant.now(clock));
+		String nickname = Member.requireNickname(command.nickname());
+		Member member = Member.register(command.email(), passwordHasher.hash(command.rawPassword()), nickname,
+				tagGenerator.next(nickname), Instant.now(clock));
 		return MemberResult.from(saveMemberPort.save(member));
 	}
 }

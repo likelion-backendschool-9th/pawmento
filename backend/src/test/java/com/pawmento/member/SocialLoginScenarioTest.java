@@ -38,6 +38,7 @@ import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.application.port.out.SocialProfile;
 import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
+import com.pawmento.member.application.service.MemberTagGenerator;
 
 import jakarta.servlet.http.Cookie;
 
@@ -61,6 +62,9 @@ class SocialLoginScenarioTest {
 
 	@Autowired
 	private SaveMemberPort saveMemberPort;
+
+	@Autowired
+    private MemberTagGenerator tags;
 
 	@TestConfiguration
 	static class FakeSocialConfig {
@@ -197,13 +201,13 @@ class SocialLoginScenarioTest {
 	void uniqueConstraintsAreTranslated() {
 		String sub = uniqueSub();
 		String email = uniqueEmail();
-		saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", Instant.now()), AuthProvider.GOOGLE, sub);
+		saveMemberPort.saveSocial(Member.registerSocial(email, "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.GOOGLE, sub);
 
 		assertThatThrownBy(() -> saveMemberPort
-			.saveSocial(Member.registerSocial(uniqueEmail(), "다윗", Instant.now()), AuthProvider.GOOGLE, sub))
+			.saveSocial(Member.registerSocial(uniqueEmail(), "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.GOOGLE, sub))
 			.isInstanceOf(DuplicateSocialAccountException.class);
 		assertThatThrownBy(() -> saveMemberPort
-			.saveSocial(Member.registerSocial(email, "다윗", Instant.now()), AuthProvider.KAKAO, uniqueSub()))
+			.saveSocial(Member.registerSocial(email, "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.KAKAO, uniqueSub()))
 			.isInstanceOf(DuplicateEmailException.class);
 	}
 

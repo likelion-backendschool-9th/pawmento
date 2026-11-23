@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.application.port.out.ExistsMemberPort;
 import com.pawmento.member.application.port.out.LoadMemberPort;
@@ -69,6 +70,11 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, Exists
 	}
 
 	@Override
+	public boolean existsByNicknameAndTag(String nickname, String tag) {
+		return jpaRepository.existsByNicknameAndTag(nickname, tag);
+	}
+
+	@Override
 	public Optional<Member> loadForNicknameChange(Long memberId) {
 		return jpaRepository.findForNicknameChange(memberId).map(MemberJpaEntity::toDomain);
 	}
@@ -88,6 +94,9 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, Exists
 		}
 		if (isViolation(e, SocialAccountJpaEntity.PROVIDER_USER_UNIQUE_CONSTRAINT)) {
 			return new DuplicateSocialAccountException();
+		}
+		if (isViolation(e, MemberJpaEntity.NICKNAME_TAG_UNIQUE_CONSTRAINT)) {
+			return new DuplicateMemberTagException();
 		}
 		return e;
 	}

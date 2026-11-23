@@ -16,9 +16,9 @@ class QuestionAdminAccessAdapterTest {
     var members = mock(GetMemberUseCase.class);
     var adapter = new QuestionAdminAccessAdapter(members);
     var query = new GetMemberQuery(1L);
-    when(members.get(query)).thenReturn(new MemberResult(1L, "a@example.com", "A", "ADMIN"));
+    when(members.get(query)).thenReturn(new MemberResult(1L, "a@example.com", "A", "0001", "ADMIN"));
     adapter.requireAdmin(1L);
-    when(members.get(query)).thenReturn(new MemberResult(1L, "a@example.com", "A", "USER"));
+    when(members.get(query)).thenReturn(new MemberResult(1L, "a@example.com", "A", "0001", "USER"));
     assertThatThrownBy(() -> adapter.requireAdmin(1L)).isInstanceOf(QuestionAdminDeniedException.class);
     when(members.get(query)).thenThrow(new MemberNotFoundException());
     assertThatThrownBy(() -> adapter.requireAdmin(1L)).isInstanceOf(QuestionAdminDeniedException.class);

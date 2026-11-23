@@ -28,6 +28,7 @@ import com.pawmento.member.domain.MemberRole;
 import com.pawmento.member.domain.exception.MemberNicknameLimitException;
 import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.domain.AuthProvider;
+import com.pawmento.member.application.service.MemberTagGenerator;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -38,13 +39,15 @@ class MemberPersistenceTest {
 	private LoadMemberPort loadMemberPort;
 	@Autowired
 	private ChangeMemberNicknameUseCase changeNickname;
+	@Autowired
+    private MemberTagGenerator tags;
 
 	@Test
 	@DisplayName("#52-S3 DB와 도메인의 왕복 변환이 회원 정보와 닉네임 변경 시각을 보존한다")
 	void roundTripPreservesState() {
 		Instant createdAt = Instant.parse("2026-11-01T00:00:00Z");
 		Instant changedAt = Instant.parse("2026-11-17T03:00:00Z");
-		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", createdAt);
+		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", tags.next("보호자"), createdAt);
 		Member saved = saveMemberPort.save(original);
 		Member loaded = loadMemberPort.loadById(saved.getId()).orElseThrow();
 		loaded.changeNickname("콩이 보호자", changedAt, ZoneId.of("Asia/Seoul"));
@@ -63,7 +66,7 @@ class MemberPersistenceTest {
 	@Test
 	@DisplayName("#52-S4 같은 회원의 동시 닉네임 변경 중 하나만 성공하고 한도가 보존된다")
 	void simultaneousChangesConsumeLimitOnce() throws Exception {
-		Long id = saveMemberPort.save(Member.register(uniqueEmail(), "hash", "보호자", Instant.now())).getId();
+		Long id = saveMemberPort.save(Member.register(uniqueEmail(), "hash", "보호자", tags.next("보호자"), Instant.now())).getId();
 		CyclicBarrier start = new CyclicBarrier(2);
 		try (var executor = Executors.newFixedThreadPool(2)) {
 			Callable<Boolean> first = () -> attempt(start, id, "첫번째");
@@ -82,7 +85,7 @@ class MemberPersistenceTest {
 		String email = uniqueEmail();
 		String sub = "g-" + UUID.randomUUID();
 
-		Member saved = saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", Instant.now()),
+		Member saved = saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", tags.next("다윗"), Instant.now()),
 				AuthProvider.GOOGLE, sub);
 
 		assertThat(loadMemberPort.loadByEmail(email)).map(Member::getId).contains(saved.getId());
@@ -94,11 +97,11 @@ class MemberPersistenceTest {
 	@DisplayName("#109-S18 소셜 계정 저장이 실패하면 새 회원도 남지 않는다")
 	void saveSocialRollsBackMemberWhenAccountFails() {
 		String sub = "g-" + UUID.randomUUID();
-		saveMemberPort.saveSocial(Member.registerSocial(uniqueEmail(), "먼저", Instant.now()),
+		saveMemberPort.saveSocial(Member.registerSocial(uniqueEmail(), "먼저", tags.next("먼저"), Instant.now()),
 				AuthProvider.GOOGLE, sub);
 		String newEmail = uniqueEmail();
 
-		assertThatThrownBy(() -> saveMemberPort.saveSocial(Member.registerSocial(newEmail, "나중", Instant.now()),
+		assertThatThrownBy(() -> saveMemberPort.saveSocial(Member.registerSocial(newEmail, "나중", tags.next("나중"), Instant.now()),
 				AuthProvider.GOOGLE, sub))
 				.isInstanceOf(DuplicateSocialAccountException.class);
 

@@ -52,12 +52,15 @@ class SocialLoginMemberServiceTest {
 
 	private final IssueTokenPort tokenIssuer = mock(IssueTokenPort.class);
 
+    private final MemberTagGenerator tags = mock(MemberTagGenerator.class);
+
 	private final SocialLoginMemberService service = new SocialLoginMemberService(socialProfiles, loadMember,
-			existsMember, saveMember, tokenIssuer, Clock.fixed(NOW, ZoneOffset.UTC));
+			existsMember, saveMember, tokenIssuer, Clock.fixed(NOW, ZoneOffset.UTC), tags);
 
 	@BeforeEach
 	void setUp() {
 		when(tokenIssuer.issue(any(), any())).thenReturn("token");
+        when(tags.next(any())).thenReturn("0427");
 	}
 
 	@Test
@@ -194,7 +197,7 @@ class SocialLoginMemberServiceTest {
 	}
 
 	private Member googleMember(Long id, String email) {
-		return Member.restore(id, email, null, "다윗", MemberRole.USER, NOW, null);
+		return Member.restore(id, email, null, "다윗", "0427", MemberRole.USER, NOW, null);
 	}
 
 }

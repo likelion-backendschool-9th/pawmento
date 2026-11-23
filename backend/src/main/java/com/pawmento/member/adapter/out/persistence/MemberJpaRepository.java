@@ -13,6 +13,7 @@ interface MemberJpaRepository extends JpaRepository<MemberJpaEntity, Long> {
 	Optional<MemberJpaEntity> findByEmail(String email);
 
 	boolean existsByEmail(String email);
+	boolean existsByNicknameAndTag(String nickname, String tag);
 
 	// 같은 회원의 월 1회 변경 요청을 직렬화한다. 잠금은 영속성 어댑터 안에서만 안다.
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
