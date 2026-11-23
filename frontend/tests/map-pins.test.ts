@@ -18,8 +18,8 @@ import {
 } from "../src/map/domain/MapBounds.ts";
 import { HttpMapPinRepository } from "../src/map/adapters/outbound/HttpMapPinRepository.ts";
 import { isDemoAccount } from "../src/auth/domain/account.ts";
-import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
-import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
+import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
+import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
 import {
   GUARANTEED_SIZES,

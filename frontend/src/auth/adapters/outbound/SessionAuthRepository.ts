@@ -1,6 +1,5 @@
 import type { AuthRepository, SessionSource } from "../../application/auth.ts";
 import type { Credentials } from "../../domain/account.ts";
-import { DemoAuthRepository } from "./DemoAuthRepository.ts";
 import { HttpAuthRepository } from "./HttpAuthRepository.ts";
 import type { ApiClient } from "../../../shared/http/apiClient.ts";
 
@@ -10,11 +9,12 @@ import type { ApiClient } from "../../../shared/http/apiClient.ts";
  */
 export class SessionAuthRepository implements AuthRepository {
   private readonly http: HttpAuthRepository;
-  private readonly demo = new DemoAuthRepository();
+  private readonly demo: AuthRepository;
   private source: SessionSource = null;
 
-  constructor(api: ApiClient) {
+  constructor(api: ApiClient, demo: AuthRepository) {
     this.http = new HttpAuthRepository(api);
+    this.demo = demo;
   }
 
   async current() {

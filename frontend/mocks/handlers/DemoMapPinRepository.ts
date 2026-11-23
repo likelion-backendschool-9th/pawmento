@@ -1,6 +1,6 @@
-import { containsPoint, type MapBounds } from "../../domain/MapBounds.ts";
-import type { MapPin } from "../../domain/MapPin.ts";
-import type { MapPinList, MapPinOptions, MapPinRepository } from "../../application/ports.ts";
+import { containsPoint, type MapBounds } from "../../src/map/domain/MapBounds.ts";
+import type { MapPin } from "../../src/map/domain/MapPin.ts";
+import type { MapPinList, MapPinOptions, MapPinRepository } from "../../src/map/application/ports.ts";
 
 // 데모 계정은 서버 기록이 없어서 화면을 볼 수 있게 서울숲 근처의 예시 핀을 보여 준다.
 // 일반 계정의 브라우저 반려동물에는 예시 핀을 섞지 않는다(options.sample이 true일 때만 보여 준다).

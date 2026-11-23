@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createLifeUseCases } from "../src/life/application/useCases.ts";
-import { initialLifeState } from "../src/life/adapters/outbound/BrowserLifeRepository.ts";
-import { SharedWorkspaceRepository } from "../src/life/adapters/outbound/SharedWorkspaceRepository.ts";
+import { initialLifeState } from "../mocks/handlers/BrowserLifeRepository.ts";
+import { SharedWorkspaceRepository } from "../mocks/handlers/SharedWorkspaceRepository.ts";
 import { createWorkspaceUseCases } from "../src/workspace/application/useCases.ts";
 import type { Actor, LifeState } from "../src/life/domain/models.ts";
 import type { Workspace, JournalItem } from "../src/workspace/domain/models.ts";

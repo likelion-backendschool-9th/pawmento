@@ -1,13 +1,13 @@
-import { ApplicationError } from "../../../shared/application/ApplicationError.ts";
-import { DEMO_WALK_PREFIX, type Walk, type WalkEnd, type WalkPoint } from "../../domain/Walk.ts";
+import { ApplicationError } from "../../src/shared/application/ApplicationError.ts";
+import { DEMO_WALK_PREFIX, type Walk, type WalkEnd, type WalkPoint } from "../../src/map/domain/Walk.ts";
 import type {
   WalkDayList,
   WalkHistoryOptions,
   WalkHistoryRepository,
   WalkRepository,
-} from "../../application/walkPorts.ts";
-import { seoulDate, type WalkRecord } from "../../domain/WalkRecord.ts";
-import { sampleWalksOn, todayInSeoul } from "./demoWalkSamples.ts";
+} from "../../src/map/application/walkPorts.ts";
+import { seoulDate, type WalkRecord } from "../../src/map/domain/WalkRecord.ts";
+import { sampleWalksOn, todayInSeoul } from "../fixtures/demoWalkSamples.ts";
 
 // 데모 산책은 브라우저 메모리에만 둔다(새로고침하면 사라진다).
 

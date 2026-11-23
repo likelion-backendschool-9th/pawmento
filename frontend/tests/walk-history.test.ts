@@ -26,7 +26,7 @@ import { createWalkHistoryUseCases } from "../src/map/application/walkHistoryUse
 import type { WalkDayList, WalkHistoryRepository } from "../src/map/application/walkPorts.ts";
 import { HttpWalkHistoryRepository } from "../src/map/adapters/outbound/HttpWalkHistoryRepository.ts";
 import { PetScopedWalkHistoryRepository } from "../src/map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
-import { DemoWalkRepository } from "../src/map/adapters/outbound/DemoWalkRepository.ts";
+import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
 const NOW = new Date("2026-11-20T03:00:00Z"); // 한국 시각 11월 20일 12:00
 

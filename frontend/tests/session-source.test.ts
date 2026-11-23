@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createApiClient } from "../src/shared/http/apiClient.ts";
 import { SessionAuthRepository } from "../src/auth/adapters/outbound/SessionAuthRepository.ts";
+import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 
 const member = { id: 1, email: "dawit@example.com", nickname: "다윗", role: "USER" };
 
@@ -21,7 +22,10 @@ function repository() {
     if (url.endsWith("/auth/logout")) return new Response(null, { status: 204 });
     throw Error(`예상하지 못한 요청: ${url}`);
   };
-  return new SessionAuthRepository(createApiClient({ fetch: fetchImpl }));
+  return new SessionAuthRepository(
+    createApiClient({ fetch: fetchImpl }),
+    new DemoAuthRepository(),
+  );
 }
 
 test("#120-S1 쿠키 세션이 없으면 출처는 미확정(null)이다", async () => {

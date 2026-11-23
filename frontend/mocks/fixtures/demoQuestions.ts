@@ -2,7 +2,7 @@ import type {
   QuestionAnswer,
   DemoQuestionAnswerInput,
   Pet,
-} from "../workspace/domain/models.ts";
+} from "../../src/workspace/domain/models.ts";
 
 /** Only produces missing samples; never replaces an existing day's answer. */
 export function demoQuestionInputs(

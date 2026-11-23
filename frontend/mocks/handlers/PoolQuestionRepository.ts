@@ -1,5 +1,5 @@
-import type { QuestionPoolPort } from "../../../question/application/useCases.ts";
-import type { LifeRepository } from "../../application/ports.ts";
+import type { QuestionPoolPort } from "../../src/question/application/useCases.ts";
+import type { LifeRepository } from "../../src/life/application/ports.ts";
 export class PoolQuestionRepository implements QuestionPoolPort {
   constructor(private repository: LifeRepository) {}
   async list(mode: "ACTIVE" | "GARDEN") {

@@ -1,5 +1,5 @@
-import type { WalkPoint } from "../../domain/Walk.ts";
-import { seoulDate, shiftDate, type WalkRecord } from "../../domain/WalkRecord.ts";
+import type { WalkPoint } from "../../src/map/domain/Walk.ts";
+import { seoulDate, shiftDate, type WalkRecord } from "../../src/map/domain/WalkRecord.ts";
 
 // 데모 계정은 서버 기록이 없어서 화면을 볼 수 있게 서울숲 근처의 예시 산책을 오늘 기준 며칠 전 날짜에 보여 준다.
 const CENTER = { latitude: 37.5445, longitude: 127.0374 };

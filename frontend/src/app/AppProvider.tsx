@@ -10,9 +10,12 @@ import type { Account } from "../auth/domain/account";
 import type { SessionSource } from "../auth/application/auth";
 import { emptyWorkspace } from "../workspace/domain/models";
 import type { Workspace } from "../workspace/domain/models";
-import { createDependencies, type Dependencies } from "./composition";
+import {
+  createDependencies,
+  demoQuestionInputs,
+  type Dependencies,
+} from "./composition";
 import { today } from "../shared/date";
-import { demoQuestionInputs } from "./demoQuestions";
 type Context = {
   dependencies: Dependencies;
   account: Account | null;

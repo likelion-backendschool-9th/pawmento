@@ -8,8 +8,8 @@ import type {
   PetInput,
 } from "../src/workspace/domain/models.ts";
 import { createAuthUseCases } from "../src/auth/application/auth.ts";
-import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
-import { BrowserWorkspaceRepository } from "../src/workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
+import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
+import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
 function setup() {
   const saved = new Map<string, Workspace>();
   let fail = false;

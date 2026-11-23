@@ -22,7 +22,7 @@ import type {
   WalkRepository,
 } from "../src/map/application/walkPorts.ts";
 import { HttpWalkRepository } from "../src/map/adapters/outbound/HttpWalkRepository.ts";
-import { DemoWalkRepository } from "../src/map/adapters/outbound/DemoWalkRepository.ts";
+import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 import { PetScopedWalkRepository } from "../src/map/adapters/outbound/PetScopedWalkRepository.ts";
 import { LocalActiveWalkStore } from "../src/map/adapters/outbound/LocalActiveWalkStore.ts";
 
