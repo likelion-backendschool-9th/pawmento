@@ -85,7 +85,7 @@ test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리
 });
 
 test("#182 회원·반려동물 API는 react·next·mocks를 가져오지 않는다", () => {
-  for (const folder of ["features/member/api", "features/pet/api"]) {
+  for (const folder of ["features/member/api", "features/pet/api", "features/map/api"]) {
     for (const path of files(resolve(folder))) {
       const name = relative(resolve("."), path);
       for (const specifier of moduleSpecifiers(path)) {
@@ -127,12 +127,17 @@ function moduleSpecifiers(path: string): string[] {
 }
 
 test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
-  const folder = resolve("features/map/adapters/inbound");
-  for (const path of files(folder)) {
-    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-    for (const node of file.statements) {
-      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/, relative(folder, path));
+  for (const folder of ["features/map/components", "features/map/hooks"]) {
+    for (const path of files(resolve(folder))) {
+      const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+      for (const node of file.statements) {
+        if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+          assert.doesNotMatch(
+            node.moduleSpecifier.text,
+            /features\/map\/api|(^|\/)api\/|lib\/http/,
+            `${relative(resolve("."), path)} → ${node.moduleSpecifier.text}`,
+          );
+        }
       }
     }
   }

@@ -12,18 +12,14 @@ import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRe
 import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { createPetApi } from "../features/pet/api/petApi.ts";
-import { createMapUseCases } from "../features/map/application/useCases.ts";
-import { HttpMapPinRepository } from "../features/map/adapters/outbound/HttpMapPinRepository.ts";
+import { createMapPinApi } from "../features/map/api/mapPinApi.ts";
+import { createWalkApi } from "../features/map/api/walkApi.ts";
+import { createWalkHistoryApi } from "../features/map/api/walkHistoryApi.ts";
+import { LocalActiveWalkStore } from "../features/map/LocalActiveWalkStore.ts";
+import { createMapSource } from "../features/map/source.ts";
+import { createWalkSession } from "../features/map/walkSession.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
-import { PetScopedMapPinRepository } from "../features/map/adapters/outbound/PetScopedMapPinRepository.ts";
-import { createWalkUseCases } from "../features/map/application/walkUseCases.ts";
-import { HttpWalkRepository } from "../features/map/adapters/outbound/HttpWalkRepository.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
-import { PetScopedWalkRepository } from "../features/map/adapters/outbound/PetScopedWalkRepository.ts";
-import { createWalkHistoryUseCases } from "../features/map/application/walkHistoryUseCases.ts";
-import { HttpWalkHistoryRepository } from "../features/map/adapters/outbound/HttpWalkHistoryRepository.ts";
-import { PetScopedWalkHistoryRepository } from "../features/map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
-import { LocalActiveWalkStore } from "../features/map/adapters/outbound/LocalActiveWalkStore.ts";
 
 export { demoQuestionInputs } from "../mocks/fixtures/demoQuestions.ts";
 
@@ -34,6 +30,13 @@ export function createDependencies() {
   const lifeRepository = new BrowserLifeRepository();
   // 데모 산책 기록과 날짜별 보기가 같은 메모리를 보도록 한 곳에서 만든다
   const demoWalks = new DemoWalkRepository();
+  const mapSource = createMapSource({
+    pins: createMapPinApi(http),
+    walks: createWalkApi(http),
+    history: createWalkHistoryApi(http),
+    demoPins: new DemoMapPinRepository(),
+    demoWalks,
+  });
   const runtime = {
     id: () => createId(),
     now: () => new Date().toISOString(),
@@ -57,22 +60,9 @@ export function createDependencies() {
     ),
     auth: createMemberSession(http, new DemoAuthRepository()),
     pets: createPetApi(http),
-    walk: createWalkUseCases(
-      new PetScopedWalkRepository(new HttpWalkRepository(http), demoWalks),
-      new LocalActiveWalkStore(),
-    ),
-    walkHistory: createWalkHistoryUseCases(
-      new PetScopedWalkHistoryRepository(
-        new HttpWalkHistoryRepository(http),
-        demoWalks,
-      ),
-    ),
-    map: createMapUseCases(
-      new PetScopedMapPinRepository(
-        new HttpMapPinRepository(http),
-        new DemoMapPinRepository(),
-      ),
-    ),
+    walk: createWalkSession(mapSource.walk, new LocalActiveWalkStore()),
+    walkHistory: mapSource.walkHistory,
+    map: mapSource.map,
   };
 }
 export type Dependencies = ReturnType<typeof createDependencies>;

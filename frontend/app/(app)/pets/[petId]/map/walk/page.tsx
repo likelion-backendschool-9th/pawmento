@@ -1,6 +1,6 @@
 "use client";
 import { useApp } from "@/app/AppProvider";
-import { WalkScreen } from "@/features/map/adapters/inbound/WalkScreen";
+import { WalkScreen } from "@/features/map/components/WalkScreen";
 import { usePet } from "@/features/workspace/adapters/inbound/PetContext";
 export default function Page() {
   const pet = usePet();
