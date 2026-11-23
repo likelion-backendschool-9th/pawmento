@@ -148,4 +148,29 @@ class MapQueryParametersTest {
 		assertThat(query.date("date")).isEqualTo(LocalDate.of(2026, 11, 17));
 	}
 
+	@Test
+	@DisplayName("#172-S11 categories는 쉼표로 구분한 이름을 읽고, 보내지 않으면 세 종류 모두다")
+	void readsPlaceCategories() {
+		assertThat(MapQueryParameters.parse("categories=SHELTER,HOSPITAL", "categories").placeCategories("categories"))
+			.containsExactlyInAnyOrder("HOSPITAL", "SHELTER");
+		assertThat(MapQueryParameters.parse(null, "categories").placeCategories("categories"))
+			.containsExactlyInAnyOrder("HOSPITAL", "GROOMING", "SHELTER");
+		assertThat(MapQueryParameters.parse("other=1", "categories").placeCategories("categories")).hasSize(3);
+	}
+
+	@Test
+	@DisplayName("#172-S13 categories의 없는 종류·소문자·빈 항목·공백·중복은 거절한다")
+	void rejectsInvalidPlaceCategories() {
+		for (String value : new String[] { "CAFE", "hospital", "HOSPITAL,", ",HOSPITAL", "HOSPITAL,,GROOMING",
+				"HOSPITAL%20,GROOMING", "HOSPITAL,HOSPITAL" }) {
+			assertThatThrownBy(() -> MapQueryParameters.parse("categories=" + value, "categories")
+				.placeCategories("categories")).as(value)
+				.isInstanceOf(InvalidMapRequestException.class)
+				.hasMessageContaining("categories");
+		}
+		// 값이 비어 있으면 키가 없는 것과 다르게 거절한다
+		assertThatThrownBy(() -> MapQueryParameters.parse("categories=", "categories"))
+			.hasMessage("categories를 입력해 주세요.");
+	}
+
 }

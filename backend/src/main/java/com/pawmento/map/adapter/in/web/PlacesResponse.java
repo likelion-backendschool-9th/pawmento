@@ -3,8 +3,6 @@ package com.pawmento.map.adapter.in.web;
 import java.util.List;
 
 import com.pawmento.map.application.port.in.ListPlacesResult;
-import com.pawmento.map.domain.Open24hBasis;
-import com.pawmento.map.domain.PlaceCategory;
 
 /**
  * 장소 목록 응답. 없는 값은 필드를 빼지 않고 null로 보낸다(정보 없음).
@@ -13,8 +11,8 @@ import com.pawmento.map.domain.PlaceCategory;
  */
 record PlacesResponse(List<Place> places, boolean truncated) {
 
-	record Place(Long id, PlaceCategory category, String name, String address, String phone, double latitude,
-			double longitude, boolean open24h, Open24hBasis open24hBasis, String openingHours, String closedDays) {
+	record Place(Long id, String category, String name, String address, String phone, double latitude,
+			double longitude, boolean open24h, String open24hBasis, String openingHours, String closedDays) {
 	}
 
 	static PlacesResponse from(ListPlacesResult result) {
