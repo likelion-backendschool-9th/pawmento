@@ -1,23 +1,44 @@
 package com.pawmento.question.adapter.out.persistence;
 
+import com.pawmento.question.application.exception.QuestionModificationConflictException;
+import com.pawmento.question.application.exception.QuestionNotFoundException;
 import com.pawmento.question.application.port.out.*;
 import com.pawmento.question.domain.Question;
 import com.pawmento.question.domain.QuestionFilter;
 import com.pawmento.question.domain.QuestionMode;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.OptimisticLockException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort, SaveQuestionPort {
+class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort, SaveQuestionPort, UpdateQuestionPort {
   private final QuestionJpaRepository repository;
   @PersistenceContext private EntityManager entityManager;
+
+  @Override
+  public Question update(Question question) {
+    return QuestionPersistenceOperations.execute(() -> {
+      var entity = repository.findById(question.getId()).orElseThrow(QuestionNotFoundException::new);
+      if (entity.toDomain().getVersion() != question.getVersion())
+        throw new QuestionModificationConflictException();
+      entity.apply(question);
+      try {
+        repository.flush();
+      } catch (OptimisticLockingFailureException | OptimisticLockException conflict) {
+        throw new QuestionModificationConflictException(conflict);
+      }
+      entityManager.refresh(entity);
+      return entity.toDomain();
+    });
+  }
 
   @Override
   public List<Question> loadByMode(QuestionMode mode) {

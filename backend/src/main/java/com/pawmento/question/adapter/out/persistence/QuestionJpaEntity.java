@@ -69,4 +69,10 @@ class QuestionJpaEntity {
       throw new StoredQuestionInvalidException(cause);
     }
   }
+
+  void apply(Question question) {
+    content = question.getContent();
+    enabled = question.isEnabled();
+    updatedAt = question.getUpdatedAt();
+  }
 }
