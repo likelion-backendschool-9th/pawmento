@@ -179,6 +179,7 @@
   | `POST /maps/walks/{walkId}/points` | `points`(`latitude`, `longitude`, `recordedAt`) | 204 |
   | `POST /maps/walks/{walkId}/end` | 없음 | 200, `endedAt`, `status` |
   | `GET /maps/walks` | `petId`, `date`(`YYYY-MM-DD`) | 200, `walks`(`walkId`, `startedAt`, `endedAt`, `status`, `points`(`latitude`, `longitude`, `recordedAt`)). 끝내지 않은 산책의 `endedAt`은 null이다 |
+  | `GET /maps/walks/current` | `petId` | 200, 진행 중인 산책 하나(`walkId`, `startedAt`, `endedAt`(null), `status`(`IN_PROGRESS`), `points`). 진행 중인 산책이 없으면 204. 시작 날짜와 상관없이 마지막 좌표를 받은 지 5분 안인 산책을 찾는다. 본인이 시작한 산책만 찾으며 다른 회원의 반려동물이면 204다. ([진행 중인 산책 복원](walk-resume.md), #167) |
 
 - 산책로는 좌표가 시간순으로 쌓이는 데이터라서 위치 하나를 담는 `diary_location`과 따로 저장한다. 경로 데이터는 지도 도메인에서만 관리해 다이어리와 겹치지 않게 한다. (#73)
 - 반려동물의 존재와 소유는 pet이 판단한다. 산책을 시작할 때 pet의 `GetPetUseCase.get(new GetPetQuery(memberId, petId))`를 부르고, 정상으로 돌아오면 요청한 회원의 반려동물이다. 없으면 404, 다른 회원의 것이면 403이다. 지도는 pet의 입력 포트만 부르고 pet의 도메인·저장소를 직접 쓰지 않는다. `PetResult`에는 소유자 id가 없고 지도가 소유자를 다시 비교할 필요도 없다. (#73, pet 담당 답변: #74 리뷰)
