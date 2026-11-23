@@ -51,10 +51,12 @@ pawmento:
       # 비어 있으면 가져오기만 중단된다(저장된 장소는 그대로 둔다)
       service-key: ${PUBLIC_DATA_SERVICE_KEY:}
       sync:
-        # 매일 자동 가져오기(인증키가 있을 때만 켜진다). 정부 서버는 한 번 받는 데 1~몇 분 걸리고 가끔 시간 초과가 나서,
+        # 병원·미용은 매일, 보호센터는 매주 자동 가져오기(인증키가 있을 때만 켜진다). 정부 서버는 한 번 받는 데 1~몇 분 걸리고 가끔 시간 초과가 나서,
         # 실패하면 retry-delay 뒤에 max-retries번까지 다시 시도한다. cron은 한국 시간 새벽 4시 30분
         enabled: true
         cron: "0 30 4 * * *"
+        # 보호센터는 바뀌는 일이 드물어 매주 월요일 새벽 4시 50분
+        shelter-cron: "0 50 4 * * MON"
         retry-delay: 30m
         max-retries: 3
 

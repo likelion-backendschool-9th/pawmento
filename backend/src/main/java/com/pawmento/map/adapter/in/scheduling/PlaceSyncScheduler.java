@@ -15,7 +15,7 @@ import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
 
 /**
- * 매일 정해진 시각에 병원과 미용을 차례로 가져온다(#172-S22). 한 종류가 실패해도 다른 종류는 이어서 가져오고, 일시 장애는 정한 시간을
+ * 매일 정해진 시각에 병원과 미용을, 매주 한 번 보호센터를 가져온다(#172-S22). 한 종류가 실패해도 다른 종류는 이어서 가져오고, 일시 장애는 정한 시간을
  * 두고 정한 횟수만큼 다시 시도한 뒤 포기한다(다음 날 다시 돈다). 이미 다른 실행이 돌고 있으면(관리자 수동 실행) 건너뛴다.
  */
 class PlaceSyncScheduler {
@@ -43,6 +43,12 @@ class PlaceSyncScheduler {
 	@Scheduled(cron = "${pawmento.map.local-data.sync.cron:0 30 4 * * *}", zone = "Asia/Seoul")
 	void trigger() {
 		runner.runNow(() -> CATEGORIES.forEach(category -> attempt(category, 0)));
+	}
+
+	// 보호센터는 바뀌는 일이 드물어 주 1회만 가져온다(#172-S8)
+	@Scheduled(cron = "${pawmento.map.local-data.sync.shelter-cron:0 50 4 * * MON}", zone = "Asia/Seoul")
+	void triggerShelters() {
+		runner.runNow(() -> attempt("SHELTER", 0));
 	}
 
 	private void attempt(String category, int retriesDone) {

@@ -35,7 +35,7 @@ public class InvalidMapRequestException extends RuleViolationException {
 	}
 
 	public static InvalidMapRequestException invalidSyncCategory(String name) {
-		return new InvalidMapRequestException(name + "는 HOSPITAL 또는 GROOMING 중 하나만 입력해 주세요.");
+		return new InvalidMapRequestException(name + "는 HOSPITAL, GROOMING, SHELTER 중 하나만 입력해 주세요.");
 	}
 
 	public static InvalidMapRequestException latitudeOutOfRange() {

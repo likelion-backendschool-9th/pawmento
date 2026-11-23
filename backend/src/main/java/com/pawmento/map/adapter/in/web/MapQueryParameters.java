@@ -146,10 +146,10 @@ final class MapQueryParameters {
 		return categories;
 	}
 
-	// 가져올 수 있는 종류의 이름 하나. 보호센터는 다른 API라 아직 가져올 수 없다. 소문자, 없는 종류, 여러 개는 거절한다
+	// 가져올 수 있는 종류의 이름 하나. 소문자, 없는 종류, 여러 개는 거절한다
 	String syncCategory(String name) {
 		String value = required(name);
-		if (!"HOSPITAL".equals(value) && !"GROOMING".equals(value)) {
+		if (!"HOSPITAL".equals(value) && !"GROOMING".equals(value) && !"SHELTER".equals(value)) {
 			throw InvalidMapRequestException.invalidSyncCategory(name);
 		}
 		return value;
