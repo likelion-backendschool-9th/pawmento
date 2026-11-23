@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.application.exception.SocialEmailConflictException;
 import com.pawmento.member.application.exception.SocialLoginFailedException;
@@ -29,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class SocialLoginMemberService implements SocialLoginMemberUseCase {
+
+	private static final int MAX_SAVE_ATTEMPTS = 3;
 
 	private final LoadSocialProfilePort loadSocialProfilePort;
 
@@ -81,15 +84,24 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 					.orElseThrow(SocialEmailConflictException::new);
 		}
 		String nickname = Member.socialNickname(profile.nickname());
-		Member member = Member.registerSocial(profile.email(), nickname, tagGenerator.next(nickname), Instant.now(clock));
-		try {
-			return saveMemberPort.saveSocial(member, profile.provider(), profile.providerUserId());
-		}
-		catch (DuplicateEmailException | DuplicateSocialAccountException e) {
-			// 동시에 온 같은 소셜 계정의 첫 로그인이면 먼저 저장된 회원으로 로그인한다
-			// 그 계정이 없으면 다른 방법으로 같은 이메일이 먼저 가입한 것이므로 그대로 409
-			return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
-					.orElseThrow(() -> e);
+		for (int attempt = 1; ; attempt++) {
+			Member member = Member.registerSocial(profile.email(), nickname, tagGenerator.next(nickname),
+					Instant.now(clock));
+			try {
+				return saveMemberPort.saveSocial(member, profile.provider(), profile.providerUserId());
+			}
+			catch (DuplicateMemberTagException e) {
+				// 같은 닉네임·태그가 방금 저장됐다. saveSocial의 트랜잭션은 이미 롤백됐으니 새 태그로 다시 한다 (#137-S10)
+				if (attempt == MAX_SAVE_ATTEMPTS) {
+					throw e;
+				}
+			}
+			catch (DuplicateEmailException | DuplicateSocialAccountException e) {
+				// 동시에 온 같은 소셜 계정의 첫 로그인이면 먼저 저장된 회원으로 로그인한다
+				// 그 계정이 없으면 다른 방법으로 같은 이메일이 먼저 가입한 것이므로 그대로 409
+				return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
+						.orElseThrow(() -> e);
+			}
 		}
 	}
 

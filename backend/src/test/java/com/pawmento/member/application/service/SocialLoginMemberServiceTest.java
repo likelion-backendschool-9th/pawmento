@@ -4,10 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -20,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
+import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.exception.DuplicateSocialAccountException;
 import com.pawmento.member.application.exception.SocialEmailConflictException;
 import com.pawmento.member.application.exception.SocialLoginFailedException;
@@ -185,6 +183,22 @@ class SocialLoginMemberServiceTest {
 
 		assertThatThrownBy(() -> service.login(google())).isInstanceOf(DuplicateEmailException.class);
 		verify(tokenIssuer, never()).issue(any(), any());
+	}
+
+	@Test
+	@DisplayName("#137-S10 소셜 가입 저장이 태그 충돌로 지면 새 태그로 다시 저장한다")
+	void retriesWithNewTagOnTagConflict() {
+		googleReturns("dawit@gmail.com", "다윗");
+		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123")).thenReturn(Optional.empty());
+		when(tags.next("다윗")).thenReturn("0427", "0581");
+		when(saveMember.saveSocial(any(), any(), any()))
+				.thenThrow(new DuplicateMemberTagException())
+				.thenAnswer(invocation -> invocation.getArgument(0));
+
+		LoginMemberResult result = service.login(google());
+
+		assertThat(result.member().tag()).isEqualTo("0581");
+		verify(saveMember, times(2)).saveSocial(any(), any(), any());
 	}
 
 	private void googleReturns(String email, String name) {
