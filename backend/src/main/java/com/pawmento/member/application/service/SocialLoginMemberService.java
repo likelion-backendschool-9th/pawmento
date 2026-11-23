@@ -78,10 +78,9 @@ public class SocialLoginMemberService implements SocialLoginMemberUseCase {
 			return loadMemberPort.loadByProvider(profile.provider(), profile.providerUserId())
 					.orElseThrow(SocialEmailConflictException::new);
 		}
-		Member member = Member.registerSocial(profile.provider(), profile.providerUserId(), profile.email(),
-				profile.nickname(), Instant.now(clock));
+		Member member = Member.registerSocial(profile.email(), profile.nickname(), Instant.now(clock));
 		try {
-			return saveMemberPort.save(member);
+			return saveMemberPort.saveSocial(member, profile.provider(), profile.providerUserId());
 		}
 		catch (DuplicateEmailException | DuplicateSocialAccountException e) {
 			// 동시에 온 같은 소셜 계정의 첫 로그인이면 먼저 저장된 회원으로 로그인한다

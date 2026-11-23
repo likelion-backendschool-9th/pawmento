@@ -3,6 +3,7 @@ package com.pawmento.member.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -64,14 +65,12 @@ class SocialLoginMemberServiceTest {
 	void firstLoginRegisters() {
 		googleReturns("dawit@gmail.com", "다윗");
 		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123")).thenReturn(Optional.empty());
-		when(saveMember.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		when(saveMember.saveSocial(any(), any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		LoginMemberResult result = service.login(google());
 
 		ArgumentCaptor<Member> saved = ArgumentCaptor.forClass(Member.class);
-		verify(saveMember).save(saved.capture());
-		assertThat(saved.getValue().getProvider()).isEqualTo(AuthProvider.GOOGLE);
-		assertThat(saved.getValue().getProviderUserId()).isEqualTo("g-123");
+		verify(saveMember).saveSocial(saved.capture(), eq(AuthProvider.GOOGLE), eq("g-123"));
 		assertThat(saved.getValue().getPasswordHash()).isNull();
 		assertThat(result.member().nickname()).isEqualTo("다윗");
 		assertThat(result.member().role()).isEqualTo("USER");
@@ -82,7 +81,7 @@ class SocialLoginMemberServiceTest {
 	@DisplayName("#40-S2 이름이 없으면 '보호자', 21자 이상이면 앞 20자로 가입한다")
 	void nicknameIsAdjusted() {
 		when(loadMember.loadByProvider(any(), any())).thenReturn(Optional.empty());
-		when(saveMember.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+		when(saveMember.saveSocial(any(), any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
 
 		googleReturns("dawit@gmail.com", null);
 		assertThat(service.login(google()).member().nickname()).isEqualTo("보호자");
@@ -101,7 +100,7 @@ class SocialLoginMemberServiceTest {
 		LoginMemberResult result = service.login(google());
 
 		assertThat(result.member().id()).isEqualTo(7L);
-		verify(saveMember, never()).save(any());
+		verify(saveMember, never()).saveSocial(any(), any(), any());
 	}
 
 	@Test
@@ -123,7 +122,7 @@ class SocialLoginMemberServiceTest {
 		when(existsMember.existsByEmail("dawit@gmail.com")).thenReturn(true);
 
 		assertThatThrownBy(() -> service.login(google())).isInstanceOf(SocialEmailConflictException.class);
-		verify(saveMember, never()).save(any());
+		verify(saveMember, never()).saveSocial(any(), any(), any());
 		verify(tokenIssuer, never()).issue(any(), any());
 	}
 
@@ -138,7 +137,7 @@ class SocialLoginMemberServiceTest {
 		googleReturns(" ", "다윗");
 		assertThatThrownBy(() -> service.login(google())).isInstanceOf(SocialLoginFailedException.class);
 
-		verify(saveMember, never()).save(any());
+		verify(saveMember, never()).saveSocial(any(), any(), any());
 	}
 
 	@Test
@@ -157,7 +156,7 @@ class SocialLoginMemberServiceTest {
 		googleReturns("dawit@gmail.com", "다윗");
 		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123"))
 				.thenReturn(Optional.empty(), Optional.of(googleMember(7L, "dawit@gmail.com")));
-		when(saveMember.save(any())).thenThrow(new DuplicateSocialAccountException());
+		when(saveMember.saveSocial(any(), any(), any())).thenThrow(new DuplicateSocialAccountException());
 
 		assertThat(service.login(google()).member().id()).isEqualTo(7L);
 	}
@@ -171,7 +170,7 @@ class SocialLoginMemberServiceTest {
 		when(existsMember.existsByEmail("dawit@gmail.com")).thenReturn(true);
 
 		assertThat(service.login(google()).member().id()).isEqualTo(7L);
-		verify(saveMember, never()).save(any());
+		verify(saveMember, never()).saveSocial(any(), any(), any());
 	}
 
 	@Test
@@ -179,7 +178,7 @@ class SocialLoginMemberServiceTest {
 	void concurrentSameEmailFails() {
 		googleReturns("dawit@gmail.com", "다윗");
 		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123")).thenReturn(Optional.empty());
-		when(saveMember.save(any())).thenThrow(new DuplicateEmailException());
+		when(saveMember.saveSocial(any(), any(), any())).thenThrow(new DuplicateEmailException());
 
 		assertThatThrownBy(() -> service.login(google())).isInstanceOf(DuplicateEmailException.class);
 		verify(tokenIssuer, never()).issue(any(), any());
@@ -195,7 +194,7 @@ class SocialLoginMemberServiceTest {
 	}
 
 	private Member googleMember(Long id, String email) {
-		return Member.restore(id, email, null, "다윗", MemberRole.USER, AuthProvider.GOOGLE, "g-123", NOW, null);
+		return Member.restore(id, email, null, "다윗", MemberRole.USER, NOW, null);
 	}
 
 }
