@@ -15,5 +15,5 @@ public record CheckPetAccessResult(String role) {
     public boolean canRecord() {
         return PetAccess.valueOf(role).canRecord();
     }
-    
+
 }

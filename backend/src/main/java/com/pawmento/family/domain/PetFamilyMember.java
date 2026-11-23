@@ -4,7 +4,7 @@ import java.time.Instant;
 
 import lombok.Getter;
 
-@Getter 
+@Getter
 public class PetFamilyMember {
 
     private Long id;

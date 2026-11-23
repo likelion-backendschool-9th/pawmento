@@ -23,5 +23,5 @@ class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamily
     public PetFamilyMember save(PetFamilyMember member) {
         return memberRepository.saveAndFlush(PetFamilyMemberJpaEntity.from(member)).toDomain();
     }
-    
+
 }

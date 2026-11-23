@@ -30,7 +30,7 @@ class PetFamilyMemberJpaEntity {
 
     @Column(name = "pet_id", nullable = false, updatable = false)
     private Long petId;
-    
+
     @Column(name = "member_id", nullable = false, updatable = false)
     private Long memberId;
 

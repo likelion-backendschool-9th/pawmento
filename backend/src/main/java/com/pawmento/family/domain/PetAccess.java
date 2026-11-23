@@ -8,5 +8,5 @@ public enum PetAccess {
     public boolean canRecord() {
         return this != NONE;
     }
-    
+
 }

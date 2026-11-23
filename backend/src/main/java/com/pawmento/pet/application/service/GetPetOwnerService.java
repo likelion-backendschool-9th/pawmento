@@ -17,7 +17,7 @@ import com.pawmento.pet.application.port.out.LockPetPort;
 
 import lombok.RequiredArgsConstructor;
 
-@Service 
+@Service
 @RequiredArgsConstructor
 public class GetPetOwnerService implements GetPetOwnerUseCase, LockPetOwnerUseCase {
 
@@ -36,5 +36,5 @@ public class GetPetOwnerService implements GetPetOwnerUseCase, LockPetOwnerUseCa
     public Optional<GetPetOwnerResult> lock(LockPetOwnerQuery query) {
         return lockPetPort.lock(query.petId()).map(pet -> new GetPetOwnerResult(pet.getOwnerMemberId()));
     }
-    
+
 }

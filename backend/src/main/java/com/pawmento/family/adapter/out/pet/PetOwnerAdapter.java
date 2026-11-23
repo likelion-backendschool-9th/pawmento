@@ -17,9 +17,9 @@ public class PetOwnerAdapter implements LoadPetOwnerPort {
 
     private final GetPetOwnerUseCase getPetOwner;
 
-    @Override 
+    @Override
     public Optional<Long> loadOwnerId(Long petId) {
         return getPetOwner.get(new GetPetOwnerQuery(petId)).map(GetPetOwnerResult::ownerMemberId);
     }
-    
+
 }
