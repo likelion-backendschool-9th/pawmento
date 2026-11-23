@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { formatDate } from "../src/shared/date.ts";
-import { createUnsavedChangesGuard } from "../src/shared/unsavedChanges.ts";
+import { formatDate } from "../lib/date.ts";
+import { createUnsavedChangesGuard } from "../lib/unsavedChanges.ts";
 
 test("#12-S4 날짜 표시가 미국 서부와 한국에서 기본·상세 옵션 모두 한국 날짜를 유지한다", () => {
   const previous = process.env.TZ;

@@ -1,5 +1,5 @@
-import type { LifeRepository } from "../../src/life/application/ports.ts";
-import type { LifeState } from "../../src/life/domain/models.ts";
+import type { LifeRepository } from "../../features/life/application/ports.ts";
+import type { LifeState } from "../../features/life/domain/models.ts";
 export function initialLifeState(): LifeState {
   const createdAt = "2026-11-12T09:00:00.000Z";
   return {

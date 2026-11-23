@@ -1,9 +1,9 @@
-import type { PostcardGenerator } from "../../src/life/application/ports.ts";
-import type { JournalItem } from "../../src/workspace/domain/models.ts";
+import type { PostcardGenerator } from "../../features/life/application/ports.ts";
+import type { JournalItem } from "../../features/workspace/domain/models.ts";
 import {
   postcardScenes,
   sceneForJournalItem,
-} from "../../src/life/application/postcardScenes.ts";
+} from "../../features/life/application/postcardScenes.ts";
 
 export class DemoPostcardGenerator implements PostcardGenerator {
   async generate(

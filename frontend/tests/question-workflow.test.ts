@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceUseCases } from "../src/workspace/application/useCases.ts";
+import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
 import {
   emptyWorkspace,
   type Workspace,
-} from "../src/workspace/domain/models.ts";
+} from "../features/workspace/domain/models.ts";
 import {
   createQuestionAnswerUseCases,
   type QuestionCollection,
-} from "../src/question/application/useCases.ts";
-import type { JournalStore } from "../src/shared/application/JournalStore.ts";
+} from "../features/question/application/useCases.ts";
+import type { JournalStore } from "../lib/application/JournalStore.ts";
 function setup(poolSize = 2) {
   let state: Workspace = emptyWorkspace(),
     n = 0,
@@ -253,7 +253,7 @@ test("#12-S3 (고침 #32) 사진·음성이 있어도 공백 답변은 저장과
 });
 test("#12-S10 (고침 #32) 마지막 답변을 지워도 완료 배정 이력에서 가족과 본인이 재답변한다", async () => {
   const { questionHistory } =
-    await import("../src/question/application/history.ts");
+    await import("../features/question/application/history.ts");
   const { uc } = setup();
   const pet = await uc.savePet("alice", petInput);
   const p = await uc.questions.current("alice", pet.id);

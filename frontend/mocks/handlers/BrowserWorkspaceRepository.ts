@@ -1,6 +1,6 @@
-import type { WorkspaceRepository } from "../../src/workspace/application/ports.ts";
-import { emptyWorkspace } from "../../src/workspace/domain/models.ts";
-import type { Workspace } from "../../src/workspace/domain/models.ts";
+import type { WorkspaceRepository } from "../../features/workspace/application/ports.ts";
+import { emptyWorkspace } from "../../features/workspace/domain/models.ts";
+import type { Workspace } from "../../features/workspace/domain/models.ts";
 import {
   migrateLegacyWorkspace,
   readWorkspaceSnapshot,

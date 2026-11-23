@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { demoQuestionInputs } from "../mocks/fixtures/demoQuestions.ts";
-import type { QuestionAnswer, Pet } from "../src/workspace/domain/models.ts";
+import type { QuestionAnswer, Pet } from "../features/workspace/domain/models.ts";
 const pet: Pet = {
   id: "bori",
   name: "보리",

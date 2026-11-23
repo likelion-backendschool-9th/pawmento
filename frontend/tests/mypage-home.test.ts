@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createApiClient, ApiError } from "../src/shared/http/apiClient.ts";
-import { HttpAuthRepository } from "../src/auth/adapters/outbound/HttpAuthRepository.ts";
-import { HttpPetListRepository } from "../src/pets/adapters/outbound/HttpPetListRepository.ts";
-import { createAuthUseCases } from "../src/auth/application/auth.ts";
-import { resolveProtectedAccess } from "../src/auth/application/sessionView.ts";
+import { createApiClient, ApiError } from "../lib/http/apiClient.ts";
+import { HttpAuthRepository } from "../features/auth/adapters/outbound/HttpAuthRepository.ts";
+import { HttpPetListRepository } from "../features/pets/adapters/outbound/HttpPetListRepository.ts";
+import { createAuthUseCases } from "../features/auth/application/auth.ts";
+import { resolveProtectedAccess } from "../features/auth/application/sessionView.ts";
 
 type MockCall = {
   url: string;

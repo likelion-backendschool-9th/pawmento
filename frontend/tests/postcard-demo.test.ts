@@ -4,9 +4,9 @@ import {
   drawJournalItem,
   sceneForJournalItem,
   postcardScenes,
-} from "../src/life/application/postcardScenes.ts";
+} from "../features/life/application/postcardScenes.ts";
 import { DemoPostcardGenerator } from "../mocks/handlers/DemoPostcardGenerator.ts";
-import type { JournalItem } from "../src/workspace/domain/models.ts";
+import type { JournalItem } from "../features/workspace/domain/models.ts";
 const record: JournalItem = {
   id: "park",
   petId: "bori",

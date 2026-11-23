@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createApiClient } from "../src/shared/http/apiClient.ts";
-import { SessionAuthRepository } from "../src/auth/adapters/outbound/SessionAuthRepository.ts";
+import { createApiClient } from "../lib/http/apiClient.ts";
+import { SessionAuthRepository } from "../features/auth/adapters/outbound/SessionAuthRepository.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 
 const member = { id: 1, email: "dawit@example.com", nickname: "다윗", role: "USER" };

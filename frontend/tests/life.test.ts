@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createLifeUseCases } from "../src/life/application/useCases.ts";
+import { createLifeUseCases } from "../features/life/application/useCases.ts";
 import { initialLifeState } from "../mocks/handlers/BrowserLifeRepository.ts";
 import { SharedWorkspaceRepository } from "../mocks/handlers/SharedWorkspaceRepository.ts";
-import { createWorkspaceUseCases } from "../src/workspace/application/useCases.ts";
-import type { Actor, LifeState } from "../src/life/domain/models.ts";
-import type { Workspace, JournalItem } from "../src/workspace/domain/models.ts";
+import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
+import type { Actor, LifeState } from "../features/life/domain/models.ts";
+import type { Workspace, JournalItem } from "../features/workspace/domain/models.ts";
 const alice: Actor = { id: "alice", name: "앨리스", isAdmin: false };
 const bob: Actor = { id: "bob", name: "밥", isAdmin: false };
 const admin: Actor = { id: "demo", name: "관리자", isAdmin: true };

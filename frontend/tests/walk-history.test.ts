@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ApplicationError } from "../src/shared/application/ApplicationError.ts";
-import { ApiError, type ApiClient } from "../src/shared/http/apiClient.ts";
+import { ApplicationError } from "../lib/application/ApplicationError.ts";
+import { ApiError, type ApiClient } from "../lib/http/apiClient.ts";
 import {
   datesEndingAt,
   followToday,
@@ -20,12 +20,12 @@ import {
   walkMinutes,
   weekdayLabel,
   type WalkRecord,
-} from "../src/map/domain/WalkRecord.ts";
-import { fitPoints, fitRoutes, routeMarks } from "../src/map/domain/WalkRoutes.ts";
-import { createWalkHistoryUseCases } from "../src/map/application/walkHistoryUseCases.ts";
-import type { WalkDayList, WalkHistoryRepository } from "../src/map/application/walkPorts.ts";
-import { HttpWalkHistoryRepository } from "../src/map/adapters/outbound/HttpWalkHistoryRepository.ts";
-import { PetScopedWalkHistoryRepository } from "../src/map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
+} from "../features/map/domain/WalkRecord.ts";
+import { fitPoints, fitRoutes, routeMarks } from "../features/map/domain/WalkRoutes.ts";
+import { createWalkHistoryUseCases } from "../features/map/application/walkHistoryUseCases.ts";
+import type { WalkDayList, WalkHistoryRepository } from "../features/map/application/walkPorts.ts";
+import { HttpWalkHistoryRepository } from "../features/map/adapters/outbound/HttpWalkHistoryRepository.ts";
+import { PetScopedWalkHistoryRepository } from "../features/map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
 const NOW = new Date("2026-11-20T03:00:00Z"); // 한국 시각 11월 20일 12:00

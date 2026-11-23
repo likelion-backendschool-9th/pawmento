@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
-import { createPetUseCases } from "../src/pets/application/useCases.ts";
-import { ApplicationError } from "../src/shared/application/ApplicationError.ts";
+import { createPetUseCases } from "../features/pets/application/useCases.ts";
+import { ApplicationError } from "../lib/application/ApplicationError.ts";
 
 function files(folder: string): string[] {
   return readdirSync(folder, { withFileTypes: true }).flatMap((item) => {
@@ -14,31 +14,47 @@ function files(folder: string): string[] {
 }
 
 test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의존하지 않는다", () => {
-  const source = resolve("src");
-  for (const path of files(source)) {
-    const name = relative(source, path);
-    if (!/^(auth|workspace|life|pets|diary|question|map)\/(domain|application)\//.test(name) &&
-        !name.startsWith("shared/application/")) continue;
-    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-    function visit(node: ts.Node) {
-      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        assert.doesNotMatch(node.moduleSpecifier.text, /react|next|axios|adapters|\/http\//, name);
+  const folders = [
+    "features/auth/domain",
+    "features/auth/application",
+    "features/workspace/domain",
+    "features/workspace/application",
+    "features/life/domain",
+    "features/life/application",
+    "features/pets/domain",
+    "features/pets/application",
+    "features/diary/domain",
+    "features/diary/application",
+    "features/question/domain",
+    "features/question/application",
+    "features/map/domain",
+    "features/map/application",
+    "lib/application",
+  ];
+  for (const folder of folders) {
+    for (const path of files(resolve(folder))) {
+      const name = relative(resolve("."), path);
+      const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+      function visit(node: ts.Node) {
+        if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+          assert.doesNotMatch(node.moduleSpecifier.text, /react|next|axios|adapters|\/http\//, name);
+        }
+        if (ts.isIdentifier(node)) {
+          assert.ok(!["window", "document", "localStorage", "fetch"].includes(node.text), `${name}: ${node.text}`);
+        }
+        ts.forEachChild(node, visit);
       }
-      if (ts.isIdentifier(node)) {
-        assert.ok(!["window", "document", "localStorage", "fetch"].includes(node.text), `${name}: ${node.text}`);
-      }
-      ts.forEachChild(node, visit);
+      visit(file);
     }
-    visit(file);
   }
 });
 
 test("#52-S9 마이페이지 화면은 구체 outbound 어댑터와 HTTP 예외를 모른다", () => {
-  const path = resolve("src/workspace/adapters/inbound/AccountScreen.tsx");
+  const path = resolve("features/workspace/adapters/inbound/AccountScreen.tsx");
   const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
   for (const node of file.statements) {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|shared\/http/);
+      assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/);
     }
   }
 });
@@ -55,12 +71,12 @@ test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리
 });
 
 test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
-  const folder = resolve("src/map/adapters/inbound");
+  const folder = resolve("features/map/adapters/inbound");
   for (const path of files(folder)) {
     const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
     for (const node of file.statements) {
       if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|shared\/http/, relative(folder, path));
+        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/, relative(folder, path));
       }
     }
   }

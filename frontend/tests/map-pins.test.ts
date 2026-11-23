@@ -2,25 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { ApplicationError } from "../src/shared/application/ApplicationError.ts";
-import type { ApiClient } from "../src/shared/http/apiClient.ts";
-import { createMapUseCases } from "../src/map/application/useCases.ts";
+import { ApplicationError } from "../lib/application/ApplicationError.ts";
+import type { ApiClient } from "../lib/http/apiClient.ts";
+import { createMapUseCases } from "../features/map/application/useCases.ts";
 import type {
   MapPinList,
   MapPinRepository,
-} from "../src/map/application/ports.ts";
+} from "../features/map/application/ports.ts";
 import {
   clampBounds,
   containsPoint,
   isValidBounds,
   toViewportRatio,
   type MapBounds,
-} from "../src/map/domain/MapBounds.ts";
-import { HttpMapPinRepository } from "../src/map/adapters/outbound/HttpMapPinRepository.ts";
-import { isDemoAccount } from "../src/auth/domain/account.ts";
+} from "../features/map/domain/MapBounds.ts";
+import { HttpMapPinRepository } from "../features/map/adapters/outbound/HttpMapPinRepository.ts";
+import { isDemoAccount } from "../features/auth/domain/account.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
-import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
+import { PetScopedMapPinRepository } from "../features/map/adapters/outbound/PetScopedMapPinRepository.ts";
 import {
   GUARANTEED_SIZES,
   LABELS,
@@ -29,12 +29,12 @@ import {
   RIVER,
   parkTrees,
   visibleWindow,
-} from "../src/map/adapters/inbound/staticMapShapes.ts";
-import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
+} from "../features/map/adapters/inbound/staticMapShapes.ts";
+import { pinMarkup } from "../features/map/adapters/inbound/pinMarkup.ts";
 import {
   isOpenableDiary,
   pinDetail,
-} from "../src/map/adapters/inbound/pinDetail.ts";
+} from "../features/map/adapters/inbound/pinDetail.ts";
 
 const SEOUL_FOREST: MapBounds = {
   minLatitude: 37.5407,
@@ -217,12 +217,14 @@ test("#19-R6 지도 비밀 키는 프론트엔드 코드에 두지 않는다", (
       return item.isDirectory() ? files(path) : /\.(tsx?|css)$/.test(path) ? [path] : [];
     });
   }
-  for (const path of files(resolve("src"))) {
-    assert.doesNotMatch(
-      readFileSync(path, "utf8"),
-      /CLIENT_SECRET|X-NCP-APIGW-API-KEY\b/,
-      path,
-    );
+  for (const sourceRoot of ["app", "features", "components", "lib", "styles"]) {
+    for (const path of files(resolve(sourceRoot))) {
+      assert.doesNotMatch(
+        readFileSync(path, "utf8"),
+        /CLIENT_SECRET|X-NCP-APIGW-API-KEY\b/,
+        path,
+      );
+    }
   }
 });
 
