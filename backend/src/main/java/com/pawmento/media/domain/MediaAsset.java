@@ -82,6 +82,8 @@ public class MediaAsset {
     } catch (RuntimeException e) {
       throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_PURPOSE);
     }
+    if (target == MediaPurpose.PET_PROFILE && type != MediaType.IMAGE)
+      throw new UnsupportedMediaFormatException();
     if (key == null || !key.matches("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))
       throw new InvalidMediaException(InvalidMediaException.Reason.INVALID_STORAGE_KEY);
     MediaAsset a = new MediaAsset();
@@ -230,10 +232,20 @@ public class MediaAsset {
   }
 
   public void requireAttached(Long requestedPetId, MediaPurpose requestedPurpose) {
+    requireReadyFor(requestedPetId, requestedPurpose);
+    if (referenceCount <= 0)
+      throw new MediaStateConflictException(
+          MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
+  }
+
+  public void requireLinkedPetProfile(Long requestedPetId) {
+    requireReadyFor(requestedPetId, MediaPurpose.PET_PROFILE);
+  }
+
+  private void requireReadyFor(Long requestedPetId, MediaPurpose requestedPurpose) {
     if (!petId.equals(requestedPetId)
         || purpose != requestedPurpose
-        || status != MediaUploadStatus.READY
-        || referenceCount <= 0)
+        || status != MediaUploadStatus.READY)
       throw new MediaStateConflictException(
           MediaStateConflictException.Reason.ATTACHMENT_UNAVAILABLE);
   }

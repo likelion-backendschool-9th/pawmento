@@ -4,7 +4,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 public record CreateMediaUploadRequest(
-    @NotBlank @Pattern(regexp = "DIARY_ATTACHMENT|QUESTION_ANSWER_ATTACHMENT") String purpose,
+    @NotBlank @Pattern(regexp = "DIARY_ATTACHMENT|QUESTION_ANSWER_ATTACHMENT|PET_PROFILE") String purpose,
     @NotBlank @Size(max = 255) String filename,
     @NotBlank @Size(max = 100) String mimeType,
     @NotNull @Positive Long sizeBytes,

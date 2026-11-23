@@ -17,6 +17,7 @@ import com.pawmento.pet.application.exception.PetHasRecordsException;
 import com.pawmento.pet.application.port.in.DeletePetCommand;
 import com.pawmento.pet.application.port.out.LoadPetPort;
 import com.pawmento.pet.application.port.out.DeletePetPort;
+import com.pawmento.pet.application.port.out.PetProfilePhotoMediaPort;
 import com.pawmento.pet.domain.Pet;
 import com.pawmento.pet.domain.PetSpecies;
 
@@ -28,7 +29,7 @@ class DeletePetServiceTest {
 		AtomicReference<Pet> stored = new AtomicReference<>(pet);
 		LoadPetPort load = load(stored);
 		DeletePetPort delete = mock(DeletePetPort.class);
-		var service = new DeletePetService(load, delete, id -> true);
+		var service = new DeletePetService(load, delete, id -> true, load::findById, mock(PetProfilePhotoMediaPort.class));
 		assertThatThrownBy(() -> service.delete(new DeletePetCommand(1L, 2L)))
 			.isInstanceOf(PetHasRecordsException.class).isInstanceOf(StateConflictException.class)
 			.hasMessage("기록이 있는 반려동물은 삭제할 수 없습니다.");
@@ -43,7 +44,8 @@ class DeletePetServiceTest {
 		var stored = new AtomicReference<>(Pet.create(1L, "콩이", "abcd", PetSpecies.DOG, null, null,
 			LocalDate.of(2026, 11, 17)));
 		DeletePetPort delete = mock(DeletePetPort.class);
-		new DeletePetService(load(stored), delete, id -> false).delete(new DeletePetCommand(1L, 2L));
+		LoadPetPort load = load(stored);
+		new DeletePetService(load, delete, id -> false, load::findById, mock(PetProfilePhotoMediaPort.class)).delete(new DeletePetCommand(1L, 2L));
 		verify(delete).deleteById(2L);
 		verifyNoMoreInteractions(delete);
 	}

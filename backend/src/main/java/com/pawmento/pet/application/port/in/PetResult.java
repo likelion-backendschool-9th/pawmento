@@ -11,11 +11,12 @@ public record PetResult(
 		String species,
 		String breed,
 		LocalDate birthday,
-		String mode) {
+		String mode,
+		Long profilePhotoAssetId) {
 
 	public static PetResult from(Long petId, Pet pet) {
 		return new PetResult(petId, pet.getName(), pet.getTag(), pet.getSpecies().name(), pet.getBreed(),
-				pet.getBirthday(), pet.getMode().name());
+				pet.getBirthday(), pet.getMode().name(), pet.getProfilePhotoAssetId());
 	}
 
 	public static PetResult from(Pet pet) {
