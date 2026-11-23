@@ -45,7 +45,8 @@ public final class Question {
   }
 
   public static Question create(QuestionMode mode, String content, Instant now) {
-    return new Question(null, mode, content, true, now, now, 0);
+    var time = QuestionTime.forWrite(now);
+    return new Question(null, mode, content, true, time, time, 0);
   }
 
   /** null은 해당 필드를 유지한다. 실제 변경이 없으면 시각도 유지한다. */
@@ -55,7 +56,7 @@ public final class Question {
     var validated = new Question(id, mode, content == null ? this.content : content,
         enabled == null ? this.enabled : enabled, createdAt, updatedAt, version);
     if (this.content.equals(validated.content) && this.enabled == validated.enabled) return this;
-    return new Question(id, mode, validated.content, validated.enabled, createdAt, now, version);
+    return new Question(id, mode, validated.content, validated.enabled, createdAt, QuestionTime.forWrite(now), version);
   }
 
   public static Question restore(

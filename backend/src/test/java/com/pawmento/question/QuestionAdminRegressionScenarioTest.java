@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.InitializingBean;
@@ -35,7 +36,8 @@ import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.json.JsonMapper;
 
-/** 실제 관리자 HTTP 변경과 기존 사용자 API를 함께 사용하는 회귀 검사. */
+/** 실제 관리자 HTTP 변경과 기존 사용자 API를 검증한다. 공유 질문 풀을 변경하므로 병렬 실행에서 격리한다. */
+@Isolated("공유 질문 풀의 비활성화·시드 재적용·복구")
 @SpringBootTest(properties = {
     "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
     "pawmento.media.worker.enabled=false",
@@ -128,6 +130,35 @@ class QuestionAdminRegressionScenarioTest {
 
   void advanceTime() {
     doReturn(clock.instant().plusSeconds(1)).when(clock).instant();
+  }
+
+  @ParameterizedTest
+  @EnumSource(QuestionMode.class)
+  @DisplayName("#31-S27 답변 생성·수정 응답은 DB 시각과 같고 한국 자정 반올림으로 최초 답변 날짜가 바뀌지 않는다")
+  void answerTimestampsMatchStoredValuesAtMidnight(QuestionMode mode) throws Exception {
+    doReturn(Instant.parse("2026-11-23T14:59:59.999999999Z")).when(clock).instant();
+    long question = question(mode, prefix + " 시각 경계 질문");
+    long pet = pet(owner, mode);
+    long prompt = number(prompt(assign(pet, 201)), "promptId");
+    var response = value(as(owner, body(post("/api/v1/questions/prompts/" + prompt + "/answers?petId=" + pet),
+        Map.of("content", "자정 직전의 답변"))).andExpect(status().isCreated()));
+    Map<String, Object> created = JsonPath.read(json.writeValueAsString(response), "$.answer");
+    long id = number(created, "answerId");
+    assertThat(number(created, "questionId")).isEqualTo(question);
+    assertThat(created.get("answeredAt")).isEqualTo("2026-11-23T14:59:59.999999Z");
+    assertThat(created.get("updatedAt")).isEqualTo(created.get("answeredAt"));
+    assertThat(created.get("answeredDate")).isEqualTo("2026-11-23");
+    assertThat(answerDetail(pet, id)).isEqualTo(created);
+    assertThat(jdbc.queryForObject("select completed_at from question_prompt where id=?", java.sql.Timestamp.class, prompt).toInstant())
+        .isEqualTo(Instant.parse((String) created.get("answeredAt")));
+
+    doReturn(Instant.parse("2026-11-23T15:00:00.123456789Z")).when(clock).instant();
+    var edited = value(as(owner, body(patch(answerPath(pet, id)), Map.of("content", "자정 뒤 수정", "version", 0)))
+        .andExpect(status().isOk()));
+    assertThat(edited.get("updatedAt")).isEqualTo("2026-11-23T15:00:00.123456Z");
+    assertThat(edited.get("answeredAt")).isEqualTo(created.get("answeredAt"));
+    assertThat(edited.get("answeredDate")).isEqualTo("2026-11-23");
+    assertThat(answerDetail(pet, id)).isEqualTo(edited);
   }
 
   long pet(long member, QuestionMode mode) throws Exception {

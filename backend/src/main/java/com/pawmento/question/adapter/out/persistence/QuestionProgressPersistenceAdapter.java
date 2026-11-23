@@ -63,12 +63,8 @@ class QuestionProgressPersistenceAdapter implements QuestionProgressStorePort, Q
                 .orElse(null));
   }
 
-  public QuestionPrompt savePrompt(QuestionPrompt prompt) {
-    return execute(() -> {
-      var saved = prompts.saveAndFlush(QuestionPromptJpaEntity.from(prompt));
-      em.refresh(saved);
-      return saved.toDomain();
-    });
+  public Long savePrompt(QuestionPrompt prompt) {
+    return execute(() -> prompts.saveAndFlush(QuestionPromptJpaEntity.from(prompt)).id());
   }
 
   public void saveProgress(QuestionProgress progress) {

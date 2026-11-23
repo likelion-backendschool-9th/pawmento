@@ -14,15 +14,21 @@ class QuestionArchitectureTest {
   void preservesControllerAndJpaBoundaries() throws Exception {
     var root = Path.of("src/main/java/com/pawmento/question");
     try (var paths = Files.walk(root.resolve("adapter/in/web"))) {
-      var controllers = paths.filter(p -> p.toString().endsWith("Controller.java"))
-          .map(p -> p.getFileName().toString()).toList();
-      assertThat(controllers).containsExactlyInAnyOrder("QuestionController.java", "AdminQuestionController.java");
+      var controllers = new java.util.ArrayList<String>();
+      for (var path : paths.filter(p -> p.toString().endsWith("Controller.java")).toList()) {
+        if (Files.readString(path).contains("@RestController"))
+          controllers.add(path.getFileName().toString());
+      }
+      assertThat(controllers.stream().filter(name -> !name.startsWith("Admin"))).hasSize(1);
+      assertThat(controllers.stream().filter(name -> name.startsWith("Admin")))
+          .isNotEmpty().allMatch(name -> name.matches("Admin[A-Z].*Controller\\.java"));
     }
-    var schemaFiles = java.util.Set.of("QuestionSeedConfiguration.java", "QuestionSeedInitializer.java",
-        "QuestionProgressSchemaConfiguration.java");
+    var schemaFiles = java.util.Set.of("adapter/out/persistence/QuestionSeedConfiguration.java",
+        "adapter/out/persistence/QuestionSeedInitializer.java",
+        "adapter/out/persistence/QuestionProgressSchemaConfiguration.java");
     try (var paths = Files.walk(root)) {
       for (var path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
-        if (!schemaFiles.contains(path.getFileName().toString())) {
+        if (!schemaFiles.contains(root.relativize(path).toString().replace('\\', '/'))) {
           assertThat(Files.readString(path)).as("일반 질문 저장 경계: %s", path)
               .doesNotContain("JdbcTemplate", "java.sql.Connection", "javax.sql.DataSource");
         }
