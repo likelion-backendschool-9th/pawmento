@@ -61,7 +61,7 @@ public class ChangeMemberNicknameService implements ChangeMemberNicknameUseCase 
 		Instant now = Instant.now(clock);
 		member.requireNicknameChangeAllowed(now, SEOUL);
 		String newTag = tagGenerator.next(nickname, member.getTag());
-		member.changeNickname(nickname, newTag, Instant.now(clock), SEOUL);
+		member.changeNickname(nickname, newTag, now, SEOUL);
 		return MemberResult.from(saveMemberPort.save(member));
 	}
 }
