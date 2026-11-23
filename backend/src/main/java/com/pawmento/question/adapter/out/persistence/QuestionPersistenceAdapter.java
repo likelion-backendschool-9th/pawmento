@@ -1,15 +1,19 @@
 package com.pawmento.question.adapter.out.persistence;
 
-import com.pawmento.question.application.port.out.LoadActiveQuestionsPort;
+import com.pawmento.question.application.port.out.*;
 import com.pawmento.question.domain.Question;
+import com.pawmento.question.domain.QuestionFilter;
 import com.pawmento.question.domain.QuestionMode;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-class QuestionPersistenceAdapter implements LoadActiveQuestionsPort {
+class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort {
   private final QuestionJpaRepository repository;
 
   @Override
@@ -22,5 +26,23 @@ class QuestionPersistenceAdapter implements LoadActiveQuestionsPort {
             repository.findByModeAndEnabledTrueOrderByIdAsc(mode).stream()
                 .map(QuestionJpaEntity::toDomain)
                 .toList());
+  }
+
+  public Optional<Question> findById(Long id) {
+    return QuestionPersistenceOperations.execute(() -> repository.findById(id).map(QuestionJpaEntity::toDomain));
+  }
+
+  public List<Question> list(QuestionFilter f) {
+    return QuestionPersistenceOperations.execute(() -> repository.findAdmin(f.mode(), f.enabled(),
+        pattern(f.search()), PageRequest.of(f.page(), f.size())).stream().map(QuestionJpaEntity::toDomain).toList());
+  }
+
+  public long count(QuestionFilter f) {
+    return QuestionPersistenceOperations.execute(() -> repository.countAdmin(f.mode(), f.enabled(), pattern(f.search())));
+  }
+
+  private static String pattern(String search) {
+    return "%" + search.toLowerCase(Locale.ROOT).replace("!", "!!").replace("%", "!%")
+        .replace("_", "!_") + "%";
   }
 }

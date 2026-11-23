@@ -22,6 +22,18 @@ public class QuestionController {
   private final EditQuestionAnswerUseCase edit;
   private final DeleteQuestionAnswerUseCase delete;
   private final GetQuestionFileUseCase files;
+  private final ListAdminQuestionsUseCase adminList;
+  private final GetAdminQuestionUseCase adminGet;
+
+  @GetMapping("/admin")
+  AdminQuestionsPage adminList(@LoginMember Long member, HttpServletRequest request) {
+    return adminList.list(QuestionAdminQuery.parse(member, request.getQueryString()));
+  }
+
+  @GetMapping("/admin/{questionId}")
+  AdminQuestionResult adminGet(@LoginMember Long member, @PathVariable Long questionId) {
+    return adminGet.get(new GetAdminQuestionQuery(member, questionId));
+  }
 
   @GetMapping("/prompts/current")
   CurrentQuestionPromptResult current(@LoginMember Long memberId, HttpServletRequest request) {

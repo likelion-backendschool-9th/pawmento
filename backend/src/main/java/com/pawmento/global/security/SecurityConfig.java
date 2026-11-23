@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 import jakarta.servlet.DispatcherType;
+import com.pawmento.global.web.ApiPaths;
 
 @Configuration(proxyBeanMethods = false)
 class SecurityConfig {
@@ -30,6 +31,7 @@ class SecurityConfig {
 				// 처리 중 오류로 넘어가는 내부 요청(/error)이 401로 가려지지 않게 한다
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 				.requestMatchers(PublicEndpoints.AUTH, PublicEndpoints.PUBLIC_READ, PublicEndpoints.API_DOCS).permitAll()
+				.requestMatchers(ApiPaths.V1 + "/questions/admin", ApiPaths.V1 + "/questions/admin/**").hasRole("ADMIN")
 				.anyRequest().authenticated())
 			.oauth2ResourceServer(resourceServer -> resourceServer
 				.bearerTokenResolver(new CookieBearerTokenResolver())
