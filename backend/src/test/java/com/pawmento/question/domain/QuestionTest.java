@@ -12,6 +12,28 @@ class QuestionTest {
   private static final Instant NOW = Instant.parse("2026-11-20T00:00:00Z");
 
   @Test
+  @DisplayName("#31-S25 질문 수정은 불변 필드·생략 필드를 보존하고 동일 값이면 같은 원본을 반환한다")
+  void editsQuestion() {
+    var original = Question.restore(1L, QuestionMode.GARDEN, "추억 질문", true, NOW, NOW, 3);
+    var changed = original.edit("  새로운 추억  ", null, NOW.plusSeconds(1));
+    assertThat(changed.getContent()).isEqualTo("새로운 추억");
+    assertThat(changed.isEnabled()).isTrue();
+    assertThat(changed.getId()).isEqualTo(1L);
+    assertThat(changed.getMode()).isEqualTo(QuestionMode.GARDEN);
+    assertThat(changed.getCreatedAt()).isEqualTo(NOW);
+    assertThat(changed.getUpdatedAt()).isEqualTo(NOW.plusSeconds(1));
+    // 버전 증가는 영속성 @Version의 책임이다.
+    assertThat(changed.getVersion()).isEqualTo(3);
+    assertThat(original.edit("  추억 질문 ", true, NOW.plusSeconds(1))).isSameAs(original);
+    assertThat(original.edit(null, false, NOW.plusSeconds(1)).isEnabled()).isFalse();
+    assertThat(original.isEnabled()).isTrue();
+    for (String value : new String[]{"", " ", "가".repeat(301), "잘못된\0본문"})
+      assertThatThrownBy(() -> original.edit(value, null, NOW.plusSeconds(1)))
+          .isInstanceOf(InvalidQuestionException.class);
+    assertThatThrownBy(() -> original.edit(null, null, NOW)).isInstanceOf(InvalidQuestionException.class);
+  }
+
+  @Test
   @DisplayName("#31-S21 질문은 모드를 분리하고 본문을 정리하며 활성·version 0으로 생성한다")
   void createsQuestion() {
     for (var mode : QuestionMode.values()) {

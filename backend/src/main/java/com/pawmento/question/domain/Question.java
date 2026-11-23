@@ -48,6 +48,15 @@ public final class Question {
     return new Question(null, mode, content, true, now, now, 0);
   }
 
+  /** null은 해당 필드를 유지한다. 실제 변경이 없으면 시각도 유지한다. */
+  public Question edit(String content, Boolean enabled, Instant now) {
+    if (id == null || (content == null && enabled == null)) throw new InvalidQuestionException();
+    var changed = new Question(id, mode, content == null ? this.content : content,
+        enabled == null ? this.enabled : enabled, createdAt, now, version);
+    if (this.content.equals(changed.content) && this.enabled == changed.enabled) return this;
+    return changed;
+  }
+
   public static Question restore(
       Long id,
       QuestionMode mode,

@@ -17,6 +17,22 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 class QuestionPersistenceFailureTest {
   @Test
+  @DisplayName("#31-S26 질문 수정의 낙관적 충돌은 일시 장애 503으로 바꾸지 않고 409로 구분한다")
+  void updateConflictIsNotStorageFailure() {
+    var repository = mock(QuestionJpaRepository.class);
+    var adapter = new QuestionPersistenceAdapter(repository);
+    var now = Instant.parse("2026-11-23T00:00:00Z");
+    var question = Question.restore(1L, QuestionMode.ACTIVE, "기존 질문", true, now, now, 0);
+    var entity = QuestionJpaEntity.fromNew(Question.create(QuestionMode.ACTIVE, "기존 질문", now));
+    org.springframework.test.util.ReflectionTestUtils.setField(entity, "id", 1L);
+    when(repository.findById(1L)).thenReturn(java.util.Optional.of(entity));
+    org.mockito.Mockito.doThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(QuestionJpaEntity.class, 1L))
+        .when(repository).flush();
+    assertThatThrownBy(() -> adapter.update(question.edit("바꾼 질문", false, now.plusSeconds(1))))
+        .isInstanceOf(com.pawmento.question.application.exception.QuestionModificationConflictException.class);
+  }
+
+  @Test
   @DisplayName("#31-S24 신규 질문 저장의 일시 장애를 분류하고 기존 원본을 덮어쓰지 않는다")
   void createFailureAndExistingRowGuard() {
     var repository = mock(QuestionJpaRepository.class);
