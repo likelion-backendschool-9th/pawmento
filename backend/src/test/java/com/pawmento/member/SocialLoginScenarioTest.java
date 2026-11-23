@@ -115,8 +115,7 @@ class SocialLoginScenarioTest {
 			.andExpect(jsonPath("$.email").value(email));
 
 		Member saved = loadMemberPort.loadByEmail(email).orElseThrow();
-		assertThat(saved.getProvider()).isEqualTo(AuthProvider.GOOGLE);
-		assertThat(saved.getProviderUserId()).isEqualTo(sub);
+		assertThat(loadMemberPort.loadByProvider(AuthProvider.GOOGLE, sub)).map(Member::getId).contains(saved.getId());
 		assertThat(saved.getPasswordHash()).isNull();
 	}
 
@@ -198,13 +197,13 @@ class SocialLoginScenarioTest {
 	void uniqueConstraintsAreTranslated() {
 		String sub = uniqueSub();
 		String email = uniqueEmail();
-		saveMemberPort.save(Member.registerSocial(AuthProvider.GOOGLE, sub, email, "다윗", Instant.now()));
+		saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", Instant.now()), AuthProvider.GOOGLE, sub);
 
 		assertThatThrownBy(() -> saveMemberPort
-			.save(Member.registerSocial(AuthProvider.GOOGLE, sub, uniqueEmail(), "다윗", Instant.now())))
+			.saveSocial(Member.registerSocial(uniqueEmail(), "다윗", Instant.now()), AuthProvider.GOOGLE, sub))
 			.isInstanceOf(DuplicateSocialAccountException.class);
 		assertThatThrownBy(() -> saveMemberPort
-			.save(Member.registerSocial(AuthProvider.KAKAO, uniqueSub(), email, "다윗", Instant.now())))
+			.saveSocial(Member.registerSocial(email, "다윗", Instant.now()), AuthProvider.KAKAO, uniqueSub()))
 			.isInstanceOf(DuplicateEmailException.class);
 	}
 

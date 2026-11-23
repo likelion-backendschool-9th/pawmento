@@ -8,7 +8,7 @@ import com.pawmento.member.domain.exception.MemberNicknameLimitException;
 
 import lombok.Getter;
 
-// 로그인에 필요한 최소 회원 정보. 프로필 등 나머지 필드는 스프린트 1의 member 설계에서 더한다
+// 로그인에 필요한 최소 회원 정보. 소셜 로그인 방법은 SocialAccount에 따로 둔다 (#109)
 @Getter
 public class Member {
 
@@ -19,65 +19,52 @@ public class Member {
 
 	private String email;
 
-	// 비밀번호 원문은 저장하지 않는다. 해시만 둔다
+	// 비밀번호 원문은 저장하지 않는다. 해시만 둔다. 소셜로만 가입한 회원은 null
 	private String passwordHash;
 
 	private String nickname;
 
 	private MemberRole role;
 
-	private AuthProvider provider;
-
-	// 제공자가 준 사용자 id. 로컬 회원은 null
-	private String providerUserId;
-
 	private Instant createdAt;
 
 	// Asia/Seoul 달력월 한도 판정용. 한 번도 안 바꿨으면 null
 	private Instant nicknameChangedAt;
 
-	private Member(String email, String passwordHash, String nickname, MemberRole role, 
-					AuthProvider provider, String providerUserId, Instant createdAt) {
+	private Member(String email, String passwordHash, String nickname, MemberRole role, Instant createdAt) {
 		this.email = email;
 		this.passwordHash = passwordHash;
 		this.nickname = nickname;
 		this.role = role;
-		this.provider = provider;
-		this.providerUserId = providerUserId;
 		this.createdAt = createdAt;
 	}
 
 	public static Member register(String email, String passwordHash, String nickname, Instant now) {
-		return new Member(normalizeEmail(email), passwordHash, requireNickname(nickname), MemberRole.USER, AuthProvider.LOCAL, null, now);
+		if (passwordHash == null || passwordHash.isBlank()) {
+			throw new IllegalArgumentException("이메일 가입에는 비밀번호 해시가 필요합니다.");
+		}
+		return new Member(normalizeEmail(email), passwordHash, requireNickname(nickname), MemberRole.USER, now);
 	}
 
-	// ★ 소셜 회원 가입. 비밀번호 해시는 받지 않는다
-	public static Member registerSocial(AuthProvider provider, String providerUserId, String email,
-			String nickname, Instant now) {
-		if (provider == null || provider == AuthProvider.LOCAL) {
-			throw new IllegalArgumentException("소셜 가입에는 소셜 제공자가 필요합니다.");
-		}
-		if (providerUserId == null || providerUserId.isBlank()) {
-			throw new IllegalArgumentException("제공자 사용자 id가 없습니다.");
-		}
+	// 소셜 회원 가입. 비밀번호 해시는 받지 않고, 제공자 계정은 저장할 때 SocialAccount로 함께 남긴다
+	public static Member registerSocial(String email, String nickname, Instant now) {
 		if (email == null || email.isBlank()) {
 			throw new IllegalArgumentException("이메일이 없습니다.");
 		}
-		return new Member(normalizeEmail(email), null, socialNickname(nickname), MemberRole.USER,
-				provider, providerUserId, now);
+		return new Member(normalizeEmail(email), null, socialNickname(nickname), MemberRole.USER, now);
 	}
 
 	public static Member restore(Long id, String email, String passwordHash, String nickname, MemberRole role,
-									AuthProvider provider, String providerUserId, Instant createdAt, Instant nicknameChangedAt) {
-		Member member = new Member(email, passwordHash, nickname, role, provider, providerUserId, createdAt);
+			Instant createdAt, Instant nicknameChangedAt) {
+		Member member = new Member(email, passwordHash, nickname, role, createdAt);
 		member.id = id;
 		member.nicknameChangedAt = nicknameChangedAt;
 		return member;
 	}
 
-	// ★ 비밀번호로 로그인할 수 있는 회원인가
-	public boolean isLocal() {
-		return provider == AuthProvider.LOCAL;
+	// 비밀번호로 로그인할 수 있는 회원인가. 가입 방식이 아니라 비밀번호가 있는지로 정한다 (#109-R2)
+	public boolean hasPassword() {
+		return passwordHash != null;
 	}
 
 	public void changeNickname(String nickname, Instant now, java.time.ZoneId zone) {
@@ -101,7 +88,7 @@ public class Member {
 			throw new InvalidMemberNicknameException();
 		}
 		String trimmed = nickname.strip();
-		if (trimmed.isEmpty() || trimmed.length() > 20) {
+		if (trimmed.isEmpty() || trimmed.length() > NICKNAME_MAX_LENGTH) {
 			throw new InvalidMemberNicknameException();
 		}
 		return trimmed;
@@ -122,5 +109,4 @@ public class Member {
 		}
 		return stripped;
 	}
-
 }
