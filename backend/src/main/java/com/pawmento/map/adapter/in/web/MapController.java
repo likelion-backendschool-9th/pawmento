@@ -1,6 +1,7 @@
 package com.pawmento.map.adapter.in.web;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +14,8 @@ import com.pawmento.global.security.LoginMember;
 import com.pawmento.map.application.port.in.AddWalkPointsUseCase;
 import com.pawmento.map.application.port.in.EndWalkCommand;
 import com.pawmento.map.application.port.in.EndWalkUseCase;
+import com.pawmento.map.application.port.in.GetCurrentWalkQuery;
+import com.pawmento.map.application.port.in.GetCurrentWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
 import com.pawmento.map.application.port.in.ListWalksQuery;
@@ -35,6 +38,7 @@ class MapController {
 	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
 	private final ListWalksUseCase listWalksUseCase;
+	private final GetCurrentWalkUseCase getCurrentWalkUseCase;
 
 	@GetMapping("/pins")
 	MapPinsResponse listPins(@LoginMember Long memberId, HttpServletRequest http) {
@@ -54,6 +58,17 @@ class MapController {
 		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId", "date");
 		return WalksResponse
 			.from(listWalksUseCase.list(new ListWalksQuery(memberId, query.positiveLong("petId"), query.date("date"))));
+	}
+
+	@GetMapping("/walks/current")
+	ResponseEntity<CurrentWalkResponse> currentWalk(@LoginMember Long memberId, HttpServletRequest http) {
+		// 쿼리 문자열만 읽는다. 모델 바인딩은 URL에 없는 값을 같은 이름의 헤더로 채우고 중복된 키는 첫 값만 쓴다
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "petId");
+		// 진행 중인 산책이 없으면 204다. 읽지 못한 것(오류)과 구분해서 화면이 시작 화면을 열 수 있게 한다
+		return getCurrentWalkUseCase.get(new GetCurrentWalkQuery(memberId, query.positiveLong("petId")))
+			.map(CurrentWalkResponse::from)
+			.map(ResponseEntity::ok)
+			.orElseGet(() -> ResponseEntity.noContent().build());
 	}
 
 	@PostMapping("/walks")
