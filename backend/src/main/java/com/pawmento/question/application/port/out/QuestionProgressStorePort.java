@@ -14,7 +14,8 @@ public interface QuestionProgressStorePort {
 
   Long lastQuestionId(Long petId, QuestionMode mode);
 
-  Long savePrompt(QuestionPrompt prompt);
+  /** 저장된 ID와 DB 시각 정밀도를 반영한 회차를 반환한다. */
+  QuestionPrompt savePrompt(QuestionPrompt prompt);
 
   void saveProgress(QuestionProgress progress);
 }

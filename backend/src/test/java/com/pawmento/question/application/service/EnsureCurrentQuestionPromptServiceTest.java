@@ -28,7 +28,11 @@ class EnsureCurrentQuestionPromptServiceTest {
         .thenReturn(QuestionProgress.create(2L, QuestionMode.ACTIVE));
     when(questions.loadByMode(QuestionMode.ACTIVE)).thenReturn(List.of(original));
     when(selection.select(anyList())).thenReturn(clone);
-    when(store.savePrompt(any())).thenReturn(10L);
+    when(store.savePrompt(any())).thenAnswer(invocation -> {
+      QuestionPrompt assigned = invocation.getArgument(0);
+      return QuestionPrompt.restore(10L, assigned.getPetId(), assigned.getMode(), assigned.getQuestionId(),
+          assigned.getQuestionSnapshot(), assigned.getSequence(), assigned.getAssignedAt());
+    });
     var service =
         new EnsureCurrentQuestionPromptService(
             access, store, questions, selection, Clock.fixed(now, ZoneOffset.UTC));

@@ -10,6 +10,27 @@ import org.junit.jupiter.api.Test;
 
 class QuestionArchitectureTest {
   @Test
+  @DisplayName("#31-S29 사용자·관리자 컨트롤러 경계를 유지하고 일반 질문 영속화에 JDBC를 추가하지 않는다")
+  void preservesControllerAndJpaBoundaries() throws Exception {
+    var root = Path.of("src/main/java/com/pawmento/question");
+    try (var paths = Files.walk(root.resolve("adapter/in/web"))) {
+      var controllers = paths.filter(p -> p.toString().endsWith("Controller.java"))
+          .map(p -> p.getFileName().toString()).toList();
+      assertThat(controllers).containsExactlyInAnyOrder("QuestionController.java", "AdminQuestionController.java");
+    }
+    var schemaFiles = java.util.Set.of("QuestionSeedConfiguration.java", "QuestionSeedInitializer.java",
+        "QuestionProgressSchemaConfiguration.java");
+    try (var paths = Files.walk(root)) {
+      for (var path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
+        if (!schemaFiles.contains(path.getFileName().toString())) {
+          assertThat(Files.readString(path)).as("일반 질문 저장 경계: %s", path)
+              .doesNotContain("JdbcTemplate", "java.sql.Connection", "javax.sql.DataSource");
+        }
+      }
+    }
+  }
+
+  @Test
   @DisplayName("#31-S21 질문 핵심은 프레임워크·다른 도메인에 의존하지 않고 영속화는 출력 포트만 구현한다")
   void respectsHexagonalBoundaries() throws Exception {
     var root = Path.of("src/main/java/com/pawmento/question");

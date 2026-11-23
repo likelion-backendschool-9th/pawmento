@@ -70,10 +70,6 @@ class QuestionPromptJpaEntity {
     return entity;
   }
 
-  Long id() {
-    return id;
-  }
-
   Long questionId() {
     return questionId;
   }

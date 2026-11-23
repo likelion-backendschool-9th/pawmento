@@ -47,18 +47,9 @@ public class EnsureCurrentQuestionPromptService implements EnsureCurrentQuestion
     var prompt =
         QuestionPrompt.assign(
             command.petId(), mode, chosen, progress.getNextSequence(), clock.instant());
-    var id = store.savePrompt(prompt);
-    progress.assigned(id);
+    var saved = store.savePrompt(prompt);
+    progress.assigned(saved.getId());
     store.saveProgress(progress);
-    var saved =
-        QuestionPrompt.restore(
-            id,
-            prompt.getPetId(),
-            mode,
-            prompt.getQuestionId(),
-            prompt.getQuestionSnapshot(),
-            prompt.getSequence(),
-            prompt.getAssignedAt());
     return new EnsureCurrentQuestionPromptResult(
         true, CurrentQuestionPromptValues.result(command.petId(), mode, saved));
   }
