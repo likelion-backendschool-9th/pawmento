@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.BadJwtException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -27,11 +29,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pawmento.community.application.exception.report.ReportNotFoundException;
+import com.pawmento.community.application.exception.report.ReportProcessingConflictException;
+import com.pawmento.community.application.port.in.report.GetReportDetailQuery;
+import com.pawmento.community.application.port.in.report.GetReportDetailUseCase;
 import com.pawmento.community.application.port.in.report.ListReportItemResult;
 import com.pawmento.community.application.port.in.report.ListReportItemResult.PostState;
 import com.pawmento.community.application.port.in.report.ListReportItemResult.ReasonType;
 import com.pawmento.community.application.port.in.report.ListReportsQuery;
 import com.pawmento.community.application.port.in.report.ListReportsUseCase;
+import com.pawmento.community.application.port.in.report.ProcessReportCommand;
+import com.pawmento.community.application.port.in.report.ProcessReportCommand.Resolution;
+import com.pawmento.community.application.port.in.report.ProcessReportUseCase;
+import com.pawmento.community.application.port.in.report.ReportDetailResult;
 import com.pawmento.community.application.port.in.report.ReportStatus;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.global.security.JwtClaims;
@@ -45,9 +55,15 @@ import tools.jackson.databind.json.JsonMapper;
 @Import(AdminReportControllerTest.TestController.class)
 class AdminReportControllerTest {
 	private static final String REPORTS = "/api/v1/admin/reports";
+	private static final String PROCESS_BODY = """
+			{"resolution":"DISMISSED","version":0,"memo":"확인 완료"}
+			""";
+
 	@Autowired MockMvc mvc;
 	@Autowired JsonMapper jsonMapper;
 	@MockitoBean ListReportsUseCase listReports;
+	@MockitoBean GetReportDetailUseCase getReportDetail;
+	@MockitoBean ProcessReportUseCase processReport;
 	@MockitoBean JwtDecoder jwtDecoder;
 
 	@Test
@@ -100,6 +116,62 @@ class AdminReportControllerTest {
 		verifyNoInteractions(listReports);
 	}
 
+	@Test
+	@DisplayName("#92-S2 삭제된 글의 신고 상세는 현재 상태와 함께 조회된다")
+	void returnsReportForDeletedPost() throws Exception {
+		when(getReportDetail.get(new GetReportDetailQuery(8, 101))).thenReturn(detail(ReportStatus.PENDING, 0, null));
+
+		mvc.perform(get(REPORTS + "/101").with(actor("ADMIN")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.reportId").value(101))
+				.andExpect(jsonPath("$.target.state").value("DELETED"));
+	}
+
+	@Test
+	@DisplayName("#92-S4 실제 관리자 필터는 상세·처리에 일반 회원과 비로그인 요청을 거절한다")
+	void rejectsUnauthorizedDetailAndDecision() throws Exception {
+		for (var request : List.of(get(REPORTS + "/101"), patch(REPORTS + "/101"))) {
+			mvc.perform(request).andExpect(status().isUnauthorized());
+			mvc.perform(request.with(actor("USER"))).andExpect(status().isForbidden());
+		}
+		verifyNoInteractions(getReportDetail, processReport);
+	}
+
+	@Test
+	@DisplayName("#92-S3 처리 요청은 인증된 관리자의 ID와 기대 버전을 전달한다")
+	void passesAuthenticatedActorToUseCase() throws Exception {
+		var command = new ProcessReportCommand(8, 101, Resolution.DISMISSED, 0, "확인 완료");
+		var processing = new ReportDetailResult.Processing(8, Instant.EPOCH, "확인 완료");
+		when(processReport.process(command)).thenReturn(detail(ReportStatus.DISMISSED, 1, processing));
+
+		mvc.perform(patch(REPORTS + "/101").with(actor("ADMIN")).contentType(MediaType.APPLICATION_JSON)
+						.content(PROCESS_BODY))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.status").value("DISMISSED"))
+				.andExpect(jsonPath("$.version").value(1))
+				.andExpect(jsonPath("$.processing.processedBy").value(8));
+	}
+
+	@Test
+	@DisplayName("#92-S5 없는 신고는 공통 404 응답으로 변환된다")
+	void mapsMissingReportToNotFound() throws Exception {
+		when(getReportDetail.get(new GetReportDetailQuery(8, 999))).thenThrow(new ReportNotFoundException());
+
+		mvc.perform(get(REPORTS + "/999").with(actor("ADMIN")))
+				.andExpect(status().isNotFound()).andExpect(jsonPath("$.code").value("NOT_FOUND"));
+	}
+
+	@Test
+	@DisplayName("#92-S6 처리 충돌은 공통 409 응답으로 변환된다")
+	void mapsWriteConflictToConflictResponse() throws Exception {
+		when(processReport.process(new ProcessReportCommand(8, 101, Resolution.DISMISSED, 0, "확인 완료")))
+				.thenThrow(new ReportProcessingConflictException("최신 신고 정보를 확인해 주세요."));
+
+		mvc.perform(patch(REPORTS + "/101").with(actor("ADMIN")).contentType(MediaType.APPLICATION_JSON)
+						.content(PROCESS_BODY))
+				.andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONFLICT"));
+	}
+
 	private RequestPostProcessor actor(String role) {
 		String token = "test-token-" + role;
 		when(jwtDecoder.decode(token)).thenReturn(Jwt.withTokenValue(token)
@@ -110,11 +182,17 @@ class AdminReportControllerTest {
 		};
 	}
 
+	private static ReportDetailResult detail(ReportStatus status, long version, ReportDetailResult.Processing processing) {
+		return new ReportDetailResult(101, 201, status, ReasonType.PRIVACY, "신고 설명", Instant.EPOCH, version,
+				null, new ReportDetailResult.Target(PostState.DELETED, null), processing);
+	}
+
 	@TestComponent
 	@RestController
 	static class TestController extends AdminReportController {
-		TestController(ListReportsUseCase listReports) {
-			super(listReports);
+		TestController(ListReportsUseCase listReports, GetReportDetailUseCase getReportDetail,
+				ProcessReportUseCase processReport) {
+			super(listReports, getReportDetail, processReport);
 		}
 	}
 
