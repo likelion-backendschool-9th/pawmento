@@ -1,0 +1,76 @@
+package com.pawmento.community.application.service.report;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.stream.LongStream;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import com.pawmento.community.application.port.in.report.ListReportItemResult;
+import com.pawmento.community.application.port.in.report.ListReportItemResult.PostState;
+import com.pawmento.community.application.port.in.report.ListReportItemResult.ReasonType;
+import com.pawmento.community.application.port.in.report.ListReportsQuery;
+import com.pawmento.community.application.port.in.report.ReportStatus;
+import com.pawmento.community.application.port.out.report.FindReportPagePort;
+import com.pawmento.community.application.port.out.report.FindReportPagePort.Criteria;
+import com.pawmento.community.application.port.out.report.FindReportPagePort.Item;
+import com.pawmento.community.application.port.out.report.FindReportPagePort.Match;
+
+class ListReportsServiceTest {
+	private final FindReportPagePort reports = mock(FindReportPagePort.class);
+	private final ListReportsService service = new ListReportsService(reports);
+
+	@Test
+	@DisplayName("#92-S1 다음 페이지가 있을 때만 마지막으로 반환한 신고 ID를 다음 커서로 쓴다")
+	void derivesCursorFromLastReturnedReport() {
+		var query = new ListReportsQuery(ReportStatus.PENDING, 20, null);
+		var firstItems = LongStream.iterate(21, id -> id - 1).limit(20)
+				.mapToObj(ListReportsServiceTest::pendingReport).toList();
+		when(reports.find(new Criteria("PENDING", 20, null))).thenReturn(new Match(firstItems, true));
+		when(reports.find(new Criteria("PENDING", 20, 2L)))
+				.thenReturn(new Match(List.of(pendingReport(1)), false));
+
+		var first = service.list(query);
+		assertThat(first.items()).extracting(ListReportItemResult::reportId)
+				.containsExactlyElementsOf(firstItems.stream().map(Item::reportId).toList());
+		assertThat(first.items().getFirst()).isEqualTo(new ListReportItemResult(21L, 201L, ReportStatus.PENDING,
+				ReasonType.PRIVACY, Instant.EPOCH, "신고 당시 제목", PostState.VISIBLE));
+		assertThat(first.nextCursor()).isEqualTo(2L);
+
+		var last = service.list(new ListReportsQuery(ReportStatus.PENDING, 20, first.nextCursor()));
+		assertThat(last.items()).extracting(ListReportItemResult::reportId).containsExactly(1L);
+		assertThat(last.nextCursor()).isNull();
+	}
+
+	@Test
+	@DisplayName("#92-S1 선택한 상태와 커서에 해당하는 신고가 없으면 빈 페이지로 끝낸다")
+	void endsOnEmptyResult() {
+		var query = new ListReportsQuery(ReportStatus.DISMISSED, 50, 15L);
+		when(reports.find(new Criteria("DISMISSED", 50, 15L))).thenReturn(new Match(List.of(), false));
+
+		var page = service.list(query);
+		assertThat(page.items()).isEmpty();
+		assertThat(page.nextCursor()).isNull();
+	}
+
+	@Test
+	@DisplayName("#92-S1 지원하지 않는 저장소 코드는 정상 목록 값으로 대체하지 않는다")
+	void rejectsUnknownStoredCode() {
+		var criteria = new Criteria("PENDING", 20, null);
+		var item = new Item(21L, 201L, "PENDING", "UNKNOWN", Instant.EPOCH, "신고 당시 제목", "VISIBLE");
+		when(reports.find(criteria)).thenReturn(new Match(List.of(item), false));
+
+		assertThatThrownBy(() -> service.list(new ListReportsQuery(ReportStatus.PENDING, 20, null)))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	private static Item pendingReport(long id) {
+		return new Item(id, 201L, "PENDING", "PRIVACY", Instant.EPOCH, "신고 당시 제목", "VISIBLE");
+	}
+}
