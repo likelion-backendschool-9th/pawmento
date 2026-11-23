@@ -19,6 +19,7 @@
 겹치지 않게 둘 것:
 
 - **관리자 계정·역할(권한)** 자체는 계정(member) 담당(다윗)
+- 관리자 API 경로는 `/api/v1/admin/**`로 통일하고 관리 대상 도메인이 유스케이스와 컨트롤러를 소유한다. 질문은 `/api/v1/admin/questions`를 사용한다. (고침 #31: PR #163에서 결정한 경로 규칙을 담당·경계로 이동)
 - **질문 풀 관리** API·화면은 [질문 도메인의 API 계약](../question/README.md#api-제안)(#30 / #31, 선아)을 따른다. 질문 관리자 경로는 `/admin/questions`이며 question 도메인의 AdminQuestionController에 둔다. 공통 `/api/v1/admin`·`/api/v1/admin/**` 보안 경로 검사와 유스케이스의 현재 ADMIN 재확인을 함께 적용한다([권한 계약](../question/README.md#가족-권한과-의존성)). (고침 #31: PR #163 관리자 공통 경로와 별도 컨트롤러 적용) 이 폴더에서 질문 CRUD를 다시 정의하지 않는다.
 
 인증: 로그인·`ADMIN` 역할 검사는 member/security와 맞춘다. 관리자 전용 경로 테스트는 #14-S8이 예고한 대로 경로가 생길 때 요청 전체로 확인한다.
@@ -32,6 +33,6 @@
 ## 아직 정하지 않은 것
 
 - 신고·엽서 판매의 데이터 소유 도메인(community / postcard / admin 패키지 여부)
-- 관리자 API 경로는 `/api/v1/admin/**`로 통일한다. 질문은 `/api/v1/admin/questions`이며 관리 대상 도메인이 유스케이스와 컨트롤러를 소유한다. 관리자 계정·역할 부여 API는 member 담당과 별도로 정한다. (고침 #31: PR #163 경로 통일)
+- 관리자 계정·역할 부여 API의 방식은 member 담당과 별도로 정한다.
 - 본문 요구사항·시나리오([plan-template](../plan-template.md) 적용)
 - 개발 Feat 이슈 번호
