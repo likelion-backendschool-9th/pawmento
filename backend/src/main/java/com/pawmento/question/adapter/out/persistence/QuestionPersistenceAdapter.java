@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort {
+class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort, SaveQuestionPort {
   private final QuestionJpaRepository repository;
 
   @Override
@@ -26,6 +26,11 @@ class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestio
             repository.findByModeAndEnabledTrueOrderByIdAsc(mode).stream()
                 .map(QuestionJpaEntity::toDomain)
                 .toList());
+  }
+
+  public Question save(Question question) {
+    return QuestionPersistenceOperations.execute(
+        () -> repository.saveAndFlush(QuestionJpaEntity.fromNew(question)).toDomain());
   }
 
   public Optional<Question> findById(Long id) {

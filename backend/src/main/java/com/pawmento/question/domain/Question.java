@@ -27,6 +27,7 @@ public final class Question {
     if (mode == null
         || content == null
         || content.isBlank()
+        || content.indexOf('\0') >= 0
         || content.strip().length() > CONTENT_MAX_LENGTH
         || createdAt == null
         || updatedAt == null

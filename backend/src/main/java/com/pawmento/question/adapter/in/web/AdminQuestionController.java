@@ -1,12 +1,16 @@
 package com.pawmento.question.adapter.in.web;
 
 import com.pawmento.global.security.LoginMember;
+import com.pawmento.question.application.port.in.CreateAdminQuestionCommand;
+import com.pawmento.question.application.port.in.CreateAdminQuestionUseCase;
 import com.pawmento.question.application.port.in.GetAdminQuestionQuery;
 import com.pawmento.question.application.port.in.GetAdminQuestionUseCase;
 import com.pawmento.question.application.port.in.ListAdminQuestionsUseCase;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import tools.jackson.databind.JsonNode;
 
 @RestController
 @RequestMapping("/admin/questions")
@@ -14,6 +18,15 @@ import org.springframework.web.bind.annotation.*;
 public class AdminQuestionController {
   private final ListAdminQuestionsUseCase list;
   private final GetAdminQuestionUseCase get;
+  private final CreateAdminQuestionUseCase create;
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  AdminQuestionResponse create(@LoginMember Long member, @RequestBody JsonNode body) {
+    var request = CreateAdminQuestionRequest.parse(body);
+    return AdminQuestionResponse.from(
+        create.create(new CreateAdminQuestionCommand(member, request.mode(), request.content())));
+  }
 
   @GetMapping
   AdminQuestionResponse.Page list(@LoginMember Long member, HttpServletRequest request) {
