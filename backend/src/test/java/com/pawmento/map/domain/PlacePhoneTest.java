@@ -64,4 +64,34 @@ class PlacePhoneTest {
 		assertThat(PlacePhone.normalize("031123456", null)).isNull();
 	}
 
+	@Test
+	@DisplayName("#172-S6 내선·설명에 붙은 숫자를 본 번호에 합쳐 다른 번호를 만들지 않는다. 확신할 수 없으면 없음이다")
+	void doesNotMergeExtensionDigits() {
+		// 합치면 0273390061 → 02-7339-0061, 03112345678 → 031-1234-5678처럼 우연히 길이가 맞는 다른 번호가 된다
+		assertThat(PlacePhone.normalize("02-733-9006 (내선 1)", null)).isNull();
+		assertThat(PlacePhone.normalize("031-123-4567 내선 8", null)).isNull();
+		assertThat(PlacePhone.normalize("02-733-9006 (1)", null)).isNull();
+		assertThat(PlacePhone.normalize("02-733-9006,1", null)).isNull();
+		assertThat(PlacePhone.normalize("02-733-9006 / 1", null)).isNull();
+		assertThat(PlacePhone.normalize("02-733-9006~7", null)).isNull();
+		// 번호가 둘 붙어 있는 값
+		assertThat(PlacePhone.normalize("02-733-9006 031-123-4567", null)).isNull();
+		assertThat(PlacePhone.normalize("02-733-9006/031-123-4567", null)).isNull();
+		// 번호 구조를 알 수 없는 구분
+		assertThat(PlacePhone.normalize("02-73-39-006", null)).isNull();
+		assertThat(PlacePhone.normalize("02.733.9006", null)).isNull();
+		assertThat(PlacePhone.normalize("tel 02-733-9006", null)).isNull();
+	}
+
+	@Test
+	@DisplayName("#172-S6 단순한 공백·하이픈·지역번호 괄호는 그대로 정리한다")
+	void keepsSimpleFormatting() {
+		assertThat(PlacePhone.normalize("02-733-9006", null)).isEqualTo("02-733-9006");
+		assertThat(PlacePhone.normalize("02 733 9006", null)).isEqualTo("02-733-9006");
+		assertThat(PlacePhone.normalize("(02)733-9006", null)).isEqualTo("02-733-9006");
+		assertThat(PlacePhone.normalize("(031) 123-4567", null)).isEqualTo("031-123-4567");
+		assertThat(PlacePhone.normalize("3672-8441", "서울특별시 종로구")).isEqualTo("02-3672-8441");
+		assertThat(PlacePhone.normalize("3672-8441", "경기도 성남시")).isNull();
+	}
+
 }

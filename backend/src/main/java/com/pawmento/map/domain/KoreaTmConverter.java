@@ -25,7 +25,7 @@ public final class KoreaTmConverter {
 	private static final double FALSE_EASTING = 200_000;
 	private static final double FALSE_NORTHING = 500_000;
 
-	// 도쿄 → WGS84 (EPSG:5174가 쓰는 값). 이동(m), 회전(초), 축척(ppm). 회전은 좌표계 회전 규약이다
+	// 도쿄 → WGS84 (EPSG:5174가 쓰는 값). 이동(m), 회전(초), 축척(ppm). 회전은 position-vector 규약이다(coordinate-frame 규약과 회전 부호가 반대다)
 	private static final double TX = -115.80;
 	private static final double TY = 474.99;
 	private static final double TZ = 674.11;
