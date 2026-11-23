@@ -25,24 +25,6 @@
   bottom: calc(var(--card-height, 300px) + 28px);
   height: max(48px, calc(100% - 76px - var(--card-height, 300px) - 28px));
 }
-.park {
-  position: absolute;
-  left: -8%;
-  top: 8%;
-  width: 62%;
-  height: 50%;
-  border-radius: 46% 54% 52% 48%;
-  background: var(--map-park);
-}
-.river {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  bottom: -8%;
-  height: 24%;
-  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
-  background: var(--map-water);
-}
 .casing {
   fill: none;
   stroke: var(--color-white);

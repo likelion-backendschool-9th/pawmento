@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "postcards")
@@ -45,6 +46,12 @@ public class PostcardJpaEntity {
   @Column(length = 64)
   private String sourcePhotoKey;
 
+  // #157 때 만든 행에는 이 열이 없다. ddl-auto update는 행이 있는 테이블에 기본값 없는 NOT NULL 열을
+  // 더하지 못하므로, 기존 행을 채울 기본값을 둔다. 그때는 가짜 생성기만 있었다.
+  @Column(nullable = false, length = 32)
+  @ColumnDefault("'fake'")
+  private String generator;
+
   @Column(nullable = false, length = 120)
   private String title;
 
@@ -60,6 +67,9 @@ public class PostcardJpaEntity {
 
   @Column(length = 64)
   private String imageKey;
+
+  @Column(length = 32)
+  private String imageContentType;
 
   @Column(nullable = false)
   private LocalDate requestedOn;
@@ -83,11 +93,13 @@ public class PostcardJpaEntity {
     row.sourcePetSpecies = p.getSourcePetSpecies();
     row.sourcePetBreed = p.getSourcePetBreed();
     row.sourcePhotoKey = p.getSourcePhotoKey();
+    row.generator = p.getGenerator();
     row.title = p.getTitle();
     row.text = p.getText();
     row.status = p.getStatus();
     row.errorMessage = p.getErrorMessage();
     row.imageKey = p.getImageKey();
+    row.imageContentType = p.getImageContentType();
     row.requestedOn = p.getRequestedOn();
     row.createdAt = p.getCreatedAt();
     row.processingStartedAt = p.getProcessingStartedAt();
@@ -107,11 +119,13 @@ public class PostcardJpaEntity {
         sourcePetSpecies,
         sourcePetBreed,
         sourcePhotoKey,
+        generator,
         title,
         text,
         status,
         errorMessage,
         imageKey,
+        imageContentType,
         requestedOn,
         createdAt,
         processingStartedAt,

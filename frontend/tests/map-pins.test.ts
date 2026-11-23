@@ -21,6 +21,15 @@ import { isDemoAccount } from "../src/auth/domain/account.ts";
 import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
+import {
+  GUARANTEED_SIZES,
+  LABELS,
+  LABEL_FONT,
+  PARK,
+  RIVER,
+  parkTrees,
+  visibleWindow,
+} from "../src/map/adapters/inbound/staticMapShapes.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
 import {
   isOpenableDiary,
@@ -285,4 +294,35 @@ test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 �
   assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
   assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
   assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
+});
+
+test("#19-S11 예시 지도의 나무는 항상 같은 배치로 공원 안에만 놓이고 서로 겹치지 않는다", () => {
+  const trees = parkTrees();
+  assert.deepEqual(trees, parkTrees(), "같은 값에서 늘 같은 배치");
+  assert.ok(trees.length >= 30, String(trees.length));
+  for (const tree of trees) {
+    assert.ok(((tree.x - PARK.cx) / PARK.rx) ** 2 + ((tree.y - PARK.cy) / PARK.ry) ** 2 <= 1, JSON.stringify(tree));
+    assert.ok(tree.r > 0 && tree.r < 2);
+  }
+  for (let i = 0; i < trees.length; i += 1)
+    for (let j = i + 1; j < trees.length; j += 1)
+      assert.ok(Math.hypot(trees[i].x - trees[j].x, trees[i].y - trees[j].y) >= 2.6, `${i}-${j}`);
+});
+
+test("#19-S11 예시 지도의 강과 지명은 데스크톱·넓은 화면·휴대폰 크기에서 보이는 범위 안에 있다", () => {
+  const wide = visibleWindow(1188, 488);
+  assert.ok(Math.abs(wide.minY - 29.46) < 0.01 && Math.abs(wide.maxY - 70.54) < 0.01, JSON.stringify(wide));
+  const phone = visibleWindow(390, 700);
+  assert.ok(Math.abs(phone.minX - 22.14) < 0.01 && Math.abs(phone.maxX - 77.86) < 0.01, JSON.stringify(phone));
+  for (const [width, height] of GUARANTEED_SIZES) {
+    const view = visibleWindow(width, height);
+    assert.ok(RIVER.lowestY <= view.maxY, `${width}×${height}: 강의 가장 낮은 곳 ${RIVER.lowestY} > ${view.maxY}`);
+    for (const label of LABELS) {
+      const right = label.x + label.text.length * LABEL_FONT;
+      const top = label.y - LABEL_FONT;
+      assert.ok(label.x >= view.minX && right <= view.maxX, `${width}×${height}: ${label.text} x=${label.x}~${right}`);
+      assert.ok(top >= view.minY && label.y <= view.maxY, `${width}×${height}: ${label.text} y=${top}~${label.y}`);
+    }
+  }
+  assert.ok(LABELS.some((label) => label.water), "강 이름이 있다");
 });

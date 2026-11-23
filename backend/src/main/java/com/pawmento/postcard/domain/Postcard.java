@@ -16,6 +16,9 @@ public class Postcard {
   public static final int MAX_CONTENT = 3000;
   public static final int MAX_NOTE = 200;
   public static final int TEXT_LENGTH = 200;
+  public static final String FAILURE_MESSAGE = "엽서를 만들지 못했어요. 다시 요청해 주세요.";
+  // 외부 호출 제한(60초)보다 충분히 길게 두어 진행 중인 호출을 만료시키지 않는다.
+  public static final java.time.Duration PROCESSING_EXPIRY = java.time.Duration.ofMinutes(10);
 
   private final Long id;
   private final Long petId;
@@ -27,11 +30,13 @@ public class Postcard {
   private final String sourcePetSpecies;
   private final String sourcePetBreed;
   private final String sourcePhotoKey;
+  private final String generator;
   private final String title;
   private final String text;
   private final PostcardStatus status;
   private final String errorMessage;
   private final String imageKey;
+  private final String imageContentType;
   private final LocalDate requestedOn;
   private final Instant createdAt;
   private final Instant processingStartedAt;
@@ -48,11 +53,13 @@ public class Postcard {
       String sourcePetSpecies,
       String sourcePetBreed,
       String sourcePhotoKey,
+      String generator,
       String title,
       String text,
       PostcardStatus status,
       String errorMessage,
       String imageKey,
+      String imageContentType,
       LocalDate requestedOn,
       Instant createdAt,
       Instant processingStartedAt,
@@ -63,6 +70,7 @@ public class Postcard {
         || sourceId == null
         || sourceContent == null
         || sourcePetSpecies == null
+        || generator == null
         || title == null
         || text == null
         || status == null
@@ -72,7 +80,8 @@ public class Postcard {
       throw new InvalidPostcardException("일기 글이 너무 길어요.");
     if (sourceNote != null && sourceNote.length() > MAX_NOTE)
       throw new InvalidPostcardException("설명은 200자까지 쓸 수 있어요.");
-    if ((status == PostcardStatus.COMPLETED) != (imageKey != null && completedAt != null))
+    if ((status == PostcardStatus.COMPLETED)
+        != (imageKey != null && imageContentType != null && completedAt != null))
       throw new InvalidPostcardException("완성된 엽서에만 이미지가 있어요.");
     if ((status == PostcardStatus.FAILED) != (errorMessage != null))
       throw new InvalidPostcardException("실패한 엽서에만 실패 안내가 있어요.");
@@ -86,11 +95,13 @@ public class Postcard {
     this.sourcePetSpecies = sourcePetSpecies;
     this.sourcePetBreed = sourcePetBreed;
     this.sourcePhotoKey = sourcePhotoKey;
+    this.generator = generator;
     this.title = title;
     this.text = text;
     this.status = status;
     this.errorMessage = errorMessage;
     this.imageKey = imageKey;
+    this.imageContentType = imageContentType;
     this.requestedOn = requestedOn;
     this.createdAt = createdAt;
     this.processingStartedAt = processingStartedAt;
@@ -112,6 +123,7 @@ public class Postcard {
       boolean garden,
       boolean hasPhoto,
       boolean consent,
+      String generator,
       Instant now) {
     // 글과 사진을 외부 AI 서비스로 보내므로 웹이 아닌 경로도 동의 없이는 만들지 않는다.
     if (!consent) throw new PostcardConsentRequiredException();
@@ -132,9 +144,11 @@ public class Postcard {
         petSpecies,
         petBreed,
         null,
+        generator,
         title(petName),
         text,
         PostcardStatus.PROCESSING,
+        null,
         null,
         null,
         LocalDate.ofInstant(now, ZONE),
@@ -154,11 +168,13 @@ public class Postcard {
       String sourcePetSpecies,
       String sourcePetBreed,
       String sourcePhotoKey,
+      String generator,
       String title,
       String text,
       PostcardStatus status,
       String errorMessage,
       String imageKey,
+      String imageContentType,
       LocalDate requestedOn,
       Instant createdAt,
       Instant processingStartedAt,
@@ -175,15 +191,22 @@ public class Postcard {
         sourcePetSpecies,
         sourcePetBreed,
         sourcePhotoKey,
+        generator,
         title,
         text,
         status,
         errorMessage,
         imageKey,
+        imageContentType,
         requestedOn,
         createdAt,
         processingStartedAt,
         completedAt);
+  }
+
+  // 동의는 요청 때의 생성기(외부 서비스)에 받았으므로, 다른 생성기로는 보내지 않는다.
+  public boolean generatedBy(String generator) {
+    return this.generator.equals(generator);
   }
 
   public boolean belongsTo(Long petId) {

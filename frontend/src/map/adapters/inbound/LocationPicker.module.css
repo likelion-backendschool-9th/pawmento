@@ -159,10 +159,7 @@
 .staticMap {
   overflow: hidden;
   cursor: grab;
-  background:
-    linear-gradient(0deg, #ffffff40 1px, transparent 1px) 0 0 / 100% 64px,
-    linear-gradient(90deg, #ffffff40 1px, transparent 1px) 0 0 / 64px 100%,
-    var(--map-land);
+  background: var(--map-land);
 }
 .staticMap:active {
   cursor: grabbing;
@@ -170,35 +167,6 @@
 .layer {
   position: absolute;
   inset: -50%;
-}
-.park {
-  position: absolute;
-  left: 8%;
-  top: 6%;
-  width: 52%;
-  height: 46%;
-  border-radius: 46% 54% 52% 48%;
-  background: var(--map-park);
-}
-.river {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 4%;
-  height: 28%;
-  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
-  background: var(--map-water);
-}
-.avenue {
-  position: absolute;
-  left: 34%;
-  top: 50%;
-  width: 70%;
-  height: 12px;
-  border-radius: 6px;
-  background: var(--map-road);
-  transform: rotate(24deg);
-  transform-origin: left center;
 }
 .hint {
   position: absolute;

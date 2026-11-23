@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import type { WalkRecord } from "@/map/domain/WalkRecord";
 import { fitRoutes, routeMarks } from "@/map/domain/WalkRoutes";
 import type { WalkRoutesCanvasProps } from "./walkRoutesCanvas";
+import { StaticMapBackdrop } from "./StaticMapBackdrop";
 import styles from "./WalkHistory.module.css";
 
 // 지도 키가 없을 때 쓰는 예시 지도. 그날의 산책을 한 화면에 맞춰 그린다.
@@ -10,8 +11,7 @@ export function StaticWalkRoutesCanvas({ walks, selectedId, onSelect }: WalkRout
   const routes = useMemo(() => fitRoutes(walks as WalkRecord[]), [walks]);
   return (
     <div className={styles.canvas + " " + styles.staticMap} onClick={() => onSelect(null)} role="group" aria-label="예시 지도">
-      <span className={styles.park} aria-hidden="true" />
-      <span className={styles.river} aria-hidden="true" />
+      <StaticMapBackdrop />
       <svg className={styles.routes} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
         {routes.map((route) => {
           const marks = routeMarks(route.status);
