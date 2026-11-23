@@ -1,8 +1,12 @@
 package com.pawmento.postcard.application.port.out;
 
 import com.pawmento.postcard.domain.Postcard;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface LoadPostcardPort {
   Optional<Postcard> findById(Long postcardId);
+
+  List<Postcard> findAllById(Collection<Long> postcardIds);
 }

@@ -4,10 +4,21 @@ import com.pawmento.postcard.domain.PostcardStatus;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.domain.Limit;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 interface PostcardJpaRepository extends JpaRepository<PostcardJpaEntity, Long> {
   boolean existsByPetId(Long petId);
+
+  List<PostcardJpaEntity> findByPetIdOrderByIdDesc(Long petId, Limit limit);
+
+  List<PostcardJpaEntity> findByPetIdAndIdLessThanOrderByIdDesc(Long petId, Long id, Limit limit);
+
+  @Transactional
+  @Modifying
+  @Query("delete from PostcardJpaEntity p where p.id = :id")
+  int deleteRow(@Param("id") Long id);
 
   @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query("update PostcardJpaEntity p set p.sourcePhotoKey = :key where p.id = :id")

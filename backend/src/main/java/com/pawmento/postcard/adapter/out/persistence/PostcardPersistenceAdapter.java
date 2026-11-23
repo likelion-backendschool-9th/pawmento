@@ -6,18 +6,25 @@ import com.pawmento.postcard.domain.Postcard;
 import com.pawmento.postcard.domain.PostcardStatus;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Limit;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class PostcardPersistenceAdapter
-    implements SavePostcardPort, LoadPostcardPort, ExistsPostcardsPort, PostcardWorkPort {
+    implements SavePostcardPort,
+        LoadPostcardPort,
+        LoadPostcardsPort,
+        DeletePostcardPort,
+        ExistsPostcardsPort,
+        PostcardWorkPort {
   static final String PET_FK = "fk_postcard_pet";
 
   private final PostcardJpaRepository postcards;
@@ -49,6 +56,25 @@ public class PostcardPersistenceAdapter
   @Override
   public boolean existsByPetId(Long petId) {
     return postcards.existsByPetId(petId);
+  }
+
+  @Override
+  public List<Postcard> findAllById(Collection<Long> postcardIds) {
+    return postcards.findAllById(postcardIds).stream().map(PostcardJpaEntity::toDomain).toList();
+  }
+
+  @Override
+  public List<Postcard> findByPet(Long petId, Long cursor, int limit) {
+    var rows =
+        cursor == null
+            ? postcards.findByPetIdOrderByIdDesc(petId, Limit.of(limit))
+            : postcards.findByPetIdAndIdLessThanOrderByIdDesc(petId, cursor, Limit.of(limit));
+    return rows.stream().map(PostcardJpaEntity::toDomain).toList();
+  }
+
+  @Override
+  public boolean deleteById(Long postcardId) {
+    return postcards.deleteRow(postcardId) == 1;
   }
 
   // SKIP LOCKED로 서버가 늘어도 같은 엽서를 두 번 선점하지 않는다.
