@@ -6,6 +6,8 @@ import java.time.ZoneId;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.exception.MemberNotFoundException;
@@ -34,6 +36,7 @@ public class ChangeMemberNicknameService implements ChangeMemberNicknameUseCase 
 	// 한 번의 시도(회원 잠금 조회 → 같은 닉네임·한도 확인 → 태그 발급 → 저장)를 새 트랜잭션으로 실행하고,
 	// 지면 그 시도만 롤백한 뒤 회원을 다시 읽어 처음부터 한다 (#137-S7, S11)
 	@Override
+	@Transactional(propagation = Propagation.NEVER)
 	public MemberResult changeNickname(ChangeMemberNicknameCommand command) {
 		for (int attempt = 1; ; attempt++) {
 			try {
@@ -55,6 +58,8 @@ public class ChangeMemberNicknameService implements ChangeMemberNicknameUseCase 
 			// 같은 닉네임이면 태그도 한도도 그대로라 저장할 것이 없다 (#137-S5)
 			return MemberResult.from(member);
 		}
+		Instant now = Instant.now(clock);
+		member.requireNicknameChangeAllowed(now, SEOUL);
 		String newTag = tagGenerator.next(nickname, member.getTag());
 		member.changeNickname(nickname, newTag, Instant.now(clock), SEOUL);
 		return MemberResult.from(saveMemberPort.save(member));

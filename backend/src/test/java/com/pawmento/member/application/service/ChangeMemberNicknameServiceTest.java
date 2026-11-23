@@ -56,14 +56,15 @@ class ChangeMemberNicknameServiceTest {
 	}
 
 	@Test
-	@DisplayName("#52-S4 도메인의 월 한도 예외를 바꾸지 않고 그대로 올린다")
-	void limitPropagates() {
+	@DisplayName("#52-S4 #137 한 달 한도를 쓴 회원은 태그를 뽑기 전에 한도 예외를 그대로 받는다")
+	void limitPropagatesBeforeTag() {
 		Member member = member();
 		member.changeNickname("첫번째", "0581", NOW, SEOUL);
 		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member));
-		when(tags.next("두번째", "0581")).thenReturn("0700");
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "두번째")))
 				.isInstanceOf(MemberNicknameLimitException.class);
+		verify(tags, never()).next(any(), any());
+		verify(save, never()).save(any());
 	}
 
 	@Test

@@ -176,7 +176,8 @@ class AccountTagScenarioTest {
 			assertThat(List.of(one.nickname(), two.nickname())).containsOnly(nickname);
 		}
 
-		// 진 쪽의 첫 시도는 롤백됐으므로 두 회원 모두 한도를 한 번만 썼다
+		// 진 쪽의 첫 시도가 롤백되어 재시도가 한도에 걸리지 않고 성공했다(위의 0581). 아래는 두 회원 모두 이번 달 변경이
+		// 기록되어, 같은 달에 다시 바꾸면 거절되는지 확인한다
 		assertThat(loadMemberPort.loadById(b.getId()).orElseThrow().getNicknameChangedAt()).isNotNull();
 		assertThat(loadMemberPort.loadById(c.getId()).orElseThrow().getNicknameChangedAt()).isNotNull();
 		assertThatThrownBy(() -> change(b, uniqueNickname("다시"))).isInstanceOf(MemberNicknameLimitException.class);

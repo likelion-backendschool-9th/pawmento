@@ -5,6 +5,8 @@ import java.time.Instant;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.exception.DuplicateMemberTagException;
@@ -33,8 +35,12 @@ public class SignUpMemberService implements SignUpMemberUseCase {
 	// 태그 충돌은 실패한 트랜잭션 안에서 다시 시도할 수 없어, 메서드에는 트랜잭션을 걸지 않는다.
 	// 한 번의 시도를 새 트랜잭션으로 실행하고, 지면 그 시도만 롤백한 뒤 처음부터 다시 한다 (#137-S10)
 	@Override
+	@Transactional(propagation = Propagation.NEVER)
 	public MemberResult signUp(SignUpMemberCommand command) {
 		String nickname = Member.requireNickname(command.nickname());
+		if (existsMemberPort.existsByEmail(Member.normalizeEmail(command.email()))) {
+			throw new DuplicateEmailException();
+		}
 		// BCrypt는 느려서 한 번만 하고, DB 연결을 잡기 전에 끝낸다
 		String passwordHash = passwordHasher.hash(command.rawPassword());
 		for (int attempt = 1; ; attempt++) {

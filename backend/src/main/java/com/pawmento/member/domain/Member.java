@@ -72,11 +72,7 @@ public class Member {
 		return passwordHash != null;
 	}
 
-	public void changeNickname(String nickname, String newTag, Instant now, java.time.ZoneId zone) {
-		String trimmed = requireNickname(nickname);
-		if (trimmed.equals(this.nickname)) {
-			return;
-		}
+	public void requireNicknameChangeAllowed(Instant now, java.time.ZoneId zone) {
 		if (nicknameChangedAt != null) {
 			java.time.YearMonth last = java.time.YearMonth.from(nicknameChangedAt.atZone(zone));
 			java.time.YearMonth current = java.time.YearMonth.from(now.atZone(zone));
@@ -84,6 +80,14 @@ public class Member {
 				throw new MemberNicknameLimitException();
 			}
 		}
+	}
+
+	public void changeNickname(String nickname, String newTag, Instant now, java.time.ZoneId zone) {
+		String trimmed = requireNickname(nickname);
+		if (trimmed.equals(this.nickname)) {
+			return;
+		}
+		requireNicknameChangeAllowed(now, zone);
 		this.nickname = trimmed;
 		this.tag = requireTag(newTag);
 		this.nicknameChangedAt = now;
