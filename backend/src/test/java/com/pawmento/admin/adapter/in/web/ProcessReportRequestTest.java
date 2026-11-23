@@ -9,6 +9,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import com.pawmento.admin.adapter.in.web.exception.InvalidReportIdException;
 import com.pawmento.admin.adapter.in.web.exception.InvalidReportProcessingRequestException;
 import com.pawmento.admin.application.port.in.ProcessReportCommand;
 import com.pawmento.admin.application.port.in.ProcessReportCommand.Resolution;
@@ -68,7 +69,7 @@ class ProcessReportRequestTest {
 		var request = read("{\"resolution\":\"RESOLVED\",\"version\":0}");
 
 		assertThatThrownBy(() -> request.toCommand(0))
-				.isInstanceOf(InvalidReportProcessingRequestException.class)
+				.isInstanceOf(InvalidReportIdException.class)
 				.hasMessageContaining("신고 ID");
 	}
 

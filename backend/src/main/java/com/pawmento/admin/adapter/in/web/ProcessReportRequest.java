@@ -1,5 +1,6 @@
 package com.pawmento.admin.adapter.in.web;
 
+import com.pawmento.admin.adapter.in.web.exception.InvalidReportIdException;
 import com.pawmento.admin.adapter.in.web.exception.InvalidReportProcessingRequestException;
 import com.pawmento.admin.application.port.in.ProcessReportCommand;
 import com.pawmento.admin.application.port.in.ProcessReportCommand.Resolution;
@@ -9,7 +10,7 @@ import tools.jackson.databind.JsonNode;
 record ProcessReportRequest(String resolution, JsonNode version, String memo) {
 	ProcessReportCommand toCommand(long reportId) {
 		if (reportId <= 0) {
-			throw new InvalidReportProcessingRequestException("유효한 신고 ID를 입력해 주세요.");
+			throw new InvalidReportIdException();
 		}
 		return new ProcessReportCommand(reportId, parseResolution(), parseVersion(), memo);
 	}
