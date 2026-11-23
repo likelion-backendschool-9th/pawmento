@@ -1,5 +1,8 @@
 package com.pawmento.postcard.adapter.out.persistence;
 
+import com.pawmento.postcard.domain.PostcardStatus;
+import java.time.Instant;
+import java.util.List;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
@@ -9,4 +12,33 @@ interface PostcardJpaRepository extends JpaRepository<PostcardJpaEntity, Long> {
   @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query("update PostcardJpaEntity p set p.sourcePhotoKey = :key where p.id = :id")
   int attachSourcePhoto(@Param("id") Long id, @Param("key") String key);
+
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
+  @Query(
+      "update PostcardJpaEntity p set p.status = :completed, p.imageKey = :key,"
+          + " p.imageContentType = :type, p.completedAt = :now"
+          + " where p.id = :id and p.status = :processing")
+  int complete(
+      @Param("id") Long id,
+      @Param("key") String key,
+      @Param("type") String contentType,
+      @Param("now") Instant now,
+      @Param("completed") PostcardStatus completed,
+      @Param("processing") PostcardStatus processing);
+
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
+  @Query(
+      "update PostcardJpaEntity p set p.status = :failed, p.errorMessage = :message"
+          + " where p.id = :id and p.status = :processing")
+  int fail(
+      @Param("id") Long id,
+      @Param("message") String message,
+      @Param("failed") PostcardStatus failed,
+      @Param("processing") PostcardStatus processing);
+
+  @Query(
+      "select p.id from PostcardJpaEntity p where p.status = :processing"
+          + " and p.processingStartedAt < :cutoff order by p.id")
+  List<Long> startedBefore(
+      @Param("cutoff") Instant cutoff, @Param("processing") PostcardStatus processing);
 }

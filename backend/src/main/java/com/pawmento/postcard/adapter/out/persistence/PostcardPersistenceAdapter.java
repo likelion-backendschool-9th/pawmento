@@ -1,23 +1,27 @@
 package com.pawmento.postcard.adapter.out.persistence;
 
 import com.pawmento.postcard.application.exception.PostcardPetNotFoundException;
-import com.pawmento.postcard.application.port.out.ExistsPostcardsPort;
-import com.pawmento.postcard.application.port.out.LoadPostcardPort;
-import com.pawmento.postcard.application.port.out.SavePostcardPort;
+import com.pawmento.postcard.application.port.out.*;
 import com.pawmento.postcard.domain.Postcard;
+import com.pawmento.postcard.domain.PostcardStatus;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class PostcardPersistenceAdapter
-    implements SavePostcardPort, LoadPostcardPort, ExistsPostcardsPort {
+    implements SavePostcardPort, LoadPostcardPort, ExistsPostcardsPort, PostcardWorkPort {
   static final String PET_FK = "fk_postcard_pet";
 
   private final PostcardJpaRepository postcards;
+  private final JdbcTemplate jdbc;
 
   @Override
   public Long save(Postcard postcard) {
@@ -45,6 +49,43 @@ public class PostcardPersistenceAdapter
   @Override
   public boolean existsByPetId(Long petId) {
     return postcards.existsByPetId(petId);
+  }
+
+  // SKIP LOCKED로 서버가 늘어도 같은 엽서를 두 번 선점하지 않는다.
+  @Override
+  public Optional<Postcard> claimNext(Instant now) {
+    var ids =
+        jdbc.queryForList(
+            "UPDATE postcards SET processing_started_at = ? WHERE id = ("
+                + " SELECT id FROM postcards WHERE status = 'PROCESSING'"
+                + " AND processing_started_at IS NULL ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED)"
+                + " AND processing_started_at IS NULL RETURNING id",
+            Long.class,
+            Timestamp.from(now));
+    return ids.stream().findFirst().flatMap(this::findById);
+  }
+
+  @Override
+  public boolean complete(Long postcardId, String imageKey, String contentType, Instant now) {
+    return postcards.complete(
+            postcardId,
+            imageKey,
+            contentType,
+            now,
+            PostcardStatus.COMPLETED,
+            PostcardStatus.PROCESSING)
+        == 1;
+  }
+
+  @Override
+  public boolean fail(Long postcardId, String message) {
+    return postcards.fail(postcardId, message, PostcardStatus.FAILED, PostcardStatus.PROCESSING)
+        == 1;
+  }
+
+  @Override
+  public List<Long> startedBefore(Instant cutoff) {
+    return postcards.startedBefore(cutoff, PostcardStatus.PROCESSING);
   }
 
   static boolean violates(Throwable failure, String constraint) {
