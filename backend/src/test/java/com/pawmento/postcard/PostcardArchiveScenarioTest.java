@@ -10,6 +10,8 @@ import com.pawmento.postcard.application.port.in.RequestPostcardCommand;
 import com.pawmento.postcard.domain.PostcardPolicy;
 import java.nio.charset.StandardCharsets;
 import com.pawmento.postcard.application.port.in.CleanupPostcardFilesUseCase;
+import com.pawmento.postcard.application.port.in.DeletePostcardCommand;
+import com.pawmento.postcard.application.port.in.DeletePostcardUseCase;
 import java.nio.file.*;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
@@ -17,9 +19,14 @@ import java.util.*;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 class PostcardArchiveScenarioTest extends PostcardScenarioSupport {
   @Autowired CleanupPostcardFilesUseCase cleanup;
+  @Autowired DeletePostcardUseCase deletion;
+  @Autowired PlatformTransactionManager transactions;
 
   Path file(String relative, Duration age) throws Exception {
     Path path = ROOT.resolve(relative);
@@ -149,5 +156,37 @@ class PostcardArchiveScenarioTest extends PostcardScenarioSupport {
                 .content(diarySource(1))))
       mvc.perform(req).andExpect(status().isUnauthorized());
     assertThat(stateOf(id)).isEqualTo("COMPLETED");
+  }
+
+  @Test
+  @DisplayName("#103-S8 트랜잭션 안에서 엽서를 지우려 하면 거절하고, 엽서와 이미지·복사 사진 파일이 그대로 남는다")
+  void deleteRejectsOuterTransaction() throws Exception {
+    long a = member(), pet = pet(a, "GARDEN");
+    long done = postcard(a, pet, diarySource(diary(a, pet, "공원")));
+    worker.processNext();
+    long waiting = postcard(a, pet, diarySource(diary(a, pet, "", asset(a, pet, false))));
+    Path image = ROOT.resolve("images/" + done + ".png");
+    Path photo = ROOT.resolve("sources/" + waiting + ".jpg");
+    assertThat(stateOf(done)).isEqualTo("COMPLETED");
+    assertThat(image).exists();
+    assertThat(photo).exists();
+
+    var tx = new TransactionTemplate(transactions);
+    for (long id : List.of(done, waiting))
+      assertThatThrownBy(
+              () ->
+                  tx.executeWithoutResult(
+                      status -> deletion.delete(new DeletePostcardCommand(a, pet, id))))
+          .isInstanceOf(IllegalTransactionStateException.class);
+
+    assertThat(stateOf(done)).isEqualTo("COMPLETED");
+    assertThat(stateOf(waiting)).isEqualTo("PROCESSING");
+    assertThat(image).exists();
+    assertThat(photo).exists();
+
+    // 트랜잭션 밖에서는 행을 커밋한 뒤 파일을 지운다.
+    deletion.delete(new DeletePostcardCommand(a, pet, waiting));
+    assertThat(rows(pet)).isOne();
+    assertThat(photo).doesNotExist();
   }
 }
