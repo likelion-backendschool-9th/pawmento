@@ -3,6 +3,8 @@ package com.pawmento.pet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -58,10 +60,12 @@ import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.media.adapter.out.persistence.MediaValidationJobJpaRepository;
+import com.pawmento.media.application.exception.MediaPersistenceUnavailableException;
 import com.pawmento.media.application.port.in.ProcessMediaWorkUseCase;
 import com.pawmento.media.application.service.MediaCleanupTransactions;
 import com.pawmento.media.domain.MediaAsset;
 import com.pawmento.pet.application.port.out.LockPetPort;
+import com.pawmento.pet.application.port.out.PetProfilePhotoMediaPort;
 
 import jakarta.servlet.http.Cookie;
 
@@ -90,6 +94,7 @@ class PetProfilePhotoScenarioTest {
 	@Autowired MediaValidationJobJpaRepository jobs;
 	@Autowired TransactionTemplate transactions;
 	@MockitoSpyBean LockPetPort petLocks;
+	@MockitoSpyBean PetProfilePhotoMediaPort photoMedia;
 	@LocalServerPort int port;
 
 	@Test
@@ -356,6 +361,50 @@ class PetProfilePhotoScenarioTest {
 		assertAsset(current, "DELETING", 0, true);
 		assertAsset(first, "READY", 1, false);
 		assertAsset(second, "READY", 0, false);
+	}
+
+	@Test
+	@DisplayName("#130-S7 사진 교체 중 참조 변경 직후의 장애는 기존 사진과 삭제 작업을 복구한다")
+	void replacementRollsBackAfterUpdatingReferences() throws Exception {
+		Owner owner = owner();
+		long current = png(owner);
+		long replacement = png(owner);
+		attach(owner, current).andExpect(status().isOk());
+
+		failAfterChangingReferences(owner, current, List.of(replacement));
+		attach(owner, replacement).andExpect(status().isServiceUnavailable());
+
+		assertPhotoSurvivedRollback(owner, current);
+		assertAsset(replacement, "READY", 0, false);
+	}
+
+	@Test
+	@DisplayName("#130-S7 반려동물 삭제 중 사진 참조 해제 직후의 장애는 반려동물과 사진을 복구한다")
+	void petDeletionRollsBackAfterReleasingPhoto() throws Exception {
+		Owner owner = owner();
+		long current = png(owner);
+		attach(owner, current).andExpect(status().isOk());
+
+		failAfterChangingReferences(owner, current, List.of());
+		mvc.perform(delete(owner.petPath()).cookie(owner.cookie())).andExpect(status().isServiceUnavailable());
+
+		assertPhotoSurvivedRollback(owner, current);
+	}
+
+	private void failAfterChangingReferences(Owner owner, long current, List<Long> requested) {
+		doAnswer(invocation -> {
+			invocation.callRealMethod();
+			assertAsset(current, "DELETING", 0, true);
+			throw new MediaPersistenceUnavailableException();
+		}).when(photoMedia).changeReferences(anyLong(), eq(owner.petId()), eq(List.of(current)), eq(requested));
+	}
+
+	private void assertPhotoSurvivedRollback(Owner owner, long asset) throws Exception {
+		mvc.perform(get(owner.petPath()).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.profilePhoto.assetId").value(asset));
+		assertAsset(asset, "READY", 1, false);
+		mvc.perform(get(owner.photoPath() + "/" + asset + "/content").cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(content().contentType("image/png"));
 	}
 
 	@Test

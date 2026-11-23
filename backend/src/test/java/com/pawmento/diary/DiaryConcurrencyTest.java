@@ -107,7 +107,7 @@ class DiaryConcurrencyTest {
   }
 
   @Test
-  @DisplayName("#32-S22 첫 일기 INSERT가 먼저면 기록 없음 사전 조회 후의 pet DELETE도 409다")
+  @DisplayName("#32-S22 첫 일기 INSERT가 먼저면 pet 행 잠금을 기다린 삭제는 409다")
   void creationWins() throws Exception {
     long pet = pet();
     var inserted = new CountDownLatch(1);
@@ -126,7 +126,7 @@ class DiaryConcurrencyTest {
         var created = pool.submit(() -> createRequest(pet));
         waitFor(inserted);
         var deleted = pool.submit(() -> deletePetRequest(pet));
-        blockedOn("delete from pets");
+        blockedOn("select id from pets where id = % for update");
         commit.countDown();
         assertThat(created.get(10, TimeUnit.SECONDS)).isEqualTo(201);
         assertThat(deleted.get(10, TimeUnit.SECONDS)).isEqualTo(409);
