@@ -5,15 +5,20 @@ import com.pawmento.diary.application.port.out.*;
 import com.pawmento.diary.domain.DiaryEntry;
 import com.pawmento.diary.domain.DiaryListFilter;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -24,8 +29,10 @@ public class DiaryEntryPersistenceAdapter
         ExistsDiaryEntriesPort,
         LoadDiaryEntriesPort,
         CountDiaryEntriesPort,
-        LoadDiaryCalendarPort {
+        LoadDiaryCalendarPort,
+        DiaryAttachmentsPort {
   private final DiaryEntryJpaRepository rows;
+  private final DiaryAttachmentJpaRepository attachmentRows;
   @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
   public Optional<DiaryEntry> findForUpdate(Long id) {
@@ -117,6 +124,39 @@ public class DiaryEntryPersistenceAdapter
             rows.countDays(petId, from, before).stream()
                 .map(day -> new DiaryDayCount(day.getDate(), day.getTotal()))
                 .toList());
+  }
+
+  public Map<Long, List<Long>> findAll(List<Long> ids) {
+    if (ids.isEmpty()) return Map.of();
+    return read(
+        () -> {
+          Map<Long, List<Long>> result = new HashMap<>();
+          for (var row : attachmentRows.findForParents(ids))
+            result
+                .computeIfAbsent(row.getId().getDiaryId(), k -> new ArrayList<>())
+                .add(row.getId().getAssetId());
+          return result;
+        });
+  }
+
+  @Transactional
+  public void replace(Long id, List<Long> assets) {
+    read(
+        () -> {
+          // Remove managed links and flush before inserting reused composite IDs/order slots.
+          // Bulk delete would leave previously loaded link entities stale in this transaction.
+          attachmentRows.deleteById_DiaryId(id);
+          attachmentRows.flush();
+          attachmentRows.saveAllAndFlush(
+              IntStream.range(0, assets.size())
+                  .mapToObj(i -> DiaryAttachmentJpaEntity.from(id, assets.get(i), i))
+                  .toList());
+          return null;
+        });
+  }
+
+  public boolean existsByAssetId(Long id) {
+    return read(() -> attachmentRows.existsById_AssetId(id));
   }
 
   private static <T> T read(Supplier<T> query) {

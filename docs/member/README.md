@@ -10,6 +10,7 @@
 | [#40](https://github.com/likelion-backendschool-9th/pawmento/issues/40) | 소셜 로그인: 구글·카카오·네이버 | [social-login.md](social-login.md) |
 | [#109](https://github.com/likelion-backendschool-9th/pawmento/issues/109) | 소셜 계정 연결·해제와 저장 구조 분리 | [social-account-link.md](social-account-link.md) |
 | [#137](https://github.com/likelion-backendschool-9th/pawmento/issues/137) | 회원 계정 태그: 숫자 4자리, 닉네임 변경 시 새로 발급 | [account-tag.md](account-tag.md) |
+| [#155](https://github.com/likelion-backendschool-9th/pawmento/issues/155) | 회원 탈퇴: 30일 보관·복구·하드 삭제 | [withdrawal.md](withdrawal.md) |
 
 ## 도메인 담당이 쓰는 방법
 

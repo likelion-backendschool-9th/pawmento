@@ -69,6 +69,9 @@ export class HttpAuthRepository implements AuthRepository {
       await this.http.patch<MemberDto>("/members/me", { nickname }),
     );
   }
+  sessionSource(): "http" {
+    return "http";
+  }
 }
 
 function toAccount(dto: MemberDto): Account {

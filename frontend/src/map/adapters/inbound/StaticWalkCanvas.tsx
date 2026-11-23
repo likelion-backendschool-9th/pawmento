@@ -1,18 +1,19 @@
 "use client";
 import type { WalkCanvasProps } from "./walkCanvas";
-import { pathToView } from "./walkCanvas";
+import { fitPoints } from "@/map/domain/WalkRoutes";
 import styles from "./WalkScreen.module.css";
 
 // 지도 키가 없을 때 쓰는 예시 지도. 지금 위치를 가운데에 두고 지나온 길만 그린다.
-export function StaticWalkCanvas({ points, current }: WalkCanvasProps) {
-  const view = pathToView(points, current);
+export function StaticWalkCanvas({ points }: WalkCanvasProps) {
+  // 걸은 길 전체(출발점~지금 위치)가 한 화면에 보이도록 맞춘다
+  const view = fitPoints(points);
   const dots = view.slice(-1)[0];
   const line = view.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" ");
   return (
     <div className={styles.canvas + " " + styles.staticMap} role="img" aria-label="지나온 길을 그린 예시 지도">
       <span className={styles.park} aria-hidden="true" />
       <span className={styles.river} aria-hidden="true" />
-      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <svg className={styles.routes} viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
         {view.length > 1 && (
           <>
             <polyline points={line} className={styles.casing} />

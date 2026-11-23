@@ -1,5 +1,8 @@
 import type { Account, Credentials } from "../domain/account.ts";
 import { validateCredentials, validateNickname } from "../domain/account.ts";
+
+// 지금 세션이 어디서 왔는지. null은 아직 로그인하지 않았거나 확인 전이다
+export type SessionSource = "http" | "demo" | null;
 export interface AuthRepository {
   current(): Promise<Account | null>;
   signUp(input: Credentials & { nickname: string }): Promise<Account>;
@@ -10,6 +13,7 @@ export interface AuthRepository {
   resetPassword(input: Credentials): Promise<void>;
   withdraw(): Promise<void>;
   signInDemoProvider(provider: "google" | "kakao"): Promise<Account>;
+  sessionSource(): SessionSource;
 }
 export function createAuthUseCases(repository: AuthRepository) {
   return {
@@ -50,5 +54,6 @@ export function createAuthUseCases(repository: AuthRepository) {
       validateNickname(nickname);
       return repository.update(nickname.trim());
     },
+    sessionSource: () => repository.sessionSource(),
   };
 }

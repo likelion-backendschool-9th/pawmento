@@ -13,6 +13,8 @@
 
 ## 기존 데이터 이관
 
+이름 이관 초기화 설정은 diary의 `adapter/out/persistence`에 둔다. Hibernate가 새 이름의 테이블·컬럼을 먼저 만들면 구·신 이름이 공존하거나 기존 데이터 대신 빈 구조가 생길 수 있으므로, 이름 이관 빈을 `entityManagerFactory`의 선행 의존성으로 등록해 먼저 실행한다. (고침 #32: 도메인 설정 위치와 Hibernate 선행 이관 이유 명시)
+
 `db/diary-naming-migration.sql`을 Hibernate 초기화 전에 실행한다. 기존 `record_location`과 `diary_attachments.record_id`를 이름만 변경하며 행·키·제약을 유지한다. 새 DB와 이관 완료 DB에서 재실행할 수 있다. 구·신 테이블 또는 컬럼이 함께 있으면 임의 삭제·병합 없이 시작을 중단한다. 운영 반영 전 DB 백업과 모든 인스턴스의 동시 버전 전환이 필요하며 구버전과 혼용하지 않는다.
 
 브라우저는 `pawmento.workspace.v1.{accountId}`를 읽어 `v2`로 한 번 저장하며 v1을 복구용으로 남긴다. 기존 `DIARY`는 질문 답변, TEXT/PHOTO/VOICE/VIDEO는 일기로 옮긴다. ID·질문 원문·본문·첨부·알려진 작성자·시각을 보존한다. 기존 선택 날짜는 `legacyRecordedDate`로 보존하고 실제 등록 시각으로 새로 주장하지 않는다. 과거 모드와 알 수 없는 작성자는 추측하지 않는다. 작성자 미상 기록과 기존 영상 기록은 읽기를 보존한다. 새 첨부는 사진·음성으로 제한한다.

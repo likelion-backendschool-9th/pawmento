@@ -11,7 +11,7 @@
 | 공통 파일 업로드 | [미디어 설계](../media/README.md). 사진·음성 녹음 업로드도 이번 구현 범위 |
 | 구조·인증 | [백엔드 구조](../backend-architecture.md), [인증 기반](../member/auth-base.md) |
 | 개발 이슈 | [#31](https://github.com/likelion-backendschool-9th/pawmento/issues/31) |
-| 첫 구현 단위 | [현재 질문과 답변부터 구현하기](question-flow.md) — 초기 데이터·배정·답변·공통 진행 우선 |
+| 구현 계획 | [현재 질문과 답변부터 구현하기](question-flow.md) — 초기 데이터·배정·답변·공통 진행과 관리자 API 6단계 |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
 ## 요구사항
@@ -88,13 +88,14 @@
 
 ## API 제안
 
-경로는 공통 `/api/v1` 접두사를 제외했다. 최신 `WebConfig`가 접두사를 적용하므로 개별 컨트롤러에 중복 작성하지 않는다. 질문·답변과 후속 관리자 API 모두 `/questions` 루트 아래에 둔다. 사용자 API의 petId는 필수 양의 Long 쿼리이며 관리자 질문 풀 API는 아이 범위를 받지 않는다. (고침 #31: 사용자 흐름 우선 계획과 공통 API 경로 기준 반영)
+경로는 공통 `/api/v1` 접두사를 제외했다. 최신 `WebConfig`가 접두사를 적용하므로 개별 컨트롤러에 중복 작성하지 않는다. 사용자 질문·답변은 `/questions`, 관리자 원본 관리는 `/admin/questions` 아래에 둔다. (고침 #31: PR #163 관리자 API 경로 통일) 사용자 API의 petId는 필수 양의 Long 쿼리이며 관리자 질문 풀 API는 아이 범위를 받지 않는다. (고침 #31: 사용자 흐름 우선 계획과 공통 API 경로 기준 반영)
 
 | 요청 | 입력 | 응답 |
 | --- | --- | --- |
-| `GET /questions/admin` | `mode`, `enabled` 선택, `page`, `size` | 200, 질문 목록 |
-| `POST /questions/admin` | `mode`, `content` | 201, 생성 질문 |
-| `PATCH /questions/admin/{questionId}` | `content`, `enabled`, `version` | 200, 변경 질문. 모드 변경 대신 해당 모드 질문 신규 등록 |
+| `GET /admin/questions` | `mode`, `enabled`, `q` 선택, `page`, `size` | 200, 질문 목록 |
+| `GET /admin/questions/{questionId}` | 없음 | 200, 비활성 항목 포함 질문 원본 상세 |
+| `POST /admin/questions` | `mode`, `content` | 201, 생성 질문 |
+| `PATCH /admin/questions/{questionId}` | `content`, `enabled`, `version` | 200, 변경 질문. 모드 변경 대신 해당 모드 질문 신규 등록 |
 | `POST /questions/prompts/current?petId={petId}` | 없음. 서버가 현재 pet 모드 확인 | 새 배정 201, 기존 질문 200 |
 | `GET /questions/prompts/current?petId={petId}` | 없음 | 200, 현재 질문. 미배정은 `prompt: null` |
 | `GET /questions/prompts?petId={petId}` | `mode` 선택, `page`, `size` | 200, 가족 공통 질문 이력·답변 수·내 답변 ID |
@@ -115,6 +116,8 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 
 질문 상세의 가족 답변도 무제한 중첩하지 않는다. 첫 페이지와 답변 수를 제공하고 전체 답변은 답변 목록에 `promptId` 필터를 추가해 조회하는 안을 제안한다.
 
+관리자 목록 검색·상세·입력·충돌·스냅샷 보존의 세부안은 [6단계 계획](question-flow.md#6단계-관리자-질문-관리-api)을 따른다. (고침 #31: 가족 API와 독립적인 관리자 백엔드 계획 구체화)
+
 ## 가족 권한과 의존성
 
 - 가족은 공용 로그인 하나가 아니라 **회원별 로그인 + 아이에 대한 가족 멤버십**으로 식별한다. 공유 비밀번호를 쓰면 누가 작성했는지 확인할 수 없다.
@@ -124,7 +127,7 @@ PATCH는 제공한 변경 필드만 적용하고 `version`을 필수로 받는�
 - 현재 소유자 범위는 pet의 기존 접근 계약을 재사용하여 다른 소유자의 아이는 403, 없는 아이는 404로 응답한다. 아래 비가족/없는 아이 404 통일은 가족 연결 후의 목표 계약이며 현재 소유자 단계의 응답과 구분한다. (고침 #31: 소유자 범위는 pet 계약에 따라 403)
 - 미인증 401, 관리자 API·읽기 전용 역할의 쓰기·타 가족 답변 변경 403, 비가족/없는 아이·질문·답변 및 경로 불일치 404, 잘못된 입력 400, 중복 답변·버전·모드 충돌 409다. 기존 `{code, message}` 에러 형식을 따른다.
 - ADMIN만 질문 풀을 관리한다. 관리자 역할이 개인 가족 답변 열람 권한을 자동 부여하지 않는다.
-- 후속 관리자 질문 API는 question 도메인의 단일 루트를 지키기 위해 `/questions/admin` 아래에 둔다. 보안 설정은 `/api/v1/questions/admin` 및 `/api/v1/questions/admin/**`를 명시적으로 `hasRole("ADMIN")` 검사한 뒤 일반 인증 규칙을 적용한다. `/admin/**` 접두어에 의존하지 않는다. 각 관리자 입력 유스케이스도 질문의 관리자 확인 출력 포트로 member 입력 포트의 현재 역할을 확인해 웹을 거치지 않은 호출·역할 회수를 검증한다. member 조회 DTO·엔티티를 question 핵심에 노출하지 않으며 미인증 401·일반 회원/역할 회수 403·조회 장애는 서버 오류로 구분한다. 전역 메서드 보안 설정을 이번 문서에서 추가하지 않는다. (고침 #31: 관리자 경로 변경에 따른 권한 경계 명시)
+- 관리자 질문 API는 `/admin/questions` 아래에 두고 question 웹 어댑터의 `AdminQuestionController`로 사용자 컨트롤러와 분리한다. 보안 설정은 `/api/v1/admin`·`/api/v1/admin/**`를 공통 `hasRole("ADMIN")` 검사한 뒤 일반 인증 규칙을 적용한다. (고침 #31: PR #163 관리자 경로·컨트롤러 통일 선택 반영) 각 관리자 입력 유스케이스도 질문의 관리자 확인 출력 포트로 member 입력 포트의 현재 역할을 확인해 웹을 거치지 않은 호출·역할 회수를 검증한다. member 조회 DTO·엔티티를 question 핵심에 노출하지 않으며 미인증 401·일반 회원/역할 회수 403·조회 장애는 서버 오류로 구분한다. 전역 메서드 보안 설정을 이번 문서에서 추가하지 않는다. (고침 #31: 관리자 경로 변경에 따른 권한 경계 명시)
 - `com.pawmento.question`의 domain/application/adapter 구조를 사용한다. 입력 포트 후보는 `CreateQuestionUseCase`, `EditQuestionUseCase`, `ListQuestionUseCase`, `EnsureCurrentQuestionPromptUseCase`, `GetCurrentQuestionPromptUseCase`, `ListQuestionPromptUseCase`, `GetQuestionPromptUseCase`, 답변 CRUD·목록 유스케이스다.
 - 시간과 질문 선택은 주입 가능한 Clock·출력 포트로 분리한다. 애플리케이션은 Spring Security·웹 DTO·다이어리 저장소를 참조하지 않는다.
 - 질문 답변 저장 트랜잭션은 question 안에서 끝난다. **record/diary 입력 포트를 호출해 기록 행을 만드는 구조는 사용하지 않는다.** media 참조 획득/해제 포트만 공유하며, 답변·첨부 연결·파일 참조 수·공통 진행 변경을 같은 DB 트랜잭션으로 저장한다.

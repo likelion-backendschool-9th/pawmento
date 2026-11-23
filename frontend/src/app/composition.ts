@@ -20,11 +20,16 @@ import { createWalkUseCases } from "../map/application/walkUseCases.ts";
 import { HttpWalkRepository } from "../map/adapters/outbound/HttpWalkRepository.ts";
 import { DemoWalkRepository } from "../map/adapters/outbound/DemoWalkRepository.ts";
 import { PetScopedWalkRepository } from "../map/adapters/outbound/PetScopedWalkRepository.ts";
+import { createWalkHistoryUseCases } from "../map/application/walkHistoryUseCases.ts";
+import { HttpWalkHistoryRepository } from "../map/adapters/outbound/HttpWalkHistoryRepository.ts";
+import { PetScopedWalkHistoryRepository } from "../map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
 import { LocalActiveWalkStore } from "../map/adapters/outbound/LocalActiveWalkStore.ts";
 
 export function createDependencies() {
   const http = createApiClient();
   const lifeRepository = new BrowserLifeRepository();
+  // 데모 산책 기록과 날짜별 보기가 같은 메모리를 보도록 한 곳에서 만든다
+  const demoWalks = new DemoWalkRepository();
   const runtime = {
     id: () => createId(),
     now: () => new Date().toISOString(),
@@ -49,11 +54,14 @@ export function createDependencies() {
     auth: createAuthUseCases(new SessionAuthRepository(http)),
     pets: createPetUseCases(new HttpPetListRepository(http)),
     walk: createWalkUseCases(
-      new PetScopedWalkRepository(
-        new HttpWalkRepository(http),
-        new DemoWalkRepository(),
-      ),
+      new PetScopedWalkRepository(new HttpWalkRepository(http), demoWalks),
       new LocalActiveWalkStore(),
+    ),
+    walkHistory: createWalkHistoryUseCases(
+      new PetScopedWalkHistoryRepository(
+        new HttpWalkHistoryRepository(http),
+        demoWalks,
+      ),
     ),
     map: createMapUseCases(
       new PetScopedMapPinRepository(

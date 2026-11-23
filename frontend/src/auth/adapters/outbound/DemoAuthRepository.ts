@@ -16,6 +16,7 @@ export class DemoAuthRepository implements AuthRepository {
       id: createId(),
       email: input.email,
       nickname: input.nickname,
+      demo: true as const,
     };
     this.accounts.set(input.email, { account, password: input.password });
     this.account = account;
@@ -36,6 +37,7 @@ export class DemoAuthRepository implements AuthRepository {
       email: "demo@pawmento.local",
       nickname: "보리네",
       role: "ADMIN",
+      demo: true,
     };
     return this.account;
   }
@@ -54,6 +56,7 @@ export class DemoAuthRepository implements AuthRepository {
       email: `${provider}@pawmento.local`,
       nickname: provider === "google" ? "구글 데모" : "카카오 데모",
       role: "USER",
+      demo: true,
     };
     return this.account;
   }
@@ -66,5 +69,8 @@ export class DemoAuthRepository implements AuthRepository {
     const entry = this.accounts.get(this.account.email);
     if (entry) entry.account = this.account;
     return this.account;
+  }
+  sessionSource(): "demo" {
+    return "demo";
   }
 }

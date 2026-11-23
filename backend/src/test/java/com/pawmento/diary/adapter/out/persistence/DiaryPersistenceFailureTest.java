@@ -15,7 +15,7 @@ class DiaryPersistenceFailureTest {
   @DisplayName("#32-S7 목록·건수·달력의 연결 장애는 원인을 보존한 저장소 장애로 변환한다")
   void readResourceFailures() {
     var rows = mock(DiaryEntryJpaRepository.class);
-    var adapter = new DiaryEntryPersistenceAdapter(rows);
+    var adapter = new DiaryEntryPersistenceAdapter(rows, mock(DiaryAttachmentJpaRepository.class));
     var filter = new com.pawmento.diary.domain.DiaryListFilter(null, null, null, 0, 20);
     for (RuntimeException error :
         new RuntimeException[] {
@@ -56,7 +56,7 @@ class DiaryPersistenceFailureTest {
   @DisplayName("#32-S22 diary는 다른 FK·CHECK 오류를 아이 없음으로 일괄 변환하지 않는다")
   void otherDiaryConstraints() {
     var rows = mock(DiaryEntryJpaRepository.class);
-    var adapter = new DiaryEntryPersistenceAdapter(rows);
+    var adapter = new DiaryEntryPersistenceAdapter(rows, mock(DiaryAttachmentJpaRepository.class));
     var entry =
         DiaryEntry.create(
             1L, 2L, "일기", LocalDate.of(2026, 11, 17), Instant.parse("2026-11-17T15:00:00Z"));

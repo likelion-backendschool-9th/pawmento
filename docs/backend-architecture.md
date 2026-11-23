@@ -75,8 +75,8 @@ com.pawmento
 
 ## API 경로
 
-- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/maps/pins`, `/api/v1/media/uploads`. 반려동물 범위는 해당 도메인의 입력(`petId`)으로 받는다. 지도는 `/maps/pins?petId=`, 미디어는 `/media/uploads?petId=`와 `/media/{assetId}?petId=`를 사용한다. 상위 도메인 접두어를 공유하는 예외를 추가하지 않는다. 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #33: #63의 도메인별 루트와 동일 기준 적용)
-- 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 `@RequestMapping("/<복수형>")`만 두고, 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
+- 모든 API 경로는 `/api/v1/<도메인 복수형>`으로 시작한다. 예: `/api/v1/maps/pins`, `/api/v1/media/uploads`. 반려동물 범위는 해당 도메인의 입력(`petId`)으로 받는다. 지도는 `/maps/pins?petId=`, 미디어는 `/media/uploads?petId=`와 `/media/{assetId}?petId=`를 사용한다. 일반 사용자 API의 상위 도메인 접두어를 공유하는 예외를 추가하지 않는다. 관리자 API는 공통 `/api/v1/admin/<관리 대상>` 경로를 사용하며 `/api/v1/admin`·`/api/v1/admin/**`를 ADMIN으로 보호한다. 구현은 관리 대상 도메인 안에 둔다(예: question의 `/admin/questions`). (고침 #31: PR #163 관리자 경로 통일 예외) 개발 서버 nginx가 `/api/`로 시작하는 경로만 백엔드로 넘긴다. (고침 #33: #63의 도메인별 루트와 동일 기준 적용)
+- 접두어 `/api/v1`은 `global.web.WebConfig`가 우리 패키지(`com.pawmento`)의 `@RestController`에 붙인다. 컨트롤러 클래스에는 `@RequestMapping("/<복수형>")`를 두고(관리자는 `@RequestMapping("/admin/<관리 대상>")`), 메서드에는 `@PostMapping`, `@GetMapping("/{id}")`처럼 나머지 경로만 쓴다. (고침 #22: 컨트롤러마다 쓰던 접두어를 설정 한곳으로 옮김)
 - Spring Security 경로(`PublicEndpoints`)는 접두어가 붙기 전의 실제 요청 경로를 보므로 `ApiPaths.V1`을 붙인 전체 경로로 쓴다. (#22)
 
 ## 이름 규칙
@@ -98,7 +98,7 @@ com.pawmento
 
 - `<Action>`은 사용자 기준 동작이다: `Create`, `Edit`, `Delete`, `Get`, `List`.
 - `<Verb>`는 저장소 기준 동작이다: `Save`, `Load`, `Update`, `Delete`.
-- 기능 하나에 유스케이스 하나, 서비스 하나를 만든다. 입력 포트 인터페이스는 생략하지 않는다. 컨트롤러와 영속성 어댑터는 도메인에 하나씩 두고 메서드를 늘린다. 다만 한 도메인 안에 저장·조회 대상이 서로 독립적이면 대상마다 영속성 어댑터를 둔다. 서로 참조하지 않고, 함께 저장되거나 바뀌지 않고, 구현하는 출력 포트가 겹치지 않으면 독립적이다(예: 지도의 기록 위치 `DiaryLocationPersistenceAdapter`와 산책 `WalkPersistenceAdapter`). 컨트롤러는 도메인에 하나만 둔다. (#73)
+- 기능 하나에 유스케이스 하나, 서비스 하나를 만든다. 입력 포트 인터페이스는 생략하지 않는다. 일반 사용자 컨트롤러와 영속성 어댑터는 도메인에 하나씩 두고 메서드를 늘린다. 다만 한 도메인 안에 저장·조회 대상이 서로 독립적이면 대상마다 영속성 어댑터를 둔다. 서로 참조하지 않고, 함께 저장되거나 바뀌지 않고, 구현하는 출력 포트가 겹치지 않으면 독립적이다(예: 지도의 기록 위치 `DiaryLocationPersistenceAdapter`와 산책 `WalkPersistenceAdapter`). 일반 사용자 컨트롤러는 도메인에 하나만 둔다. 관리자 API는 같은 도메인의 `Admin<Domain>Controller`로 분리할 수 있다(예: question의 AdminQuestionController). 서비스·영속성 어댑터를 admin 도메인에 중복 구현하지 않는다. (#73, 고침 #31: PR #163 관리자 경로와 컨트롤러 예외)
 - 출력 포트는 동작별로 나눈다. 영속성 어댑터 하나가 여러 출력 포트를 구현한다.
 
 ## 값 객체는 `record`로

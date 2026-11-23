@@ -17,6 +17,8 @@ import {
   type MapBounds,
 } from "../src/map/domain/MapBounds.ts";
 import { HttpMapPinRepository } from "../src/map/adapters/outbound/HttpMapPinRepository.ts";
+import { isDemoAccount } from "../src/auth/domain/account.ts";
+import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
@@ -143,29 +145,35 @@ test("#19-S9 서버 반려동물(양의 정수 id)만 서버에 묻고, 데모 �
     new DemoMapPinRepository(),
   );
 
-  assert.equal((await repository.list("10", SEOUL_FOREST)).sample, false);
+  assert.equal((await repository.list("10", SEOUL_FOREST, { sample: true })).sample, false);
   const demo = await repository.list(
     "6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10",
     SEOUL_FOREST,
+    { sample: true },
   );
   assert.equal(demo.sample, true);
   assert.ok(demo.pins.length > 0);
   assert.deepEqual(asked, ["10"]);
   for (const id of ["0", "-1", "1.5", "01", "abc"]) {
-    assert.equal((await repository.list(id, SEOUL_FOREST)).sample, true, id);
+    assert.equal((await repository.list(id, SEOUL_FOREST, { sample: true })).sample, true, id);
   }
 });
 
 test("#19-S5 예시 핀도 보이는 영역 안의 것만 돌려준다", async () => {
   const demo = new DemoMapPinRepository();
-  const all = await demo.list("x", SEOUL_FOREST);
-  const narrow = await demo.list("x", {
-    ...SEOUL_FOREST,
-    minLatitude: 37.5455,
-  });
+  const all = await demo.list("x", SEOUL_FOREST, { sample: true });
+  const narrow = await demo.list(
+    "x",
+    { ...SEOUL_FOREST, minLatitude: 37.5455 },
+    { sample: true },
+  );
   assert.ok(narrow.pins.length < all.pins.length);
   for (const pin of narrow.pins) assert.equal(containsPoint({ ...SEOUL_FOREST, minLatitude: 37.5455 }, pin), true);
-  const none = await demo.list("x", { minLatitude: 10, minLongitude: 10, maxLatitude: 11, maxLongitude: 11 });
+  const none = await demo.list(
+    "x",
+    { minLatitude: 10, minLongitude: 10, maxLatitude: 11, maxLongitude: 11 },
+    { sample: true },
+  );
   assert.deepEqual(none.pins, []);
 });
 
@@ -221,4 +229,60 @@ test("#19-S9 서버에만 있는 일기 id의 핀은 상세 링크를 열지 않
   // 브라우저에 있는 기록의 핀만 열고, 예시 핀은 늘 예시로 안내한다
   assert.equal(pinDetail(false, isOpenableDiary(diaries, "pet-a", diaries[0].id)), "OPEN");
   assert.equal(pinDetail(true, true), "SAMPLE");
+});
+
+test("#19-S10 일반 계정의 브라우저 반려동물에는 예시 핀을 섞지 않는다. 데모 계정에만 섞는다", async () => {
+  const demo = new DemoMapPinRepository();
+  for (const options of [undefined, {}, { sample: false }]) {
+    assert.deepEqual(await demo.list("ordinary-pet", SEOUL_FOREST, options), {
+      pins: [],
+      truncated: false,
+      sample: false,
+    });
+  }
+  const sample = await demo.list("demo-pet", SEOUL_FOREST, { sample: true });
+  assert.equal(sample.sample, true);
+  assert.ok(sample.pins.length > 0);
+
+  // 사용 사례도 옵션을 그대로 전달한다
+  const seen: unknown[] = [];
+  const map = createMapUseCases({
+    list: async (_pet, _bounds, options) => (seen.push(options), { pins: [], truncated: false, sample: false }),
+  });
+  await map.listPins("10", SEOUL_FOREST, { sample: true });
+  await map.listPins("10", SEOUL_FOREST);
+  assert.deepEqual(seen, [{ sample: true }, undefined]);
+});
+
+test("#19-S10 데모 여부는 이메일이 아니라 데모 세션이 만든 계정인지로 판단한다. 이메일이 @pawmento.local인 일반 계정은 예시 핀을 받지 않는다", async () => {
+  // 서버 로그인으로 받은 일반 계정: 이메일 도메인이 같아도 데모가 아니다
+  for (const account of [
+    { id: "42", email: "member@pawmento.local", nickname: "일반 회원" },
+    { id: "demo", email: "demo@pawmento.local", nickname: "이름만 같은 일반 계정" },
+    { id: "demo-google", email: "google@pawmento.local", nickname: "접두사만 같은 일반 계정" },
+  ]) {
+    assert.equal(isDemoAccount(account), false, account.id);
+  }
+  assert.equal(isDemoAccount(null), false);
+  assert.equal(isDemoAccount(undefined), false);
+
+  // 데모 인증 저장소가 만든 계정은 모두 데모다(가입 없이 둘러보기, 소셜 데모, 탭 안 가입)
+  const auth = new DemoAuthRepository();
+  assert.equal(isDemoAccount(await auth.startDemo()), true);
+  assert.equal(isDemoAccount(await auth.signInDemoProvider("google")), true);
+  assert.equal(isDemoAccount(await auth.signInDemoProvider("kakao")), true);
+  await auth.signUp({ email: "tab@example.com", password: "tab-demo-pass", nickname: "탭" });
+  assert.equal(isDemoAccount(await auth.signIn({ email: "tab@example.com", password: "tab-demo-pass" })), true);
+  // 닉네임을 바꿔도 데모 표시가 유지된다
+  assert.equal(isDemoAccount(await auth.update("새 이름")), true);
+});
+
+test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 두르고 선택하지 않은 핀에는 후광이 없다", () => {
+  const plain = pinMarkup("ACTIVE", false);
+  const selected = pinMarkup("ACTIVE", true);
+  assert.equal((plain.match(/<circle/g) ?? []).length, 0);
+  // 채운 원(fill)과 고리(stroke) 후광이 하나씩 있다
+  assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
 });

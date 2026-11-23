@@ -55,7 +55,7 @@ class QuestionAnswerAttachmentScenarioTest {
   @MockitoSpyBean GetMemberUseCase memberDetails;
   @Autowired SaveMediaAssetPort saveMedia;
   @Autowired com.pawmento.question.application.port.in.GetQuestionAnswerUseCase detail;
-  @MockitoSpyBean QuestionAttachmentsPort links;
+  @Autowired QuestionAttachmentsPort links;
   @Autowired MediaCleanupTransactions cleanup;
   @MockitoSpyBean QuestionMediaPort media;
   @MockitoSpyBean ReadMediaFilePort files;

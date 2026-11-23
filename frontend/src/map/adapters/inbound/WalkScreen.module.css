@@ -15,9 +15,15 @@
 }
 .staticMap svg {
   position: absolute;
-  inset: 0;
+  left: 0;
+  right: 0;
   width: 100%;
-  height: 100%;
+}
+/* 걸은 길 전체를 위쪽 칩과 실제 카드 윗면 사이에 맞춰 그린다(카드 높이는 화면에서 재서 --card-height로 넘긴다) */
+.routes {
+  top: 76px;
+  bottom: calc(var(--card-height, 300px) + 28px);
+  height: max(48px, calc(100% - 76px - var(--card-height, 300px) - 28px));
 }
 .park {
   position: absolute;
@@ -141,6 +147,9 @@
   left: 50%;
   bottom: max(16px, env(safe-area-inset-bottom));
   width: min(440px, calc(100% - 28px));
+  /* 낮은 화면에서는 카드 안에서 스크롤해 경로 영역을 남긴다 */
+  max-height: calc(100% - 140px);
+  overflow-y: auto;
   transform: translateX(-50%);
   display: grid;
   gap: 12px;
@@ -163,31 +172,43 @@
   font-weight: 650;
   letter-spacing: 0.12em;
 }
-.stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin: 0;
+.grab {
+  width: 38px;
+  height: 4px;
+  margin: -8px auto 4px;
+  border-radius: 4px;
+  background: var(--border-default);
 }
-.stats div {
-  padding: 12px 14px;
-  border-radius: 16px;
-  background: var(--mode-subtle);
+/* 시안: 걸은 시간은 크게 왼쪽, 거리는 오른쪽 정렬 */
+.stats {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
 }
 .stats dt {
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
 }
 .stats dd {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-primary);
-  font-size: 26px;
-  font-weight: 650;
+  font-size: 38px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
+.stats div:last-child {
+  text-align: right;
+}
+.stats div:last-child dd {
+  font-size: 28px;
+}
 .stats small {
-  margin-left: 3px;
-  font-size: 14px;
+  margin-left: 4px;
+  font-size: 15px;
   font-weight: 500;
 }
 .notice,
@@ -199,15 +220,27 @@
   line-height: 1.5;
 }
 .notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   background: var(--color-apricot-100);
   color: var(--text-primary);
+}
+.notice svg {
+  flex: none;
+  color: var(--walk-paused, #bf8a5b);
 }
 .warn {
   border: 1px solid var(--color-danger-600);
   background: var(--surface-card);
   color: var(--text-danger);
 }
+.status {
+  margin-left: auto;
+}
 .link {
+  display: block;
+  text-align: center;
   border: 0;
   background: none;
   color: var(--text-secondary);
@@ -215,4 +248,15 @@
   font-size: 13px;
   text-decoration: underline;
   cursor: pointer;
+}
+
+/* 실제 네이버 지도의 출발점 표시(예시 지도의 startDot과 같은 모양) */
+.startMarker {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-white);
+  border-radius: 50%;
+  background: var(--brand-primary);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
 }
