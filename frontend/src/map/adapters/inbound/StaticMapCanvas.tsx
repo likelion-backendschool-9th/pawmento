@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { toViewportRatio, type MapBounds } from "@/map/domain/MapBounds";
 import { pinMarkup } from "./pinMarkup";
 import type { MapCanvasProps } from "./mapCanvas";
+import { StaticMapBackdrop } from "./StaticMapBackdrop";
 import styles from "./MapScreen.module.css";
 
 // 지도 키가 없거나 네이버 지도를 불러오지 못할 때 쓰는 예시 지도다. 움직이지 않고 정해진 영역만 보여 준다.
@@ -39,9 +40,7 @@ export function StaticMapCanvas({
       role="group"
       aria-label="예시 지도"
     >
-      <span className={styles.park} aria-hidden="true" />
-      <span className={styles.river} aria-hidden="true" />
-      <span className={styles.avenue} aria-hidden="true" />
+      <StaticMapBackdrop />
       {pins.map((pin) => {
         const { x, y } = toViewportRatio(bounds, pin);
         const selected = pin.diaryId === selectedId;

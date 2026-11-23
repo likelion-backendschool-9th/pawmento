@@ -23,28 +23,7 @@
   inset: 0;
 }
 .staticMap {
-  background:
-    linear-gradient(0deg, #ffffff40 1px, transparent 1px) 0 0 / 100% 64px,
-    linear-gradient(90deg, #ffffff40 1px, transparent 1px) 0 0 / 64px 100%,
-    var(--map-land);
-}
-.park {
-  position: absolute;
-  left: -8%;
-  top: 4%;
-  width: 62%;
-  height: 40%;
-  border-radius: 46% 54% 52% 48%;
-  background: var(--map-park);
-}
-.river {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  bottom: -8%;
-  height: 22%;
-  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
-  background: var(--map-water);
+  background: var(--map-land);
 }
 /* 경로는 위쪽 날짜 막대와 아래쪽 목록을 피해 가운데에 그린다 */
 .routes {
