@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import com.pawmento.admin.application.port.in.ListReportItemResult;
 import com.pawmento.admin.application.port.in.ListReportItemResult.PostState;
 import com.pawmento.admin.application.port.in.ListReportItemResult.ReasonType;
-import com.pawmento.admin.application.port.in.ListReportsQuery.Status;
+import com.pawmento.admin.application.port.in.ReportStatus;
 import com.pawmento.admin.application.port.in.ListReportsUseCase.Page;
 
 import tools.jackson.databind.json.JsonMapper;
@@ -23,7 +23,7 @@ class ReportListItemResponseTest {
 	void onlyAgreedSummaryFieldsAreExposed() {
 		var mapper = JsonMapper.builder().build();
 		var createdAt = Instant.parse("2026-11-21T00:00:00Z");
-		var result = new ListReportItemResult(101L, 201L, Status.PENDING, ReasonType.PRIVACY, createdAt,
+		var result = new ListReportItemResult(101L, 201L, ReportStatus.PENDING, ReasonType.PRIVACY, createdAt,
 				"신고 당시 제목", PostState.DELETED);
 		var page = mapper.readTree(mapper.writeValueAsString(ReportListResponse.from(new Page(List.of(result), 101L))));
 		assertThat(page.properties().stream().map(Map.Entry::getKey).toList())

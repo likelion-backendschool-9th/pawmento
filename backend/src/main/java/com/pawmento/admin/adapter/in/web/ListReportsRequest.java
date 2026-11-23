@@ -2,7 +2,7 @@ package com.pawmento.admin.adapter.in.web;
 
 import com.pawmento.admin.adapter.in.web.exception.InvalidReportListRequestException;
 import com.pawmento.admin.application.port.in.ListReportsQuery;
-import com.pawmento.admin.application.port.in.ListReportsQuery.Status;
+import com.pawmento.admin.application.port.in.ReportStatus;
 
 record ListReportsRequest(String status, String size, String cursor) {
 	private static final int DEFAULT_SIZE = 20;
@@ -12,12 +12,12 @@ record ListReportsRequest(String status, String size, String cursor) {
 		return new ListReportsQuery(parseStatus(status), parseSize(size), parseCursor(cursor));
 	}
 
-	private static Status parseStatus(String value) {
+	private static ReportStatus parseStatus(String value) {
 		if (value == null) {
-			return Status.PENDING;
+			return ReportStatus.PENDING;
 		}
 		try {
-			return Status.valueOf(value);
+			return ReportStatus.valueOf(value);
 		} catch (IllegalArgumentException cause) {
 			throw new InvalidReportListRequestException("status는 PENDING, RESOLVED, DISMISSED 중 하나여야 해요.", cause);
 		}

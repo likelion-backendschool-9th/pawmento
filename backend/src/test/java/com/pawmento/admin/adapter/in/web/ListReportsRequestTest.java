@@ -10,23 +10,23 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import com.pawmento.admin.adapter.in.web.exception.InvalidReportListRequestException;
 import com.pawmento.admin.application.port.in.ListReportsQuery;
-import com.pawmento.admin.application.port.in.ListReportsQuery.Status;
+import com.pawmento.admin.application.port.in.ReportStatus;
 
 class ListReportsRequestTest {
 	@Test
 	@DisplayName("#92-S1 조회 조건을 생략하면 PENDING 첫 페이지를 20건씩 조회한다")
 	void defaultsToFirstPendingPage() {
 		assertThat(new ListReportsRequest(null, null, null).toQuery())
-				.isEqualTo(new ListReportsQuery(Status.PENDING, 20, null));
+				.isEqualTo(new ListReportsQuery(ReportStatus.PENDING, 20, null));
 	}
 
 	@Test
 	@DisplayName("#92-S1 명시한 상태와 페이지 크기 경계, Long 범위의 신고 ID 커서를 유지한다")
 	void acceptsSupportedPageBoundaries() {
 		assertThat(new ListReportsRequest("RESOLVED", "1", "2").toQuery())
-				.isEqualTo(new ListReportsQuery(Status.RESOLVED, 1, 2L));
+				.isEqualTo(new ListReportsQuery(ReportStatus.RESOLVED, 1, 2L));
 		assertThat(new ListReportsRequest("DISMISSED", "50", Long.toString(Long.MAX_VALUE)).toQuery())
-				.isEqualTo(new ListReportsQuery(Status.DISMISSED, 50, Long.MAX_VALUE));
+				.isEqualTo(new ListReportsQuery(ReportStatus.DISMISSED, 50, Long.MAX_VALUE));
 	}
 
 	@ParameterizedTest

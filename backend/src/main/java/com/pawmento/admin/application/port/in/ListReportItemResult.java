@@ -6,7 +6,7 @@ import java.time.Instant;
 public record ListReportItemResult(
 		Long reportId,
 		Long postId,
-		ListReportsQuery.Status status,
+		ReportStatus status,
 		ReasonType reasonType,
 		Instant createdAt,
 		String snapshotTitle,
