@@ -4,29 +4,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.zip.CRC32;
 
 import javax.imageio.ImageIO;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.io.ClassPathResource;
@@ -47,16 +60,17 @@ import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.media.adapter.out.persistence.MediaValidationJobJpaRepository;
 import com.pawmento.media.application.port.in.ProcessMediaWorkUseCase;
 import com.pawmento.media.application.service.MediaCleanupTransactions;
-import com.pawmento.pet.application.port.out.HasPetRecordsPort;
+import com.pawmento.media.domain.MediaAsset;
 import com.pawmento.pet.application.port.out.LockPetPort;
 
 import jakarta.servlet.http.Cookie;
 
 @AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(properties = {
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
 		"pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
-		"pawmento.media.worker.enabled=false"
+		"pawmento.media.worker.enabled=false",
+		"pawmento.postcard.worker.enabled=false"
 })
 class PetProfilePhotoScenarioTest {
 
@@ -76,7 +90,7 @@ class PetProfilePhotoScenarioTest {
 	@Autowired MediaValidationJobJpaRepository jobs;
 	@Autowired TransactionTemplate transactions;
 	@MockitoSpyBean LockPetPort petLocks;
-	@MockitoSpyBean HasPetRecordsPort petRecords;
+	@LocalServerPort int port;
 
 	@Test
 	@DisplayName("#130-S1 #130-S2 READY 사진 하나를 연결하고 목록·상세와 가공 파일로 조회한다")
@@ -177,7 +191,7 @@ class PetProfilePhotoScenarioTest {
 		Owner owner = owner();
 		createUpload(owner, "PET_PROFILE", "audio/ogg", 3).andExpect(status().isUnsupportedMediaType());
 		createUpload(owner, "PET_PROFILE", "video/mp4", 3).andExpect(status().isUnsupportedMediaType());
-		createUpload(owner, "PET_PROFILE", "image/png", 15 * 1024 * 1024 + 1).andExpect(status().isPayloadTooLarge());
+		createUpload(owner, "PET_PROFILE", "image/png", Math.toIntExact(MediaAsset.MAX_FILE_BYTES) + 1).andExpect(status().isPayloadTooLarge());
 		createUpload(owner, "PET_PROFILE", "image/png", 0).andExpect(status().isBadRequest());
 		for (String invalid : List.of("null", "0", "-1", "1.2", "\"1\"", "9223372036854775808")) {
 			mvc.perform(put(owner.photoPath()).cookie(owner.cookie()).contentType(MediaType.APPLICATION_JSON)
@@ -189,6 +203,74 @@ class PetProfilePhotoScenarioTest {
 		upload(owner, asset, oversized);
 		drain();
 		assertAsset(asset, "REJECTED", 0, false);
+		mvc.perform(get(owner.mediaPath(asset, "")).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+		mvc.perform(get(owner.petPath()).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.profilePhoto").value(nullValue()));
+	}
+
+	@Test
+	@DisplayName("#130-S5 실제 multipart 요청은 15MiB의 유효 PNG를 받고 초과·잘못된 본문을 거절한다")
+	void multipartSizeBoundary() throws Exception {
+		Owner owner = owner();
+		int limit = Math.toIntExact(MediaAsset.MAX_FILE_BYTES);
+		long asset = session(owner, "PET_PROFILE", "image/png", limit);
+		String boundary = "pawmento-photo-test";
+		var header = BodyPublishers.ofString("--" + boundary + "\r\n"
+			+ "Content-Disposition: form-data; name=\"file\"; filename=\"photo.png\"\r\n"
+			+ "Content-Type: image/png\r\n\r\n");
+		var footer = BodyPublishers.ofString("\r\n--" + boundary + "--\r\n");
+		try (var client = HttpClient.newHttpClient()) {
+			var malformed = sendMultipart(client, owner, asset, boundary, BodyPublishers.ofString("broken multipart"));
+			assertThat(malformed.statusCode()).as(malformed.body()).isEqualTo(400);
+			var overLimit = sendMultipart(client, owner, asset, boundary,
+				BodyPublishers.concat(header, BodyPublishers.ofByteArray(new byte[limit + 1]), footer));
+			assertThat(overLimit.statusCode()).as(overLimit.body()).isEqualTo(413);
+			var allowed = sendMultipart(client, owner, asset, boundary,
+				BodyPublishers.concat(header, BodyPublishers.ofByteArray(pngAtSize(limit)), footer));
+			assertThat(allowed.statusCode()).as(allowed.body()).isEqualTo(202);
+		}
+		mvc.perform(get(owner.mediaPath(asset, "")).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.status").value("PROCESSING"));
+		drain();
+		assertAsset(asset, "READY", 0, false);
+		attach(owner, asset).andExpect(status().isOk());
+	}
+
+	private HttpResponse<String> sendMultipart(HttpClient client, Owner owner, long asset, String boundary,
+			HttpRequest.BodyPublisher body) throws Exception {
+		String origin = "http://localhost:" + port;
+		var request = HttpRequest.newBuilder(URI.create(origin + owner.mediaPath(asset, "/content")))
+			.timeout(Duration.ofSeconds(15))
+			.header("Origin", origin)
+			.header("X-Pawmento-Upload", "1")
+			.header("Cookie", owner.cookie().getName() + "=" + owner.cookie().getValue())
+			.header("Content-Type", "multipart/form-data; boundary=" + boundary)
+			.POST(body).build();
+		return client.send(request, HttpResponse.BodyHandlers.ofString());
+	}
+
+	private byte[] pngAtSize(int size) throws Exception {
+		byte[] png = fixture("sample.png");
+		int iend = png.length - 12;
+		var output = ByteBuffer.allocate(size);
+		output.put(png, 0, iend);
+
+		// IEND 앞에 유효한 tEXt 청크를 넣어 픽셀은 유지하고 파일 크기만 맞춘다.
+		byte[] type = "tEXt".getBytes(StandardCharsets.US_ASCII);
+		byte[] data = new byte[64 * 1024];
+		Arrays.fill(data, (byte) 'a');
+		data[1] = 0; // 1바이트 키워드 뒤의 구분자
+		while (output.position() < size - 12) {
+			int remaining = size - 12 - output.position();
+			int length = remaining <= data.length + 12 ? remaining - 12 : Math.min(data.length, remaining - 26);
+			var crc = new CRC32();
+			crc.update(type);
+			crc.update(data, 0, length);
+			output.putInt(length).put(type).put(data, 0, length).putInt((int) crc.getValue());
+		}
+		output.put(png, iend, 12);
+		return output.array();
 	}
 
 	@Test
@@ -209,6 +291,13 @@ class PetProfilePhotoScenarioTest {
 		attach(owner, pending).andExpect(status().isConflict());
 		assertAsset(pending, "PENDING", 0, false);
 
+		byte[] invalidImage = { 1, 2, 3 };
+		long unusable = session(owner, "PET_PROFILE", "image/png", invalidImage.length);
+		upload(owner, unusable, invalidImage);
+		assertUnusableReplacement(owner, current, unusable, "PROCESSING");
+		drain();
+		assertUnusableReplacement(owner, current, unusable, "REJECTED");
+
 		long expired = png(owner);
 		expire(expired);
 		attach(owner, expired).andExpect(status().isConflict());
@@ -216,6 +305,16 @@ class PetProfilePhotoScenarioTest {
 		assertAsset(current, "READY", 1, false);
 		mvc.perform(get(owner.petPath()).cookie(owner.cookie()))
 			.andExpect(jsonPath("$.profilePhoto.assetId").value(current));
+	}
+
+	private void assertUnusableReplacement(Owner owner, long current, long unusable, String state) throws Exception {
+		mvc.perform(get(owner.mediaPath(unusable, "")).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.status").value(state));
+		attach(owner, unusable).andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("CONFLICT"));
+		mvc.perform(get(owner.petPath()).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.profilePhoto.assetId").value(current));
+		assertAsset(current, "READY", 1, false);
+		assertAsset(unusable, state, 0, false);
 	}
 
 	@Test
@@ -281,24 +380,66 @@ class PetProfilePhotoScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#130-S9 사진만 있는 반려동물은 삭제하고 기록이 있는 반려동물과 사진은 보존한다")
+	@DisplayName("#130-S9 사진만 있는 반려동물을 삭제하고 사진 정리 작업을 등록한다")
 	void deletePetWithPhoto() throws Exception {
 		Owner owner = owner();
 		long asset = png(owner);
 		attach(owner, asset).andExpect(status().isOk());
 
-		Owner blocked = owner();
-		long blockedAsset = png(blocked);
-		attach(blocked, blockedAsset).andExpect(status().isOk());
-		doReturn(true).when(petRecords).existsByPetId(blocked.petId());
-		mvc.perform(delete(blocked.petPath()).cookie(blocked.cookie())).andExpect(status().isConflict());
-		assertAsset(blockedAsset, "READY", 1, false);
-		mvc.perform(get(blocked.petPath()).cookie(blocked.cookie()))
-			.andExpect(jsonPath("$.profilePhoto.assetId").value(blockedAsset));
-
 		mvc.perform(delete(owner.petPath()).cookie(owner.cookie())).andExpect(status().isNoContent());
 		assertAsset(asset, "DELETING", 0, true);
 		mvc.perform(get(owner.petPath()).cookie(owner.cookie())).andExpect(status().isNotFound());
+	}
+
+	enum RecordKind { DIARY, QUESTION_ANSWER, POSTCARD }
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(RecordKind.class)
+	@DisplayName("#130-S9 일기·질문 답변·엽서가 각각 있으면 반려동물과 사진을 보존한다")
+	void recordsBlockPetDeletion(RecordKind kind) throws Exception {
+		Owner owner = owner();
+		long asset = png(owner);
+		attach(owner, asset).andExpect(status().isOk());
+		String petQuery = "?petId=" + owner.petId();
+
+		switch (kind) {
+			case DIARY -> createDiary(owner);
+			case QUESTION_ANSWER -> {
+				long prompt = number(mvc.perform(post("/api/v1/questions/prompts/current" + petQuery)
+						.cookie(owner.cookie())).andExpect(status().isCreated()).andReturn(), "$.prompt.promptId");
+				mvc.perform(post("/api/v1/questions/prompts/" + prompt + "/answers" + petQuery)
+						.cookie(owner.cookie()).contentType(MediaType.APPLICATION_JSON)
+						.content("{\"content\":\"산책을 다녀왔어요.\"}"))
+					.andExpect(status().isCreated());
+			}
+			case POSTCARD -> {
+				mvc.perform(patch(owner.petPath() + "/mode").cookie(owner.cookie())
+						.contentType(MediaType.APPLICATION_JSON).content("{\"mode\":\"GARDEN\"}"))
+					.andExpect(status().isOk());
+				long diary = createDiary(owner);
+				mvc.perform(post("/api/v1/postcards" + petQuery).cookie(owner.cookie())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("{\"source\":{\"kind\":\"DIARY\",\"id\":" + diary + "},\"consent\":true}"))
+					.andExpect(status().isAccepted());
+				// 엽서 하나만 남겨 단독으로 삭제를 막는지 확인한다.
+				mvc.perform(delete("/api/v1/diaries/" + diary + petQuery + "&version=0").cookie(owner.cookie()))
+					.andExpect(status().isNoContent());
+			}
+		}
+
+		mvc.perform(delete(owner.petPath()).cookie(owner.cookie())).andExpect(status().isConflict())
+			.andExpect(jsonPath("$.code").value("CONFLICT"));
+		assertAsset(asset, "READY", 1, false);
+		mvc.perform(get(owner.petPath()).cookie(owner.cookie()))
+			.andExpect(status().isOk()).andExpect(jsonPath("$.profilePhoto.assetId").value(asset));
+	}
+
+	private long createDiary(Owner owner) throws Exception {
+		String date = LocalDate.now(ZoneId.of("Asia/Seoul")).toString();
+		return number(mvc.perform(post("/api/v1/diaries?petId=" + owner.petId()).cookie(owner.cookie())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"content\":\"산책 기록\",\"recordedDate\":\"" + date + "\"}"))
+			.andExpect(status().isCreated()).andReturn(), "$.diaryId");
 	}
 
 	@Test
