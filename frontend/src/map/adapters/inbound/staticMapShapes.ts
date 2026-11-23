@@ -25,3 +25,25 @@ export function parkTrees(count = 44): Tree[] {
   }
   return trees;
 }
+
+// 예시 지도는 화면 비율에 맞춰 가운데를 잘라 보여 준다(slice). 가로로 넓은 화면(1280×640 등)에서는 세로 약 23~77만 보이므로,
+// 강과 지명은 이 범위 안에 둔다.
+export const WIDE_VISIBLE = { minY: 23, maxY: 77 };
+
+// 강은 화면 가운데 아래를 지나는 띠다. 위·아래 곡선이 모두 보이는 범위 안에 있다.
+export const RIVER = {
+  // 양 끝은 화면 밖(-300, 400)까지 곧게 이어 위치 고르기에서 지도를 끌어도 강이 잘려 보이지 않는다
+  top: "M-300 62 L-20 62 C 20 58, 60 68, 120 60 L400 60",
+  bottom: "L400 68 L120 68 C 60 76, 20 66, -20 70 L-300 70 Z",
+  // 곡선이 가장 낮게 내려가는 y(제어점 기준 상한)
+  lowestY: 76,
+};
+
+// 지명. 실제 위치와 무관한 예시 이름이라, 위치를 고르는 화면에서는 보여 주지 않는다.
+export type MapLabel = { text: string; x: number; y: number; water?: boolean };
+export const LABELS: MapLabel[] = [
+  { text: "서울숲", x: 40, y: 52 },
+  { text: "뚝섬로", x: 3, y: 75 },
+  { text: "한강", x: 38, y: 68, water: true },
+  { text: "아차산로", x: 86, y: 60 },
+];

@@ -5,6 +5,8 @@
   width: 100%;
   height: 100%;
   pointer-events: none;
+  /* 도로 패턴은 viewBox 밖까지 그려 둔다. 이동하는 레이어(위치 고르기)에서도 가장자리가 비지 않게 한다 */
+  overflow: visible;
 }
 .road {
   /* 도로는 바탕색을 밝게 한 색이다(시안: 크림색 도로 + 베이지 블록) */

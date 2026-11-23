@@ -21,7 +21,7 @@ import { isDemoAccount } from "../src/auth/domain/account.ts";
 import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
-import { PARK, parkTrees } from "../src/map/adapters/inbound/staticMapShapes.ts";
+import { LABELS, PARK, RIVER, WIDE_VISIBLE, parkTrees } from "../src/map/adapters/inbound/staticMapShapes.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
 import {
   isOpenableDiary,
@@ -288,7 +288,7 @@ test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 �
   assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
 });
 
-test("#19-S9 예시 지도의 나무는 항상 같은 배치로 공원 안에만 놓이고 서로 겹치지 않는다", () => {
+test("#19-S11 예시 지도의 나무는 항상 같은 배치로 공원 안에만 놓이고 서로 겹치지 않는다", () => {
   const trees = parkTrees();
   assert.deepEqual(trees, parkTrees(), "같은 값에서 늘 같은 배치");
   assert.ok(trees.length >= 30, String(trees.length));
@@ -299,4 +299,13 @@ test("#19-S9 예시 지도의 나무는 항상 같은 배치로 공원 안에만
   for (let i = 0; i < trees.length; i += 1)
     for (let j = i + 1; j < trees.length; j += 1)
       assert.ok(Math.hypot(trees[i].x - trees[j].x, trees[i].y - trees[j].y) >= 2.6, `${i}-${j}`);
+});
+
+test("#19-S11 예시 지도의 강과 지명은 가로로 넓은 화면(1280×640)에서 보이는 세로 범위 안에 있다", () => {
+  assert.ok(RIVER.lowestY <= WIDE_VISIBLE.maxY, `강의 가장 낮은 곳 ${RIVER.lowestY}`);
+  for (const label of LABELS) {
+    assert.ok(label.y >= WIDE_VISIBLE.minY && label.y <= WIDE_VISIBLE.maxY, `${label.text} y=${label.y}`);
+    assert.ok(label.x >= 0 && label.x <= 100, `${label.text} x=${label.x}`);
+  }
+  assert.ok(LABELS.some((label) => label.water), "강 이름이 있다");
 });

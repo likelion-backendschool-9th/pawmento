@@ -1,12 +1,13 @@
 import { useId } from "react";
-import { PARK, parkTrees } from "./staticMapShapes";
+import { LABELS, PARK, RIVER, parkTrees } from "./staticMapShapes";
 import styles from "./StaticMapBackdrop.module.css";
 
 const TREES = parkTrees();
 
 // 네이버 지도 키가 없을 때 쓰는 예시 지도의 바탕: 블록과 도로, 공원(나무), 강, 지명.
 // 화면 비율이 달라도 가운데가 보이도록 잘라 채운다(slice). 색은 부모의 --map-* 변수를 따라 모드(일상·정원)마다 달라진다.
-export function StaticMapBackdrop() {
+// labels를 끄면 지명(서울숲 등)을 그리지 않는다. 위치를 고르는 화면은 실제 좌표와 무관한 지명이 보이면 오인할 수 있어 끈다.
+export function StaticMapBackdrop({ labels = true }: { labels?: boolean }) {
   // 같은 화면에 바탕이 둘 이상 있어도 패턴 id가 겹치지 않게 한다(콜론은 url() 참조에서 빼 둔다)
   const blocks = `map-blocks-${useId().replace(/:/g, "")}`;
   return (
@@ -23,8 +24,9 @@ export function StaticMapBackdrop() {
           <rect x="0.75" y="0.7" width="17.5" height="15.6" rx="2" className={styles.block} />
         </pattern>
       </defs>
-      <rect x="-60" y="-60" width="220" height="220" className={styles.road} />
-      <rect x="-60" y="-60" width="220" height="220" fill={`url(#${blocks})`} />
+      {/* 도로·블록은 화면 밖까지 이어진다. 위치 고르기에서 지도를 끌어도 배경이 비지 않는다 */}
+      <rect x="-500" y="-500" width="1100" height="1100" className={styles.road} />
+      <rect x="-500" y="-500" width="1100" height="1100" fill={`url(#${blocks})`} />
 
       {/* 큰 길(오른쪽 아래로 뻗는 대로) */}
       <path d="M46 61 L120 96" className={styles.avenueCasing} />
@@ -38,14 +40,15 @@ export function StaticMapBackdrop() {
       ))}
 
       {/* 강 */}
-      <path d="M-20 90 C 20 84, 60 96, 120 86 L120 130 L-20 130 Z" className={styles.water} />
-      <path d="M-20 90 C 20 84, 60 96, 120 86" className={styles.shore} />
+      <path d={`${RIVER.top} ${RIVER.bottom}`} className={styles.water} />
+      <path d={RIVER.top} className={styles.shore} />
 
-      {/* 지명 */}
-      <text x="40" y="52" className={styles.label}>서울숲</text>
-      <text x="2" y="74" className={styles.label}>뚝섬로</text>
-      <text x="38" y="101" className={styles.waterLabel}>한강</text>
-      <text x="88" y="60" className={styles.label}>아차산로</text>
+      {labels &&
+        LABELS.map((label) => (
+          <text key={label.text} x={label.x} y={label.y} className={label.water ? styles.waterLabel : styles.label}>
+            {label.text}
+          </text>
+        ))}
     </svg>
   );
 }

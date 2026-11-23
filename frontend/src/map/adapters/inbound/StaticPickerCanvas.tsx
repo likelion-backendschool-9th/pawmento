@@ -75,7 +75,7 @@ export function StaticPickerCanvas({
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         aria-hidden="true"
       >
-        <StaticMapBackdrop />
+        <StaticMapBackdrop labels={false} />
       </div>
     </div>
   );
