@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.pawmento.community.application.port.in.report.ListReportsUseCase;
 
-import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 
 // 실제 조회 어댑터가 준비되면 컨트롤러를 등록한다.
 @RequestMapping("/admin/reports")
@@ -16,8 +16,9 @@ abstract class AdminReportController {
 	}
 
 	@GetMapping
-	ReportListResponse list(@Valid ListReportsRequest request) {
-		return ReportListResponse.from(listReports.list(request.toQuery()));
+	ReportListResponse list(HttpServletRequest request) {
+		var criteria = ReportListQueryParameters.parse(request.getQueryString());
+		return ReportListResponse.from(listReports.list(criteria.toQuery()));
 	}
 
 }
