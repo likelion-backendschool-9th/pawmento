@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import com.pawmento.community.adapter.in.web.report.exception.InvalidReportIdException;
 import com.pawmento.community.application.port.in.report.GetReportDetailQuery;
@@ -14,7 +13,9 @@ import com.pawmento.community.application.port.in.report.ListReportsUseCase;
 import com.pawmento.community.application.port.in.report.ProcessReportUseCase;
 import com.pawmento.global.security.LoginMember;
 
-// ADMIN 경로 보호와 실제 조회·처리 어댑터가 준비되면 컨트롤러를 등록한다.
+import jakarta.servlet.http.HttpServletRequest;
+
+// 실제 목록·상세 조회와 처리 어댑터가 준비되면 컨트롤러를 등록한다.
 @RequestMapping("/admin/reports")
 abstract class AdminReportController {
 	private final ListReportsUseCase listReports;
@@ -29,11 +30,9 @@ abstract class AdminReportController {
 	}
 
 	@GetMapping
-	ReportListResponse list(@RequestParam(name = "status", required = false) String status,
-			@RequestParam(name = "size", required = false) String size,
-			@RequestParam(name = "cursor", required = false) String cursor) {
-		var query = new ListReportsRequest(status, size, cursor).toQuery();
-		return ReportListResponse.from(listReports.list(query));
+	ReportListResponse list(HttpServletRequest request) {
+		var criteria = ReportListQueryParameters.parse(request.getQueryString());
+		return ReportListResponse.from(listReports.list(criteria.toQuery()));
 	}
 
 	@GetMapping("/{reportId}")
