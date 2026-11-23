@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { MapPoint } from "@/map/domain/MapBounds";
+import { StaticMapBackdrop } from "./StaticMapBackdrop";
 import styles from "./LocationPicker.module.css";
 
 // 지도 키가 없거나 네이버 지도를 불러오지 못할 때 쓰는 예시 지도. 끌어서 움직이면 가운데 좌표가 따라 바뀐다.
@@ -74,9 +75,7 @@ export function StaticPickerCanvas({
         style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
         aria-hidden="true"
       >
-        <span className={styles.park} />
-        <span className={styles.river} />
-        <span className={styles.avenue} />
+        <StaticMapBackdrop />
       </div>
     </div>
   );

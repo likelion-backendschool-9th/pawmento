@@ -21,6 +21,7 @@ import { isDemoAccount } from "../src/auth/domain/account.ts";
 import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../src/map/adapters/outbound/DemoMapPinRepository.ts";
 import { PetScopedMapPinRepository } from "../src/map/adapters/outbound/PetScopedMapPinRepository.ts";
+import { PARK, parkTrees } from "../src/map/adapters/inbound/staticMapShapes.ts";
 import { pinMarkup } from "../src/map/adapters/inbound/pinMarkup.ts";
 import {
   isOpenableDiary,
@@ -285,4 +286,17 @@ test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 �
   assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
   assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
   assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
+});
+
+test("#19-S9 예시 지도의 나무는 항상 같은 배치로 공원 안에만 놓이고 서로 겹치지 않는다", () => {
+  const trees = parkTrees();
+  assert.deepEqual(trees, parkTrees(), "같은 값에서 늘 같은 배치");
+  assert.ok(trees.length >= 30, String(trees.length));
+  for (const tree of trees) {
+    assert.ok(((tree.x - PARK.cx) / PARK.rx) ** 2 + ((tree.y - PARK.cy) / PARK.ry) ** 2 <= 1, JSON.stringify(tree));
+    assert.ok(tree.r > 0 && tree.r < 2);
+  }
+  for (let i = 0; i < trees.length; i += 1)
+    for (let j = i + 1; j < trees.length; j += 1)
+      assert.ok(Math.hypot(trees[i].x - trees[j].x, trees[i].y - trees[j].y) >= 2.6, `${i}-${j}`);
 });
