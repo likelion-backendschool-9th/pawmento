@@ -9,12 +9,15 @@ import org.springframework.stereotype.Service;
 
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.exception.LocalDataSyncFailedException.Reason;
+import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
 import com.pawmento.map.application.port.out.AppliedPlaces;
+import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
+import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.application.port.out.StorePlacesPort;
 import com.pawmento.map.domain.LocalDataExclusion;
 import com.pawmento.map.domain.LocalDataPlaceFactory;
@@ -36,9 +39,25 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 
 	private final StorePlacesPort storePlacesPort;
 
+	private final PlaceSyncLockPort lockPort;
+
+	private final CheckPlaceSyncAdminPort adminPort;
+
+	// 관리자가 요청했으면 현재 관리자인지 먼저 확인하고, 같은 종류를 이미 가져오는 중이면 받지 않고 거절한다. 잠금은 받기 전에 잡아서
+	// 저장이 끝난 뒤에 놓는다(#172-S22)
 	@Override
 	public SyncLocalDataPlacesResult sync(SyncLocalDataPlacesCommand command) {
 		PlaceCategory category = toCategory(command.category());
+		if (command.requestedBy() != null) {
+			adminPort.requireAdmin(command.requestedBy());
+		}
+		try (PlaceSyncLockPort.SyncLock lock = lockPort.tryAcquire(category)
+			.orElseThrow(PlaceSyncAlreadyRunningException::new)) {
+			return syncLocked(category);
+		}
+	}
+
+	private SyncLocalDataPlacesResult syncLocked(PlaceCategory category) {
 		LocalDataSnapshot snapshot = loadLocalDataPort.load(category);
 
 		// 수집하는 동안 원본이 바뀌었으면 어느 시점의 전체인지 알 수 없다

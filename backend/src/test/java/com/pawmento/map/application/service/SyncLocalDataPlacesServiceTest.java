@@ -5,15 +5,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
+import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.out.AppliedPlaces;
+import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
+import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.domain.LocalDataRecord;
 import com.pawmento.map.domain.PlaceCategory;
 import com.pawmento.map.domain.PlaceDraft;
@@ -60,7 +65,7 @@ class SyncLocalDataPlacesServiceTest {
 	}
 
 	private static SyncLocalDataPlacesService service(LocalDataSnapshot snapshot, FakeStore store) {
-		return new SyncLocalDataPlacesService(category -> snapshot, new StorePlacesPortStub(store));
+		return new SyncLocalDataPlacesService(category -> snapshot, new StorePlacesPortStub(store), new FakeLocks(), new FakeAdmin());
 	}
 
 	private static SyncLocalDataPlacesResult sync(SyncLocalDataPlacesService service) {
@@ -177,7 +182,7 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 		var failing = new SyncLocalDataPlacesService(category -> {
 			throw LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
-		}, new StorePlacesPortStub(store));
+		}, new StorePlacesPortStub(store), new FakeLocks(), new FakeAdmin());
 
 		assertThatThrownBy(() -> sync(failing)).isInstanceOfSatisfying(LocalDataSyncFailedException.class,
 				e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.FETCH_FAILED));
@@ -240,8 +245,129 @@ class SyncLocalDataPlacesServiceTest {
 			.isInstanceOf(IllegalArgumentException.class);
 	}
 
+	@Test
+	@DisplayName("#172-S22 같은 종류를 이미 다른 곳이 가져오는 중이면 받기도 저장도 하지 않고 이미 실행 중이라고 알린다")
+	void rejectsWhenAnotherRunHoldsTheLock() {
+		var locks = new FakeLocks();
+		locks.available = false;
+		var store = new FakeStore();
+		boolean[] loaded = { false };
+		var service = new SyncLocalDataPlacesService(category -> {
+			loaded[0] = true;
+			return new LocalDataSnapshot(1, 1, actives(1));
+		}, new StorePlacesPortStub(store), locks, new FakeAdmin());
+
+		assertThatThrownBy(() -> sync(service)).isInstanceOf(PlaceSyncAlreadyRunningException.class);
+
+		assertThat(loaded[0]).isFalse();
+		assertThat(store.calls).isEmpty();
+		assertThat(locks.events).containsExactly("acquire HOSPITAL");
+	}
+
+	@Test
+	@DisplayName("#172-S22 잠금은 받기 전에 잡고 저장한 뒤에 놓으며, 종류마다 따로 잡는다")
+	void holdsTheLockAroundTheWholeRun() {
+		var locks = new FakeLocks();
+		var events = locks.events;
+		var store = new FakeStore();
+		var service = new SyncLocalDataPlacesService(category -> {
+			events.add("load " + category);
+			return new LocalDataSnapshot(1, 1, actives(1));
+		}, new StorePlacesPortStub(store) {
+			@Override
+			public AppliedPlaces replace(PlaceCategory category, List<PlaceDraft> drafts) {
+				events.add("replace " + category);
+				return super.replace(category, drafts);
+			}
+		}, locks, new FakeAdmin());
+
+		service.sync(new SyncLocalDataPlacesCommand("GROOMING"));
+
+		assertThat(events).containsExactly("acquire GROOMING", "load GROOMING", "replace GROOMING", "release GROOMING");
+	}
+
+	@Test
+	@DisplayName("#172-S22 받기가 실패해도 잠금을 놓는다. 안 놓으면 다음 실행이 영영 막힌다")
+	void releasesTheLockWhenTheRunFails() {
+		var locks = new FakeLocks();
+		var service = new SyncLocalDataPlacesService(category -> {
+			throw LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
+		}, new StorePlacesPortStub(new FakeStore()), locks, new FakeAdmin());
+
+		assertThatThrownBy(() -> sync(service)).isInstanceOf(LocalDataSyncFailedException.class);
+
+		assertThat(locks.events).containsExactly("acquire HOSPITAL", "release HOSPITAL");
+	}
+
+	@Test
+	@DisplayName("#172-S22 관리자가 요청하면 현재 관리자인지 확인하고, 아니면 받지도 잠그지도 않는다. 시스템(자동 실행)은 확인하지 않는다")
+	void checksAdminOnlyForManualRuns() {
+		var admin = new FakeAdmin();
+		var locks = new FakeLocks();
+		var store = new FakeStore();
+		boolean[] loaded = { false };
+		var service = new SyncLocalDataPlacesService(category -> {
+			loaded[0] = true;
+			return new LocalDataSnapshot(1, 1, actives(1));
+		}, new StorePlacesPortStub(store), locks, admin);
+
+		service.sync(new SyncLocalDataPlacesCommand("HOSPITAL"));
+		assertThat(admin.checked).isEmpty();
+
+		service.sync(new SyncLocalDataPlacesCommand(7L, "HOSPITAL"));
+		assertThat(admin.checked).containsExactly(7L);
+
+		admin.allow = false;
+		loaded[0] = false;
+		locks.events.clear();
+		assertThatThrownBy(() -> service.sync(new SyncLocalDataPlacesCommand(8L, "HOSPITAL")))
+			.isInstanceOf(PlaceSyncAdminDeniedException.class);
+		assertThat(loaded[0]).isFalse();
+		assertThat(locks.events).isEmpty();
+	}
+
+	// 가짜 잠금: 잡고 놓은 순서를 기록한다. available=false면 이미 다른 곳이 돌리는 중이다
+	private static class FakeLocks implements PlaceSyncLockPort {
+
+		boolean available = true;
+
+		final List<String> events = new ArrayList<>();
+
+		@Override
+		public Optional<SyncLock> tryAcquire(PlaceCategory category) {
+			events.add("acquire " + category);
+			if (!available) {
+				return Optional.empty();
+			}
+			return Optional.of(() -> events.add("release " + category));
+		}
+
+	}
+
+	private static class FakeAdmin implements CheckPlaceSyncAdminPort {
+
+		final List<Long> checked = new ArrayList<>();
+
+		boolean allow = true;
+
+		@Override
+		public void requireAdmin(Long memberId) {
+			checked.add(memberId);
+			if (!allow) {
+				throw new PlaceSyncAdminDeniedException();
+			}
+		}
+
+	}
+
 	// FakeStore를 StorePlacesPort로 쓰는 얇은 어댑터
-	private record StorePlacesPortStub(FakeStore store) implements com.pawmento.map.application.port.out.StorePlacesPort {
+	private static class StorePlacesPortStub implements com.pawmento.map.application.port.out.StorePlacesPort {
+
+		private final FakeStore store;
+
+		StorePlacesPortStub(FakeStore store) {
+			this.store = store;
+		}
 
 		@Override
 		public int countByCategory(PlaceCategory category) {
