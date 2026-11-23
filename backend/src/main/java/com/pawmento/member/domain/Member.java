@@ -72,7 +72,7 @@ public class Member {
 		return passwordHash != null;
 	}
 
-	public void changeNickname(String nickname, Instant now, java.time.ZoneId zone) {
+	public void changeNickname(String nickname, String newTag, Instant now, java.time.ZoneId zone) {
 		String trimmed = requireNickname(nickname);
 		if (trimmed.equals(this.nickname)) {
 			return;
@@ -85,6 +85,7 @@ public class Member {
 			}
 		}
 		this.nickname = trimmed;
+		this.tag = requireTag(newTag);
 		this.nicknameChangedAt = now;
 	}
 

@@ -50,12 +50,14 @@ class MemberPersistenceTest {
 		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", tags.next("보호자"), createdAt);
 		Member saved = saveMemberPort.save(original);
 		Member loaded = loadMemberPort.loadById(saved.getId()).orElseThrow();
-		loaded.changeNickname("콩이 보호자", changedAt, ZoneId.of("Asia/Seoul"));
+		String newTag = tags.next("콩이 보호자", loaded.getTag());
+		loaded.changeNickname("콩이 보호자", newTag, changedAt, ZoneId.of("Asia/Seoul"));
 		// 순수 도메인을 바꾸는 것만으로 DB가 더티 체킹되지 않는다.
 		assertThat(loadMemberPort.loadById(saved.getId()).orElseThrow().getNickname()).isEqualTo("보호자");
 		saveMemberPort.save(loaded);
 		Member restored = loadMemberPort.loadByEmail(saved.getEmail()).orElseThrow();
 		assertThat(restored.getNickname()).isEqualTo("콩이 보호자");
+		assertThat(restored.getTag()).isEqualTo(newTag);
 		assertThat(restored.getNicknameChangedAt()).isEqualTo(changedAt);
 		assertThat(restored.getPasswordHash()).isEqualTo("password-hash");
 		assertThat(restored.getCreatedAt()).isEqualTo(createdAt);
