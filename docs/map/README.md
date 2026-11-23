@@ -4,12 +4,13 @@
 
 ## 이슈와 문서
 
-| 이슈 | 내용 | 문서 |
-| --- | --- | --- |
-| [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44) | 다이어리 사진 GPS로 지도 핀 자동 연결 | [photo-location.md](photo-location.md) |
-| [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19) | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [memory-location.md](memory-location.md) |
-| [#73](https://github.com/likelion-backendschool-9th/pawmento/issues/73) | 산책로 기록과 날짜별 보기 | [walk-route.md](walk-route.md) |
-| [#172](https://github.com/likelion-backendschool-9th/pawmento/issues/172) | 정보 지도: 동물병원·동물미용·동물보호센터 | [animal-places.md](animal-places.md) |
+| 이슈                                                                      | 내용                                                | 문서                                     |
+| ------------------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
+| [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44)   | 다이어리 사진 GPS로 지도 핀 자동 연결               | [photo-location.md](photo-location.md)   |
+| [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19)   | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [memory-location.md](memory-location.md) |
+| [#73](https://github.com/likelion-backendschool-9th/pawmento/issues/73)   | 산책로 기록과 날짜별 보기                           | [walk-route.md](walk-route.md)           |
+| [#167](https://github.com/likelion-backendschool-9th/pawmento/issues/167) | 새로고침 후 진행 중인 산책 복원                     | [walk-resume.md](walk-resume.md)         |
+| [#172](https://github.com/likelion-backendschool-9th/pawmento/issues/172) | 정보 지도: 동물병원·동물미용·동물보호센터           | [animal-places.md](animal-places.md)     |
 
 ## 정한 것
 
@@ -42,17 +43,17 @@
 
 `diary_location` 테이블
 
-| 컬럼 | 설명 |
-| --- | --- |
-| `id` | 위치 id. 자동 증가 |
-| `diary_id` | 실제 diary 일기의 서버 발급 ID(`diaryId`). 유니크(일기 하나에 위치 하나). 질문 답변 ID와 별개이며 다른 도메인의 엔티티를 참조하지 않고 ID만 저장한다 (고침 #80: ID 의미 통일) |
-| `pet_id` | 반려동물 id. 핀 조회를 위해 함께 저장한다 |
-| `created_by` | diary가 전달한 일기의 원 작성자 회원 ID. 요청 본문에서 받지 않으며 1단계 핀 조회의 접근 기준이다 |
-| `latitude`, `longitude` | 위도, 경도 |
-| `place_name` | 장소 이름 또는 주소. 비어 있을 수 있다 |
-| `source`, `source_asset_id` | 위치의 출처와 사진 자산 ID. 지금은 `MANUAL`(직접 고른 위치)만 있고 `source_asset_id`는 비어 있다. 사진 GPS에서 고른 위치(`PHOTO_EXIF`)는 위치 동의 정책이 정해진 뒤에 더한다. `source`는 NOT NULL이고 기존 행을 채우도록 기본값 `MANUAL`을 둔다 (고침 #44: 열 추가) |
-| `source_revision` | 이 위치를 마지막으로 반영한 revision(다이어리가 확정한 버전). NOT NULL이고 기본값 0이라 기존 행도 0이다. 존재하는 위치 행의 높은 revision만 갱신. 위치 없음/일기 삭제 시 행을 실제 삭제하며 삭제 표시는 없음 (고침 #53: 부모 트랜잭션으로 동시성 보호, 고침 #44: 열 추가) |
-| `created_at`, `updated_at` | 저장·수정 시각 |
+| 컬럼                        | 설명                                                                                                                                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                        | 위치 id. 자동 증가                                                                                                                                                                                                                                                        |
+| `diary_id`                  | 실제 diary 일기의 서버 발급 ID(`diaryId`). 유니크(일기 하나에 위치 하나). 질문 답변 ID와 별개이며 다른 도메인의 엔티티를 참조하지 않고 ID만 저장한다 (고침 #80: ID 의미 통일)                                                                                             |
+| `pet_id`                    | 반려동물 id. 핀 조회를 위해 함께 저장한다                                                                                                                                                                                                                                 |
+| `created_by`                | diary가 전달한 일기의 원 작성자 회원 ID. 요청 본문에서 받지 않으며 1단계 핀 조회의 접근 기준이다                                                                                                                                                                          |
+| `latitude`, `longitude`     | 위도, 경도                                                                                                                                                                                                                                                                |
+| `place_name`                | 장소 이름 또는 주소. 비어 있을 수 있다                                                                                                                                                                                                                                    |
+| `source`, `source_asset_id` | 위치의 출처와 사진 자산 ID. 지금은 `MANUAL`(직접 고른 위치)만 있고 `source_asset_id`는 비어 있다. 사진 GPS에서 고른 위치(`PHOTO_EXIF`)는 위치 동의 정책이 정해진 뒤에 더한다. `source`는 NOT NULL이고 기존 행을 채우도록 기본값 `MANUAL`을 둔다 (고침 #44: 열 추가)       |
+| `source_revision`           | 이 위치를 마지막으로 반영한 revision(다이어리가 확정한 버전). NOT NULL이고 기본값 0이라 기존 행도 0이다. 존재하는 위치 행의 높은 revision만 갱신. 위치 없음/일기 삭제 시 행을 실제 삭제하며 삭제 표시는 없음 (고침 #53: 부모 트랜잭션으로 동시성 보호, 고침 #44: 열 추가) |
+| `created_at`, `updated_at`  | 저장·수정 시각                                                                                                                                                                                                                                                            |
 
 산책로는 `walks`와 `walk_points` 두 테이블에 따로 저장한다. 필드와 제약은 [walk-route.md](walk-route.md#데이터-구조)에 있다.
 
@@ -60,19 +61,19 @@
 
 정보 지도의 `places` 테이블 (#172, 계획 단계의 제안이며 [네이밍 통일 #29](https://github.com/likelion-backendschool-9th/pawmento/issues/29)에 맞춘다)
 
-| 컬럼 | 설명 |
-| --- | --- |
-| `id` | 장소 id. 자동 증가 |
-| `category` | `HOSPITAL`, `GROOMING`, `SHELTER`. 종류를 더해도 테이블을 만들지 않는다 |
-| `source_id` | 출처의 키. 인허가는 관리번호(18자리 문자열), 보호센터는 `careRegNo`. `(category, source_id)`가 유니크 |
-| `name` | 장소 이름 |
-| `address` | 도로명 주소. 미용 장소는 번지가 `*`로 가려진 채로 저장한다 |
-| `phone` | 걸 수 있는 번호만 하이픈을 붙여 저장. 없으면 비어 있다 |
-| `latitude`, `longitude` | WGS84 위도·경도 |
-| `open24h`, `open24h_basis` | 24시간 영업 여부와 근거(`NAME`=이름 기반 추정, `HOURS`=제공된 운영 시간) |
+| 컬럼                           | 설명                                                                                                                       |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| `id`                           | 장소 id. 자동 증가                                                                                                         |
+| `category`                     | `HOSPITAL`, `GROOMING`, `SHELTER`. 종류를 더해도 테이블을 만들지 않는다                                                    |
+| `source_id`                    | 출처의 키. 인허가는 관리번호(18자리 문자열), 보호센터는 `careRegNo`. `(category, source_id)`가 유니크                      |
+| `name`                         | 장소 이름                                                                                                                  |
+| `address`                      | 도로명 주소. 미용 장소는 번지가 `*`로 가려진 채로 저장한다                                                                 |
+| `phone`                        | 걸 수 있는 번호만 하이픈을 붙여 저장. 없으면 비어 있다                                                                     |
+| `latitude`, `longitude`        | WGS84 위도·경도                                                                                                            |
+| `open24h`, `open24h_basis`     | 24시간 영업 여부와 근거(`NAME`=이름 기반 추정, `HOURS`=제공된 운영 시간)                                                   |
 | `opening_hours`, `closed_days` | 보호센터의 운영 시간과 휴무일. 휴무 정보가 없으면 `closed_days`는 `null`이고 연중무휴로 풀지 않는다. 병원·미용은 비어 있다 |
-| `source_updated_at` | 출처가 알려 준 기준 시각 |
-| `created_at`, `updated_at` | 저장·수정 시각 |
+| `source_updated_at`            | 출처가 알려 준 기준 시각                                                                                                   |
+| `created_at`, `updated_at`     | 저장·수정 시각                                                                                                             |
 
 조회 인덱스는 `(category, latitude, longitude)`로 시작하고, 데이터를 적재해 실행 계획을 확인한 뒤 바꾼다.
 

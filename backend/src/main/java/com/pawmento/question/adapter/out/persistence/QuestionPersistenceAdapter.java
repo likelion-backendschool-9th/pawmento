@@ -4,6 +4,8 @@ import com.pawmento.question.application.port.out.*;
 import com.pawmento.question.domain.Question;
 import com.pawmento.question.domain.QuestionFilter;
 import com.pawmento.question.domain.QuestionMode;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -13,8 +15,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort {
+class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestionsPort, LoadQuestionPort, SaveQuestionPort {
   private final QuestionJpaRepository repository;
+  @PersistenceContext private EntityManager entityManager;
 
   @Override
   public List<Question> loadByMode(QuestionMode mode) {
@@ -26,6 +29,16 @@ class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestio
             repository.findByModeAndEnabledTrueOrderByIdAsc(mode).stream()
                 .map(QuestionJpaEntity::toDomain)
                 .toList());
+  }
+
+  public Question save(Question question) {
+    return QuestionPersistenceOperations.execute(
+        () -> {
+          var saved = repository.saveAndFlush(QuestionJpaEntity.fromNew(question));
+          // PostgreSQL이 저장한 시각 정밀도로 응답해 이후 목록·상세와 일치시킨다.
+          entityManager.refresh(saved);
+          return saved.toDomain();
+        });
   }
 
   public Optional<Question> findById(Long id) {

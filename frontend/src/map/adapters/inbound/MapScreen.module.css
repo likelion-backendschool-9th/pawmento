@@ -27,39 +27,7 @@
 /* 지도 키가 없을 때 쓰는 예시 지도 */
 .staticMap {
   overflow: hidden;
-  background:
-    linear-gradient(0deg, #ffffff40 1px, transparent 1px) 0 0 / 100% 64px,
-    linear-gradient(90deg, #ffffff40 1px, transparent 1px) 0 0 / 64px 100%,
-    var(--map-land);
-}
-.park {
-  position: absolute;
-  left: -8%;
-  top: 6%;
-  width: 62%;
-  height: 56%;
-  border-radius: 46% 54% 52% 48%;
-  background: var(--map-park);
-}
-.river {
-  position: absolute;
-  left: -10%;
-  right: -10%;
-  bottom: -8%;
-  height: 26%;
-  border-radius: 50% 50% 0 0 / 38% 38% 0 0;
-  background: var(--map-water);
-}
-.avenue {
-  position: absolute;
-  left: 30%;
-  top: 46%;
-  width: 90%;
-  height: 12px;
-  border-radius: 6px;
-  background: var(--map-road);
-  transform: rotate(24deg);
-  transform-origin: left center;
+  background: var(--map-land);
 }
 .pin {
   position: absolute;

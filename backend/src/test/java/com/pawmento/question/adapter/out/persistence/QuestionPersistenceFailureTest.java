@@ -1,17 +1,37 @@
 package com.pawmento.question.adapter.out.persistence;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.pawmento.question.application.exception.QuestionPersistenceUnavailableException;
+import com.pawmento.question.domain.Question;
 import com.pawmento.question.domain.QuestionMode;
+import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.DataIntegrityViolationException;
 
 class QuestionPersistenceFailureTest {
+  @Test
+  @DisplayName("#31-S24 신규 질문 저장의 일시 장애를 분류하고 기존 원본을 덮어쓰지 않는다")
+  void createFailureAndExistingRowGuard() {
+    var repository = mock(QuestionJpaRepository.class);
+    var adapter = new QuestionPersistenceAdapter(repository);
+    var now = Instant.parse("2026-11-23T00:00:00Z");
+    var existing = Question.restore(1L, QuestionMode.ACTIVE, "기존 시드", true, now, now, 0);
+    assertThatThrownBy(() -> adapter.save(existing)).isInstanceOf(IllegalArgumentException.class);
+    verifyNoInteractions(repository);
+    var failure = new DataAccessResourceFailureException("private storage details");
+    when(repository.saveAndFlush(any())).thenThrow(failure);
+    assertThatThrownBy(() -> adapter.save(Question.create(QuestionMode.ACTIVE, "신규 질문", now)))
+        .isInstanceOf(QuestionPersistenceUnavailableException.class).hasCause(failure)
+        .hasMessageNotContaining("private storage details");
+  }
+
   @Test
   @DisplayName("#31-S21 질문 조회의 일시 저장소 장애는 503 계열이고 무결성·프로그래밍 오류는 숨기지 않는다")
   void classifiesStorageFailures() {
