@@ -1,10 +1,12 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import com.pawmento.map.domain.Open24hBasis;
 import com.pawmento.map.domain.Place;
 import com.pawmento.map.domain.PlaceCategory;
+import com.pawmento.map.domain.PlaceDraft;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -74,6 +76,48 @@ class PlaceJpaEntity {
 	private Instant updatedAt;
 
 	protected PlaceJpaEntity() {
+	}
+
+	// 공공데이터에서 가져온 장소로 새 행을 만든다
+	static PlaceJpaEntity from(PlaceDraft draft) {
+		PlaceJpaEntity entity = new PlaceJpaEntity();
+		entity.category = draft.category();
+		entity.sourceId = draft.sourceId();
+		entity.apply(draft);
+		return entity;
+	}
+
+	/**
+	 * 가져온 값으로 바꾼다. 하나라도 달라졌으면 true를 돌려주고, 같으면 아무것도 바꾸지 않아 수정 시각이 그대로다.
+	 * 종류와 관리번호는 행을 찾는 기준이라 바꾸지 않는다.
+	 */
+	boolean apply(PlaceDraft draft) {
+		boolean changed = !Objects.equals(name, draft.name()) || !Objects.equals(address, draft.address())
+				|| !Objects.equals(phone, draft.phone()) || latitude != draft.latitude() || longitude != draft.longitude()
+				|| open24h != draft.open24h() || open24hBasis != draft.open24hBasis()
+				|| !Objects.equals(openingHours, draft.openingHours()) || !Objects.equals(closedDays, draft.closedDays())
+				|| !Objects.equals(sourceUpdatedAt, draft.sourceUpdatedAt());
+		if (changed) {
+			this.name = draft.name();
+			this.address = draft.address();
+			this.phone = draft.phone();
+			this.latitude = draft.latitude();
+			this.longitude = draft.longitude();
+			this.open24h = draft.open24h();
+			this.open24hBasis = draft.open24hBasis();
+			this.openingHours = draft.openingHours();
+			this.closedDays = draft.closedDays();
+			this.sourceUpdatedAt = draft.sourceUpdatedAt();
+		}
+		return changed;
+	}
+
+	String getSourceId() {
+		return sourceId;
+	}
+
+	Long getId() {
+		return id;
 	}
 
 	Place toDomain() {
