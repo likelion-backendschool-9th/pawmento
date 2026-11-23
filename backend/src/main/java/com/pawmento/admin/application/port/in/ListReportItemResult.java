@@ -6,9 +6,16 @@ import java.time.Instant;
 public record ListReportItemResult(
 		Long reportId,
 		Long postId,
-		String status,
-		String reasonType,
+		ListReportsQuery.Status status,
+		ReasonType reasonType,
 		Instant createdAt,
 		String snapshotTitle,
-		String postState) {
+		PostState postState) {
+	public enum ReasonType {
+		SPAM, ABUSE, HARMFUL, MISINFO, PRIVACY, OTHER
+	}
+
+	public enum PostState {
+		VISIBLE, HIDDEN, DELETED
+	}
 }
