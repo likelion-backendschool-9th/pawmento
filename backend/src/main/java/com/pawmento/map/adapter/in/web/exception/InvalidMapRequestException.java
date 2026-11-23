@@ -29,6 +29,11 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 YYYY-MM-DD 형식으로 입력해 주세요.");
 	}
 
+	public static InvalidMapRequestException invalidCategories(String name) {
+		return new InvalidMapRequestException(
+				name + "는 HOSPITAL, GROOMING, SHELTER 중에서 쉼표로 구분해 한 번씩만 입력해 주세요.");
+	}
+
 	public static InvalidMapRequestException latitudeOutOfRange() {
 		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
 	}

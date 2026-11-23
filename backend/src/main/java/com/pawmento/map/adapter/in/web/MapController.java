@@ -18,6 +18,8 @@ import com.pawmento.map.application.port.in.GetCurrentWalkQuery;
 import com.pawmento.map.application.port.in.GetCurrentWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
+import com.pawmento.map.application.port.in.ListPlacesQuery;
+import com.pawmento.map.application.port.in.ListPlacesUseCase;
 import com.pawmento.map.application.port.in.ListWalksQuery;
 import com.pawmento.map.application.port.in.ListWalksUseCase;
 import com.pawmento.map.application.port.in.StartWalkCommand;
@@ -34,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 class MapController {
 
 	private final ListMapPinsUseCase listMapPinsUseCase;
+	private final ListPlacesUseCase listPlacesUseCase;
 	private final StartWalkUseCase startWalkUseCase;
 	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
@@ -51,6 +54,16 @@ class MapController {
 		return MapPinsResponse.from(listMapPinsUseCase.list(pinsQuery));
 	}
 
+	// 병원·미용·보호센터를 영역 안에서 찾는다. 장소는 반려동물과 상관없어 petId를 받지 않는다
+	@GetMapping("/places")
+	PlacesResponse listPlaces(@LoginMember Long memberId, HttpServletRequest http) {
+		// 쿼리 문자열만 읽는다(핀 조회와 같은 이유). 로그인은 필요하지만 장소는 모든 회원이 같이 본다
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "minLatitude", "minLongitude",
+				"maxLatitude", "maxLongitude", "categories");
+		return PlacesResponse.from(listPlacesUseCase.list(new ListPlacesQuery(query.latitude("minLatitude"),
+				query.longitude("minLongitude"), query.latitude("maxLatitude"), query.longitude("maxLongitude"),
+				query.placeCategories("categories"))));
+	}
 
 	@GetMapping("/walks")
 	WalksResponse listWalks(@LoginMember Long memberId, HttpServletRequest http) {

@@ -8,6 +8,7 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,7 @@ import java.util.regex.Pattern;
 
 import com.pawmento.map.adapter.in.web.exception.CoordinateRange;
 import com.pawmento.map.adapter.in.web.exception.InvalidMapRequestException;
+import com.pawmento.map.domain.PlaceCategory;
 
 /**
  * 요청의 원본 쿼리 문자열만 읽어 이 API가 받는 키의 값을 엄격하게 해석한다.
@@ -127,6 +129,27 @@ final class MapQueryParameters {
 			}
 		}
 		throw InvalidMapRequestException.invalidDate(name);
+	}
+
+	// 쉼표로 구분한 장소 종류. 보내지 않으면 모든 종류다. 소문자, 없는 종류, 빈 항목, 공백, 중복은 거절한다
+	Set<PlaceCategory> placeCategories(String name) {
+		String value = values.get(name);
+		if (value == null) {
+			return EnumSet.allOf(PlaceCategory.class);
+		}
+		Set<PlaceCategory> categories = EnumSet.noneOf(PlaceCategory.class);
+		for (String item : value.split(",", -1)) {
+			PlaceCategory category = null;
+			for (PlaceCategory candidate : PlaceCategory.values()) {
+				if (candidate.name().equals(item)) {
+					category = candidate;
+				}
+			}
+			if (category == null || !categories.add(category)) {
+				throw InvalidMapRequestException.invalidCategories(name);
+			}
+		}
+		return categories;
 	}
 
 	private String required(String name) {
