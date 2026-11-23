@@ -87,6 +87,17 @@ class WalkPersistenceAdapter
 	}
 
 	@Override
+	public Optional<Walk> loadOpenWalkActiveSince(Long createdBy, Long petId, Instant activeSince) {
+		if (createdBy == null || petId == null || activeSince == null) {
+			throw new IllegalArgumentException("회원, 반려동물, 기준 시각이 필요합니다.");
+		}
+		return execute(() -> walkJpaRepository
+			.findFirstByCreatedByAndPetIdAndEndedAtIsNullAndLastActivityAtGreaterThanEqualOrderByStartedAtDescIdDesc(
+					createdBy, petId, activeSince)
+			.map(WalkJpaEntity::toDomain));
+	}
+
+	@Override
 	public boolean existsOpenWalkActiveSince(Long petId, Instant activeSince) {
 		return execute(() -> walkJpaRepository
 			.existsByPetIdAndEndedAtIsNullAndLastActivityAtGreaterThanEqual(petId, activeSince));

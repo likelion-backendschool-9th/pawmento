@@ -32,6 +32,14 @@ public interface LoadWalkPort {
 	List<Walk> loadStartedBetween(Long createdBy, Long petId, Instant from, Instant to);
 
 	/**
+	 * 회원이 반려동물과 하고 있는 산책 중 끝내지 않았고 마지막으로 활동한 시각이 기준 시각과 같거나 나중인 것을 읽는다.
+	 * 지금 진행 중인 산책을 찾을 때 쓰며 기준 시각은 지금에서 중단 시간을 뺀 값이다(Walk#status와 같은 기준이라 정확히
+	 * 그 시각에 활동한 산책을 포함한다). 시작한 날짜와 상관없다. 반려동물마다 진행 중인 산책은 하나뿐이지만, 둘이 있어도
+	 * 가장 늦게 시작한 것 하나를 돌려준다.
+	 */
+	Optional<Walk> loadOpenWalkActiveSince(Long createdBy, Long petId, Instant activeSince);
+
+	/**
 	 * 반려동물에게 끝내지 않은 산책이 있고, 그 산책이 마지막으로 활동한 시각이 기준 시각과 같거나 나중인지 알려 준다.
 	 * 진행 중인 산책이 있는지 알아낼 때 쓴다. 기준 시각은 지금에서 중단 시간을 뺀 값이고, 정확히 그 시각에 활동한 산책은
 	 * 아직 진행 중이므로 기준 시각을 포함한다(Walk#status와 같은 기준).
