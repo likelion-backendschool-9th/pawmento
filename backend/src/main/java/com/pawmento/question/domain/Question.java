@@ -51,10 +51,11 @@ public final class Question {
   /** null은 해당 필드를 유지한다. 실제 변경이 없으면 시각도 유지한다. */
   public Question edit(String content, Boolean enabled, Instant now) {
     if (id == null || (content == null && enabled == null)) throw new InvalidQuestionException();
-    var changed = new Question(id, mode, content == null ? this.content : content,
-        enabled == null ? this.enabled : enabled, createdAt, now, version);
-    if (this.content.equals(changed.content) && this.enabled == changed.enabled) return this;
-    return changed;
+    // 입력은 검증하되 동일 값 요청은 새 Clock 값에 영향을 받지 않는다.
+    var validated = new Question(id, mode, content == null ? this.content : content,
+        enabled == null ? this.enabled : enabled, createdAt, updatedAt, version);
+    if (this.content.equals(validated.content) && this.enabled == validated.enabled) return this;
+    return new Question(id, mode, validated.content, validated.enabled, createdAt, now, version);
   }
 
   public static Question restore(

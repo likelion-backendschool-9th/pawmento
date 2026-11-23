@@ -1,6 +1,7 @@
 package com.pawmento.question.adapter.out.persistence;
 
 import com.pawmento.question.application.exception.QuestionPersistenceUnavailableException;
+import com.pawmento.question.application.exception.QuestionModificationConflictException;
 import jakarta.persistence.LockTimeoutException;
 import jakarta.persistence.QueryTimeoutException;
 import java.sql.SQLRecoverableException;
@@ -18,6 +19,8 @@ final class QuestionPersistenceOperations {
     try {
       return action.get();
     } catch (RuntimeException failure) {
+      // 이미 분류한 충돌의 기술 cause를 일시 장애로 다시 포장하지 않는다.
+      if (failure instanceof QuestionModificationConflictException) throw failure;
       for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
         if (cause instanceof TransientDataAccessException
             || cause instanceof RecoverableDataAccessException

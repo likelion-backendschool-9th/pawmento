@@ -26,10 +26,12 @@ class QuestionPersistenceFailureTest {
     var entity = QuestionJpaEntity.fromNew(Question.create(QuestionMode.ACTIVE, "기존 질문", now));
     org.springframework.test.util.ReflectionTestUtils.setField(entity, "id", 1L);
     when(repository.findById(1L)).thenReturn(java.util.Optional.of(entity));
-    org.mockito.Mockito.doThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(QuestionJpaEntity.class, 1L))
+    var conflict = new org.springframework.orm.ObjectOptimisticLockingFailureException(QuestionJpaEntity.class, 1L);
+    org.mockito.Mockito.doThrow(conflict)
         .when(repository).flush();
     assertThatThrownBy(() -> adapter.update(question.edit("바꾼 질문", false, now.plusSeconds(1))))
-        .isInstanceOf(com.pawmento.question.application.exception.QuestionModificationConflictException.class);
+        .isInstanceOf(com.pawmento.question.application.exception.QuestionModificationConflictException.class)
+        .hasCause(conflict).hasMessageNotContaining("QuestionJpaEntity");
   }
 
   @Test

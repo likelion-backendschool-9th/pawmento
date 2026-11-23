@@ -12,6 +12,15 @@ class QuestionTest {
   private static final Instant NOW = Instant.parse("2026-11-20T00:00:00Z");
 
   @Test
+  @DisplayName("#31-S25 동일 값 수정은 Clock이 생성 시각보다 이전이어도 기존 원본을 그대로 반환한다")
+  void noOpDoesNotValidateReplacementTime() {
+    var question = Question.restore(1L, QuestionMode.ACTIVE, "기존 질문", true, NOW, NOW, 0);
+    assertThat(question.edit(" 기존 질문 ", true, NOW.minusNanos(1))).isSameAs(question);
+    assertThatThrownBy(() -> question.edit(" ", true, NOW.minusNanos(1)))
+        .isInstanceOf(InvalidQuestionException.class);
+  }
+
+  @Test
   @DisplayName("#31-S25 질문 수정은 불변 필드·생략 필드를 보존하고 동일 값이면 같은 원본을 반환한다")
   void editsQuestion() {
     var original = Question.restore(1L, QuestionMode.GARDEN, "추억 질문", true, NOW, NOW, 3);

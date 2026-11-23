@@ -33,7 +33,7 @@ class QuestionPersistenceAdapter implements LoadActiveQuestionsPort, LoadQuestio
       try {
         repository.flush();
       } catch (OptimisticLockingFailureException | OptimisticLockException conflict) {
-        throw new QuestionModificationConflictException();
+        throw new QuestionModificationConflictException(conflict);
       }
       entityManager.refresh(entity);
       return entity.toDomain();

@@ -115,6 +115,17 @@ class QuestionAdminUpdateScenarioTest {
   }
 
   @Test
+  @DisplayName("#31-S25 DB 시각 반올림·Clock 역행에도 동일 값 PATCH는 200이며 시각·버전을 유지한다")
+  void noOpBeforeStoredCreationTime() throws Exception {
+    var before = detail();
+    doReturn(before.createdAt().minusNanos(1)).when(clock).instant();
+    patch(json.writeValueAsString(Map.of("content", " " + prefix + " ", "enabled", true, "version", 0)))
+        .andExpect(status().isOk()).andExpect(jsonPath("version").value(0));
+    assertThat(detail()).isEqualTo(before);
+    verify(updates, never()).update(any());
+  }
+
+  @Test
   @DisplayName("#31-S25 내용과 활성을 한 번에 바꿔도 기존 seed_key와 생성 정보는 유지한다")
   void updatesTogetherPreserveSeedKey() throws Exception {
     jdbc.update("update question set seed_key=? where id=?", prefix, id);
