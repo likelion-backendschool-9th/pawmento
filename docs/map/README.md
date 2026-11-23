@@ -9,6 +9,7 @@
 | [#44](https://github.com/likelion-backendschool-9th/pawmento/issues/44) | 다이어리 사진 GPS로 지도 핀 자동 연결 | [photo-location.md](photo-location.md) |
 | [#19](https://github.com/likelion-backendschool-9th/pawmento/issues/19) | 추억 지도 1단계: 기록에 장소 붙이기와 지도에서 보기 | [memory-location.md](memory-location.md) |
 | [#73](https://github.com/likelion-backendschool-9th/pawmento/issues/73) | 산책로 기록과 날짜별 보기 | [walk-route.md](walk-route.md) |
+| [#167](https://github.com/likelion-backendschool-9th/pawmento/issues/167) | 새로고침 후 진행 중인 산책 복원 | [walk-resume.md](walk-resume.md) |
 
 ## 정한 것
 
