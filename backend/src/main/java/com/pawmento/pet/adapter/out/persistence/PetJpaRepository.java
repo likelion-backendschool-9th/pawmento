@@ -10,4 +10,8 @@ public interface PetJpaRepository extends JpaRepository<PetJpaEntity, Long> {
 
 	boolean existsByOwnerMemberIdAndTag(Long ownerMemberId, String tag);
 
+	boolean existsByProfilePhotoAssetId(Long assetId);
+
+	boolean existsByIdAndProfilePhotoAssetId(Long petId, Long assetId);
+
 }

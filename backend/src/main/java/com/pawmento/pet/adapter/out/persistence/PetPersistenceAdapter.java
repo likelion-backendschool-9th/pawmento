@@ -12,6 +12,7 @@ import com.pawmento.pet.application.exception.PetConcurrentModificationException
 import com.pawmento.pet.application.exception.PetHasRecordsException;
 import com.pawmento.pet.application.port.out.DeletePetPort;
 import com.pawmento.pet.application.port.out.LoadPetPort;
+import com.pawmento.pet.application.port.out.LoadPetProfilePhotoReferencePort;
 import com.pawmento.pet.application.port.out.SavePetPort;
 import com.pawmento.pet.domain.Pet;
 
@@ -19,7 +20,8 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePetPort {
+public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePetPort,
+		LoadPetProfilePhotoReferencePort {
 
 	private final PetJpaRepository petJpaRepository;
 
@@ -51,6 +53,16 @@ public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePe
 	@Override
 	public boolean existsByOwnerMemberIdAndTag(Long ownerMemberId, String tag) {
 		return petJpaRepository.existsByOwnerMemberIdAndTag(ownerMemberId, tag);
+	}
+
+	@Override
+	public boolean existsByProfilePhotoAssetId(Long assetId) {
+		return petJpaRepository.existsByProfilePhotoAssetId(assetId);
+	}
+
+	@Override
+	public boolean existsByIdAndProfilePhotoAssetId(Long petId, Long assetId) {
+		return petJpaRepository.existsByIdAndProfilePhotoAssetId(petId, assetId);
 	}
 
 	@Override

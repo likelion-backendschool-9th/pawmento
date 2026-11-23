@@ -23,7 +23,8 @@ public class CreateMediaUploadService implements CreateMediaUploadUseCase {
   @Transactional
   public GetMediaUploadResult create(CreateMediaUploadCommand c) {
     access.requireWriteAccess(c.memberId(), c.petId());
-    if (c.locationConsent()) throw new MediaLocationConsentUnavailableException();
+    if (c.locationConsent() && !MediaPurpose.PET_PROFILE.name().equals(c.purpose()))
+      throw new MediaLocationConsentUnavailableException();
     MediaAsset asset =
         MediaAsset.create(
             c.memberId(),

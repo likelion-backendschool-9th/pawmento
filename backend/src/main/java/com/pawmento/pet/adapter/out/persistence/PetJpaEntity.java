@@ -13,6 +13,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.Version;
@@ -22,7 +23,8 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "pets", uniqueConstraints = @UniqueConstraint(name = "uk_pets_owner_tag",
-		columnNames = { "owner_member_id", "tag" }))
+		columnNames = { "owner_member_id", "tag" }),
+		indexes = @Index(name = "ix_pets_profile_photo_asset", columnList = "profile_photo_asset_id"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PetJpaEntity {
@@ -49,6 +51,8 @@ public class PetJpaEntity {
 
 	private LocalDate birthday;
 
+	private Long profilePhotoAssetId;
+
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 16)
 	private PetMode mode;
@@ -65,13 +69,14 @@ public class PetJpaEntity {
 		entity.species = pet.getSpecies();
 		entity.breed = pet.getBreed();
 		entity.birthday = pet.getBirthday();
+		entity.profilePhotoAssetId = pet.getProfilePhotoAssetId();
 		entity.mode = pet.getMode();
 		entity.version = pet.getVersion();
 		return entity;
 	}
 
 	public Pet toDomain() {
-		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version);
+		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, profilePhotoAssetId);
 	}
 
 }
