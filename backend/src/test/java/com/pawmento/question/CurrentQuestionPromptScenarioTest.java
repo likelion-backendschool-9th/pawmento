@@ -222,10 +222,12 @@ class CurrentQuestionPromptScenarioTest {
       try {
         assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
         var b = executor.submit(() -> ensure(pet, 200));
+        // 가족 회수와 직렬화하기 위해 진행 advisory lock보다 pet 행 잠금을 먼저 기다린다.
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (jdbc.queryForObject(
-                "select count(*) from pg_locks where locktype='advisory' and not granted and"
-                    + " database=(select oid from pg_database where datname=current_database())",
+                "select count(*) from pg_stat_activity where pid <> pg_backend_pid()"
+                    + " and wait_event_type='Lock'"
+                    + " and lower(query) like '%from pets where id = % for update%'",
                 Integer.class)
             < 1) {
           if (System.nanoTime() > deadline) throw new AssertionError("DB 잠금 대기 없음");

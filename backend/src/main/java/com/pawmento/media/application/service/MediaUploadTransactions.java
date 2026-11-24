@@ -20,7 +20,7 @@ public class MediaUploadTransactions {
 
   @Transactional
   public MediaAsset claim(Long memberId, Long petId, Long id) {
-    access.requireWriteAccess(memberId, petId);
+    access.requireLockedWriteAccess(memberId, petId);
     MediaAsset a = locked(id);
     a.requireOwner(memberId, petId);
     a.begin(clock.instant());
@@ -29,7 +29,7 @@ public class MediaUploadTransactions {
 
   @Transactional
   public GetMediaUploadResult complete(Long memberId, Long petId, Long id, StoredUpload receipt) {
-    access.requireWriteAccess(memberId, petId);
+    access.requireLockedWriteAccess(memberId, petId);
     MediaAsset a = locked(id);
     a.requireOwner(memberId, petId);
     a.received(receipt, clock.instant());
