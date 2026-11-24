@@ -54,6 +54,48 @@ function featureRootTypeScriptFiles(): string[] {
   });
 }
 
+const browserGlobals = ["window", "document", "localStorage", "sessionStorage", "fetch"];
+
+// (^|/)lib/http(/|$) 또는 /http/
+const httpClientImportPatterns = [/(^|\/)lib\/http(\/|$)/, /\/http\//];
+
+function usedBrowserGlobal(path: string): string | undefined {
+  const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+  let found: string | undefined;
+  function visit(node: ts.Node) {
+    if (found) return;
+    if (ts.isIdentifier(node) && browserGlobals.includes(node.text)) {
+      found = node.text;
+      return;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  return found;
+}
+
+function httpClientSpecifier(path: string): string | undefined {
+  for (const specifier of moduleSpecifiers(path)) {
+    if (httpClientImportPatterns.some((pattern) => pattern.test(specifier))) return specifier;
+  }
+  return undefined;
+}
+
+// 예외 목록의 파일이 없거나, 대상이 아니거나, 더 이상 걸리지 않으면 실패한다.
+function assertCurrentExceptions(
+  exceptions: Record<string, string>,
+  targets: string[],
+  violationIn: (path: string) => string | undefined,
+): void {
+  const names = new Set(targets.map((path) => relative(resolve("."), path)));
+  for (const [name, reason] of Object.entries(exceptions)) {
+    const path = resolve(name);
+    assert.ok(existsSync(path), `${name}은 예외에 있지만 파일이 없다`);
+    assert.ok(names.has(name), `${name}은 예외에 있지만 검사 대상이 아니다`);
+    assert.ok(violationIn(path), `${name}은 예외에 있지만 더 이상 걸리지 않는다 (${reason})`);
+  }
+}
+
 test("#52-S9 기능의 api·types·utils와 lib는 React·Next·mocks를 가져오지 않는다", () => {
   const targets = [
     ...featureLayerFiles("api"),
@@ -73,23 +115,56 @@ test("#52-S9 기능의 api·types·utils와 lib는 React·Next·mocks를 가져�
   }
 });
 
-test("#52-S9 기능의 types와 lib/date·lib/application은 브라우저 전역과 fetch를 쓰지 않는다", () => {
-  const targets = [...featureLayerFiles("types"), resolve("lib/date.ts"), ...files(resolve("lib/application"))];
-  const count = targets.length;
-  assert.ok(count > 0);
+// 파일 경로가 키다. 파일이 없거나 더 이상 HTTP 클라이언트를 가져오지 않으면 실패한다.
+const httpClientImportExceptions: Record<string, string> = {
+  // ApiClient 타입을 받아 HTTP 세션을 만든다.
+  "features/member/session.ts": "ApiClient 타입을 받아 HTTP 세션을 만든다",
+};
+
+test("#52-S9 기능의 types·utils와 기능 폴더 바로 아래 파일은 HTTP 클라이언트를 가져오지 않는다", () => {
+  const targets = [
+    ...featureLayerFiles("types"),
+    ...featureLayerFiles("utils"),
+    ...featureRootTypeScriptFiles(),
+  ];
+  assert.ok(targets.length > 0);
+  assertCurrentExceptions(httpClientImportExceptions, targets, httpClientSpecifier);
   for (const path of targets) {
     const name = relative(resolve("."), path);
-    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-    function visit(node: ts.Node) {
-      if (ts.isIdentifier(node)) {
-        assert.ok(
-          !["window", "document", "localStorage", "sessionStorage", "fetch"].includes(node.text),
-          `${name}: ${node.text}`,
-        );
+    if (name in httpClientImportExceptions) continue;
+    for (const specifier of moduleSpecifiers(path)) {
+      for (const pattern of httpClientImportPatterns) {
+        assert.doesNotMatch(specifier, pattern, `${name} → ${specifier}`);
       }
-      ts.forEachChild(node, visit);
     }
-    visit(file);
+  }
+});
+
+// 파일 경로가 키다. 파일이 없거나 더 이상 브라우저 전역·fetch를 쓰지 않으면 실패한다.
+const browserGlobalExceptions: Record<string, string> = {
+  // 네이버 지도 SDK를 window에서 읽음.
+  "features/map/utils/naverMaps.ts": "네이버 지도 SDK를 window에서 읽음",
+  // document로 내려받기.
+  "features/postcard/utils/downloadPostcard.ts": "document로 내려받기",
+  // #167 서버 복원 확인 뒤 #200에서 제거할 localStorage 저장.
+  "features/map/LocalActiveWalkStore.ts": "#167 서버 복원 확인 뒤 #200에서 제거할 localStorage 저장",
+};
+
+test("#52-S9 기능의 types·utils·바로 아래 파일과 lib/date·lib/application은 브라우저 전역과 fetch를 쓰지 않는다", () => {
+  const targets = [
+    ...featureLayerFiles("types"),
+    ...featureLayerFiles("utils"),
+    ...featureRootTypeScriptFiles(),
+    resolve("lib/date.ts"),
+    ...files(resolve("lib/application")),
+  ];
+  assert.ok(targets.length > 0);
+  assertCurrentExceptions(browserGlobalExceptions, targets, usedBrowserGlobal);
+  for (const path of targets) {
+    const name = relative(resolve("."), path);
+    if (name in browserGlobalExceptions) continue;
+    const globalName = usedBrowserGlobal(path);
+    assert.ok(!globalName, `${name}: ${globalName}`);
   }
 });
 
