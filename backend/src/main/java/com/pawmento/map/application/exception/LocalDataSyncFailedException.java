@@ -26,6 +26,15 @@ public class LocalDataSyncFailedException extends StorageUnavailableException {
 		// 중간 페이지 호출이 실패하거나 시간 초과했다
 		FETCH_FAILED,
 
+		// 받은 행이 하나도 없다(보호센터). 서비스 오류일 수 있어 지도를 비우지 않는다
+		EMPTY_SNAPSHOT,
+
+		// 받은 건수가 요청한 수와 같거나 더 많아 뒤에 더 있을 수 있다(보호센터)
+		POSSIBLY_TRUNCATED,
+
+		// 같은 등록번호가 둘 이상이다(보호센터)
+		DUPLICATE_IDS,
+
 		// 포털이 요청을 거부했다(인증키 없음·미등록·기간 만료, 접근 거부, 호출 한도 초과, 잘못된 요청). 다시 시도해도 같다
 		FETCH_REJECTED
 
@@ -59,11 +68,13 @@ public class LocalDataSyncFailedException extends StorageUnavailableException {
 	}
 
 	/**
-	 * 시간을 두고 다시 하면 성공할 수 있는 실패인가. 필수 항목이 빠진 응답(원본 형식이 바뀜)과 포털이 거부한 요청(키·권한·한도)은 다시
-	 * 해도 같은 결과라서 자동으로 다시 시도하지 않고, 사람이 고쳐야 한다.
+	 * 시간을 두고 다시 하면 성공할 수 있는 실패인가. 필수 항목이 빠진 응답(원본 형식이 바뀜), 포털이 거부한 요청(키·권한·한도),
+	 * 받은 건수가 요청한 수 이상(더 있을 수 있음)이거나 등록번호가 겹치는 보호센터 응답은 다시 해도 같은 결과라서 자동으로 다시
+	 * 시도하지 않고, 사람이 고쳐야 한다.
 	 */
 	public boolean retryable() {
-		return reason != Reason.MISSING_FIELDS && reason != Reason.FETCH_REJECTED;
+		return reason != Reason.MISSING_FIELDS && reason != Reason.FETCH_REJECTED && reason != Reason.POSSIBLY_TRUNCATED
+				&& reason != Reason.DUPLICATE_IDS;
 	}
 
 }

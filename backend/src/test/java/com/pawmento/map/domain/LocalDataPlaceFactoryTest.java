@@ -185,16 +185,16 @@ class LocalDataPlaceFactoryTest {
 	}
 
 	@Test
-	@DisplayName("#172-S1 결과(Outcome)는 장소와 제외 이유 중 정확히 하나만 가진다. 둘 다 없거나 둘 다 있으면 만들 수 없다")
+	@DisplayName("#172-S1 결과(PlaceOutcome)는 장소와 제외 이유 중 정확히 하나만 가진다. 둘 다 없거나 둘 다 있으면 만들 수 없다")
 	void outcomeHasExactlyOneOfDraftAndExclusion() {
 		PlaceDraft draft = LocalDataPlaceFactory.create(PlaceCategory.HOSPITAL, normal()).draft();
 
-		assertThatThrownBy(() -> new LocalDataPlaceFactory.Outcome(null, null))
+		assertThatThrownBy(() -> new PlaceOutcome(null, null))
 			.isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> new LocalDataPlaceFactory.Outcome(draft, LocalDataExclusion.CLOSED))
+		assertThatThrownBy(() -> new PlaceOutcome(draft, LocalDataExclusion.CLOSED))
 			.isInstanceOf(IllegalArgumentException.class);
-		assertThat(new LocalDataPlaceFactory.Outcome(draft, null).excluded()).isFalse();
-		assertThat(new LocalDataPlaceFactory.Outcome(null, LocalDataExclusion.CLOSED).excluded()).isTrue();
+		assertThat(new PlaceOutcome(draft, null).excluded()).isFalse();
+		assertThat(new PlaceOutcome(null, LocalDataExclusion.CLOSED).excluded()).isTrue();
 	}
 
 	@Test

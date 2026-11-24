@@ -39,10 +39,13 @@ import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
+import com.pawmento.map.application.port.out.LoadShelterDataPort;
+import com.pawmento.map.application.port.out.ShelterSnapshot;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
 import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.domain.LocalDataRecord;
 import com.pawmento.map.domain.PlaceCategory;
+import com.pawmento.map.domain.ShelterRecord;
 import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 
@@ -84,13 +87,16 @@ class PlaceSyncAdminScenarioTest {
 	@MockitoBean
 	private LoadLocalDataPort loader;
 
+	@MockitoBean
+	private LoadShelterDataPort shelterLoader;
+
 	private long admin;
 
 	private long user;
 
 	@BeforeEach
 	void setUp() {
-		reset(loader);
+		reset(loader, shelterLoader);
 		jdbc.update("delete from places");
 		String prefix = "sync-" + UUID.randomUUID();
 		admin = signUp.signUp(new SignUpMemberCommand(prefix + "-a@example.com", "password123", "관리자")).id();
@@ -252,11 +258,33 @@ class PlaceSyncAdminScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#172-S22 보호센터는 아직 이 API로 가져올 수 없어 400이다(보호센터 가져오기를 만들 때 풀린다)")
-	void shelterIsNotSupportedYet() throws Exception {
-		ResultActions action = asAdmin("?category=SHELTER");
+	@DisplayName("#172-S22 category=SHELTER로 부르면 보호센터를 가져와 SHELTER로 저장하고, 병원·미용 장소는 건드리지 않는다")
+	void adminRunsTheShelterSync() throws Exception {
+		jdbc.update("""
+				insert into places (category, source_id, name, latitude, longitude, open24h, created_at, updated_at)
+				values ('HOSPITAL', 'h1', '그대로 있어야 하는 병원', 37.5, 127.0, false, now(), now())
+				""");
+		when(shelterLoader.load()).thenReturn(new ShelterSnapshot(500,
+				List.of(new ShelterRecord("c1", "서울 센터", "서울특별시 종로구 1", "02-733-9006", "37.57", "126.98", "00:00",
+						"24:00", "토요일+일요일", "2026-01-02"),
+						new ShelterRecord("c2", "좌표 없는 센터", "주소", null, "", "", null, null, null, null))));
 
-		assertThat(action.andReturn().getResponse().getStatus()).isEqualTo(400);
+		assertThat(asAdmin("?category=SHELTER").andReturn().getResponse().getStatus()).isEqualTo(202);
+		JsonNode status = awaitFinished("SHELTER");
+		assertThat(status.get("state").asText()).isEqualTo("SUCCEEDED");
+		JsonNode body = status.get("result");
+		assertThat(body.get("category").asText()).isEqualTo("SHELTER");
+		assertThat(body.get("read").asInt()).isEqualTo(2);
+		assertThat(body.get("saved").asInt()).isEqualTo(1);
+		assertThat(body.get("noCoordinates").asInt()).isEqualTo(1);
+		assertThat(jdbc.queryForObject("select open24h from places where category='SHELTER' and source_id='c1'",
+				Boolean.class))
+			.isTrue();
+		assertThat(jdbc.queryForObject("select closed_days from places where source_id='c1'", String.class))
+			.isEqualTo("토요일+일요일");
+		assertThat(jdbc.queryForObject("select count(*) from places where category='HOSPITAL' and source_id='h1'",
+				Long.class))
+			.isEqualTo(1);
 		verify(loader, never()).load(any());
 	}
 

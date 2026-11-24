@@ -143,6 +143,17 @@ class PlaceSyncSchedulerTest {
 	}
 
 	@Test
+	@DisplayName("#172-S9 보호센터 응답이 잘렸을 수 있거나(받은 수 = 요청한 수) 등록번호가 겹치면 다시 시도해도 같아서 다시 시도하지 않는다")
+	void shelterShapeProblemsAreNotRetried() {
+		for (var reason : List.of(LocalDataSyncFailedException.Reason.POSSIBLY_TRUNCATED,
+				LocalDataSyncFailedException.Reason.DUPLICATE_IDS)) {
+			assertThat(LocalDataSyncFailedException.rejected(reason).retryable()).as("%s", reason).isFalse();
+		}
+		assertThat(LocalDataSyncFailedException.rejected(LocalDataSyncFailedException.Reason.EMPTY_SNAPSHOT).retryable())
+			.isTrue();
+	}
+
+	@Test
 	@DisplayName("#172-S22 이미 다른 실행이 돌고 있으면(관리자가 수동으로 돌리는 중) 건너뛰고 다시 시도하지 않는다")
 	void alreadyRunningIsSkippedWithoutRetry() {
 		var useCase = new FakeUseCase();
@@ -165,6 +176,25 @@ class PlaceSyncSchedulerTest {
 		new PlaceSyncScheduler(useCase, runner, RETRY_DELAY, 3).trigger();
 
 		assertThat(useCase.calls).containsExactly("HOSPITAL", "GROOMING");
+		assertThat(runner.later).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#172-S8 보호센터는 주 1회 따로 실행하고 병원·미용은 부르지 않으며, 실패하면 같은 규칙으로 다시 시도한다")
+	void sheltersRunWeeklyOnTheirOwn() {
+		var useCase = new FakeUseCase();
+		useCase.failure = category -> fetchFailure();
+		var runner = new ManualRunner();
+		var scheduler = new PlaceSyncScheduler(useCase, runner, RETRY_DELAY, 1);
+
+		scheduler.triggerShelters();
+
+		assertThat(useCase.calls).containsExactly("SHELTER");
+		assertThat(runner.delays).containsExactly(RETRY_DELAY);
+
+		useCase.failure = category -> null;
+		runner.runNextLater();
+		assertThat(useCase.calls).containsExactly("SHELTER", "SHELTER");
 		assertThat(runner.later).isEmpty();
 	}
 

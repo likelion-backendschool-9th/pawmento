@@ -22,26 +22,11 @@ public final class LocalDataPlaceFactory {
 	private LocalDataPlaceFactory() {
 	}
 
-	/** 장소가 되었거나(draft) 제외된 이유(exclusion) 중 정확히 하나만 있다. */
-	public record Outcome(PlaceDraft draft, LocalDataExclusion exclusion) {
-
-		public Outcome {
-			// 둘 다 없거나 둘 다 있으면 제외 이유별 건수를 셀 때 값이 어긋나므로 만들 때 막는다
-			if ((draft == null) == (exclusion == null)) {
-				throw new IllegalArgumentException("draft와 exclusion 중 정확히 하나만 있어야 합니다.");
-			}
-		}
-
-		public boolean excluded() {
-			return draft == null;
-		}
-	}
-
 	/**
 	 * @param category 병원(HOSPITAL) 또는 미용(GROOMING). 보호센터는 다른 API라 이 규칙으로 만들지 않는다
 	 * @throws IllegalArgumentException 종류가 맞지 않거나 필수 항목이 빠진 행(호출한 쪽이 isComplete로 먼저 확인한다)
 	 */
-	public static Outcome create(PlaceCategory category, LocalDataRecord record) {
+	public static PlaceOutcome create(PlaceCategory category, LocalDataRecord record) {
 		if (category != PlaceCategory.HOSPITAL && category != PlaceCategory.GROOMING) {
 			throw new IllegalArgumentException("인허가 데이터는 병원과 미용만 만듭니다: " + category);
 		}
@@ -74,13 +59,13 @@ public final class LocalDataPlaceFactory {
 		String address = firstNotBlank(record.roadAddress(), record.lotAddress());
 		// 이름의 "24시" 판단은 병원 데이터로만 확인했다(병원 이름에 24가 든 195곳 중 190곳이 24시). 미용은 확인하지 못해 보지 않는다
 		Open24hBasis basis = category == PlaceCategory.HOSPITAL ? Open24hRule.fromName(record.name()) : null;
-		return new Outcome(new PlaceDraft(category, record.sourceId().strip(), record.name().strip(), address,
+		return new PlaceOutcome(new PlaceDraft(category, record.sourceId().strip(), record.name().strip(), address,
 				PlacePhone.normalize(record.phone(), address), point.latitude(), point.longitude(), basis != null,
 				basis, null, null, parseUpdatedAt(record.updatedAt())), null);
 	}
 
-	private static Outcome excluded(LocalDataExclusion exclusion) {
-		return new Outcome(null, exclusion);
+	private static PlaceOutcome excluded(LocalDataExclusion exclusion) {
+		return new PlaceOutcome(null, exclusion);
 	}
 
 	private static String firstNotBlank(String first, String second) {
