@@ -6,15 +6,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.exception.LocalDataSyncFailedException.Reason;
+import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
 import com.pawmento.map.application.port.out.AppliedPlaces;
+import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
+import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.application.port.out.StorePlacesPort;
 import com.pawmento.map.domain.LocalDataExclusion;
 import com.pawmento.map.domain.LocalDataPlaceFactory;
@@ -36,9 +41,28 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 
 	private final StorePlacesPort storePlacesPort;
 
+	private final PlaceSyncLockPort lockPort;
+
+	private final CheckPlaceSyncAdminPort adminPort;
+
+	// 관리자가 요청했으면 현재 관리자인지 먼저 확인하고, 같은 종류를 이미 가져오는 중이면 받지 않고 거절한다. 잠금은 받기 전에 잡아서
+	// 저장이 끝난 뒤에 놓는다(#172-S22)
+	// 잠금은 DB 연결 하나에 걸린 세션 잠금이라, 바깥 트랜잭션 안에서 불리면 잠금 수명과 트랜잭션 수명이 어긋난다. 그래서 트랜잭션
+	// 안에서 부르면 예외로 막는다
 	@Override
+	@Transactional(propagation = Propagation.NEVER)
 	public SyncLocalDataPlacesResult sync(SyncLocalDataPlacesCommand command) {
-		PlaceCategory category = toCategory(command.category());
+		PlaceCategory category = PlaceSyncCategories.toCategory(command.category());
+		if (command.requestedBy() != null) {
+			adminPort.requireAdmin(command.requestedBy());
+		}
+		try (PlaceSyncLockPort.SyncLock lock = lockPort.tryAcquire(category)
+			.orElseThrow(PlaceSyncAlreadyRunningException::new)) {
+			return syncLocked(category, lock);
+		}
+	}
+
+	private SyncLocalDataPlacesResult syncLocked(PlaceCategory category, PlaceSyncLockPort.SyncLock lock) {
 		LocalDataSnapshot snapshot = loadLocalDataPort.load(category);
 
 		// 수집하는 동안 원본이 바뀌었으면 어느 시점의 전체인지 알 수 없다
@@ -84,21 +108,12 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 			throw LocalDataSyncFailedException.rejected(Reason.TOO_FEW_PLACES);
 		}
 
+		// 받는 몇 분 사이에 잠금 연결이 끊겼다면 다른 실행이 같이 도는 중일 수 있다. 저장 직전에 아직 쥐고 있는지 확인한다
+		lock.requireHeld();
 		AppliedPlaces applied = storePlacesPort.replace(category, drafts);
 		return new SyncLocalDataPlacesResult(category.name(), unique.size(), drafts.size(),
 				closed + noCoordinates + outOfRange, closed, noCoordinates, outOfRange, applied.inserted(),
 				applied.updated(), applied.deleted());
-	}
-
-	// 병원과 미용만 이 API로 가져온다. 웹 어댑터가 이름을 검사하고 오므로 그 밖의 값은 호출한 쪽의 버그다
-	private static PlaceCategory toCategory(String name) {
-		if ("HOSPITAL".equals(name)) {
-			return PlaceCategory.HOSPITAL;
-		}
-		if ("GROOMING".equals(name)) {
-			return PlaceCategory.GROOMING;
-		}
-		throw new IllegalArgumentException("가져올 수 없는 종류입니다: " + name);
 	}
 
 }

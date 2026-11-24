@@ -24,7 +24,10 @@ public class LocalDataSyncFailedException extends StorageUnavailableException {
 		TOO_FEW_PLACES,
 
 		// 중간 페이지 호출이 실패하거나 시간 초과했다
-		FETCH_FAILED
+		FETCH_FAILED,
+
+		// 포털이 요청을 거부했다(인증키 없음·미등록·기간 만료, 접근 거부, 호출 한도 초과, 잘못된 요청). 다시 시도해도 같다
+		FETCH_REJECTED
 
 	}
 
@@ -46,8 +49,21 @@ public class LocalDataSyncFailedException extends StorageUnavailableException {
 		return new LocalDataSyncFailedException(Reason.FETCH_FAILED, cause);
 	}
 
+	// 포털이 요청 자체를 거부한 경우다. 호출 실패와 달리 다시 시도해도 같아서 FETCH_REJECTED로 구분한다
+	public static LocalDataSyncFailedException fetchRejected(Throwable cause) {
+		return new LocalDataSyncFailedException(Reason.FETCH_REJECTED, cause);
+	}
+
 	public Reason reason() {
 		return reason;
+	}
+
+	/**
+	 * 시간을 두고 다시 하면 성공할 수 있는 실패인가. 필수 항목이 빠진 응답(원본 형식이 바뀜)과 포털이 거부한 요청(키·권한·한도)은 다시
+	 * 해도 같은 결과라서 자동으로 다시 시도하지 않고, 사람이 고쳐야 한다.
+	 */
+	public boolean retryable() {
+		return reason != Reason.MISSING_FIELDS && reason != Reason.FETCH_REJECTED;
 	}
 
 }

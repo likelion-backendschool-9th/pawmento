@@ -69,7 +69,7 @@ class LocalDataApiClient implements LoadLocalDataPort {
 		String path = pathOf(category);
 		if (!properties.hasServiceKey()) {
 			log.warn("공공데이터 인증키(PUBLIC_DATA_SERVICE_KEY)가 설정되지 않아 가져오기를 중단합니다.");
-			throw LocalDataSyncFailedException.fetchFailed(new CallFailure("인증키가 설정되지 않음"));
+			throw LocalDataSyncFailedException.fetchRejected(new CallFailure("인증키가 설정되지 않음"));
 		}
 
 		Page first = fetchPage(path, 1);
@@ -115,7 +115,9 @@ class LocalDataApiClient implements LoadLocalDataPort {
 				}
 			}
 		}
-		throw LocalDataSyncFailedException.fetchFailed(last);
+		// 다시 시도해도 같은 결과인 거부(키·권한·한도·잘못된 요청)는 일시 실패와 구분해서 자동 재시도 대상에서 뺀다
+		throw last != null && last.permanent ? LocalDataSyncFailedException.fetchRejected(last)
+				: LocalDataSyncFailedException.fetchFailed(last);
 	}
 
 	// 요청을 보낸다. 원래 예외는 주소(인증키)가 들어 있을 수 있어 버리고, 종류만 담은 CallFailure로 바꾼다
