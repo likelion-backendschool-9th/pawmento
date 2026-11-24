@@ -86,6 +86,14 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 
 백엔드가 서버에서 받는 값은 `compose.prod.yaml`의 backend 환경 변수에 있다. 로그인 서명 키 `JWT_SECRET`(#14)은 없으면 재배포할 때마다 로그인이 풀려서 필수로 받고, 네이버 지도 키 `NAVER_MAP_CLIENT_ID`·`NAVER_MAP_CLIENT_SECRET`(#23)은 비어 있으면 주소 조회만 건너뛴다. 새 값이 생기면 `compose.prod.yaml`, `.env.prod.example`, 서버 `.env` 세 곳에 더한다.
 
+AI 엽서(#103)는 생성기 `PAWMENTO_POSTCARD_GENERATOR`의 기본값이 `fake`라서 키 없이도 배포된다. 실제 그림은 Cloudflare Workers AI로 만든다([AI 엽서](postcard/generate.md)).
+
+1. Cloudflare 대시보드에서 계정 ID를 확인하고, 권한을 **Workers AI**만 준 API 토큰을 만든다.
+2. 서버 `.env`에 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN`을 넣고 `PAWMENTO_POSTCARD_GENERATOR=cloudflare`로 바꾼 뒤 backend를 다시 띄운다. 생성기가 `cloudflare`인데 두 값 중 하나라도 비어 있으면 백엔드가 시작하지 않는다.
+3. 모델은 `PAWMENTO_POSTCARD_CLOUDFLARE_MODEL`(기본 `@cf/black-forest-labs/flux-2-klein-9b`)로 바꾼다. 팀 전체 하루 상한 `PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL`은 무료 한도(하루 10,000 Neuron)를 쓰는 동안 5다.
+
+생성기를 바꾸면 그 전에 요청해 대기 중이던 엽서는 동의받은 생성기와 달라 `FAILED`가 되고 회원당 횟수가 돌아온다. 무료 한도를 넘긴 호출은 Cloudflare가 `429`(오류 번호 `3036`)로 거절하고, 엽서는 실패로 끝난다.
+
 ### 배포 버전 고정과 되돌리기
 
 이미지에는 `sha-<커밋 7자리>`와 `latest` 태그가 붙는다. 배포 워크플로는 머지한 커밋의 `sha-` 태그를 `IMAGE_TAG`로 넘긴다.
