@@ -22,12 +22,12 @@ public class PetInviteCode {
 
     private Instant createdAt;
 
-    private PetInviteCode(Long petId, String codeHash, Long issuerMemberId, Instant expiresAt, Instant createeAt) {
+    private PetInviteCode(Long petId, String codeHash, Long issuerMemberId, Instant expiresAt, Instant createdAt) {
         this.petId = petId;
         this.codeHash = codeHash;
         this.issuerMemberId = issuerMemberId;
         this.expiresAt = expiresAt;
-        this.createdAt = createeAt;
+        this.createdAt = createdAt;
     }
 
     public static PetInviteCode issue(Long petId, String codeHash, Long issuerMemberId, Instant now) {

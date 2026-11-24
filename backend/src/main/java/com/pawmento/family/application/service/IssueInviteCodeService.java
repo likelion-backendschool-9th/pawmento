@@ -38,7 +38,7 @@ public class IssueInviteCodeService implements IssueInviteCodeUseCase {
         Long ownerId = lockPetOwnerPort.lockOwnerId(command.petId()).orElseThrow(FamilyPetNotFoundException::new);
         boolean isOwner = ownerId.equals(command.memberId());
         if (!isOwner && !loadPetFamilyMemberPort.existsByPetIdAndMemberId(command.petId(), command.memberId())) {
-                throw new FamilyAccessDeniedException();
+            throw new FamilyAccessDeniedException();
         }
         String code = inviteCodes.newCode();
         PetInviteCode saved = savePetInviteCodePort.save(
