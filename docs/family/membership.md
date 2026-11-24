@@ -197,12 +197,12 @@
      - media에 넘기는 `previous`는 권한 확인을 마친 뒤 `DiaryAttachmentsPort.find(entryId)`로 DB에서 읽은 그 일기의 실제 첨부만 쓴다. 요청 본문의 값은 `previous`로 넘기지 않는다
      - `DiaryMediaPort.lock(memberId, petId, previous, requested)`로 바꾼다. 삭제는 `lock(…, previous, List.of())`, 수정은 `lock(…, previous, requested)`다
      - 기존 시나리오 고침: #32-S2의 "타 작성자 변경 403" 끝에 `(고침 #133: 소유주의 삭제는 허용)`, #32-S5의 VIEWER 문구 끝에 `(고침 #133: 역할은 OWNER·FAMILY 둘)`
-   - media: `LockMediaReferencesCommand`와 `ChangeMediaReferencesCommand`를 `(memberId, petId, purpose, previous, requested)`로 바꾼다. 잠금과 `change`의 검사는 같은 기준이다
+   - media: `ChangeMediaReferencesCommand`는 이미 `(memberId, petId, previous, requested, purpose)`를 받는다. `LockMediaReferencesCommand`는 아직 `(memberId, petId, assetIds, purpose)`라서 `previous`·`requested`를 나눠 받게 바꾸고, 지금 `ChangeMediaReferencesService.lock`이 모든 id에 하는 업로더 검사를 아래 기준으로 나눈다. 잠금과 `change`의 검사는 같은 기준이다 (고침 #133: 현재 코드 기준으로 남은 범위만 적음)
      - `requested`에만 있는 id(새 연결): 지금처럼 업로더가 요청자이고, 아이가 같고, 용도가 `purpose`와 같아야 한다
      - `previous`에 있는 id(유지·해제): 아이와 용도만 확인한다. 이 목록은 호출하는 도메인이 권한 확인 후 DB에서 읽은 실제 연결이라는 계약이다
      - diary는 `DIARY_ATTACHMENT`, question은 `QUESTION_ANSWER_ATTACHMENT`를 넘긴다.
      - media 담당과 합의
-   - question: `OwnerQuestionPetAccessAdapter`를 가족 포트로 바꾼다. 소유주 삭제·수정 거부를 첨부 유무와 관계없이 diary·media와 같은 단계에서 같은 규칙으로 넣고, 위 media 계약을 `QUESTION_ANSWER_ATTACHMENT`로 쓴다 (고침 #133: 질문 답변 첨부가 이미 구현되어 텍스트 답변 단계를 먼저 열지 않음). 또 `MediaReferenceAdapter`(`InspectMediaReferencesPort.isReferenced`)가 다이어리뿐 아니라 질문 답변 첨부 연결도 확인하게 한다. 지금 `ValidateMediaReferencesService`(연결 전 검증), `LoadMediaAttachmentsService`(연결된 파일 정보 읽기), `MediaAsset.requireAttached`(파일 내려받기)는 `DIARY_ATTACHMENT`만 허용하므로, 같은 단계에서 호출하는 도메인이 넘긴 `purpose`로 검사하게 바꾸고 question 출력 어댑터가 `QUESTION_ANSWER_ATTACHMENT`로 검증·읽기를 부른다
+   - question: `OwnerQuestionPetAccessAdapter`를 가족 포트로 바꾼다. 소유주 삭제·수정 거부를 첨부 유무와 관계없이 diary·media와 같은 단계에서 같은 규칙으로 넣고, 위 media 계약을 `QUESTION_ANSWER_ATTACHMENT`로 쓴다 (고침 #133: 질문 답변 첨부가 이미 구현되어 텍스트 답변 단계를 먼저 열지 않음). `MediaReferenceAdapter`의 질문 답변 첨부 확인, `ValidateMediaReferencesService`·`LoadMediaAttachmentsService`·`GetAttachedMediaService`(`MediaAsset.requireAttached`)의 `purpose`별 검사, `QuestionMediaAdapter`가 모든 호출에 `QUESTION_ANSWER_ATTACHMENT`를 넘기는 것은 이미 구현되어 있다. 남은 일은 위 media 잠금 계약(`previous`는 업로더 검사 제외)을 question의 삭제·수정 경로에 쓰는 것이다 (고침 #133: 이미 구현된 용도별 검사를 할 일에서 뺌)
      - 기존 시나리오 고침: #31-S12의 VIEWER·다른 작성자 변경 문구 끝에 `(고침 #133: 역할은 OWNER·FAMILY 둘, 소유주의 삭제는 허용)`
    - pet: 관리 동작은 소유주만 그대로(S9)
 5. 소유주 이전 — S13~S17, S20
@@ -245,7 +245,7 @@
 
 ## 참고
 - diary(`OwnerDiaryPetAccessAdapter`), question(`OwnerQuestionPetAccessAdapter`), media(`OwnerMediaPetAccessAdapter`)는 pet 소유 확인을 출력 어댑터로 분리해 두었다. 다만 diary 삭제의 작성자 검사(`requireAuthor`)와 media의 업로더 검사(`ChangeMediaReferencesService.lock`)는 어댑터 밖에 있어 4단계에서 함께 바꾼다.
-- 지금 `LockMediaReferencesCommand`는 `assetIds` 하나만 받고 일기 첨부 용도로 고정되어 있다. `MediaReferenceAdapter`도 실제 연결을 다이어리에서만 찾는다.
+- `LockMediaReferencesCommand`는 `assetIds`와 `purpose`만 받아, `ChangeMediaReferencesService.lock`이 유지·해제할 첨부까지 업로더가 요청자인지 검사한다. 그래서 소유주가 다른 작성자의 첨부를 해제하려면 4단계의 잠금 계약 변경이 필요하다. `MediaReferenceAdapter`는 다이어리와 질문 답변 첨부를 모두 확인한다.
 - diary 문서는 "다른 작성자 변경 403"을 정해 두었다. 소유주 삭제는 이 규칙의 예외다(Q2).
 - pet은 기록이 있으면 삭제를 막는다(`PetHasRecordsException`, 409). 기록 확인은 출력 포트 `HasPetRecordsPort`와 `pet/adapter/out/records/DiaryPetRecordsAdapter`로 한다.
 - pet 테이블은 `(owner_member_id, tag)`가 유일하다(`uk_pets_owner_tag`). 소유주가 바뀌면 이 조합도 바뀐다.
