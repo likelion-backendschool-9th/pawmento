@@ -40,7 +40,7 @@ public class DeletePetService implements DeletePetUseCase {
 		}
 
 		List<Long> previous = List.of(assetId);
-		media.lock(command.memberId(), command.petId(), previous);
+		media.lock(command.memberId(), command.petId(), previous, List.of());
 		deletePetPort.deleteById(command.petId());
 		media.changeReferences(command.memberId(), command.petId(), previous, List.of());
 	}

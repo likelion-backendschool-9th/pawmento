@@ -81,7 +81,7 @@ class PetOwnerTransferScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133-S17 pet 포트는 기대 소유주가 다르면 충돌로 거절한다")
+	@DisplayName("#133-S13 pet 포트 방어 확인: 기대 소유주가 다르면 409로 거절한다")
 	void rejectsStaleOwner() {
 		Long petId = savePet(ownerId, "old1");
 

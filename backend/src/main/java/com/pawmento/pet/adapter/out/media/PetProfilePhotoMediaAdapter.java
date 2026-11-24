@@ -26,8 +26,8 @@ public class PetProfilePhotoMediaAdapter implements PetProfilePhotoMediaPort {
 	private final GetAttachedMediaUseCase attachedMedia;
 
 	@Override
-	public void lock(Long memberId, Long petId, List<Long> assetIds) {
-		lockReferences.lock(new LockMediaReferencesCommand(memberId, petId, assetIds, PURPOSE));
+	public void lock(Long memberId, Long petId, List<Long> previous, List<Long> requested) {
+		lockReferences.lock(new LockMediaReferencesCommand(memberId, petId, previous, requested, PURPOSE));
 	}
 
 	@Override

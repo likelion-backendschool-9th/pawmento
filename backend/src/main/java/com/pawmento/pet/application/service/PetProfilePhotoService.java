@@ -3,7 +3,6 @@ package com.pawmento.pet.application.service;
 import java.time.Clock;
 import java.time.LocalDate;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,9 +43,7 @@ public class PetProfilePhotoService implements GetPetProfilePhotoUseCase, Update
 
 		List<Long> previous = current == null ? List.of() : List.of(current);
 		List<Long> next = requested == null ? List.of() : List.of(requested);
-		List<Long> affected = new ArrayList<>(previous);
-		affected.addAll(next);
-		media.lock(command.memberId(), command.petId(), affected);
+		media.lock(command.memberId(), command.petId(), previous, next);
 		pet.changeProfilePhoto(requested);
 		savePet.save(pet);
 		media.changeReferences(command.memberId(), command.petId(), previous, next);
