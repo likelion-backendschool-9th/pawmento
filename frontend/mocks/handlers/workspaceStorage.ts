@@ -1,5 +1,6 @@
-import type { Workspace } from "../../features/workspace/domain/models.ts";
-import { validateDate, emptyWorkspace } from "../../features/workspace/domain/models.ts";
+import { emptyWorkspace } from "../../features/shell/types/workspace.ts";
+import type { Workspace } from "../../features/shell/types/workspace.ts";
+import { validateDate } from "../../lib/date.ts";
 
 type LegacyRecord = {
   id: string;
@@ -14,7 +15,7 @@ type LegacyRecord = {
   question: string;
   questionId?: string;
   photoUrl: string;
-  attachments?: import("../../lib/domain/MediaAttachment.ts").MediaAttachment[];
+  attachments?: import("../../types/MediaAttachment.ts").MediaAttachment[];
 };
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;

@@ -1,13 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
-import { validateDate } from "../features/workspace/domain/models.ts";
-import type {
-  DiaryEntryInput,
-  Workspace,
-  PetInput,
-} from "../features/workspace/domain/models.ts";
-import { createAuthUseCases } from "../features/auth/application/auth.ts";
+import { createWorkspaceUseCases } from "../mocks/handlers/workspaceUseCases.ts";
+import type { DiaryEntryInput } from "../features/diary/types/DiaryEntry.ts";
+import type { PetInput } from "../features/pet/types/Pet.ts";
+import type { Workspace } from "../features/shell/types/workspace.ts";
+import { validateDate } from "../lib/date.ts";
+import { createApiClient } from "../lib/http/apiClient.ts";
+import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
 function setup() {
@@ -61,42 +60,91 @@ const memory = (
   ...overrides,
 });
 test("#12-S1 가입·중복 이메일·잘못된 비밀번호·로그아웃과 탭 격리", async () => {
-  const repository = new DemoAuthRepository();
-  const auth = createAuthUseCases(repository);
   const input = {
     email: "  TEST@example.com ",
     password: "local-demo-pass",
     confirmation: "local-demo-pass",
     nickname: "  보호자  ",
   };
+  const requests: { path: string; body: Record<string, string> }[] = [];
+  const auth = createMemberSession(
+    createApiClient({
+      fetch: async (target, init) => {
+        const url = String(target);
+        const path = url.endsWith("/auth/signup")
+          ? "/auth/signup"
+          : url.endsWith("/auth/login")
+            ? "/auth/login"
+            : url;
+        requests.push({ path, body: JSON.parse(String(init?.body ?? "{}")) });
+        return new Response(
+          JSON.stringify({
+            id: 3,
+            email: "test@example.com",
+            nickname: "보호자",
+            role: "USER",
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      },
+    }),
+    new DemoAuthRepository(),
+  );
   const account = await auth.signUp(input);
   assert.equal(account.email, "test@example.com");
   assert.equal(account.nickname, "보호자");
-  await assert.rejects(auth.signUp(input), /이미 가입/);
-  await auth.signOut();
-  assert.equal(await auth.current(), null);
+  assert.deepEqual(
+    requests.map((request) => request.path),
+    ["/auth/signup", "/auth/login"],
+  );
+  assert.equal(requests[0]?.body.email, "test@example.com");
+  assert.equal(requests[0]?.body.nickname, "보호자");
+  assert.equal(requests[0]?.body.password, input.password);
+  const repository = new DemoAuthRepository();
+  const normalized = {
+    email: "test@example.com",
+    password: input.password,
+    nickname: "보호자",
+  };
+  const demoAccount = await repository.signUp(normalized);
+  await assert.rejects(repository.signUp(normalized), /이미 가입/);
+  await repository.signOut();
+  assert.equal(await repository.current(), null);
   await assert.rejects(
-    auth.signIn({ email: account.email, password: "incorrect" }),
+    repository.signIn({ email: demoAccount.email, password: "incorrect" }),
     /확인/,
   );
   assert.equal(
-    (await auth.signIn({ email: account.email, password: input.password })).id,
-    account.id,
+    (
+      await repository.signIn({
+        email: demoAccount.email,
+        password: input.password,
+      })
+    ).id,
+    demoAccount.id,
   );
+  assert.equal(await new DemoAuthRepository().current(), null);
+  await repository.update("새 이름");
+  await repository.signOut();
   assert.equal(
-    await createAuthUseCases(new DemoAuthRepository()).current(),
-    null,
-  );
-  await auth.update("새 이름");
-  await auth.signOut();
-  assert.equal(
-    (await auth.signIn({ email: account.email, password: input.password }))
-      .nickname,
+    (
+      await repository.signIn({
+        email: demoAccount.email,
+        password: input.password,
+      })
+    ).nickname,
     "새 이름",
   );
 });
 test("#12-S1 가입 필수 값과 비밀번호 확인 검증", () => {
-  const auth = createAuthUseCases(new DemoAuthRepository());
+  const auth = createMemberSession(
+    createApiClient({
+      fetch: async () => {
+        throw Error("형식 확인 전에 요청하면 안 돼요.");
+      },
+    }),
+    new DemoAuthRepository(),
+  );
   assert.throws(
     () =>
       auth.signUp({

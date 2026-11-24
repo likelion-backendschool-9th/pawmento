@@ -1,7 +1,7 @@
 "use client";
 import { useApp } from "@/app/AppProvider";
-import { WalkScreen } from "@/features/map/adapters/inbound/WalkScreen";
-import { usePet } from "@/features/workspace/adapters/inbound/PetContext";
+import { WalkScreen } from "@/features/map/components/WalkScreen";
+import { usePet } from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();
   const { account } = useApp();

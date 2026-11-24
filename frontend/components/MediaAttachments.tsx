@@ -1,7 +1,7 @@
 "use client";
 import { createId } from "../lib/id";
 import { useEffect, useId, useRef, useState } from "react";
-import type { MediaAttachment } from "@/features/workspace/domain/models";
+import type { MediaAttachment } from "@/types/MediaAttachment";
 import { Icon } from "./Icon";
 import { Photo } from "./Photo";
 export function MediaPlayer({ file }: { file: MediaAttachment }) {

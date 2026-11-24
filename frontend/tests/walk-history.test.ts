@@ -2,30 +2,29 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 import { ApiError, type ApiClient } from "../lib/http/apiClient.ts";
+import { createWalkHistoryApi } from "../features/map/api/walkHistoryApi.ts";
+import { createMapSource } from "../features/map/source.ts";
+import type { WalkRecord } from "../features/map/types/WalkRecord.ts";
 import {
   datesEndingAt,
   followToday,
-  initialNavigation,
-  walkHistoryPath,
-  msUntilNextSeoulMidnight,
   formatClock,
   formatHourMinute,
-  formatTimeRange,
   formatMinutes,
   formatMonthDay,
+  formatTimeRange,
+  initialNavigation,
   isValidDate,
+  msUntilNextSeoulMidnight,
   seoulDate,
   shiftDate,
   walkEndedAt,
+  walkHistoryPath,
   walkMinutes,
   weekdayLabel,
-  type WalkRecord,
-} from "../features/map/domain/WalkRecord.ts";
-import { fitPoints, fitRoutes, routeMarks } from "../features/map/domain/WalkRoutes.ts";
-import { createWalkHistoryUseCases } from "../features/map/application/walkHistoryUseCases.ts";
-import type { WalkDayList, WalkHistoryRepository } from "../features/map/application/walkPorts.ts";
-import { HttpWalkHistoryRepository } from "../features/map/adapters/outbound/HttpWalkHistoryRepository.ts";
-import { PetScopedWalkHistoryRepository } from "../features/map/adapters/outbound/PetScopedWalkHistoryRepository.ts";
+} from "../features/map/utils/walkRecord.ts";
+import { fitPoints, fitRoutes, routeMarks } from "../features/map/utils/walkRoutes.ts";
+import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
 const NOW = new Date("2026-11-20T03:00:00Z"); // 한국 시각 11월 20일 12:00
@@ -101,7 +100,7 @@ function fakeApi(handler: (path: string) => unknown, seen: string[] = []): ApiCl
 
 test("#73-S7 서버에는 petId와 날짜를 쿼리로 보내고, 좌표와 상태를 그대로 받는다(끝내지 않은 산책의 endedAt은 null)", async () => {
   const seen: string[] = [];
-  const repo = new HttpWalkHistoryRepository(
+  const history = createWalkHistoryApi(
     fakeApi(
       () => ({
         walks: [
@@ -124,7 +123,7 @@ test("#73-S7 서버에는 petId와 날짜를 쿼리로 보내고, 좌표와 상�
       seen,
     ),
   );
-  const result = await repo.listByDate("10", "2026-11-17");
+  const result = await history.listDay("10", "2026-11-17");
   assert.deepEqual(seen, ["/maps/walks?petId=10&date=2026-11-17"]);
   assert.equal(result.sample, false);
   assert.deepEqual(result.walks.map((w) => [w.walkId, w.status, w.endedAt]), [
@@ -135,18 +134,29 @@ test("#73-S7 서버에는 petId와 날짜를 쿼리로 보내고, 좌표와 상�
 });
 
 test("#73-S8 그날 산책이 없으면 빈 목록이다. 다른 회원의 반려동물을 조회해도 서버가 주는 빈 목록을 그대로 보여 준다(#73-S9)", async () => {
-  const repo = new HttpWalkHistoryRepository(fakeApi(() => ({ walks: [] })));
-  assert.deepEqual(await repo.listByDate("10", "2026-11-17"), { walks: [], sample: false });
+  const history = createWalkHistoryApi(fakeApi(() => ({ walks: [] })));
+  assert.deepEqual(await history.listDay("10", "2026-11-17"), { walks: [], sample: false });
 });
 
 test("#73-S7 여러 날을 한꺼번에 읽고, 한 날이 실패해도 나머지는 보여 준다. 잘못된 날짜는 읽지 않는다", async () => {
-  const repo: WalkHistoryRepository = {
-    listByDate: async (_pet, date): Promise<WalkDayList> => {
+  const history = createWalkHistoryApi(
+    fakeApi((path) => {
+      const date = new URL(path, "http://local").searchParams.get("date");
       if (date === "2026-11-19") throw new ApiError(503, "STORAGE_UNAVAILABLE", "잠시 후");
-      return { walks: date === "2026-11-18" ? [walkAt("1", `${date}T01:00:00Z`, `${date}T01:30:00Z`)] : [], sample: false };
-    },
-  };
-  const history = createWalkHistoryUseCases(repo);
+      return {
+        walks:
+          date === "2026-11-18"
+            ? [{
+                walkId: 1,
+                startedAt: `${date}T01:00:00Z`,
+                endedAt: `${date}T01:30:00Z`,
+                status: "ENDED",
+                points: [],
+              }]
+            : [],
+      };
+    }),
+  );
   const days = await history.listDays("10", ["2026-11-18", "2026-11-19", "2026-11-20"]);
   assert.deepEqual(days.failed, ["2026-11-19"]);
   assert.equal(days.byDate["2026-11-18"].walks.length, 1);
@@ -215,12 +225,22 @@ test("#73-S7 이 앱에서 기록한 연습 산책이 그날 목록에 들어가
 
 test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 데모 기록에서 읽는다", async () => {
   const calls: string[] = [];
-  const server: WalkHistoryRepository = {
-    listByDate: async (pet, date) => (calls.push(`server:${pet}:${date}`), { walks: [], sample: false }),
-  };
-  const repo = new PetScopedWalkHistoryRepository(server, new DemoWalkRepository(() => NOW));
-  await repo.listByDate("10", "2026-11-17", { sample: true });
-  const demo = await repo.listByDate("6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", "2026-11-17", { sample: true });
+  const history = createMapSource({
+    pins: { listPins: async () => ({ pins: [], truncated: false, sample: false }) },
+    walks: {
+      start: async (petId) => ({ walkId: "x", petId, startedAt: "t" }),
+      addPoints: async () => {},
+      end: async () => ({ status: "ENDED" as const, endedAt: null }),
+    },
+    history: {
+      listDay: async (pet, date) => (calls.push(`server:${pet}:${date}`), { walks: [], sample: false }),
+      listDays: async () => ({ byDate: {}, failed: [] }),
+    },
+    demoPins: new DemoMapPinRepository(),
+    demoWalks: new DemoWalkRepository(() => NOW),
+  }).walkHistory;
+  await history.listDay("10", "2026-11-17", { sample: true });
+  const demo = await history.listDay("6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", "2026-11-17", { sample: true });
   assert.deepEqual(calls, ["server:10:2026-11-17"]);
   assert.equal(demo.sample, true);
 });
@@ -297,10 +317,20 @@ test("#73-S7 예시 지도와 네이버 지도가 같은 상태별 표시를 따
 
 test("#73-S7 사용 사례는 예시 옵션을 저장소에 그대로 전달한다", async () => {
   const seen: unknown[] = [];
-  const repo: WalkHistoryRepository = {
-    listByDate: async (_pet, _date, options) => (seen.push(options), { walks: [], sample: false }),
-  };
-  const history = createWalkHistoryUseCases(repo);
+  const history = createMapSource({
+    pins: { listPins: async () => ({ pins: [], truncated: false, sample: false }) },
+    walks: {
+      start: async (petId) => ({ walkId: "x", petId, startedAt: "t" }),
+      addPoints: async () => {},
+      end: async () => ({ status: "ENDED" as const, endedAt: null }),
+    },
+    history: {
+      listDay: async (_pet, _date, options) => (seen.push(options), { walks: [], sample: false }),
+      listDays: async (_pet, _dates, options) => (seen.push(options), { byDate: {}, failed: [] }),
+    },
+    demoPins: new DemoMapPinRepository(),
+    demoWalks: new DemoWalkRepository(),
+  }).walkHistory;
   await history.listDays("10", ["2026-11-18"], { sample: true });
   await history.listDay("10", "2026-11-18");
   assert.deepEqual(seen, [{ sample: true }, undefined]);

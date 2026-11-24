@@ -1,4 +1,4 @@
-import { AccountScreen } from "@/features/workspace/adapters/inbound/AccountScreen";
+import { AccountScreen } from "@/features/mypage/components/AccountScreen";
 export default function Page() {
   return <AccountScreen />;
 }

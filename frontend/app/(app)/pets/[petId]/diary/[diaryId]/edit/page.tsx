@@ -2,9 +2,9 @@
 import {
   usePet,
   PetWriteAccess,
-} from "@/features/workspace/adapters/inbound/PetContext";
-import { useJournalItem } from "@/features/workspace/adapters/inbound/JournalContext";
-import { JournalForm } from "@/features/workspace/adapters/inbound/JournalScreens";
+} from "@/features/pet/hooks/PetContext";
+import { useJournalItem } from "@/features/diary/hooks/JournalContext";
+import { JournalForm } from "@/features/diary/components/JournalScreens";
 export default function Page() {
   const pet = usePet();
   const record = useJournalItem();

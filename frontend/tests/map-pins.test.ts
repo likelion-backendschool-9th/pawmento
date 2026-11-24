@@ -4,23 +4,20 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 import type { ApiClient } from "../lib/http/apiClient.ts";
-import { createMapUseCases } from "../features/map/application/useCases.ts";
-import type {
-  MapPinList,
-  MapPinRepository,
-} from "../features/map/application/ports.ts";
+import { createMapPinApi } from "../features/map/api/mapPinApi.ts";
+import { createMapSource } from "../features/map/source.ts";
+import type { MapBounds } from "../features/map/types/MapBounds.ts";
+import type { MapPinOptions } from "../features/map/types/MapPin.ts";
 import {
   clampBounds,
   containsPoint,
   isValidBounds,
   toViewportRatio,
-  type MapBounds,
-} from "../features/map/domain/MapBounds.ts";
-import { HttpMapPinRepository } from "../features/map/adapters/outbound/HttpMapPinRepository.ts";
-import { isDemoAccount } from "../features/auth/domain/account.ts";
+} from "../features/map/utils/mapBounds.ts";
+import { isDemoAccount } from "../features/member/types/account.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
-import { PetScopedMapPinRepository } from "../features/map/adapters/outbound/PetScopedMapPinRepository.ts";
+import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 import {
   GUARANTEED_SIZES,
   LABELS,
@@ -29,12 +26,12 @@ import {
   RIVER,
   parkTrees,
   visibleWindow,
-} from "../features/map/adapters/inbound/staticMapShapes.ts";
-import { pinMarkup } from "../features/map/adapters/inbound/pinMarkup.ts";
+} from "../features/map/utils/staticMapShapes.ts";
+import { pinMarkup } from "../features/map/utils/pinMarkup.ts";
 import {
   isOpenableDiary,
   pinDetail,
-} from "../features/map/adapters/inbound/pinDetail.ts";
+} from "../features/map/utils/pinDetail.ts";
 
 const SEOUL_FOREST: MapBounds = {
   minLatitude: 37.5407,
@@ -42,6 +39,29 @@ const SEOUL_FOREST: MapBounds = {
   maxLatitude: 37.5482,
   maxLongitude: 127.0429,
 };
+
+function mapSource(pins: {
+  listPins(petId: string, bounds: MapBounds, options?: MapPinOptions): Promise<{
+    pins: [];
+    truncated: boolean;
+    sample: boolean;
+  }>;
+}) {
+  return createMapSource({
+    pins,
+    walks: {
+      start: async (petId) => ({ walkId: "x", petId, startedAt: "t" }),
+      addPoints: async () => {},
+      end: async () => ({ status: "ENDED" as const, endedAt: null }),
+    },
+    history: {
+      listDay: async () => ({ walks: [], sample: false }),
+      listDays: async () => ({ byDate: {}, failed: [] }),
+    },
+    demoPins: new DemoMapPinRepository(),
+    demoWalks: new DemoWalkRepository(),
+  });
+}
 
 function fakeApi(response: unknown, seen: string[] = []): ApiClient {
   return {
@@ -62,14 +82,8 @@ function fakeApi(response: unknown, seen: string[] = []): ApiClient {
 }
 
 test("#19-S5 영역은 서버가 받는 범위로 맞추고, 최솟값이 최댓값보다 크면 요청하지 않는다", async () => {
-  let called = 0;
-  const repository: MapPinRepository = {
-    list: async (): Promise<MapPinList> => {
-      called += 1;
-      return { pins: [], truncated: false, sample: false };
-    },
-  };
-  const map = createMapUseCases(repository);
+  const seen: string[] = [];
+  const map = createMapPinApi(fakeApi({ pins: [], truncated: false }, seen));
 
   // 멀리 줄여서 지도 SDK가 범위를 넘는 값을 줄 때
   assert.deepEqual(
@@ -77,7 +91,7 @@ test("#19-S5 영역은 서버가 받는 범위로 맞추고, 최솟값이 최댓
     { minLatitude: -90, minLongitude: -180, maxLatitude: 90, maxLongitude: 180 },
   );
   await map.listPins("10", { minLatitude: -95, minLongitude: -200, maxLatitude: 95, maxLongitude: 200 });
-  assert.equal(called, 1);
+  assert.equal(seen.length, 1);
 
   for (const bad of [
     { ...SEOUL_FOREST, minLatitude: 38, maxLatitude: 37 },
@@ -91,13 +105,13 @@ test("#19-S5 영역은 서버가 받는 범위로 맞추고, 최솟값이 최댓
     );
   }
   await assert.rejects(() => map.listPins(" ", SEOUL_FOREST), ApplicationError);
-  assert.equal(called, 1, "잘못된 영역은 서버에 묻지 않는다");
+  assert.equal(seen.length, 1, "잘못된 영역은 서버에 묻지 않는다");
   assert.equal(isValidBounds(SEOUL_FOREST), true);
 });
 
 test("#19-S5 서버 요청은 쿼리 문자열로만 보내고 영역 값은 지수 표기 없는 십진수다", async () => {
   const seen: string[] = [];
-  const repository = new HttpMapPinRepository(
+  const pins = createMapPinApi(
     fakeApi(
       {
         pins: [
@@ -110,7 +124,7 @@ test("#19-S5 서버 요청은 쿼리 문자열로만 보내고 영역 값은 지
     ),
   );
 
-  const list = await repository.list("10", SEOUL_FOREST);
+  const list = await pins.listPins("10", SEOUL_FOREST);
   assert.equal(
     seen[0],
     "/maps/pins?petId=10&minLatitude=37.540700&minLongitude=127.031900&maxLatitude=37.548200&maxLongitude=127.042900",
@@ -125,7 +139,7 @@ test("#19-S5 서버 요청은 쿼리 문자열로만 보내고 영역 값은 지
   assert.equal(list.sample, false);
 
   // 적도 근처의 아주 작은 값도 1e-7이 아니라 십진수로 나간다
-  await repository.list("10", {
+  await pins.listPins("10", {
     minLatitude: -1e-7,
     minLongitude: -1e-7,
     maxLatitude: 1e-7,
@@ -135,27 +149,21 @@ test("#19-S5 서버 요청은 쿼리 문자열로만 보내고 영역 값은 지
 });
 
 test("#19-S6 서버가 잘렸다고 알려 주면 그대로 전달한다", async () => {
-  const repository = new HttpMapPinRepository(
-    fakeApi({ pins: [], truncated: true }),
-  );
-  assert.equal((await repository.list("10", SEOUL_FOREST)).truncated, true);
+  const pins = createMapPinApi(fakeApi({ pins: [], truncated: true }));
+  assert.equal((await pins.listPins("10", SEOUL_FOREST)).truncated, true);
 });
 
 test("#19-S9 서버 반려동물(양의 정수 id)만 서버에 묻고, 데모 반려동물은 예시 핀을 본다", async () => {
   const asked: string[] = [];
-  const server: MapPinRepository = {
-    list: async (petId) => {
+  const source = mapSource({
+    async listPins(petId) {
       asked.push(petId);
       return { pins: [], truncated: false, sample: false };
     },
-  };
-  const repository = new PetScopedMapPinRepository(
-    server,
-    new DemoMapPinRepository(),
-  );
+  });
 
-  assert.equal((await repository.list("10", SEOUL_FOREST, { sample: true })).sample, false);
-  const demo = await repository.list(
+  assert.equal((await source.map.listPins("10", SEOUL_FOREST, { sample: true })).sample, false);
+  const demo = await source.map.listPins(
     "6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10",
     SEOUL_FOREST,
     { sample: true },
@@ -164,7 +172,7 @@ test("#19-S9 서버 반려동물(양의 정수 id)만 서버에 묻고, 데모 �
   assert.ok(demo.pins.length > 0);
   assert.deepEqual(asked, ["10"]);
   for (const id of ["0", "-1", "1.5", "01", "abc"]) {
-    assert.equal((await repository.list(id, SEOUL_FOREST, { sample: true })).sample, true, id);
+    assert.equal((await source.map.listPins(id, SEOUL_FOREST, { sample: true })).sample, true, id);
   }
 });
 
@@ -255,13 +263,16 @@ test("#19-S10 일반 계정의 브라우저 반려동물에는 예시 핀을 섞
   assert.equal(sample.sample, true);
   assert.ok(sample.pins.length > 0);
 
-  // 사용 사례도 옵션을 그대로 전달한다
+  // 출처 분기도 옵션을 그대로 전달한다
   const seen: unknown[] = [];
-  const map = createMapUseCases({
-    list: async (_pet, _bounds, options) => (seen.push(options), { pins: [], truncated: false, sample: false }),
+  const source = mapSource({
+    async listPins(_pet, _bounds, options) {
+      seen.push(options);
+      return { pins: [], truncated: false, sample: false };
+    },
   });
-  await map.listPins("10", SEOUL_FOREST, { sample: true });
-  await map.listPins("10", SEOUL_FOREST);
+  await source.map.listPins("10", SEOUL_FOREST, { sample: true });
+  await source.map.listPins("10", SEOUL_FOREST);
   assert.deepEqual(seen, [{ sample: true }, undefined]);
 });
 

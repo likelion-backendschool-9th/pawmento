@@ -1,6 +1,7 @@
-import type { WorkspaceRepository } from "../../features/workspace/application/ports.ts";
-import type { Workspace, Pet } from "../../features/workspace/domain/models.ts";
-import type { LifeRepository } from "../../features/life/application/ports.ts";
+import type { LifeRepository } from "./lifeUseCases.ts";
+import type { Pet } from "../../features/pet/types/Pet.ts";
+import type { Workspace } from "../../features/shell/types/workspace.ts";
+import type { WorkspaceRepository } from "./workspaceUseCases.ts";
 /** Same-browser sharing adapter. A server implementation must enforce its own authorization. */
 export class SharedWorkspaceRepository implements WorkspaceRepository {
   private base: WorkspaceRepository;

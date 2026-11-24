@@ -200,4 +200,4 @@
 - 공개 경로를 더하면 [`PublicEndpoints`](../../backend/src/main/java/com/pawmento/global/security/PublicEndpoints.java)와 [member README의 공개 경로 표](../member/README.md#공개-경로)를 함께 고친다.
 - `GlobalExceptionHandler`는 기본 예외와 `@Valid` 실패, JSON 형식 오류만 처리한다. 필수 쿼리 파라미터 누락(`MissingServletRequestParameterException`)과 타입 오류(`cursor=abc`, `/posts/abc`: `MethodArgumentTypeMismatchException`)는 Spring 기본 형식의 400이다. 이것을 공통 형식으로 맞출지는 [예외 처리 문서](../backend-exceptions.md#아직-정하지-않은-것)의 미정 항목이라, 이번 이슈에서는 `GlobalExceptionHandler`를 고치지 않는다.
 - 프론트엔드 설계의 커뮤니티 규칙(전체 목록 없음, 기본 반려 생활, 추모 글 분리): [디자인 토큰 문서](../Frontend/PawMento_Design_Tokens_Hexagonal.md), [전체 데모](../app-demo/full-demo.md) #12-R7
-- 프론트엔드 데모의 커뮤니티 모델: [`models.ts`](../../frontend/features/life/domain/models.ts)(카테고리 이름), [`CommunityScreen.tsx`](../../frontend/features/life/adapters/inbound/CommunityScreen.tsx)(제목·본문 길이, 카테고리별 안내 문구)
+- 프론트엔드 데모의 커뮤니티 모델: [`categories.ts`](../../frontend/features/community/utils/categories.ts)(카테고리 이름), [`CommunityScreen.tsx`](../../frontend/features/community/components/CommunityScreen.tsx)(제목·본문 길이, 카테고리별 안내 문구)

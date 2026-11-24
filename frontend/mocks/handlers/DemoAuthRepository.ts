@@ -1,9 +1,8 @@
 import { createId } from "../../lib/id.ts";
-import type { AuthRepository } from "../../features/auth/application/auth.ts";
-import type { Account, Credentials } from "../../features/auth/domain/account.ts";
+import type { Account, Credentials } from "../../features/member/types/account.ts";
 
 // This is a tab-local UI demo, not server authentication. No password/token is persisted.
-export class DemoAuthRepository implements AuthRepository {
+export class DemoAuthRepository {
   private accounts = new Map<string, { account: Account; password: string }>();
   private account: Account | null = null;
   async current() {

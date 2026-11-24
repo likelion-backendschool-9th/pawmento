@@ -8,11 +8,11 @@
 |---|---|---|
 | 공통 변수 | [tokens.css](../../frontend/styles/tokens.css) | 색상, 모드별 의미 토큰, 본문 글꼴, 카드 그림자 |
 | 공통 요소 | [globals.css](../../frontend/app/globals.css) | 버튼, 입력, 브랜드, 대화상자, 첨부, 포커스 |
-| 기능 탐색 | [AppShell.tsx](../../frontend/features/workspace/adapters/inbound/AppShell.tsx) | 반려동물 선택, 모드에 따른 메뉴 구성 |
-| 공간 레이아웃 | [SpaceShell.module.css](../../frontend/features/workspace/adapters/inbound/SpaceShell.module.css) | 헤더, 콘텐츠 폭, 배경, 전체 메뉴, 모바일 탐색 |
-| 홈 | [HomeScreen.module.css](../../frontend/features/workspace/adapters/inbound/HomeScreen.module.css) | 소개 영역, 프로필, 사진 전시, 정원 우체통 안내 |
-| 업무 화면 | [Workspace.module.css](../../frontend/features/workspace/adapters/inbound/Workspace.module.css) | 기록, 달력, 반려동물 관리 등 화면별 배치 |
-| 엽서 | [PostcardPaper.module.css](../../frontend/features/life/adapters/inbound/PostcardPaper.module.css) | 종이, 장면 그림, 편지, 우표와 소인 |
+| 기능 탐색 | [AppShell.tsx](../../frontend/features/shell/components/AppShell.tsx) | 반려동물 선택, 모드에 따른 메뉴 구성 |
+| 공간 레이아웃 | [SpaceShell.module.css](../../frontend/features/shell/components/SpaceShell.module.css) | 헤더, 콘텐츠 폭, 배경, 전체 메뉴, 모바일 탐색 |
+| 홈 | [HomeScreen.module.css](../../frontend/features/pet/components/HomeScreen.module.css) | 소개 영역, 프로필, 사진 전시, 정원 우체통 안내 |
+| 업무 화면 | [Workspace.module.css](../../frontend/features/shell/components/Workspace.module.css) | 기록, 달력, 반려동물 관리 등 화면별 배치 |
+| 엽서 | [PostcardPaper.module.css](../../frontend/features/postcard/components/PostcardPaper.module.css) | 종이, 장면 그림, 편지, 우표와 소인 |
 
 `globals.css`에는 같은 선택자를 뒤에서 덮어쓰는 규칙이 있다. 이 문서의 공통 규격은 뒤쪽 규칙까지 반영한 값이며, 화면별 CSS 모듈과 선택자 우선순위에 따라 달라질 수 있다. 모든 색상·간격·모서리가 변수로 통일된 상태는 아니다. 아래의 **CSS 변수**와 **컴포넌트 개별 값**을 구분해서 사용한다.
 

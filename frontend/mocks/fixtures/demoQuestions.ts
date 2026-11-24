@@ -1,8 +1,8 @@
+import type { Pet } from "../../features/pet/types/Pet.ts";
 import type {
   QuestionAnswer,
   DemoQuestionAnswerInput,
-  Pet,
-} from "../../features/workspace/domain/models.ts";
+} from "../../features/question/types/QuestionAnswer.ts";
 
 /** Only produces missing samples; never replaces an existing day's answer. */
 export function demoQuestionInputs(

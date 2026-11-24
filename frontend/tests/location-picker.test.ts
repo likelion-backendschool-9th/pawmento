@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   PLACE_NAME_MAX_LENGTH,
   pickLocation,
-} from "../features/map/domain/PickedLocation.ts";
+} from "../features/map/utils/pickedLocation.ts";
 
 const SEOUL_FOREST = { latitude: 37.5445, longitude: 127.0374 };
 

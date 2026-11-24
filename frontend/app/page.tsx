@@ -1,4 +1,4 @@
-import { LandingScreen } from "@/features/workspace/adapters/inbound/LandingScreen";
+import { LandingScreen } from "@/features/member/components/LandingScreen";
 export default function Page() {
   return <LandingScreen />;
 }

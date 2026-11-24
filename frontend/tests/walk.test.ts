@@ -2,7 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 import { ApiError, type ApiClient } from "../lib/http/apiClient.ts";
+import { createWalkApi } from "../features/map/api/walkApi.ts";
+import { LocalActiveWalkStore } from "../features/map/LocalActiveWalkStore.ts";
+import { createMapSource } from "../features/map/source.ts";
+import type { ActiveWalk, ActiveWalkStore, WalkPoint, WalkRepository } from "../features/map/types/Walk.ts";
 import {
+  DEMO_WALK_PREFIX,
   distanceBetween,
   elapsedSeconds,
   formatDistance,
@@ -11,20 +16,10 @@ import {
   MAX_POINTS_PER_REQUEST,
   MAX_POINTS_PER_WALK,
   pathDistance,
-  DEMO_WALK_PREFIX,
-  type WalkPoint,
-} from "../features/map/domain/Walk.ts";
-import { WalkRecorder } from "../features/map/application/WalkRecorder.ts";
-import { createWalkUseCases } from "../features/map/application/walkUseCases.ts";
-import type {
-  ActiveWalk,
-  ActiveWalkStore,
-  WalkRepository,
-} from "../features/map/application/walkPorts.ts";
-import { HttpWalkRepository } from "../features/map/adapters/outbound/HttpWalkRepository.ts";
+} from "../features/map/utils/walk.ts";
+import { WalkRecorder } from "../features/map/utils/WalkRecorder.ts";
+import { createWalkSession } from "../features/map/walkSession.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
-import { PetScopedWalkRepository } from "../features/map/adapters/outbound/PetScopedWalkRepository.ts";
-import { LocalActiveWalkStore } from "../features/map/adapters/outbound/LocalActiveWalkStore.ts";
 
 const point = (n: number, extra: Partial<WalkPoint> = {}): WalkPoint => ({
   latitude: 37.5445 + n * 0.0001,
@@ -185,7 +180,7 @@ function memoryStore() {
 test("#73-S2 산책을 끝낼 때 남은 좌표를 먼저 보내고, 못 보내면 끝내지 않는다", async () => {
   const sent: WalkPoint[][] = [];
   const { memory, store } = memoryStore();
-  const walks = createWalkUseCases(fakeRepository(sent, [1]), store);
+  const walks = createWalkSession(fakeRepository(sent, [1]), store);
 
   const { walk, recorder } = await walks.start("u1", "10");
   assert.equal(memory.get("u1:10")?.walk.walkId, "5", "시작하면 이어 갈 수 있게 남긴다");
@@ -204,7 +199,7 @@ test("#73-S2 산책을 끝낼 때 남은 좌표를 먼저 보내고, 못 보내�
   assert.equal(memory.has("u1:10"), false);
 
   // 연결이 계속 불안정하면 남은 좌표를 포기하고 끝낼 수 있다. 이때는 일부가 저장되지 않았다고 알린다
-  const second = createWalkUseCases(fakeRepository([], [1, 2, 3]), store);
+  const second = createWalkSession(fakeRepository([], [1, 2, 3]), store);
   const started = await second.start("u1", "10");
   started.recorder.record(point(0));
   const forced = await second.end("u1", started.walk, started.recorder, { flush: false });
@@ -216,7 +211,7 @@ test("#73-S3 서버가 이미 닫은 산책이면 더 모으거나 보내지 않
   const sent: WalkPoint[][] = [];
   const repo = fakeRepository(sent, [], [1], "INTERRUPTED"); // 첫 전송이 WALK_CLOSED(409)
   const { memory, store } = memoryStore();
-  const walks = createWalkUseCases(repo, store);
+  const walks = createWalkSession(repo, store);
   const { walk, recorder } = await walks.start("u1", "10");
   recorder.record(point(0));
 
@@ -241,7 +236,7 @@ test("#73-S3 서버가 이미 닫은 산책이면 더 모으거나 보내지 않
 test("#73-S1 새로고침 전에 걷던 산책은 이어 갈 수 있다(보낸 개수도 이어진다)", async () => {
   const { store } = memoryStore();
   const sent: WalkPoint[][] = [];
-  const walks = createWalkUseCases(fakeRepository(sent), store);
+  const walks = createWalkSession(fakeRepository(sent), store);
   const { walk, recorder } = await walks.start("u1", "10");
   for (let i = 0; i < 6; i += 1) recorder.record(point(i));
   await recorder.flush();
@@ -259,7 +254,7 @@ test("#73-S1 새로고침 전에 걷던 산책은 이어 갈 수 있다(보낸 �
 
 test("#73-S1 서버에는 petId를 정수로, 좌표는 recordedAt과 함께 보내고 409는 사용자 문구로 바꾼다", async () => {
   const seen: { path: string; body?: unknown }[] = [];
-  const repo = new HttpWalkRepository(
+  const repo = createWalkApi(
     fakeApi(
       {
         post: (path) => {
@@ -292,7 +287,7 @@ test("#73-S1 서버에는 petId를 정수로, 좌표는 recordedAt과 함께 보
 
 
 test("#73-S12 이미 진행 중인 산책이 있어 서버가 409를 주면 시작은 CONFLICT로 알린다", async () => {
-  const repo = new HttpWalkRepository(
+  const repo = createWalkApi(
     fakeApi({
       post: () => {
         throw new ApiError(409, "CONFLICT", "state conflict");
@@ -306,7 +301,7 @@ test("#73-S12 이미 진행 중인 산책이 있어 서버가 409를 주면 시�
 });
 
 test("#73-S3 끝났거나 중단된 산책에 좌표를 보내 409를 받으면 WALK_CLOSED로 알리고, 다른 오류는 그대로 올린다", async () => {
-  const repo = new HttpWalkRepository(
+  const repo = createWalkApi(
     fakeApi({
       post: () => {
         throw new ApiError(409, "CONFLICT", "state conflict");
@@ -317,7 +312,7 @@ test("#73-S3 끝났거나 중단된 산책에 좌표를 보내 409를 받으면 
     () => repo.addPoints("7", [point(0)]),
     (error: unknown) => error instanceof ApplicationError && error.code === "WALK_CLOSED",
   );
-  const failing = new HttpWalkRepository(
+  const failing = createWalkApi(
     fakeApi({
       post: () => {
         throw new ApiError(503, "STORAGE_UNAVAILABLE", "잠시 후 다시");
@@ -363,7 +358,16 @@ test("#73-S1 서버 반려동물(양의 정수 id)은 서버로, 데모는 메�
     end: async (walkId) => (calls.push(`server.end:${walkId}`), { status: "ENDED", endedAt: "x" }),
   };
   const demo = new DemoWalkRepository();
-  const repo = new PetScopedWalkRepository(server, demo);
+  const repo = createMapSource({
+    pins: { listPins: async () => ({ pins: [], truncated: false, sample: false }) },
+    walks: server,
+    history: {
+      listDay: async () => ({ walks: [], sample: false }),
+      listDays: async () => ({ byDate: {}, failed: [] }),
+    },
+    demoPins: { list: async () => ({ pins: [], truncated: false, sample: false }) },
+    demoWalks: demo,
+  }).walk;
 
   const real = await repo.start("10");
   await repo.addPoints(real.walkId, [point(0)]);

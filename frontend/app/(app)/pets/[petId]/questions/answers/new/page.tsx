@@ -4,8 +4,8 @@ import { today } from "@/lib/date";
 import {
   usePet,
   PetWriteAccess,
-} from "@/features/workspace/adapters/inbound/PetContext";
-import { JournalForm } from "@/features/workspace/adapters/inbound/JournalScreens";
+} from "@/features/pet/hooks/PetContext";
+import { JournalForm } from "@/features/diary/components/JournalScreens";
 export default function Page() {
   const pet = usePet();
   const search = useSearchParams();

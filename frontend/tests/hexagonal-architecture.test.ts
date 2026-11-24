@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
-import { createPetUseCases } from "../features/pets/application/useCases.ts";
+import type { ApiClient } from "../lib/http/apiClient.ts";
+import { createPetApi } from "../features/pet/api/petApi.ts";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 
 function files(folder: string): string[] {
@@ -28,9 +29,11 @@ function coreFolders(): string[] {
 }
 
 test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의존하지 않는다", () => {
-  const folders = coreFolders();
+  // 계층을 푼 기능 폴더는 화면·훅을 뺀 나머지를 같은 기준으로 검사한다
+  const folders = [...coreFolders(), "features/diary", "features/question"];
   for (const folder of folders) {
     for (const path of files(resolve(folder))) {
+      if (/\/(components|hooks)\//.test(path)) continue;
       const name = relative(resolve("."), path);
       const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
       function visit(node: ts.Node) {
@@ -48,7 +51,7 @@ test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의�
 });
 
 test("#52-S9 마이페이지 화면은 구체 outbound 어댑터와 HTTP 예외를 모른다", () => {
-  const path = resolve("features/workspace/adapters/inbound/AccountScreen.tsx");
+  const path = resolve("features/mypage/components/AccountScreen.tsx");
   const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
   for (const node of file.statements) {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
@@ -57,8 +60,23 @@ test("#52-S9 마이페이지 화면은 구체 outbound 어댑터와 HTTP 예외�
   }
 });
 
-test("#52-S6 pet 조회 유스케이스는 HTTP 없이 포트만으로 동작한다", async () => {
-  const pets = createPetUseCases({ listMine: async () => [{ id: "1", name: "콩이" }] });
+test("#52-S6 반려동물 목록 API는 조회 결과를 아이 요약으로 돌려준다", async () => {
+  const http: ApiClient = {
+    async get<T>(path: string) {
+      assert.equal(path, "/pets");
+      return [{ petId: 1, name: "콩이" }] as T;
+    },
+    post: async () => {
+      throw Error("unused");
+    },
+    patch: async () => {
+      throw Error("unused");
+    },
+    postEmpty: async () => {
+      throw Error("unused");
+    },
+  };
+  const pets = createPetApi(http);
   assert.deepEqual(await pets.listMine(), [{ id: "1", name: "콩이" }]);
 });
 
@@ -68,13 +86,12 @@ test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리
   assert.equal("status" in error, false);
 });
 
-test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
-  const folder = resolve("features/map/adapters/inbound");
-  for (const path of files(folder)) {
-    const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
-    for (const node of file.statements) {
-      if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-        assert.doesNotMatch(node.moduleSpecifier.text, /adapters\/outbound|lib\/http/, relative(folder, path));
+test("#182 회원·반려동물 API는 react·next·mocks를 가져오지 않는다", () => {
+  for (const folder of ["features/member/api", "features/pet/api", "features/map/api"]) {
+    for (const path of files(resolve(folder))) {
+      const name = relative(resolve("."), path);
+      for (const specifier of moduleSpecifiers(path)) {
+        assert.doesNotMatch(specifier, /react|next|mocks/, `${name} → ${specifier}`);
       }
     }
   }
@@ -110,3 +127,20 @@ function moduleSpecifiers(path: string): string[] {
   }
   return found;
 }
+
+test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트를 모른다", () => {
+  for (const folder of ["features/map/components", "features/map/hooks"]) {
+    for (const path of files(resolve(folder))) {
+      const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+      for (const node of file.statements) {
+        if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
+          assert.doesNotMatch(
+            node.moduleSpecifier.text,
+            /features\/map\/api|(^|\/)api\/|lib\/http/,
+            `${relative(resolve("."), path)} → ${node.moduleSpecifier.text}`,
+          );
+        }
+      }
+    }
+  }
+});
