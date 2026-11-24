@@ -7,10 +7,13 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,7 +43,7 @@ import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// 시나리오는 docs/map/animal-places.md(#172-S22)에 있다. 관리자 수동 가져오기 API(POST /api/v1/admin/places/sync)를 요청으로 확인한다.
+// 시나리오는 docs/map/animal-places.md(#172-S22)에 있다. 관리자 수동 가져오기 API(POST·GET /api/v1/admin/places/sync)를 요청으로 확인한다.
 // 정부 서버는 가짜 포트로 대신한다. 이 테스트가 만든 places 행은 끝나면 지운다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = { "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
@@ -102,6 +105,25 @@ class PlaceSyncAdminScenarioTest {
 		return asRole(admin, "ADMIN", "/api/v1/admin/places/sync" + query);
 	}
 
+	private ResultActions statusOf(String category) throws Exception {
+		return mvc.perform(get("/api/v1/admin/places/sync?category=" + category)
+			.with(jwt().jwt(j -> j.subject("" + admin).claim("role", "ADMIN"))
+				.authorities(new SimpleGrantedAuthority("ROLE_ADMIN"))));
+	}
+
+	// 가져오기는 백그라운드에서 돌아서, 끝날 때까지 상태를 조회한다
+	private JsonNode awaitFinished(String category) throws Exception {
+		long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20);
+		while (System.nanoTime() < deadline) {
+			JsonNode status = body(statusOf(category));
+			if (!"RUNNING".equals(status.get("state").asText())) {
+				return status;
+			}
+			Thread.sleep(50);
+		}
+		throw new AssertionError("가져오기가 20초 안에 끝나지 않았습니다: " + category);
+	}
+
 	private JsonNode body(ResultActions action) throws Exception {
 		MvcResult result = action.andReturn();
 		return json.readTree(result.getResponse().getContentAsString());
@@ -140,30 +162,51 @@ class PlaceSyncAdminScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#172-S22 관리자가 category=HOSPITAL로 부르면 200과 읽은·저장·제외·추가·갱신·삭제 건수를 받고 장소가 저장된다")
-	void adminRunsTheSync() throws Exception {
+	@DisplayName("#172-S22 관리자가 category=HOSPITAL로 부르면 바로 202와 RUNNING을 받고, 끝난 뒤 조회하면 읽은·저장·제외·추가·갱신·삭제 건수가 있다")
+	void adminStartsTheSync() throws Exception {
 		ResultActions action = asAdmin("?category=HOSPITAL");
 
-		assertThat(action.andReturn().getResponse().getStatus()).isEqualTo(200);
-		JsonNode body = body(action);
-		assertThat(body.get("category").asText()).isEqualTo("HOSPITAL");
-		assertThat(body.get("read").asInt()).isEqualTo(3);
-		assertThat(body.get("saved").asInt()).isEqualTo(1);
-		assertThat(body.get("excluded").asInt()).isEqualTo(2);
-		assertThat(body.get("closed").asInt()).isEqualTo(1);
-		assertThat(body.get("noCoordinates").asInt()).isEqualTo(1);
-		assertThat(body.get("outOfRange").asInt()).isZero();
-		assertThat(body.get("inserted").asInt()).isEqualTo(1);
-		assertThat(body.get("updated").asInt()).isZero();
-		assertThat(body.get("deleted").asInt()).isZero();
+		assertThat(action.andReturn().getResponse().getStatus()).isEqualTo(202);
+		JsonNode started = body(action);
+		assertThat(started.get("category").asText()).isEqualTo("HOSPITAL");
+		assertThat(started.get("state").asText()).isIn("RUNNING", "SUCCEEDED");
+
+		JsonNode status = awaitFinished("HOSPITAL");
+		assertThat(status.get("state").asText()).isEqualTo("SUCCEEDED");
+		JsonNode result = status.get("result");
+		assertThat(result.get("read").asInt()).isEqualTo(3);
+		assertThat(result.get("saved").asInt()).isEqualTo(1);
+		assertThat(result.get("excluded").asInt()).isEqualTo(2);
+		assertThat(result.get("closed").asInt()).isEqualTo(1);
+		assertThat(result.get("noCoordinates").asInt()).isEqualTo(1);
+		assertThat(result.get("outOfRange").asInt()).isZero();
+		assertThat(result.get("inserted").asInt()).isEqualTo(1);
+		assertThat(result.get("updated").asInt()).isZero();
+		assertThat(result.get("deleted").asInt()).isZero();
 		assertThat(jdbc.queryForObject("select name from places where category='HOSPITAL' and source_id='m1'", String.class))
 			.isEqualTo("대학로동물병원");
 	}
 
 	@Test
-	@DisplayName("#172-S22 다시 부르면 바뀐 것이 없어 추가·갱신·삭제가 0이고, 이번 목록에 없는 저장된 곳은 삭제로 센다")
+	@DisplayName("#172-S22 이 서버에서 돌린 적이 없는 종류를 조회하면 NONE이고, 일반 회원은 조회도 403이다")
+	void statusBeforeAnyRunAndAccessControl() throws Exception {
+		assertThat(body(statusOf("GROOMING")).get("state").asText()).isEqualTo("NONE");
+
+		int status = asRoleGet(user, "USER").andReturn().getResponse().getStatus();
+		assertThat(status).isEqualTo(403);
+	}
+
+	private ResultActions asRoleGet(long actor, String role) throws Exception {
+		return mvc.perform(get("/api/v1/admin/places/sync?category=HOSPITAL")
+			.with(jwt().jwt(j -> j.subject("" + actor).claim("role", role))
+				.authorities(new SimpleGrantedAuthority("ROLE_" + role))));
+	}
+
+	@Test
+	@DisplayName("#172-S22 다시 돌리면 바뀐 것이 없어 추가·갱신·삭제가 0이고, 이번 목록에 없는 저장된 곳은 삭제로 센다")
 	void secondRunIsIdempotentAndDeletesMissing() throws Exception {
 		asAdmin("?category=HOSPITAL");
+		awaitFinished("HOSPITAL");
 		jdbc.update("""
 				insert into places (category, source_id, name, latitude, longitude, open24h, created_at, updated_at)
 				values ('HOSPITAL', 'stale', '사라진 병원', 37.5, 127.0, false, now(), now())
@@ -173,7 +216,8 @@ class PlaceSyncAdminScenarioTest {
 				values ('GROOMING', 'other-kind', '다른 종류', 37.5, 127.0, false, now(), now())
 				""");
 
-		JsonNode second = body(asAdmin("?category=HOSPITAL"));
+		asAdmin("?category=HOSPITAL");
+		JsonNode second = awaitFinished("HOSPITAL").get("result");
 
 		assertThat(second.get("inserted").asInt()).isZero();
 		assertThat(second.get("updated").asInt()).isZero();
@@ -205,7 +249,7 @@ class PlaceSyncAdminScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#172-S5 받기가 실패하면 503이고 저장된 장소는 하나도 바뀌지 않는다")
+	@DisplayName("#172-S5 받기가 실패하면 상태가 FAILED(FETCH_FAILED)이고 저장된 장소는 하나도 바뀌지 않는다")
 	void failedFetchLeavesPlacesUntouched() throws Exception {
 		jdbc.update("""
 				insert into places (category, source_id, name, latitude, longitude, open24h, created_at, updated_at)
@@ -213,30 +257,55 @@ class PlaceSyncAdminScenarioTest {
 				""");
 		when(loader.load(any())).thenThrow(LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과")));
 
-		ResultActions action = asAdmin("?category=HOSPITAL");
+		assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(202);
+		JsonNode status = awaitFinished("HOSPITAL");
 
-		assertThat(action.andReturn().getResponse().getStatus()).isEqualTo(503);
-		assertThat(body(action).get("code").asText()).isEqualTo("STORAGE_UNAVAILABLE");
+		assertThat(status.get("state").asText()).isEqualTo("FAILED");
+		assertThat(status.get("failure").asText()).isEqualTo("FETCH_FAILED");
 		assertThat(jdbc.queryForObject("select name from places where source_id='keep'", String.class))
 			.isEqualTo("그대로 있어야 하는 병원");
 		assertThat(places()).isEqualTo(1);
 	}
 
 	@Test
-	@DisplayName("#172-S22 같은 종류를 이미 가져오는 중이면 409이고 받기를 시작하지 않으며, 끝나면 다시 가져올 수 있다")
-	void rejectsWhileAnotherRunIsActive() throws Exception {
-		try (var lock = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow()) {
-			ResultActions blocked = asAdmin("?category=HOSPITAL");
+	@DisplayName("#172-S22 가져오는 중에 같은 종류를 다시 시작하면 409이고, 끝나면 다시 시작할 수 있다")
+	void rejectsSecondStartWhileRunning() throws Exception {
+		CountDownLatch inLoader = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		when(loader.load(any())).thenAnswer(invocation -> {
+			inLoader.countDown();
+			release.await(20, TimeUnit.SECONDS);
+			return new LocalDataSnapshot(0, 0, List.of());
+		});
 
-			assertThat(blocked.andReturn().getResponse().getStatus()).isEqualTo(409);
-			assertThat(body(blocked).get("code").asText()).isEqualTo("CONFLICT");
+		assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(202);
+		assertThat(inLoader.await(10, TimeUnit.SECONDS)).isTrue();
+
+		ResultActions blocked = asAdmin("?category=HOSPITAL");
+		assertThat(blocked.andReturn().getResponse().getStatus()).isEqualTo(409);
+		assertThat(body(blocked).get("code").asText()).isEqualTo("CONFLICT");
+		assertThat(body(statusOf("HOSPITAL")).get("state").asText()).isEqualTo("RUNNING");
+
+		release.countDown();
+		assertThat(awaitFinished("HOSPITAL").get("state").asText()).isEqualTo("SUCCEEDED");
+		assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(202);
+		awaitFinished("HOSPITAL");
+	}
+
+	@Test
+	@DisplayName("#172-S22 다른 곳(자동 실행 등)이 같은 종류의 잠금을 쥐고 있으면 받지 않고 FAILED(ALREADY_RUNNING)이며, 다른 종류는 막히지 않는다")
+	void lockHeldElsewhereMakesTheRunFail() throws Exception {
+		try (var lock = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow()) {
+			assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(202);
+			JsonNode blocked = awaitFinished("HOSPITAL");
+
+			assertThat(blocked.get("state").asText()).isEqualTo("FAILED");
+			assertThat(blocked.get("failure").asText()).isEqualTo("ALREADY_RUNNING");
 			verify(loader, never()).load(any());
 
-			// 다른 종류는 막히지 않는다
-			assertThat(asAdmin("?category=GROOMING").andReturn().getResponse().getStatus()).isEqualTo(200);
+			assertThat(asAdmin("?category=GROOMING").andReturn().getResponse().getStatus()).isEqualTo(202);
+			assertThat(awaitFinished("GROOMING").get("state").asText()).isEqualTo("SUCCEEDED");
 		}
-
-		assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(200);
 	}
 
 }

@@ -128,6 +128,21 @@ class PlaceSyncSchedulerTest {
 	}
 
 	@Test
+	@DisplayName("#172-S22 다시 시도해도 같은 실패(필수 항목 누락, 인증 거절)는 다시 시도하지 않고 다른 종류는 이어서 가져온다")
+	void permanentFailuresAreNotRetried() {
+		var useCase = new FakeUseCase();
+		useCase.failure = category -> "HOSPITAL".equals(category)
+				? LocalDataSyncFailedException.fetchRejected(new RuntimeException("인증키 거절"))
+				: LocalDataSyncFailedException.rejected(LocalDataSyncFailedException.Reason.MISSING_FIELDS);
+		var runner = new ManualRunner();
+
+		new PlaceSyncScheduler(useCase, runner, RETRY_DELAY, 3).trigger();
+
+		assertThat(useCase.calls).containsExactly("HOSPITAL", "GROOMING");
+		assertThat(runner.later).isEmpty();
+	}
+
+	@Test
 	@DisplayName("#172-S22 이미 다른 실행이 돌고 있으면(관리자가 수동으로 돌리는 중) 건너뛰고 다시 시도하지 않는다")
 	void alreadyRunningIsSkippedWithoutRetry() {
 		var useCase = new FakeUseCase();

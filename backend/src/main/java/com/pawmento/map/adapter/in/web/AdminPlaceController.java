@@ -1,12 +1,17 @@
 package com.pawmento.map.adapter.in.web;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.LoginMember;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.in.GetPlaceSyncStatusQuery;
+import com.pawmento.map.application.port.in.GetPlaceSyncStatusUseCase;
+import com.pawmento.map.application.port.in.StartPlaceSyncCommand;
+import com.pawmento.map.application.port.in.StartPlaceSyncUseCase;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -17,14 +22,25 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 class AdminPlaceController {
 
-	private final SyncLocalDataPlacesUseCase syncLocalDataPlacesUseCase;
+	private final StartPlaceSyncUseCase startPlaceSyncUseCase;
 
-	// 공공데이터를 전부 받아 한 종류를 통째로 맞춘다. 끝날 때까지(보통 1~몇 분, 정부 서버가 혼잡하면 더 길게) 응답을 기다린다
+	private final GetPlaceSyncStatusUseCase getPlaceSyncStatusUseCase;
+
+	// 가져오기를 시작만 하고 바로 202로 돌려준다. 몇 분 걸려서 끝까지 기다리면 nginx 시간 제한(60초)에 걸린다
 	@PostMapping("/sync")
-	SyncPlacesResponse sync(@LoginMember Long memberId, HttpServletRequest http) {
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	PlaceSyncStatusResponse start(@LoginMember Long memberId, HttpServletRequest http) {
 		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "category");
-		return SyncPlacesResponse
-			.from(syncLocalDataPlacesUseCase.sync(new SyncLocalDataPlacesCommand(memberId, query.syncCategory("category"))));
+		return PlaceSyncStatusResponse
+			.from(startPlaceSyncUseCase.start(new StartPlaceSyncCommand(memberId, query.syncCategory("category"))));
+	}
+
+	// 마지막 가져오기의 진행·결과를 조회한다
+	@GetMapping("/sync")
+	PlaceSyncStatusResponse status(@LoginMember Long memberId, HttpServletRequest http) {
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "category");
+		return PlaceSyncStatusResponse
+			.from(getPlaceSyncStatusUseCase.get(new GetPlaceSyncStatusQuery(memberId, query.syncCategory("category"))));
 	}
 
 }

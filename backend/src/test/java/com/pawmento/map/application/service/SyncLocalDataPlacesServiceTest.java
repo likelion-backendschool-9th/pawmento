@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
+import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
@@ -326,10 +327,27 @@ class SyncLocalDataPlacesServiceTest {
 		assertThat(locks.events).isEmpty();
 	}
 
+	@Test
+	@DisplayName("#172-S22 받는 동안 잠금을 잃었으면 저장하지 않고, 잠금은 그래도 정리한다")
+	void doesNotStoreWhenTheLockWasLost() {
+		var locks = new FakeLocks();
+		locks.lost = true;
+		var store = new FakeStore();
+		var service = new SyncLocalDataPlacesService(category -> new LocalDataSnapshot(1, 1, actives(1)),
+				new StorePlacesPortStub(store), locks, new FakeAdmin());
+
+		assertThatThrownBy(() -> sync(service)).isInstanceOf(PlaceSyncLockLostException.class);
+
+		assertThat(store.calls).isEmpty();
+		assertThat(locks.events).containsExactly("acquire HOSPITAL", "release HOSPITAL");
+	}
+
 	// 가짜 잠금: 잡고 놓은 순서를 기록한다. available=false면 이미 다른 곳이 돌리는 중이다
 	private static class FakeLocks implements PlaceSyncLockPort {
 
 		boolean available = true;
+
+		boolean lost = false;
 
 		final List<String> events = new ArrayList<>();
 
@@ -339,7 +357,19 @@ class SyncLocalDataPlacesServiceTest {
 			if (!available) {
 				return Optional.empty();
 			}
-			return Optional.of(() -> events.add("release " + category));
+			return Optional.of(new SyncLock() {
+				@Override
+				public void requireHeld() {
+					if (lost) {
+						throw new PlaceSyncLockLostException(new RuntimeException("연결 끊김"));
+					}
+				}
+
+				@Override
+				public void close() {
+					events.add("release " + category);
+				}
+			});
 		}
 
 	}

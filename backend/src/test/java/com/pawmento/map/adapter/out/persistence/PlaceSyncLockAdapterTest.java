@@ -1,6 +1,7 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.domain.PlaceCategory;
 
@@ -64,6 +66,27 @@ class PlaceSyncLockAdapterTest {
 	void closingTwiceIsHarmless() {
 		var lock = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow();
 		lock.close();
+		lock.close();
+
+		var again = locks.tryAcquire(PlaceCategory.HOSPITAL);
+		assertThat(again).isPresent();
+		again.get().close();
+	}
+
+	@Test
+	@DisplayName("#172-S22 잠금을 쥐고 있는 동안 requireHeld는 통과하고, 연결이 끊겨 잠금을 잃었으면 저장 전에 예외로 막는다. 닫아도 오류 없이 다시 잡을 수 있다")
+	void lostLockIsDetectedBeforeStoring() {
+		var lock = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow();
+		lock.requireHeld();
+
+		// 잠금을 쥔 서버 연결을 DB에서 끊는다(네트워크 단절·DB 재시작과 같은 상황)
+		Integer pid = jdbcTemplate.queryForObject("""
+				select pid from pg_locks
+				where locktype = 'advisory' and granted and classid = ?::oid and objsubid = 2 and objid = ?::oid
+				""", Integer.class, 0x504C4353, PlaceCategory.HOSPITAL.ordinal());
+		jdbcTemplate.queryForObject("select pg_terminate_backend(?)", Boolean.class, pid);
+
+		assertThatThrownBy(lock::requireHeld).isInstanceOf(PlaceSyncLockLostException.class);
 		lock.close();
 
 		var again = locks.tryAcquire(PlaceCategory.HOSPITAL);

@@ -289,7 +289,7 @@ class LocalDataApiClientTest {
 	}
 
 	@Test
-	@DisplayName("#172-S5 인증키 문제(401·403)와 포털의 영구 오류 코드(요청 잘못됨 10~12, 접근 거부 20·21, 한도 초과 22, 키·기간·IP 30~33)는 다시 시도해도 같아서 바로 중단한다")
+	@DisplayName("#172-S5 인증키 문제(401·403)와 포털의 영구 오류 코드(요청 잘못됨 10~12, 접근 거부 20·21, 한도 초과 22, 키·기간·IP 30~33)는 다시 시도해도 같아서 바로 FETCH_REJECTED로 중단한다(자동 실행도 다시 시도하지 않는다)")
 	void doesNotRetryPermanentFailures() {
 		var replies = new ArrayList<Reply>(List.of(Reply.json(401, ""), Reply.json(403, "forbidden")));
 		for (String code : List.of("10", "11", "12", "20", "21", "22", "30", "31", "32", "33")) {
@@ -303,7 +303,7 @@ class LocalDataApiClientTest {
 
 			assertThatThrownBy(() -> client().load(PlaceCategory.HOSPITAL))
 				.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-						e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_FAILED));
+						e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_REJECTED));
 
 			assertThat(requests).as("다시 시도하지 않는다: %s", reply).hasSize(1);
 			assertThat(sleeps).isEmpty();
@@ -345,11 +345,11 @@ class LocalDataApiClientTest {
 	}
 
 	@Test
-	@DisplayName("#172-S5 인증키가 없으면 호출하지 않고 FETCH_FAILED로 중단한다")
+	@DisplayName("#172-S5 인증키가 없으면 호출하지 않고 FETCH_REJECTED로 중단한다")
 	void missingKeyStopsBeforeCalling() {
 		assertThatThrownBy(() -> client("", 4, Duration.ofSeconds(5)).load(PlaceCategory.HOSPITAL))
 			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_FAILED));
+					e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_REJECTED));
 		assertThat(requests).isEmpty();
 	}
 

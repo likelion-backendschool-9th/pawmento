@@ -18,6 +18,15 @@ public interface PlaceSyncLockPort {
 	/** 잡은 잠금. close()는 여러 번 불러도 한 번만 놓는다. */
 	interface SyncLock extends AutoCloseable {
 
+		/**
+		 * 이 잠금을 아직 쥐고 있는지 확인한다. 가져오는 데 몇 분이 걸려서 그동안 DB 연결이 끊기면 잠금이 풀리고 다른 실행이 같은
+		 * 종류를 시작할 수 있다. 저장하기 직전에 불러서, 잠금을 잃었으면 오래된 스냅샷으로 덮어쓰지 않고 중단한다.
+		 *
+		 * @throws com.pawmento.map.application.exception.PlaceSyncLockLostException 잠금을 잃었을 때
+		 */
+		default void requireHeld() {
+		}
+
 		@Override
 		void close();
 

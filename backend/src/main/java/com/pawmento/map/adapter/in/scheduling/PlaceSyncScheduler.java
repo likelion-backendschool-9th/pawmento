@@ -9,6 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import com.pawmento.global.exception.StateConflictException;
 import com.pawmento.global.exception.StorageUnavailableException;
+import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
@@ -53,18 +54,32 @@ class PlaceSyncScheduler {
 		catch (StateConflictException e) {
 			log.info("장소 자동 가져오기 건너뜀(이미 가져오는 중): {}", category);
 		}
-		catch (StorageUnavailableException e) {
-			if (retriesDone < maxRetries) {
-				log.warn("장소 자동 가져오기 실패, {} 뒤 다시 시도({}/{}): {}", retryDelay, retriesDone + 1, maxRetries, category, e);
-				runner.runLater(() -> attempt(category, retriesDone + 1), retryDelay);
+		catch (LocalDataSyncFailedException e) {
+			if (e.retryable()) {
+				retryLater(category, retriesDone, e);
 			}
 			else {
-				log.error("장소 자동 가져오기 실패, 다시 시도를 모두 썼습니다: {}", category, e);
+				// 필수 항목이 빠진 응답이나 포털이 거부한 요청은 다시 해도 같다. 사람이 원인(원본 형식, 인증키·한도)을 고쳐야 한다
+				log.error("장소 자동 가져오기 실패, 다시 시도해도 같아서 멈춥니다({}): {}", e.reason(), category, e);
 			}
+		}
+		catch (StorageUnavailableException e) {
+			retryLater(category, retriesDone, e);
 		}
 		catch (RuntimeException e) {
 			// 프로그램 오류는 다시 해도 같아서 다시 시도하지 않는다. 다른 종류는 이어서 가져온다
 			log.error("장소 자동 가져오기 중 예상 밖의 오류: {}", category, e);
+		}
+	}
+
+	// 정한 횟수까지 시간을 두고 다시 시도하고, 다 쓰면 포기한다(다음 주기에 다시 돈다)
+	private void retryLater(String category, int retriesDone, RuntimeException cause) {
+		if (retriesDone < maxRetries) {
+			log.warn("장소 자동 가져오기 실패, {} 뒤 다시 시도({}/{}): {}", retryDelay, retriesDone + 1, maxRetries, category, cause);
+			runner.runLater(() -> attempt(category, retriesDone + 1), retryDelay);
+		}
+		else {
+			log.error("장소 자동 가져오기 실패, 다시 시도를 모두 썼습니다: {}", category, cause);
 		}
 	}
 
