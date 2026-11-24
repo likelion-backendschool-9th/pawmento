@@ -145,7 +145,7 @@
 #85-S11 담당·데이터 경계 [테스트]
 - Given 마이페이지가 기존 pet 목록 포트/어댑터를 사용한다
 - When 관리페이지 전용 상세·등록·수정·모드 의존성을 추가한다
-- Then 기존 `PetListRepository`·`PetSummary`·마이페이지 호출 결과를 바꾸지 않는다
+- Then 기존 `features/pet/api/petApi.ts`의 `listMine()`·`PetSummary`·마이페이지 호출 결과를 바꾸지 않는다 (고침 #182: 구조 개편으로 바뀐 경로)
 - Then 서버 저장 실패가 localStorage 저장으로 대체되지 않고, 관리페이지가 `workspace.savePet`·`changeMode`·`selectPet`로 서버 작업을 흉내 내지 않는다
 - Q1~Q3 합의 전 공용 composition·provider·boundary·인증·마이페이지 파일은 변경하지 않는다. 허용된 최소 연결부는 해당 구현 PR의 대상 파일로 명시하고 다른 기능 변경과 분리한다.
 
@@ -190,13 +190,13 @@
 
 - 서버 `petId`는 화면/도메인에서 문자열로 취급하며 정밀도를 잃는 Number 변환을 추가하지 않는다. JSON 숫자 ID의 안전 범위를 넘는 지원이 필요하면 서버 표현부터 합의한다. tag/mode를 브라우저에서 만들어 대체하지 않는다.
 - 이름은 trim 후 1~20자, 품종 최대100자, 종은 DOG/CAT/OTHER다. 기존 데모의 품종50자 제한을 그대로 서버 규칙으로 간주하지 않는다. 생일은 Asia/Seoul 오늘·과거만 허용하며 날짜 문자열을 UTC 시각 변환으로 하루 이동시키지 않는다.
-- `createApiClient`의 같은 출처 쿠키·기존 경로 접두사를 재사용한다. Fetch/DTO/HTTP 상태 의존은 outbound 어댑터에서 처리하고 화면은 유스케이스·기술 독립 오류를 소비한다. 기존 `ApiError`/`ApplicationError` 계약을 먼저 확인하고, HTTP 상태를 해석하는 코드를 domain/application에 직접 옮기지 않는다. 새 공용 API 클라이언트나 인증 구현을 만들지 않는다.
+- `createApiClient`의 같은 출처 쿠키·기존 경로 접두사를 재사용한다. Fetch/DTO/HTTP 상태 의존은 `features/pet/api`에서 처리하고 화면은 기술 독립 오류를 소비한다. 기존 `ApiError`/`ApplicationError` 계약을 먼저 확인하고, HTTP 상태를 해석하는 코드를 `types`·`utils`에 옮기지 않는다. (고침 #182: 구조 개편으로 계층 이름 대신 기능 폴더 기준) 새 공용 API 클라이언트나 인증 구현을 만들지 않는다.
 
 
 ### 현재 코드와의 연결에서 확인할 점
 
-- `pets/domain/PetSummary.ts`는 현재 id·name만, `PetListRepository.listMine()`은 마이페이지용 목록 계약을 제공한다. 서버 관리용 tag/species/breed/birthday/mode를 얻기 위해 이 타입을 변경하거나 모든 소비자에 추가 필드를 강제하지 않는다. 관리용 모델·포트 추가와 최종 주입 위치를 Q1에서 합의한다.
-- `workspace/adapters/inbound/PetScreens.tsx`의 목록·등록/편집은 `app.state.pets`와 `workspace.selectPet/savePet`를 사용한다. `app.refresh()`는 서버 관리 목록의 재조회 수단으로 간주하지 않는다. 서버 저장과 서버 재조회는 전용 관리 흐름으로 연결한다.
+- `features/pet/types/PetSummary.ts`는 현재 id·name만, `features/pet/api/petApi.ts`의 `listMine()`은 마이페이지용 목록 계약을 제공한다. (고침 #182: 구조 개편으로 바뀐 경로) 서버 관리용 tag/species/breed/birthday/mode를 얻기 위해 이 타입을 변경하거나 모든 소비자에 추가 필드를 강제하지 않는다. 관리용 모델·포트 추가와 최종 주입 위치를 Q1에서 합의한다.
+- `features/pet/components/PetScreens.tsx`(예전 `workspace/adapters/inbound`)의 목록·등록/편집은 `app.state.pets`와 `workspace.selectPet/savePet`를 사용한다. `app.refresh()`는 서버 관리 목록의 재조회 수단으로 간주하지 않는다. 서버 저장과 서버 재조회는 전용 관리 흐름으로 연결한다.
 - `/pets/[petId]/layout.tsx`는 `PetBoundary`를 통하며 로컬 workspace에 없는 서버 petId는 먼저 차단된다. URL 숫자/문자열 변환만으로 해결되지 않는다. 기존 상세 진입과 모드 설정 경로에 서버 데이터를 주입하기 전에 관리 경로와 데모 기록 하위 화면의 경계를 합의한다.
 - 현재 서버 요청 DTO는 이름 원문 길이1~20자·품종 최대100자를 검사한다. 도메인의 strip 규칙만 보고 서버가 거부할 원문 길이를 프론트에서 성공으로 판정하지 않는다. name/species/breed/birthday 변경 필드만 PATCH에 보낼지 전체 값을 보낼지 구현 단위에서 명시하고, 생일 빈 문자열은 유효한 날짜처럼 전송하지 않는다.
 - 동시성409는 서버 요청 내부의 낙관적 잠금 보호다. PetResponse에는 version이 없고 관리 PATCH에도 기대 버전 입력이 없다. 오래 열린 편집 화면에서 보낸 값을 모두 감지하는 클라이언트 버전 충돌 방지 기능으로 확대 설명하지 않는다.
@@ -216,7 +216,7 @@
 | 순서 | 목적 | 후보 파일·경계 | 완료 기준 |
 | --- | --- | --- | --- |
 | 0 | 이 계획·Q1~Q5 검토 | 본인 계획문서 한 파일만. 공통 README·규칙·코드는 변경하지 않음 | 담당 합의·API 확인, 각 후속 이슈의 범위/번호 확정 |
-| 1 | 관리 목록 서버 조회 | `pets/domain` 관리 모델, 전용 조회 포트/HTTP 어댑터, `pets/adapters/inbound` 목록과 `/pets` 진입 | S1~S3·S11·목록 S12. Q1·Q2·목록 Q5 합의 후. 마이페이지용 기존 목록 타입/호출 유지. 혼합 쿠키/demo에서도 서버 요청 차단·늦은 응답 폐기 |
+| 1 | 관리 목록 서버 조회 | `features/pet/types` 관리 모델, `features/pet/api` 전용 조회 함수, `features/pet/components` 목록과 `/pets` 진입 (고침 #182: 구조 개편으로 바뀐 경로) | S1~S3·S11·목록 S12. Q1·Q2·목록 Q5 합의 후. 마이페이지용 기존 목록 타입/호출 유지. 혼합 쿠키/demo에서도 서버 요청 차단·늦은 응답 폐기 |
 | 2 | 등록 API 연동 | 관리 전용 등록 입력·유스케이스·HTTP 메서드·폼, `/pets/new` 진입 | S4·S5·등록 S12. 등록 진입 Q1·Q2 및 사진 표시 Q5 승인 후. 사진/삭제/로컬 저장 제외 |
 | 3 | 상세 API 조회 | 관리 전용 상세 포트/화면·라우팅 경계 | S6·S11·상세 S12. Q1 합의 후 직접 진입/새로고침 가능 |
 | 4 | 프로필 수정 | 상세 초기값·수정 포트/유스케이스/HTTP 메서드·편집 폼 | S7·S8·수정 S12. Q4 확인 및 편집/삭제 진입 표시 Q5 승인 후. 삭제 API 연동 없음 |

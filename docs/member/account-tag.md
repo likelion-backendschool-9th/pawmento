@@ -86,7 +86,7 @@
 3. 개발 서버 이전 — S8
    - #109 PR 1의 [개발 서버 이전 절차](social-account-link.md#개발-서버-이전-절차)와 같은 중지 시간에 함께 실행한다
 4. 마이페이지 표시 — S9
-   - 파일: 프론트 `auth/domain/account.ts`(`Account`에 `tag`), `HttpAuthRepository`(응답 매핑), 마이페이지 닉네임 표시
+   - 파일: 프론트 `features/member/types/account.ts`(`Account`에 `tag`), `features/member/api/memberApi.ts`(응답 매핑), 마이페이지 닉네임 표시 (고침 #182: 구조 개편으로 바뀐 경로)
 
 ## 정한 것
 - 태그는 숫자 4자리(`0000`~`9999`)다.
