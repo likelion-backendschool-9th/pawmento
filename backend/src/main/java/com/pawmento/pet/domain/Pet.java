@@ -148,6 +148,13 @@ public class Pet {
 		}
 	}
 
+	public void changeOwner(Long newOwnerMemberId, String tag) {
+		requireOwner(newOwnerMemberId);
+		requireTag(tag);
+		this.ownerMemberId = newOwnerMemberId;
+		this.tag = tag;
+	}
+
 	public boolean ownedBy(Long memberId) {
 		return ownerMemberId.equals(memberId);
 	}

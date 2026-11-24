@@ -37,6 +37,18 @@ public class PetPersistenceAdapter implements SavePetPort, LoadPetPort, DeletePe
 			// 조회 뒤 다른 요청이 먼저 커밋하면 버전 충돌. 완료된 모드·수정이 덮이지 않게 거절한다
 			throw new PetConcurrentModificationException();
 		}
+		catch (DataIntegrityViolationException failure) {
+			if (pet.getId() != null) {
+				for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+					if (cause instanceof PSQLException sql && "23505".equals(sql.getSQLState())
+							&& sql.getServerErrorMessage() != null
+							&& PetJpaEntity.OWNER_TAG_UNIQUE_CONSTRAINT.equals(sql.getServerErrorMessage().getConstraint())) {
+						throw new PetConcurrentModificationException(failure);
+					}
+				}
+			}
+			throw failure;
+		}
 	}
 
 	@Override

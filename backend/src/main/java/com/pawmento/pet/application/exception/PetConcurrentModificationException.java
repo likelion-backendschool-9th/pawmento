@@ -8,4 +8,8 @@ public class PetConcurrentModificationException extends StateConflictException {
 		super("다른 요청에서 반려동물을 먼저 수정했습니다. 다시 불러와 주세요.");
 	}
 
+	public PetConcurrentModificationException(Throwable cause) {
+		super("다른 요청에서 반려동물을 먼저 수정했습니다. 다시 불러와 주세요.", cause);
+	}
+
 }
