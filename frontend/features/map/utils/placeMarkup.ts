@@ -23,10 +23,14 @@ export const PLACE_STYLE: Record<
   },
 };
 
-// 좌표 위치가 가운데인 지름 34(선택하면 44)의 둥근 마커. 선택하면 후광이 생긴다.
-export function placeMarkup(category: PlaceCategory, selected = false): string {
+// 좌표 위치가 가운데인 지름 34(선택하면 52)의 둥근 마커. 선택하면 후광이 생긴다. 지도 밖에서 쓰는 작은 아이콘은 size로 크기를 정한다.
+export function placeMarkup(
+  category: PlaceCategory,
+  selected = false,
+  iconSize?: number,
+): string {
   const { color, glyph } = PLACE_STYLE[category];
-  const size = selected ? 52 : 34;
+  const size = iconSize ?? (selected ? 52 : 34);
   const halo = selected
     ? `<circle r="25" fill="${color}" opacity=".16"/><circle r="20" fill="none" stroke="${color}" stroke-width="1.5" opacity=".4"/>`
     : "";

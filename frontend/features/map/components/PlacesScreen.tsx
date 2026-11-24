@@ -22,7 +22,9 @@ const REQUEST_DELAY_MS = 250;
 // 정보 지도: 지도에서 병원·미용·보호센터를 보고 종류 칩으로 켜고 끈다(#172-S16, S18).
 // 지도를 옮기거나 확대·축소해서 멈춘 뒤에만 새 영역을 조회한다. 움직이는 동안에는 부르지 않는다.
 export function PlacesScreen() {
-  const { dependencies } = useApp();
+  const { dependencies, state } = useApp();
+  // 정원 모드의 반려동물을 보고 있으면 지도 바탕도 정원 색으로 보인다(MapScreen과 같다)
+  const mode = state.pets.find((pet) => pet.id === state.selectedPetId)?.mode;
   // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
   const [naverFailed, setNaverFailed] = useState(false);
@@ -90,7 +92,12 @@ export function PlacesScreen() {
         title="지도"
         body="내 주변의 동물병원·동물미용·동물보호센터를 지도에서 찾아보세요."
       />
-      <div className={mapStyles.stage} data-places-stage="" aria-busy={loading}>
+      <div
+        className={mapStyles.stage}
+        data-places-stage=""
+        data-mode={mode}
+        aria-busy={loading}
+      >
         {clientId && !naverFailed ? (
           <NaverPlaceCanvas
             {...canvasProps}
@@ -179,10 +186,7 @@ export function PlacesScreen() {
               <span
                 aria-hidden="true"
                 dangerouslySetInnerHTML={{
-                  __html: placeMarkup(selected.category).replace(
-                    /width="\d+" height="\d+"/,
-                    'width="20" height="20"',
-                  ),
+                  __html: placeMarkup(selected.category, false, 20),
                 }}
               />
               {PLACE_STYLE[selected.category].label}

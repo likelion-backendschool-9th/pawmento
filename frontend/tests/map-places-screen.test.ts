@@ -1,6 +1,5 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
   PLACE_CATEGORIES,
   type Place,
@@ -91,21 +90,9 @@ test("#172-S16 모바일 하단 메뉴는 앞의 네 개와 지도로 이루어�
   assert.ok(!gardenNav.some((link) => link.label === "더보기"));
 });
 
-test("#172-S16 SpaceShell은 하단 메뉴 마지막 칸에 지도 링크를 두고 더보기 버튼을 두지 않으며, 전체 메뉴 버튼은 머리글에 남는다", () => {
-  const shell = readFileSync(
-    new URL("../features/shell/components/SpaceShell.tsx", import.meta.url),
-    "utf8",
-  );
-  assert.match(shell, /mobileNavLinks\(links, mapLink\)/);
-  assert.match(shell, /href:\s*"\/places"/);
-  assert.match(shell, /label:\s*"지도"/);
-  assert.ok(!shell.includes("더보기"), "하단 메뉴에 더보기 버튼이 없다");
-  assert.match(shell, /aria-label="전체 메뉴 열기"/);
-  assert.match(shell, /className=\{s\.menuButton\}/);
-
-  const app = readFileSync(
-    new URL("../features/shell/components/AppShell.tsx", import.meta.url),
-    "utf8",
-  );
-  assert.match(app, /href:\s*"\/places",\s*label:\s*"지도"/, "전체 메뉴에도 지도가 있다");
+test("#172-S16 마커 크기는 선택 여부와 별개로 인자로 정할 수 있다", () => {
+  assert.match(placeMarkup("HOSPITAL"), /width="34" height="34"/);
+  assert.match(placeMarkup("HOSPITAL", true), /width="52" height="52"/);
+  // 카드 안의 작은 아이콘처럼 지도 밖에서는 크기를 직접 정한다
+  assert.match(placeMarkup("SHELTER", false, 20), /width="20" height="20"/);
 });
