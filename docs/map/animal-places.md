@@ -149,7 +149,7 @@
 #172-S18 잘림과 빈 영역 [직접]
 - Given 영역 안에 장소가 500개를 넘거나 하나도 없다
 - When  조회한다
-- Then  500개를 넘으면 "더 있어요. 지도를 확대해 보세요"가 보이고, 없으면 "이 지역에는 장소가 없어요"가 보인다. 조회가 실패하면 오류 안내와 다시 시도 버튼이 보인다
+- Then  500개를 넘으면 "장소가 많아서 일부만 보여요. 지도를 확대해 보세요."가 보이고(고침 #172: "더 있어요"만으로는 어디에 더 있는지 알 수 없어 일부만 보인다고 말하게 했다), 없으면 "이 지역에는 장소가 없어요"가 보인다. 조회가 실패하면 오류 안내와 다시 시도 버튼이 보인다
 
 #172-S21 데이터 기준일 [테스트·직접]
 - Given 병원은 2026-11-21 22:00, 미용은 2026-11-23 22:00에 마지막으로 가져오기에 성공했다. 보호센터는 가져온 적이 없다
@@ -218,7 +218,7 @@
    - 파일: `map/adapter/out/shelterapi/ShelterApiAdapter.java`, `map/application/service/ImportShelterService.java`
    - 확인: `./gradlew test --tests '*ShelterImport*'`. 인증키는 환경변수(`PUBLIC_DATA_SERVICE_KEY`)로만 읽고 저장소에는 두지 않는다
 5. 프론트엔드 정보 지도 화면 — S16, S17, S18, S19, S21
-   - 시작 조건: [#164](https://github.com/likelion-backendschool-9th/pawmento/pull/164)의 구조가 확정된 뒤에 한다. 그 구조(`frontend/features/map`의 `components`·`hooks`·`api`·`types`, 목업은 `frontend/mocks`)를 따르고 `src` 경로를 쓰지 않는다. 화면 위치(하단 메뉴 등)도 #164와 함께 정한다.
+   - 시작 조건: [#164](https://github.com/likelion-backendschool-9th/pawmento/pull/164)의 구조가 확정된 뒤에 한다. 그 구조(`frontend/features/map`의 `components`·`hooks`·`api`·`types`, 목업은 `frontend/mocks`)를 따르고 `src` 경로를 쓰지 않는다. 화면 위치는 정했다. 모바일 하단 메뉴의 마지막 칸(예전 "더보기" 자리)이고, 전체 메뉴는 머리글의 ☰ 버튼으로 연다(#172, 팀 결정).
    - 확인: `npx tsc --noEmit`, `npm run lint`, 순수 로직 테스트, 실제 앱 화면 확인([직접])
 
 ## 정한 것
