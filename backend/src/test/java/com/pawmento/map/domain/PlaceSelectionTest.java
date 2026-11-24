@@ -128,4 +128,45 @@ class PlaceSelectionTest {
 		assertThat(PlaceSelection.meters(37.58, 127.0, 37.581, 127.0)).isBetween(110.5, 111.5);
 	}
 
+	@Test
+	@DisplayName("#172-S15 이름의 띄어쓰기·괄호·구두점·대소문자가 달라도 같은 가게로 보고 겹치는 미용을 숨긴다")
+	void ignoresSpacingAndPunctuationInNames() {
+		// 진짜 데이터에서 같은 가게가 병원과 미용에 띄어쓰기만 다르게 등록된 사례들이다
+		String[][] pairs = { { "스테이동물병원", "스테이 동물병원" }, { "경희궁 바른 동물병원", "경희궁바른동물병원" },
+				{ "스마트동물병원군자점", "스마트동물병원 군자점" }, { "광진24시필동물병원", "광진24시 필동물병원" },
+				{ "포레동물병원", "포레 동물병원" }, { "ABC동물병원", "abc 동물병원" }, { "에이비씨(ABC)동물병원", "에이비씨 ABC 동물병원" },
+				{ "좋은·동물병원", "좋은 동물병원" } };
+		for (String[] pair : pairs) {
+			Place hospital = place(1, PlaceCategory.HOSPITAL, pair[0], 37.58, 127.0);
+			Place grooming = place(2, PlaceCategory.GROOMING, pair[1], 37.58 + 20 * LAT_PER_METER, 127.0);
+
+			var selected = PlaceSelection.select(List.of(hospital, grooming), AREA, BOTH, 500);
+
+			assertThat(selected.places()).as("%s ↔ %s", pair[0], pair[1]).extracting(Place::id).containsExactly(1L);
+		}
+	}
+
+	@Test
+	@DisplayName("#172-S15 이름이 다른 가게는 가까워도 숨기지 않고, 이름 비교를 느슨하게 해도 30m 기준은 그대로다")
+	void differentNamesAndFarPlacesAreKept() {
+		Place hospital = place(1, PlaceCategory.HOSPITAL, "포레동물병원", 37.58, 127.0);
+		Place otherName = place(2, PlaceCategory.GROOMING, "포레동물미용", 37.58, 127.0);
+		Place sameNameFar = place(3, PlaceCategory.GROOMING, "포레 동물병원", 37.58 + 31 * LAT_PER_METER, 127.0);
+
+		var selected = PlaceSelection.select(List.of(hospital, otherName, sameNameFar), AREA, BOTH, 500);
+
+		assertThat(selected.places()).extracting(Place::id).containsExactlyInAnyOrder(1L, 2L, 3L);
+	}
+
+	@Test
+	@DisplayName("#172-S15 이름이 구두점과 공백뿐이라 비교할 글자가 없으면 서로 같은 이름으로 보지 않는다")
+	void namesWithoutComparableCharactersAreNotMatched() {
+		Place hospital = place(1, PlaceCategory.HOSPITAL, "  ", 37.58, 127.0);
+		Place grooming = place(2, PlaceCategory.GROOMING, "()", 37.58, 127.0);
+
+		var selected = PlaceSelection.select(List.of(hospital, grooming), AREA, BOTH, 500);
+
+		assertThat(selected.places()).hasSize(2);
+	}
+
 }

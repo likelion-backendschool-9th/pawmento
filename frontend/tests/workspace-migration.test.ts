@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { BrowserWorkspaceRepository } from "../src/workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
-import { emptyWorkspace } from "../src/workspace/domain/models.ts";
+import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
+import { emptyWorkspace } from "../features/shell/types/workspace.ts";
 test("#32-S29 v1을 일기·질문 답변으로 이관하며 ID·스냅샷·작성자·기존 영상을 보존한다", async () => {
   const values = new Map<string, string>();
   let fail = false;
@@ -92,7 +92,7 @@ test("#32-S29 v1을 일기·질문 답변으로 이관하며 ID·스냅샷·작�
 
 test("#32-S29 과거 엽서 원본 ID는 보존하고 모드 없는 질문은 임의 분류하지 않는다", async () => {
   const { BrowserLifeRepository, initialLifeState } =
-    await import("../src/life/adapters/outbound/BrowserLifeRepository.ts");
+    await import("../mocks/handlers/BrowserLifeRepository.ts");
   const original = initialLifeState();
   const question = original.questions[0];
   const raw = JSON.stringify({
@@ -135,7 +135,7 @@ test("#32-S29 과거 엽서 원본 ID는 보존하고 모드 없는 질문은 �
 
 test("#32-S29 5MiB 한도에 v2 복사본을 둘 수 없어도 기존 음성 기록을 조회한다", async () => {
   const { createWorkspaceUseCases } =
-    await import("../src/workspace/application/useCases.ts");
+    await import("../mocks/handlers/workspaceUseCases.ts");
   const values = new Map<string, string>();
   let limit = 5 * 1024 * 1024;
   const storage = {
@@ -239,11 +239,11 @@ test("#32-S29 5MiB 한도에 v2 복사본을 둘 수 없어도 기존 음성 기
 test("#32-S29 질문 풀 이관이 필요한 512바이트 여유 저장소에서도 기존 회원 확인 후 가족 기록을 읽는다", async () => {
   const { legacyQuotaFixture } = await import("./fixtures/legacyQuota.ts");
   const { BrowserLifeRepository } =
-    await import("../src/life/adapters/outbound/BrowserLifeRepository.ts");
+    await import("../mocks/handlers/BrowserLifeRepository.ts");
   const { SharedWorkspaceRepository } =
-    await import("../src/life/adapters/outbound/SharedWorkspaceRepository.ts");
+    await import("../mocks/handlers/SharedWorkspaceRepository.ts");
   const { createLifeUseCases } =
-    await import("../src/life/application/useCases.ts");
+    await import("../mocks/handlers/lifeUseCases.ts");
   const { data, limit } = legacyQuotaFixture();
   const values = new Map(Object.entries(data));
   let writes = 0;

@@ -22,4 +22,8 @@ interface PlaceJpaRepository extends JpaRepository<PlaceJpaEntity, Long> {
 			@Param("minLatitude") double minLatitude, @Param("minLongitude") double minLongitude,
 			@Param("maxLatitude") double maxLatitude, @Param("maxLongitude") double maxLongitude);
 
+	List<PlaceJpaEntity> findByCategory(PlaceCategory category);
+
+	long countByCategory(PlaceCategory category);
+
 }

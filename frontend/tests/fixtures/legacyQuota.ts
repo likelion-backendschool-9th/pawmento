@@ -1,4 +1,4 @@
-import { initialLifeState } from "../../src/life/adapters/outbound/BrowserLifeRepository.ts";
+import { initialLifeState } from "../../mocks/handlers/BrowserLifeRepository.ts";
 export function legacyQuotaFixture() {
   const state = initialLifeState();
   const life = JSON.stringify({

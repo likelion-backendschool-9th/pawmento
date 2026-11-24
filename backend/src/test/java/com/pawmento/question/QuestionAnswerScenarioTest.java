@@ -197,7 +197,7 @@ class QuestionAnswerScenarioTest {
   void invalidAuthorNameIsStoredDataFailure() throws Exception {
     long prompt = ensure();
     for (String name : new String[] {null, "  "}) {
-      doReturn(new MemberResult(member, "internal@example.test", name, "USER"))
+      doReturn(new MemberResult(member, "internal@example.test", name, "0001", "USER"))
           .when(memberDetails)
           .get(new GetMemberQuery(member));
       create(prompt)
