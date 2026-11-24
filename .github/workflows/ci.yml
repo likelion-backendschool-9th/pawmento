@@ -59,8 +59,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Install media validation tools
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg util-linux
-      # 러너(4코어·16GB)는 로컬 기본값(JVM 2개)보다 여유가 있어 테스트 JVM을 4개로 나눈다 (backend/build.gradle의 testForks)
-      - run: ./gradlew test -PtestForks=4
+      - run: ./gradlew test
       # 실패하면 어떤 테스트가 왜 실패했는지 HTML 리포트로 볼 수 있게 남긴다 (Actions 실행 화면의 Artifacts)
       - uses: actions/upload-artifact@v7
         if: failure()
