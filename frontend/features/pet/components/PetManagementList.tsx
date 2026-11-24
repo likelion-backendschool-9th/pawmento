@@ -140,14 +140,13 @@ function ManagedPetCard({ pet }: { pet: ManagedPet }) {
   return (
     <article>
       <section className={styles.petSummary}>
-        <button
-          type="button"
+        <Link
           className={styles.petEdit}
-          aria-label={`${pet.name} 프로필 수정`}
-          disabled
+          href={`/pets/manage/${encodeURIComponent(pet.id)}`}
+          aria-label={`${pet.name} 프로필 보기`}
         >
-          <Icon name="edit" size={17} />
-        </button>
+          <Icon name="search" size={17} />
+        </Link>
         <Photo
           src={pet.profilePhotoUrl ?? undefined}
           alt={`${pet.name} 프로필`}
