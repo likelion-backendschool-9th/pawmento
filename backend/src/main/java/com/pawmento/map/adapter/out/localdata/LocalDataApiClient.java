@@ -7,7 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,9 +153,11 @@ class LocalDataApiClient implements LoadLocalDataPort {
 	}
 
 	private static Page parse(String body) {
-		// 포털은 인증키 오류 같은 경우 JSON이 아니라 XML을 200으로 돌려준다. 다시 시도해도 같다
+		// 포털은 오류를 JSON이 아니라 XML(OpenAPI_ServiceResponse)을 200으로 돌려준다. returnReasonCode에 따라 다시 시도하면
+		// 성공할 수 있는 일시 오류(서비스 시간 초과 05 등)와 다시 해도 같은 영구 오류(키·권한·한도)로 나눈다
 		if (body.stripLeading().startsWith("<")) {
-			throw new CallFailure("포털의 오류 응답(XML)", true);
+			String code = reasonCode(body);
+			throw new CallFailure(code == null ? "포털의 오류 응답(XML)" : "포털의 오류 응답(XML) 코드 " + code, isPermanentPortalCode(code));
 		}
 		JsonNode root;
 		try {
@@ -167,7 +172,7 @@ class LocalDataApiClient implements LoadLocalDataPort {
 		}
 		String resultCode = text(response.path("header"), "resultCode");
 		if (resultCode != null && !resultCode.equals("0") && !resultCode.equals("00")) {
-			throw new CallFailure("포털 결과 코드 " + resultCode, true);
+			throw new CallFailure("포털 결과 코드 " + resultCode, isPermanentPortalCode(resultCode));
 		}
 		JsonNode body2 = response.path("body");
 		JsonNode totalCount = body2.get("totalCount");
@@ -175,6 +180,24 @@ class LocalDataApiClient implements LoadLocalDataPort {
 			throw new CallFailure("totalCount 없음", false);
 		}
 		return new Page(totalCount.asInt(), records(body2.path("items")));
+	}
+
+	private static final Pattern REASON_CODE = Pattern.compile("<returnReasonCode>\\s*([0-9]{1,3})\\s*</returnReasonCode>");
+
+	// 공공데이터포털 공통 오류 코드 중 다시 시도해도 같은 결과인 것: 요청이 잘못됨(10 잘못된 파라미터, 11 필수 파라미터 없음, 12 없는
+	// 서비스), 접근 거부(20, 21 일시적으로 쓸 수 없는 키), 일일 호출 한도 초과(22), 키 미등록(30)·기간 만료(31)·미등록 IP(32)·
+	// 서명 없는 호출(33). 그 밖(01 애플리케이션 오류, 02 DB 오류, 04 HTTP 오류, 05 서비스 시간 초과, 99 알 수 없음)과 모르는 코드,
+	// 코드가 없는 응답은 다시 시도하면 성공할 수 있어 일시 오류로 본다
+	private static final Set<String> PERMANENT_PORTAL_CODES = Set.of("10", "11", "12", "20", "21", "22", "30", "31", "32",
+			"33");
+
+	private static String reasonCode(String xml) {
+		Matcher matcher = REASON_CODE.matcher(xml);
+		return matcher.find() ? matcher.group(1) : null;
+	}
+
+	private static boolean isPermanentPortalCode(String code) {
+		return code != null && PERMANENT_PORTAL_CODES.contains(code.strip());
 	}
 
 	// items는 행이 없으면 빈 문자열, 하나면 객체, 여럿이면 배열로 온다

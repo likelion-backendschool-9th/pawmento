@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.junit.jupiter.api.AfterEach;
@@ -277,12 +278,25 @@ class LocalDataApiClientTest {
 		assertThat(requests).hasSize(2);
 	}
 
+	private static String portalError(String reasonCode) {
+		return "<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>SERVICE ERROR</errMsg><returnAuthMsg>ERROR</returnAuthMsg>"
+				+ (reasonCode == null ? "" : "<returnReasonCode>" + reasonCode + "</returnReasonCode>")
+				+ "</cmmMsgHeader></OpenAPI_ServiceResponse>";
+	}
+
+	private static String resultCode(String code) {
+		return "{\"response\":{\"header\":{\"resultCode\":\"" + code + "\",\"resultMsg\":\"오류\"}}}";
+	}
+
 	@Test
-	@DisplayName("#172-S5 인증키 문제(401·403)와 포털 오류 응답(XML, 결과 코드가 0이 아님)은 다시 시도해도 같아서 바로 중단한다")
+	@DisplayName("#172-S5 인증키 문제(401·403)와 포털의 영구 오류 코드(요청 잘못됨 10~12, 접근 거부 20·21, 한도 초과 22, 키·기간·IP 30~33)는 다시 시도해도 같아서 바로 중단한다")
 	void doesNotRetryPermanentFailures() {
-		for (Reply reply : List.of(Reply.json(401, ""), Reply.json(403, "forbidden"),
-				Reply.json(200, "<OpenAPI_ServiceResponse><cmmMsgHeader><errMsg>SERVICE ERROR</errMsg></cmmMsgHeader></OpenAPI_ServiceResponse>"),
-				Reply.json(200, "{\"response\":{\"header\":{\"resultCode\":\"30\",\"resultMsg\":\"SERVICE KEY IS NOT REGISTERED\"}}}"))) {
+		var replies = new ArrayList<Reply>(List.of(Reply.json(401, ""), Reply.json(403, "forbidden")));
+		for (String code : List.of("10", "11", "12", "20", "21", "22", "30", "31", "32", "33")) {
+			replies.add(Reply.json(200, portalError(code)));
+			replies.add(Reply.json(200, resultCode(code)));
+		}
+		for (Reply reply : replies) {
 			requests.clear();
 			sleeps.clear();
 			handler = exchange -> reply;
@@ -293,6 +307,30 @@ class LocalDataApiClientTest {
 
 			assertThat(requests).as("다시 시도하지 않는다: %s", reply).hasSize(1);
 			assertThat(sleeps).isEmpty();
+		}
+	}
+
+	@Test
+	@DisplayName("#172-S5 포털의 일시 오류 코드(01 애플리케이션 오류, 02 DB 오류, 04 HTTP 오류, 05 서비스 시간 초과, 99)와 모르는 코드, 코드가 없는 XML은 다시 시도하고 다음에 정상 응답이 오면 이어서 받는다")
+	void retriesTransientPortalErrors() {
+		var replies = new ArrayList<Reply>();
+		for (String code : List.of("01", "02", "04", "05", "99", "77")) {
+			replies.add(Reply.json(200, portalError(code)));
+			replies.add(Reply.json(200, resultCode(code)));
+		}
+		replies.add(Reply.json(200, portalError(null)));
+		replies.add(Reply.json(200, "<html><body>잠시 후 다시 시도해 주세요</body></html>"));
+		for (Reply error : replies) {
+			requests.clear();
+			sleeps.clear();
+			var calls = new AtomicInteger();
+			handler = exchange -> calls.getAndIncrement() == 0 ? error : Reply.json(200, page(1, 1, 100, items(0, 1)));
+
+			var snapshot = client().load(PlaceCategory.HOSPITAL);
+
+			assertThat(snapshot.records()).as("다시 시도해서 받는다: %s", error).hasSize(1);
+			assertThat(requests).hasSize(2);
+			assertThat(sleeps).containsExactly(Duration.ofSeconds(1));
 		}
 	}
 
