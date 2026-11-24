@@ -23,6 +23,22 @@ function toManagedPet(pet: ManagedPetDto): ManagedPet {
 
 export function createPetManagementApi(http: ApiClient) {
   return {
+    async get(petId: string): Promise<ManagedPet> {
+      if (!/^[1-9]\d*$/.test(petId)) {
+        throw new ApplicationError("NOT_FOUND", "반려동물을 찾을 수 없어요.");
+      }
+      try {
+        return toManagedPet(await http.get<ManagedPetDto>(`/pets/${petId}`));
+      } catch (cause) {
+        if (cause instanceof ApiError) {
+          if (cause.status === 401) throw new ApplicationError("UNAUTHORIZED", cause.message);
+          if (cause.status === 403) throw new ApplicationError("FORBIDDEN", cause.message);
+          if (cause.status === 404) throw new ApplicationError("NOT_FOUND", cause.message);
+        }
+        throw cause;
+      }
+    },
+
     async listMine(): Promise<ManagedPet[]> {
       let pets: ManagedPetDto[];
       try {
