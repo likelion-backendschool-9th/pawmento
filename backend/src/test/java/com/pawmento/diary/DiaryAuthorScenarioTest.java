@@ -68,7 +68,7 @@ class DiaryAuthorScenarioTest {
 
   GetDiaryEntryResult create() {
     return create.create(
-        new CreateDiaryEntryCommand(writer, pet, "함께한 하루", LocalDate.of(2026, 11, 17)));
+        new CreateDiaryEntryCommand(writer, pet, "함께한 하루", LocalDate.of(2026, 11, 17), "테스트 일기"));
   }
 
   String list() {
@@ -87,7 +87,9 @@ class DiaryAuthorScenarioTest {
                 post(list())
                     .with(jwt().jwt(j -> j.subject("" + writer)))
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"content\":\"산책\",\"recordedDate\":\"2026-11-17\"}"))
+                    .content(
+                        "{\"title\":\"테스트"
+                            + " 일기\",\"content\":\"산책\",\"recordedDate\":\"2026-11-17\"}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.createdBy").value(writer))
             .andExpect(jsonPath("$.author.memberId").value(writer))
@@ -101,7 +103,7 @@ class DiaryAuthorScenarioTest {
             patch(detail(id))
                 .with(jwt().jwt(j -> j.subject("" + writer)))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"content\":\"수정\",\"version\":0}"))
+                .content("{\"title\":\"테스트 일기\",\"content\":\"수정\",\"version\":0}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.author.displayName").value("작성 가족"));
     var next = create();
@@ -143,13 +145,16 @@ class DiaryAuthorScenarioTest {
               post(list())
                   .with(jwt().jwt(j -> j.subject("" + writer)))
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"content\":\"위조\",\"recordedDate\":\"2026-11-17\"," + field + "}"))
+                  .content(
+                      "{\"title\":\"테스트 일기\",\"content\":\"위조\",\"recordedDate\":\"2026-11-17\","
+                          + field
+                          + "}"))
           .andExpect(status().isBadRequest());
       mvc.perform(
               patch(detail(initial.diaryId()))
                   .with(jwt().jwt(j -> j.subject("" + writer)))
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"content\":\"위조\",\"version\":0," + field + "}"))
+                  .content("{\"title\":\"테스트 일기\",\"content\":\"위조\",\"version\":0," + field + "}"))
           .andExpect(status().isBadRequest());
     }
     assertThat(get.get(new GetDiaryEntryQuery(owner, pet, initial.diaryId()))).isEqualTo(baseline);

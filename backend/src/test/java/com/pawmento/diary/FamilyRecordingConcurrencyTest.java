@@ -188,7 +188,8 @@ class FamilyRecordingConcurrencyTest {
     switch (target) {
       case "DIARY" ->
           diaries.create(
-              new CreateDiaryEntryCommand(writer, pet, "함께한 하루", LocalDate.of(2026, 11, 17)));
+              new CreateDiaryEntryCommand(
+                  writer, pet, "함께한 하루", LocalDate.of(2026, 11, 17), "테스트 일기"));
       case "ANSWER" -> answers.create(new CreateQuestionAnswerCommand(writer, pet, prompt, "산책"));
       case "UPLOAD" ->
           uploads.create(
@@ -228,7 +229,8 @@ class FamilyRecordingConcurrencyTest {
                         "원본",
                         LocalDate.of(2026, 11, 17),
                         new DiaryWriteFeatures(
-                            List.of(assetId), DiaryLocationChange.manual(37.5, 127.0, "산책길"))))
+                            List.of(assetId), DiaryLocationChange.manual(37.5, 127.0, "산책길")),
+                        "테스트 일기"))
                 .diaryId()
             : answers
                 .create(
@@ -285,9 +287,7 @@ class FamilyRecordingConcurrencyTest {
     boolean released = deleted || replaced;
     assertThat(
             jdbc.queryForList(
-                "select asset_id from " + links + " where " + parent + "=?",
-                Long.class,
-                recordId))
+                "select asset_id from " + links + " where " + parent + "=?", Long.class, recordId))
         .containsExactlyElementsOf(
             deleted ? List.of() : List.of(replaced ? replacementId : assetId));
     assertAsset(assetId, released ? 0L : 1L, released);

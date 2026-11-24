@@ -36,7 +36,15 @@ class DiaryLocationIntentPersistenceTest {
   private DiaryEntry create() {
     long pet = pets.create(new CreatePetCommand(9001L, "보리", "DOG", null, null)).petId();
     return adapter.save(
-        DiaryEntry.create(pet, 9001L, "산책", LocalDate.of(2026, 11, 17), now, false, new com.pawmento.diary.domain.DiaryAuthorName("위치 작성자")));
+        DiaryEntry.create(
+            pet,
+            9001L,
+            "산책",
+            LocalDate.of(2026, 11, 17),
+            now,
+            false,
+            new com.pawmento.diary.domain.DiaryAuthorName("위치 작성자"),
+            new com.pawmento.diary.domain.DiaryTitle("테스트 일기")));
   }
 
   private DiaryEntry reload(long id) {

@@ -70,7 +70,9 @@ class DiaryConcurrencyTest {
               post(path(pet))
                   .with(jwt().jwt(j -> j.subject("9001").claim("role", "USER")))
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"content\":\"첫 일기\",\"recordedDate\":\"2026-11-17\"}"))
+                  .content(
+                      "{\"title\":\"테스트 일기\",\"content\":\"첫"
+                          + " 일기\",\"recordedDate\":\"2026-11-17\"}"))
           .andReturn()
           .getResponse()
           .getStatus();
@@ -198,7 +200,8 @@ class DiaryConcurrencyTest {
     long pet = pet();
     long id =
         create
-            .create(new CreateDiaryEntryCommand(9001L, pet, "원본", LocalDate.of(2026, 11, 17)))
+            .create(
+                new CreateDiaryEntryCommand(9001L, pet, "원본", LocalDate.of(2026, 11, 17), "테스트 일기"))
             .diaryId();
     var barrier = new CyclicBarrier(2);
     doAnswer(

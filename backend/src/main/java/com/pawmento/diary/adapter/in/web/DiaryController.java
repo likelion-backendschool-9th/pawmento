@@ -59,7 +59,14 @@ public class DiaryController {
     var date = DiaryRequestValues.date(request.recordedDate(), true);
     var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
-        create.create(new CreateDiaryEntryCommand(memberId, petId, content, date, features)));
+        create.create(
+            CreateDiaryEntryCommand.withTitle(
+                memberId,
+                petId,
+                content,
+                date,
+                features,
+                DiaryRequestValues.title(request.title()))));
   }
 
   @GetMapping("/{diaryId}")
@@ -86,7 +93,15 @@ public class DiaryController {
     var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
         edit.edit(
-            new EditDiaryEntryCommand(memberId, petId, diaryId, content, date, version, features)));
+            new EditDiaryEntryCommand(
+                memberId,
+                petId,
+                diaryId,
+                content,
+                date,
+                version,
+                features,
+                DiaryRequestValues.titleChange(request.title()))));
   }
 
   @DeleteMapping("/{diaryId}")

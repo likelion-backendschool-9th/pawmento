@@ -161,7 +161,7 @@ class DiaryArchiveScenarioTest {
             patch("/api/v1/diaries/" + changed + "?petId=" + pet)
                 .with(jwt().jwt(j -> j.subject("9001")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"recordedDate\":\"2024-03-10\",\"version\":0}"))
+                .content("{\"title\":\"날짜를 바꾼 일기\",\"recordedDate\":\"2024-03-10\",\"version\":0}"))
         .andExpect(status().isOk());
     read(calendar(pet, "2024-02")).andExpect(jsonPath("$.days[1].count").value(1));
     mvc.perform(

@@ -1,6 +1,7 @@
 package com.pawmento.diary.adapter.in.web;
 
 import com.pawmento.diary.adapter.in.web.exception.InvalidDiaryRequestException;
+import com.pawmento.diary.application.port.in.DiaryTitleChange;
 import com.pawmento.diary.application.port.in.DiaryWriteFeatures;
 import java.time.*;
 import tools.jackson.databind.JsonNode;
@@ -12,6 +13,15 @@ final class DiaryRequestValues {
     if (value == null && !required) return null;
     if (value == null || !value.isString()) throw new InvalidDiaryRequestException();
     return value.asText();
+  }
+
+  static String title(JsonNode value) {
+    if (value == null || value.isNull()) return null;
+    return text(value, true);
+  }
+
+  static DiaryTitleChange titleChange(JsonNode value) {
+    return value == null ? DiaryTitleChange.keep() : DiaryTitleChange.replace(title(value));
   }
 
   static LocalDate date(JsonNode value, boolean required) {

@@ -12,6 +12,7 @@ public final class DiaryEntry {
   private final Long createdBy;
   private DiaryAuthorName authorName;
   private String content;
+  private DiaryTitle title = DiaryTitle.empty();
   private LocalDate recordedDate;
   private final Instant createdAt;
   private Instant updatedAt;
@@ -67,9 +68,11 @@ public final class DiaryEntry {
       LocalDate date,
       Instant now,
       boolean hasAttachments,
-      DiaryAuthorName authorName) {
+      DiaryAuthorName authorName,
+      DiaryTitle title) {
     var entry = draft(petId, memberId, content, date, now, hasAttachments);
     entry.authorName = Objects.requireNonNull(authorName);
+    entry.title = Objects.requireNonNull(title).requirePresent();
     return entry;
   }
 
@@ -97,12 +100,20 @@ public final class DiaryEntry {
       Instant updatedAt,
       Long version,
       DiaryLocationIntent intent,
-      DiaryAuthorName authorName) {
+      DiaryAuthorName authorName,
+      DiaryTitle title) {
     if (id == null || id <= 0) throw new InvalidDiaryEntryException();
     var entry = new DiaryEntry(id, petId, author, content, date, createdAt, updatedAt, version);
     entry.locationIntent = intent;
+    entry.title = Objects.requireNonNull(title);
     entry.authorName = Objects.requireNonNull(authorName);
     return entry;
+  }
+
+  public void changeTitle(Long memberId, DiaryTitle title, Instant now) {
+    requireAuthor(memberId);
+    this.title = Objects.requireNonNull(title).requirePresent();
+    this.updatedAt = Objects.requireNonNull(now);
   }
 
   public void initializeLocationIntent(DiaryLocationIntent intent) {
@@ -130,6 +141,7 @@ public final class DiaryEntry {
   public void edit(
       Long memberId, String content, LocalDate date, Instant now, boolean hasAttachments) {
     requireAuthor(memberId);
+    title.requirePresent();
     String nextContent = content == null ? this.content : content.strip();
     LocalDate nextDate = date == null ? recordedDate : date;
     requireContent(nextContent, hasAttachments);

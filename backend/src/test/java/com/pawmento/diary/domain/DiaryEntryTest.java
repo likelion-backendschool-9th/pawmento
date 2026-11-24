@@ -11,29 +11,43 @@ class DiaryEntryTest {
   private final DiaryAuthorName author = new DiaryAuthorName("작성자");
 
   private DiaryEntry create(String content, LocalDate date, Instant at) {
-    return DiaryEntry.create(1L, 2L, content, date, at, false, author);
+    return DiaryEntry.create(
+        1L,
+        2L,
+        content,
+        date,
+        at,
+        false,
+        author,
+        new com.pawmento.diary.domain.DiaryTitle("테스트 일기"));
   }
 
   private DiaryEntry restore(String content) {
     return DiaryEntry.restore(
-        3L, 1L, 2L, content, LocalDate.of(2026, 11, 17), now, now, 0L, null, author);
+        3L,
+        1L,
+        2L,
+        content,
+        LocalDate.of(2026, 11, 17),
+        now,
+        now,
+        0L,
+        null,
+        author,
+        new DiaryTitle("테스트 일기"));
   }
 
   @Test
   @DisplayName("#32-S3 텍스트 경계와 서울 자정의 기록 날짜를 검사한다")
   void boundaries() {
-    assertThat(
-            create("가".repeat(3000), LocalDate.of(2026, 11, 18), now)
-                .getContent())
+    assertThat(create("가".repeat(3000), LocalDate.of(2026, 11, 18), now).getContent())
         .hasSize(3000);
     for (String text : new String[] {" ", "가".repeat(3001)})
       assertThatThrownBy(() -> create(text, LocalDate.of(2026, 11, 18), now))
           .isInstanceOf(InvalidDiaryEntryException.class);
-    assertThatThrownBy(
-            () -> create("일기", LocalDate.of(2026, 11, 18), now.minusSeconds(1)))
+    assertThatThrownBy(() -> create("일기", LocalDate.of(2026, 11, 18), now.minusSeconds(1)))
         .isInstanceOf(InvalidDiaryEntryException.class);
-    assertThat(create("  기억  ", LocalDate.of(2000, 1, 1), now).getContent())
-        .isEqualTo("기억");
+    assertThat(create("  기억  ", LocalDate.of(2000, 1, 1), now).getContent()).isEqualTo("기억");
   }
 
   @Test

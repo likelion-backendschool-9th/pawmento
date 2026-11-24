@@ -1,7 +1,10 @@
 package com.pawmento.diary.adapter.out.persistence;
 
+import com.pawmento.diary.application.exception.StoredDiaryTitleInvalidException;
 import com.pawmento.diary.domain.DiaryEntry;
 import com.pawmento.diary.domain.DiaryLocationIntent;
+import com.pawmento.diary.domain.DiaryTitle;
+import com.pawmento.diary.domain.exception.InvalidDiaryTitleException;
 import jakarta.persistence.*;
 import java.time.*;
 import lombok.*;
@@ -27,6 +30,9 @@ public class DiaryEntryJpaEntity {
 
   @Column(nullable = false, length = 3000)
   private String content;
+
+  @Column(length = 100)
+  private String title;
 
   @Column(nullable = false)
   private LocalDate recordedDate;
@@ -59,6 +65,7 @@ public class DiaryEntryJpaEntity {
     row.createdBy = e.getCreatedBy();
     row.authorNameSnapshot = e.getAuthorName().value();
     row.content = e.getContent();
+    row.title = e.getTitle().value();
     row.recordedDate = e.getRecordedDate();
     row.createdAt = e.getCreatedAt();
     row.updatedAt = e.getUpdatedAt();
@@ -92,14 +99,16 @@ public class DiaryEntryJpaEntity {
           updatedAt,
           version,
           intent,
-          new com.pawmento.diary.domain.DiaryAuthorName(authorNameSnapshot));
+          new com.pawmento.diary.domain.DiaryAuthorName(authorNameSnapshot),
+          DiaryTitle.restore(title));
+    } catch (InvalidDiaryTitleException failure) {
+      throw new StoredDiaryTitleInvalidException(failure);
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {
       throw new com.pawmento.diary.application.exception.DiaryLocationDataInvalidException(
           "저장된 일기 위치 원본이 올바르지 않습니다.", failure);
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryAuthorNameException failure) {
       // 저장된 이름을 복원하는 이 경로에서만 "저장된 데이터" 예외로 바꾼다.
-      throw new com.pawmento.diary.application.exception.StoredDiaryAuthorInvalidException(
-          failure);
+      throw new com.pawmento.diary.application.exception.StoredDiaryAuthorInvalidException(failure);
     }
   }
 }

@@ -340,7 +340,7 @@ class QuestionAdminRegressionScenarioTest {
     var date = LocalDate.now(ZoneId.of("Asia/Seoul"));
     var month = YearMonth.from(date);
     as(owner, body(post("/api/v1/diaries?petId=" + pet),
-        Map.of("content", "다이어리에만 남는 기록", "recordedDate", date.toString())))
+        Map.of("title", "다이어리 제목", "content", "다이어리에만 남는 기록", "recordedDate", date.toString())))
         .andExpect(status().isCreated());
     var list = diaryList(pet);
     var calendar = calendar(pet, month);
