@@ -19,7 +19,7 @@ public class DiaryLocationPreparation {
   DiaryWriteFeatures create(CreateDiaryEntryCommand c) {
     DiaryWritePolicy.requireSupported(c.features());
     access.requireAccess(c.memberId(), c.petId());
-    DiaryEntry.create(
+    DiaryEntry.validateDraft(
         c.petId(),
         c.memberId(),
         c.content(),

@@ -36,6 +36,21 @@ class DiaryScenarioTest {
   @TestConfiguration
   static class Time {
     @Bean
+    org.springframework.beans.factory.InitializingBean diaryMemberFixtures(
+        jakarta.persistence.EntityManagerFactory entityManagerFactory, JdbcTemplate jdbc) {
+      return () -> {
+        for (long id : new long[] {9001, 9002})
+          jdbc.update(
+              "insert into member(id,email,nickname,tag,role,created_at)"
+                  + " values(?,?,?,?, 'USER', now()) on conflict(id) do nothing",
+              id,
+              "diary-fixture-" + id + "@test.example",
+              "일기 작성자",
+              Long.toString(id));
+      };
+    }
+
+    @Bean
     @Primary
     Clock diaryClock() {
       return Clock.fixed(Instant.parse("2026-11-17T15:00:00Z"), ZoneOffset.UTC);

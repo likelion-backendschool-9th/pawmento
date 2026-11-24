@@ -142,6 +142,12 @@ abstract class PostcardScenarioSupport {
   }
 
   long diary(long owner, long pet, String content, Long... attachments) {
+    // 실제 member 입력 포트에서 이름을 읽을 수 있도록 회원 fixture도 만든다.
+    jdbc.update(
+        "insert into member(id,email,nickname,tag,role,created_at)"
+            + " values(?,?,?,?, 'USER', now()) on conflict(id) do nothing",
+        owner, "postcard-diary-" + owner + "@test.example", "엽서 가족",
+        String.format("%04d", owner % 10000));
     return diaries
         .create(
             new CreateDiaryEntryCommand(

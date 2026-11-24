@@ -52,6 +52,8 @@ public class DiaryController {
       HttpServletRequest http,
       @RequestBody CreateDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
+    DiaryRequestValues.rejectAuthor(
+        request.author(), request.authorNameSnapshot(), request.displayName());
     String content =
         request.content() == null ? "" : DiaryRequestValues.text(request.content(), true);
     var date = DiaryRequestValues.date(request.recordedDate(), true);
@@ -76,14 +78,15 @@ public class DiaryController {
       @RequestBody EditDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
     DiaryRequestValues.id(diaryId);
+    DiaryRequestValues.rejectAuthor(
+        request.author(), request.authorNameSnapshot(), request.displayName());
     String content = DiaryRequestValues.text(request.content(), false);
     var date = DiaryRequestValues.date(request.recordedDate(), false);
     Long version = DiaryRequestValues.version(request.version());
     var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
         edit.edit(
-            new EditDiaryEntryCommand(
-                memberId, petId, diaryId, content, date, version, features)));
+            new EditDiaryEntryCommand(memberId, petId, diaryId, content, date, version, features)));
   }
 
   @DeleteMapping("/{diaryId}")

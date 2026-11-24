@@ -10,6 +10,7 @@ public final class DiaryEntry {
   private final Long id;
   private final Long petId;
   private final Long createdBy;
+  private DiaryAuthorName authorName;
   private String content;
   private LocalDate recordedDate;
   private final Instant createdAt;
@@ -48,12 +49,31 @@ public final class DiaryEntry {
     this.version = version;
   }
 
-  public static DiaryEntry create(
-      Long petId, Long memberId, String content, LocalDate date, Instant now) {
-    return create(petId, memberId, content, date, now, false);
+  // 작성자를 정하기 전에 본문·날짜·첨부 규칙만 미리 검사한다. 일기 객체는 만들지 않는다.
+  public static void validateDraft(
+      Long petId,
+      Long memberId,
+      String content,
+      LocalDate date,
+      Instant now,
+      boolean hasAttachments) {
+    draft(petId, memberId, content, date, now, hasAttachments);
   }
 
   public static DiaryEntry create(
+      Long petId,
+      Long memberId,
+      String content,
+      LocalDate date,
+      Instant now,
+      boolean hasAttachments,
+      DiaryAuthorName authorName) {
+    var entry = draft(petId, memberId, content, date, now, hasAttachments);
+    entry.authorName = Objects.requireNonNull(authorName);
+    return entry;
+  }
+
+  private static DiaryEntry draft(
       Long petId,
       Long memberId,
       String content,
@@ -75,23 +95,13 @@ public final class DiaryEntry {
       LocalDate date,
       Instant createdAt,
       Instant updatedAt,
-      Long version) {
-    if (id == null || id <= 0) throw new InvalidDiaryEntryException();
-    return new DiaryEntry(id, petId, author, content, date, createdAt, updatedAt, version);
-  }
-
-  public static DiaryEntry restore(
-      Long id,
-      Long petId,
-      Long author,
-      String content,
-      LocalDate date,
-      Instant createdAt,
-      Instant updatedAt,
       Long version,
-      DiaryLocationIntent intent) {
-    var entry = restore(id, petId, author, content, date, createdAt, updatedAt, version);
+      DiaryLocationIntent intent,
+      DiaryAuthorName authorName) {
+    if (id == null || id <= 0) throw new InvalidDiaryEntryException();
+    var entry = new DiaryEntry(id, petId, author, content, date, createdAt, updatedAt, version);
     entry.locationIntent = intent;
+    entry.authorName = Objects.requireNonNull(authorName);
     return entry;
   }
 
