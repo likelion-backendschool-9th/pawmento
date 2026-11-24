@@ -316,7 +316,7 @@
 - 목록 커서는 커뮤니티 글 목록(#21)과 같은 방식(마지막 엽서 ID)으로 한다.
 
 ## 참고
-- 프론트 데모의 엽서 흐름: `frontend/features/life/application/useCases.ts`의 `requestPostcard`, 상태 `PROCESSING | COMPLETED | FAILED`, 하루 5장, 생성 동의 확인, 실패 후 같은 엽서로 다시 시도(이번 이슈에서는 다시 시도를 뺐다) ([앱 데모](../app-demo/full-demo.md) #12-R8, #12-S9)
+- 프론트 데모의 엽서 흐름: `frontend/mocks/handlers/lifeUseCases.ts`의 `requestPostcard`, 상태 `PROCESSING | COMPLETED | FAILED`, 하루 5장, 생성 동의 확인, 실패 후 같은 엽서로 다시 시도(이번 이슈에서는 다시 시도를 뺐다) ([앱 데모](../app-demo/full-demo.md) #12-R8, #12-S9)
 - 회의 결정: 우체통은 정원 기능이고, 이번 범위는 AI 이미지 생성까지([1차 회의록](../meetings/2026-11-16.md))
 - 다이어리는 일기와 질문 답변을 나눈다. 질문 답변 ID를 일기 ID로 쓰지 않는다([다이어리](../diary/README.md#도메인-경계)). 엽서도 원본 종류를 `source_kind`로 나눠 두 ID가 섞이지 않게 한다
 - 남의 반려동물 접근은 `Pet.requireOwnedBy`가 `PetOwnershipViolationException`(403)을 던진다. 다이어리도 `GetPetUseCase`로 같은 검사를 한다.
