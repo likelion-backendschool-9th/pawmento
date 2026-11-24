@@ -1,4 +1,4 @@
-import { PetList } from "@/features/pet/components/PetScreens";
+import { PetManagementList } from "@/features/pet/components/PetManagementList";
 export default function Page() {
-  return <PetList />;
+  return <PetManagementList />;
 }
