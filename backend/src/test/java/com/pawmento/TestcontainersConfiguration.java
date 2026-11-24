@@ -26,6 +26,12 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>캐시에 남은 컨텍스트들이 같은 서버에 연결하므로 유휴 연결을 줄이고(testcontainers.properties)
  * 연결 한도를 기본값 100보다 넉넉히 둔다.
+ *
+ * <p>DB와 달리 파일 경로(PAWMENTO_MEDIA_ROOT)는 같은 JVM의 컨텍스트끼리 같이 쓴다(build.gradle). 미디어·엽서 정리
+ * worker는 {@code Clock - 24시간}보다 오래되고 자기 DB에 없는 파일을 지우고, 캐시에 남은 컨텍스트에서도 계속 돈다.
+ * 그래서 {@code Clock}을 실제보다 앞선 시각으로 바꾸는 테스트는 {@code pawmento.media.worker.enabled=false}와
+ * {@code pawmento.postcard.worker.enabled=false}를 켠다(예: NicknameScenarioTest). 켜 두면 다른 테스트가 올린 파일을
+ * 고아로 보고 지울 수 있다.
  */
 @TestConfiguration(proxyBeanMethods = false)
 @PropertySource("classpath:testcontainers.properties")
