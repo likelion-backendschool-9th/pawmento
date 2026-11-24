@@ -1,5 +1,6 @@
 package com.pawmento.map.application.port.in;
 
+import java.time.Instant;
 import java.util.List;
 
 /**
@@ -7,8 +8,9 @@ import java.util.List;
  *
  * @param places 영역 가운데에 가까운 순으로, 최대 500곳
  * @param truncated 겹침을 지운 뒤에도 500곳보다 많아서 잘렸으면 true
+ * @param dataAsOf 요청한 종류 중 가장 오래된 "마지막으로 가져온 시각". 가져온 적이 있는 종류가 없으면 null(#172-S21)
  */
-public record ListPlacesResult(List<Item> places, boolean truncated) {
+public record ListPlacesResult(List<Item> places, boolean truncated, Instant dataAsOf) {
 
 	/**
 	 * 장소 하나. 없는 값은 null이다. closedDays가 null이면 "휴무 정보 없음"이다.

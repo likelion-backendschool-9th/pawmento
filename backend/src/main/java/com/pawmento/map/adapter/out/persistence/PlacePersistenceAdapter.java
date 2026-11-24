@@ -1,6 +1,9 @@
 package com.pawmento.map.adapter.out.persistence;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.map.application.exception.PlacePersistenceUnavailableException;
 import com.pawmento.map.application.port.out.AppliedPlaces;
+import com.pawmento.map.application.port.out.LoadPlaceDataAsOfPort;
 import com.pawmento.map.application.port.out.LoadPlacesPort;
 import com.pawmento.map.application.port.out.StorePlacesPort;
 import com.pawmento.map.domain.MapArea;
@@ -23,9 +27,13 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort {
+class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort, LoadPlaceDataAsOfPort {
 
 	private final PlaceJpaRepository placeJpaRepository;
+
+	private final PlaceSyncRunJpaRepository placeSyncRunJpaRepository;
+
+	private final Clock clock;
 
 	@Override
 	public List<Place> loadInArea(MapArea area, Set<PlaceCategory> categories) {
@@ -38,6 +46,19 @@ class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort {
 			.stream()
 			.map(PlaceJpaEntity::toDomain)
 			.toList(), PlacePersistenceUnavailableException::new);
+	}
+
+	@Override
+	public Map<PlaceCategory, Instant> syncedAt(Set<PlaceCategory> categories) {
+		if (categories == null || categories.isEmpty()) {
+			throw new IllegalArgumentException("종류가 필요합니다.");
+		}
+		return MapPersistenceOperations.execute(() -> {
+			Map<PlaceCategory, Instant> synced = new EnumMap<>(PlaceCategory.class);
+			placeSyncRunJpaRepository.findAllById(categories)
+				.forEach(run -> synced.put(run.getCategory(), run.getLastSyncedAt()));
+			return synced;
+		}, PlacePersistenceUnavailableException::new);
 	}
 
 	@Override
@@ -81,6 +102,12 @@ class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort {
 				placeJpaRepository.deleteAllByIdInBatch(toDelete);
 			}
 			placeJpaRepository.flush();
+			// 가져온 시각은 같은 트랜잭션에서 남긴다. 반영이 되돌아가면 시각도 남지 않고, 바뀐 것이 없어도 가져오기에 성공했다면 갱신한다
+			Instant now = clock.instant();
+			PlaceSyncRunJpaEntity run = placeSyncRunJpaRepository.findById(category)
+				.orElseGet(() -> new PlaceSyncRunJpaEntity(category, now));
+			run.syncedAt(now);
+			placeSyncRunJpaRepository.saveAndFlush(run);
 			return new AppliedPlaces(inserted, updated, toDelete.size());
 		}, PlacePersistenceUnavailableException::new);
 	}
