@@ -1,15 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceUseCases } from "../src/workspace/application/useCases.ts";
-import { validateDate } from "../src/workspace/domain/models.ts";
+import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
+import { validateDate } from "../features/workspace/domain/models.ts";
 import type {
   DiaryEntryInput,
   Workspace,
   PetInput,
-} from "../src/workspace/domain/models.ts";
-import { createAuthUseCases } from "../src/auth/application/auth.ts";
-import { DemoAuthRepository } from "../src/auth/adapters/outbound/DemoAuthRepository.ts";
-import { BrowserWorkspaceRepository } from "../src/workspace/adapters/outbound/BrowserWorkspaceRepository.ts";
+} from "../features/workspace/domain/models.ts";
+import { createAuthUseCases } from "../features/auth/application/auth.ts";
+import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
+import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
 function setup() {
   const saved = new Map<string, Workspace>();
   let fail = false;

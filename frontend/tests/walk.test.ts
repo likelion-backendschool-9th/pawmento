@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ApplicationError } from "../src/shared/application/ApplicationError.ts";
-import { ApiError, type ApiClient } from "../src/shared/http/apiClient.ts";
+import { ApplicationError } from "../lib/application/ApplicationError.ts";
+import { ApiError, type ApiClient } from "../lib/http/apiClient.ts";
 import {
   distanceBetween,
   elapsedSeconds,
@@ -13,18 +13,18 @@ import {
   pathDistance,
   DEMO_WALK_PREFIX,
   type WalkPoint,
-} from "../src/map/domain/Walk.ts";
-import { WalkRecorder } from "../src/map/application/WalkRecorder.ts";
-import { createWalkUseCases } from "../src/map/application/walkUseCases.ts";
+} from "../features/map/domain/Walk.ts";
+import { WalkRecorder } from "../features/map/application/WalkRecorder.ts";
+import { createWalkUseCases } from "../features/map/application/walkUseCases.ts";
 import type {
   ActiveWalk,
   ActiveWalkStore,
   WalkRepository,
-} from "../src/map/application/walkPorts.ts";
-import { HttpWalkRepository } from "../src/map/adapters/outbound/HttpWalkRepository.ts";
-import { DemoWalkRepository } from "../src/map/adapters/outbound/DemoWalkRepository.ts";
-import { PetScopedWalkRepository } from "../src/map/adapters/outbound/PetScopedWalkRepository.ts";
-import { LocalActiveWalkStore } from "../src/map/adapters/outbound/LocalActiveWalkStore.ts";
+} from "../features/map/application/walkPorts.ts";
+import { HttpWalkRepository } from "../features/map/adapters/outbound/HttpWalkRepository.ts";
+import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
+import { PetScopedWalkRepository } from "../features/map/adapters/outbound/PetScopedWalkRepository.ts";
+import { LocalActiveWalkStore } from "../features/map/adapters/outbound/LocalActiveWalkStore.ts";
 
 const point = (n: number, extra: Partial<WalkPoint> = {}): WalkPoint => ({
   latitude: 37.5445 + n * 0.0001,
