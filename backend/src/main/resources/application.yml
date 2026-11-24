@@ -37,8 +37,8 @@ pawmento:
       # 저장소에 두지 않고 환경 변수로만 받는다. 토큰은 Workers AI 권한만 준다
       account-id: ${CLOUDFLARE_ACCOUNT_ID:}
       api-token: ${CLOUDFLARE_AI_TOKEN:}
-      # S7에서 flux-2-klein-4b와 비교해 정한다
-      model: "${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:@cf/black-forest-labs/flux-2-klein-9b}"
+      # S7에서 flux-2-klein-9b와 비교해 4b로 정했다 (docs/postcard/generate.md)
+      model: "${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:@cf/black-forest-labs/flux-2-klein-4b}"
     # 완성 이미지(images/)와 요청 때 복사한 사진(sources/)
     image-root: ${PAWMENTO_MEDIA_ROOT:./.local/media}/postcards
   auth:

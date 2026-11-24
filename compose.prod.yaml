@@ -48,8 +48,8 @@ services:
       PAWMENTO_POSTCARD_GENERATOR: ${PAWMENTO_POSTCARD_GENERATOR:-fake}
       CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
       CLOUDFLARE_AI_TOKEN: ${CLOUDFLARE_AI_TOKEN:-}
-      PAWMENTO_POSTCARD_CLOUDFLARE_MODEL: ${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:-@cf/black-forest-labs/flux-2-klein-9b}
-      # 팀 전체 하루 상한. Cloudflare 무료 한도(하루 10,000 Neuron, 9b 기준 장당 약 1,400)를 쓰는 동안 3장으로 둔다.
+      PAWMENTO_POSTCARD_CLOUDFLARE_MODEL: ${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:-@cf/black-forest-labs/flux-2-klein-4b}
+      # 팀 전체 하루 상한. Cloudflare 무료 한도(하루 10,000 Neuron)를 쓰는 동안 3장으로 둔다.
       # 앱은 한국 시간 자정, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 최대 6장이 걸친다
       PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL: ${PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL:-3}
 
