@@ -1,5 +1,7 @@
 package com.pawmento.member.adapter.out.persistence;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.hibernate.exception.ConstraintViolationException;
@@ -85,6 +87,11 @@ class MemberPersistenceAdapter implements LoadMemberPort, SaveMemberPort, Exists
 		return socialAccountRepository.findByProviderAndProviderUserId(provider, providerUserId)
 				.flatMap(account -> jpaRepository.findById(account.getMemberId()))
 				.map(MemberJpaEntity::toDomain);
+	}
+
+	@Override
+	public List<Member> loadAllByIds(Collection<Long> ids) {
+		return jpaRepository.findAllById(ids).stream().map(MemberJpaEntity::toDomain).toList();
 	}
 
 	// 중복 확인과 저장 사이에 같은 이메일이나 같은 소셜 계정의 가입이 끼어든 경우를 제약 이름으로 나눈다
