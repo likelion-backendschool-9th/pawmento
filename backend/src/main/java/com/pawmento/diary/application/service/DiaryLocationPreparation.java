@@ -44,6 +44,8 @@ public class DiaryLocationPreparation {
         c.features().attachmentIds() == null
             ? attachments.find(entry.getId())
             : c.features().attachmentIds();
+    if (c.titleChange().provided())
+      entry.changeTitle(c.memberId(), c.titleChange().title(), clock.instant());
     entry.edit(c.memberId(), c.content(), c.recordedDate(), clock.instant(), !ids.isEmpty());
     media.validate(c.memberId(), c.petId(), attachments.find(entry.getId()), ids);
     return resolve(c.features());

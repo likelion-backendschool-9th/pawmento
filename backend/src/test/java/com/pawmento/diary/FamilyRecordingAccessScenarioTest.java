@@ -81,7 +81,8 @@ class FamilyRecordingAccessScenarioTest {
 
   GetDiaryEntryResult diary(long actor, DiaryWriteFeatures features) {
     return createDiary.create(
-        new CreateDiaryEntryCommand(actor, pet, "함께한 하루", LocalDate.of(2026, 11, 17), features));
+        new CreateDiaryEntryCommand(
+            actor, pet, "함께한 하루", LocalDate.of(2026, 11, 17), features, "테스트 일기"));
   }
 
   long prompt(long actor) {

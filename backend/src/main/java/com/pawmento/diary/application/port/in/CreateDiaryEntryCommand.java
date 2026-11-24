@@ -13,6 +13,7 @@ public record CreateDiaryEntryCommand(
     DiaryTitle title) {
   public CreateDiaryEntryCommand {
     if (title == null) throw new InvalidDiaryTitleException();
+    title.requirePresent();
   }
 
   public CreateDiaryEntryCommand(
@@ -20,8 +21,9 @@ public record CreateDiaryEntryCommand(
       Long petId,
       String content,
       LocalDate recordedDate,
-      DiaryWriteFeatures features) {
-    this(memberId, petId, content, recordedDate, features, DiaryTitle.empty());
+      DiaryWriteFeatures features,
+      String title) {
+    this(memberId, petId, content, recordedDate, features, new DiaryTitle(title));
   }
 
   public static CreateDiaryEntryCommand withTitle(
@@ -36,7 +38,7 @@ public record CreateDiaryEntryCommand(
   }
 
   public CreateDiaryEntryCommand(
-      Long memberId, Long petId, String content, LocalDate recordedDate) {
-    this(memberId, petId, content, recordedDate, DiaryWriteFeatures.textOnly());
+      Long memberId, Long petId, String content, LocalDate recordedDate, String title) {
+    this(memberId, petId, content, recordedDate, DiaryWriteFeatures.textOnly(), title);
   }
 }

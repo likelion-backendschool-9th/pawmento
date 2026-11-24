@@ -100,7 +100,7 @@ public class DiaryEntryJpaEntity {
           version,
           intent,
           new com.pawmento.diary.domain.DiaryAuthorName(authorNameSnapshot),
-          new DiaryTitle(title));
+          DiaryTitle.restore(title));
     } catch (InvalidDiaryTitleException failure) {
       throw new StoredDiaryTitleInvalidException(failure);
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {

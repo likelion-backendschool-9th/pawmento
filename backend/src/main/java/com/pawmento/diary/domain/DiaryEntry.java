@@ -68,9 +68,11 @@ public final class DiaryEntry {
       LocalDate date,
       Instant now,
       boolean hasAttachments,
-      DiaryAuthorName authorName) {
+      DiaryAuthorName authorName,
+      DiaryTitle title) {
     var entry = draft(petId, memberId, content, date, now, hasAttachments);
     entry.authorName = Objects.requireNonNull(authorName);
+    entry.title = Objects.requireNonNull(title).requirePresent();
     return entry;
   }
 
@@ -110,7 +112,7 @@ public final class DiaryEntry {
 
   public void changeTitle(Long memberId, DiaryTitle title, Instant now) {
     requireAuthor(memberId);
-    this.title = Objects.requireNonNull(title);
+    this.title = Objects.requireNonNull(title).requirePresent();
     this.updatedAt = Objects.requireNonNull(now);
   }
 
@@ -139,6 +141,7 @@ public final class DiaryEntry {
   public void edit(
       Long memberId, String content, LocalDate date, Instant now, boolean hasAttachments) {
     requireAuthor(memberId);
+    title.requirePresent();
     String nextContent = content == null ? this.content : content.strip();
     LocalDate nextDate = date == null ? recordedDate : date;
     requireContent(nextContent, hasAttachments);

@@ -131,7 +131,7 @@ class DiaryTitleScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S33 제목 생성·상세·목록과 기존 무제목 요청을 유지하고 제목만으로 빈 일기를 만들지 않는다")
+  @DisplayName("#32-S33 제목 생성·상세·목록과 무제목 요청을 거절하고 제목만으로 빈 일기를 만들지 않는다")
   void createsAndReads() throws Exception {
     as(
             writer,
@@ -156,8 +156,7 @@ class DiaryTitleScenarioTest {
               post(list())
                   .contentType(MediaType.APPLICATION_JSON)
                   .content("{\"content\":\"기존 요청\",\"recordedDate\":\"2026-11-17\"" + field + "}"))
-          .andExpect(status().isCreated())
-          .andExpect(jsonPath("$.title").isEmpty());
+          .andExpect(status().isBadRequest());
     as(
             writer,
             post(list())
@@ -167,7 +166,7 @@ class DiaryTitleScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S34 제목만 수정해도 핀 revision을 맞추고 위치 생략 본문 수정·제목 생략·제거를 유지한다")
+  @DisplayName("#32-S34 제목만 수정해도 핀 revision을 맞추고 위치 생략 본문 수정·제목 생략 유지·제거 거절을 확인한다")
   void editsPreservePinAndIdentity() throws Exception {
     var entry = create("처음 제목", true);
     var before = get.get(new GetDiaryEntryQuery(writer, pet, entry.diaryId()));
@@ -194,14 +193,10 @@ class DiaryTitleScenarioTest {
     var clear = new LinkedHashMap<String, Object>();
     clear.put("title", null);
     clear.put("version", 3);
-    change(writer, entry.diaryId(), clear)
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.title").isEmpty())
-        .andExpect(jsonPath("$.version").value(4));
-    change(writer, entry.diaryId(), Map.of("title", "   ", "version", 4))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.version").value(5));
-    change(writer, entry.diaryId(), Map.of("version", 5)).andExpect(status().isBadRequest());
+    change(writer, entry.diaryId(), clear).andExpect(status().isBadRequest());
+    change(writer, entry.diaryId(), Map.of("title", "   ", "version", 3))
+        .andExpect(status().isBadRequest());
+    change(writer, entry.diaryId(), Map.of("version", 3)).andExpect(status().isBadRequest());
     var after = get.get(new GetDiaryEntryQuery(writer, pet, entry.diaryId()));
     assertThat(after.author()).isEqualTo(before.author());
     assertThat(after.createdAt()).isEqualTo(before.createdAt());
@@ -212,7 +207,7 @@ class DiaryTitleScenarioTest {
                 "select source_revision from diary_location where diary_id=?",
                 Long.class,
                 entry.diaryId()))
-        .isEqualTo(5L);
+        .isEqualTo(3L);
     as(owner, get("/api/v1/diaries/calendar?petId=" + pet + "&month=2026-11"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.days[0].count").value(1));
@@ -256,6 +251,17 @@ class DiaryTitleScenarioTest {
             jdbc.queryForObject(
                 "select count(*) from diary_entries where pet_id=?", Long.class, pet))
         .isZero();
+    for (String escaped : List.of("\\uD800", "\\uDC00", "\\uDC00\\uD800")) {
+      as(
+              writer,
+              post(list())
+                  .contentType(MediaType.APPLICATION_JSON)
+                  .content(
+                      "{\"title\":\"앞"
+                          + escaped
+                          + "뒤\",\"content\":\"본문\",\"recordedDate\":\"2026-11-17\"}"))
+          .andExpect(status().isBadRequest());
+    }
     var unicode = create("🐾".repeat(100), false);
     assertThat(unicode.title()).isEqualTo("🐾".repeat(100));
     assertThat(get.get(new GetDiaryEntryQuery(writer, pet, unicode.diaryId())).title())
@@ -313,9 +319,20 @@ class DiaryTitleScenarioTest {
   @DisplayName("#32-S35 저장된 잘못된 제목은 사용자 오류 400이 아닌 저장 데이터 오류로 구분한다")
   void corruptStoredTitle() {
     var entry = create("정상", false);
-    jdbc.update("update diary_entries set title=? where id=?", "앞\u2028뒤", entry.diaryId());
-    assertThatThrownBy(() -> get.get(new GetDiaryEntryQuery(writer, pet, entry.diaryId())))
-        .isInstanceOf(StoredDiaryTitleInvalidException.class);
+    for (String raw : List.of("앞\u2028뒤", "  산책  ", "   ", "")) {
+      jdbc.update("update diary_entries set title=? where id=?", raw, entry.diaryId());
+      assertThatThrownBy(() -> get.get(new GetDiaryEntryQuery(writer, pet, entry.diaryId())))
+          .isInstanceOf(StoredDiaryTitleInvalidException.class);
+      assertThatThrownBy(
+              () ->
+                  editor.edit(
+                      new EditDiaryEntryCommand(writer, pet, entry.diaryId(), "수정", null, 0L)))
+          .isInstanceOf(StoredDiaryTitleInvalidException.class);
+      assertThat(
+              jdbc.queryForObject(
+                  "select title from diary_entries where id=?", String.class, entry.diaryId()))
+          .isEqualTo(raw);
+    }
   }
 
   @Test
@@ -380,6 +397,22 @@ class DiaryTitleScenarioTest {
                 previous,
                 requested))
         .isZero();
+  }
+
+  @Test
+  @DisplayName("#32-S37 기존 무제목 일기는 조회되지만 수정 저장에는 제목이 필요하다")
+  void legacyTitleMustBeFilledOnEdit() throws Exception {
+    var entry = create("기존", false);
+    jdbc.update("update diary_entries set title=null where id=?", entry.diaryId());
+    as(writer, get(path(entry.diaryId())))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").isEmpty());
+    change(writer, entry.diaryId(), Map.of("content", "새 본문", "version", 0))
+        .andExpect(status().isBadRequest());
+    change(writer, entry.diaryId(), Map.of("title", "새 제목", "content", "새 본문", "version", 0))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.title").value("새 제목"))
+        .andExpect(jsonPath("$.version").value(1));
   }
 
   long readyPhoto() {

@@ -78,8 +78,15 @@ class DiaryTitleSchemaUpgradeTest {
       assertThat(entry.getTitle().value()).isNull();
       assertThat(entry.getAuthorName().value()).isEqualTo("기존 작성자");
       assertThat(entry.getVersion()).isEqualTo(7);
+      assertThatThrownBy(
+              () -> entry.edit(20L, "수정", null, java.time.Instant.parse("2026-11-20T00:00:00Z")))
+          .isInstanceOf(com.pawmento.diary.domain.exception.InvalidDiaryTitleException.class);
+      entry.changeTitle(
+          20L,
+          new com.pawmento.diary.domain.DiaryTitle("기존 일기의 새 제목"),
+          java.time.Instant.parse("2026-11-20T00:00:00Z"));
       entry.edit(20L, "호환되는 수정", null, java.time.Instant.parse("2026-11-20T00:00:00Z"));
-      assertThat(entry.getTitle().value()).isNull();
+      assertThat(entry.getTitle().value()).isEqualTo("기존 일기의 새 제목");
     }
     var after = jdbc.queryForMap("select * from " + schema + ".diary_entries where id=1");
     assertThat(after.remove("title")).isNull();

@@ -11,7 +11,15 @@ class DiaryEntryTest {
   private final DiaryAuthorName author = new DiaryAuthorName("작성자");
 
   private DiaryEntry create(String content, LocalDate date, Instant at) {
-    return DiaryEntry.create(1L, 2L, content, date, at, false, author);
+    return DiaryEntry.create(
+        1L,
+        2L,
+        content,
+        date,
+        at,
+        false,
+        author,
+        new com.pawmento.diary.domain.DiaryTitle("테스트 일기"));
   }
 
   private DiaryEntry restore(String content) {
@@ -26,7 +34,7 @@ class DiaryEntryTest {
         0L,
         null,
         author,
-        DiaryTitle.empty());
+        new DiaryTitle("테스트 일기"));
   }
 
   @Test

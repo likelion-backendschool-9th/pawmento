@@ -533,7 +533,7 @@ class PetProfilePhotoScenarioTest {
 		String date = LocalDate.now(ZoneId.of("Asia/Seoul")).toString();
 		return number(mvc.perform(post("/api/v1/diaries?petId=" + owner.petId()).cookie(owner.cookie())
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("{\"content\":\"산책 기록\",\"recordedDate\":\"" + date + "\"}"))
+				.content("{\"title\":\"테스트 일기\",\"content\":\"산책 기록\",\"recordedDate\":\"" + date + "\"}"))
 			.andExpect(status().isCreated()).andReturn(), "$.diaryId");
 	}
 

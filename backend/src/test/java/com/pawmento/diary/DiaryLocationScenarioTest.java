@@ -12,8 +12,8 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.diary.application.port.in.*;
 import com.pawmento.map.application.exception.*;
 import com.pawmento.map.application.port.in.*;
-import com.pawmento.map.application.port.out.*;
 import com.pawmento.map.application.port.in.DiaryLocationInput;
+import com.pawmento.map.application.port.out.*;
 import com.pawmento.media.application.port.out.SaveMediaAssetPort;
 import com.pawmento.media.domain.*;
 import com.pawmento.pet.application.port.in.*;
@@ -87,7 +87,8 @@ class DiaryLocationScenarioTest {
                 9001,
                 body(
                     post(path(p)),
-                    "{\"content\":\"원본\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":0,\"longitude\":-73.5,\"placeName\":\"공원\"}}"))
+                    "{\"title\":\"테스트"
+                        + " 일기\",\"content\":\"원본\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":0,\"longitude\":-73.5,\"placeName\":\"공원\"}}"))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.location.mode").value("MANUAL"))
             .andReturn();
@@ -161,7 +162,8 @@ class DiaryLocationScenarioTest {
             9001,
             body(
                 post(path(p)),
-                "{\"content\":\"기억\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}"))
+                "{\"title\":\"테스트"
+                    + " 일기\",\"content\":\"기억\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.location.placeName").isEmpty());
     long before =
@@ -173,7 +175,8 @@ class DiaryLocationScenarioTest {
                     9001,
                     body(
                         post(path(p)),
-                        "{\"content\":\"기억\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}")))
+                        "{\"title\":\"테스트"
+                            + " 일기\",\"content\":\"기억\",\"recordedDate\":\"2026-11-17\",\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}")))
         .hasRootCauseInstanceOf(IllegalStateException.class);
     assertThat(
             jdbc.queryForObject("select count(*) from diary_entries where pet_id=?", Long.class, p))
@@ -256,7 +259,8 @@ class DiaryLocationScenarioTest {
             9001,
             body(
                 post(path(p)),
-                "{\"content\":\"새 기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
+                "{\"title\":\"테스트 일기\",\"content\":\"새"
+                    + " 기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
                     + a
                     + "],\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":1,\"placeName\":\"공원\"}}"))
         .andExpect(status().isServiceUnavailable());
@@ -424,7 +428,7 @@ class DiaryLocationScenarioTest {
                     s ->
                         create.create(
                             new CreateDiaryEntryCommand(
-                                9001L, p, "기록", LocalDate.of(2026, 11, 17)))))
+                                9001L, p, "기록", LocalDate.of(2026, 11, 17), "테스트 일기"))))
         .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
   }
 
@@ -475,7 +479,8 @@ class DiaryLocationScenarioTest {
             9001,
             body(
                 post(path(p)),
-                "{\"content\":\"기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
+                "{\"title\":\"테스트"
+                    + " 일기\",\"content\":\"기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
                     + a
                     + "],\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}"))
         .andExpect(status().isNotFound());
@@ -494,7 +499,8 @@ class DiaryLocationScenarioTest {
             9001,
             body(
                 post(path(p)),
-                "{\"content\":\"기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
+                "{\"title\":\"테스트"
+                    + " 일기\",\"content\":\"기록\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
                     + id
                     + "],\"location\":{\"mode\":\"MANUAL\",\"latitude\":1,\"longitude\":2}}"))
         .andExpect(status().isConflict());
@@ -513,7 +519,8 @@ class DiaryLocationScenarioTest {
                     p,
                     "기록",
                     LocalDate.of(2026, 11, 17),
-                    new DiaryWriteFeatures(List.of(a), DiaryLocationChange.manual(0.0, 1.0, "공원"))))
+                    new DiaryWriteFeatures(List.of(a), DiaryLocationChange.manual(0.0, 1.0, "공원")),
+                    "테스트 일기"))
             .diaryId();
     var original = pin(id);
     doAnswer(

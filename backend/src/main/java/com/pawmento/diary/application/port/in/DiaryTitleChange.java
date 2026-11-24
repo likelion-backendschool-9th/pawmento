@@ -6,6 +6,7 @@ import com.pawmento.diary.domain.exception.InvalidDiaryTitleException;
 public record DiaryTitleChange(boolean provided, DiaryTitle title) {
   public DiaryTitleChange {
     if (provided != (title != null)) throw new InvalidDiaryTitleException();
+    if (provided) title.requirePresent();
   }
 
   public static DiaryTitleChange keep() {
