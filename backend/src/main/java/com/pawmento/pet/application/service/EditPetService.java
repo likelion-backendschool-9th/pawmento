@@ -33,9 +33,9 @@ public class EditPetService implements EditPetUseCase {
 		Pet pet = PetOwnership.requireOwnedPet(loadPetPort, command.petId(), command.memberId());
 		PetSpecies species = PetSpeciesParser.optional(command.species());
 		LocalDate today = LocalDate.now(clock.withZone(SEOUL));
-		pet.edit(command.name(), species, command.breed(), command.birthday(), today);
+		pet.edit(command.name(), species, command.breed(), command.birthday(), command.birthYear(), today);
 		savePetPort.save(pet);
-		return PetResult.from(pet);
+		return PetResult.from(pet, today);
 	}
 
 }

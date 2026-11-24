@@ -32,10 +32,10 @@ public class CreatePetService implements CreatePetUseCase {
 		PetSpecies species = PetSpeciesParser.require(command.species());
 		String tag = petTagGenerator.nextTag(command.memberId());
 		LocalDate today = LocalDate.now(clock.withZone(SEOUL));
-		Pet pet = Pet.create(command.memberId(), command.name(), tag, species, command.breed(), command.birthday(),
-				today);
+		Pet pet = Pet.create(command.memberId(), command.name(), tag, species, command.breed(),
+				command.birthday(), command.birthYear(), today);
 		Long petId = savePetPort.save(pet);
-		return PetResult.from(petId, pet);
+		return PetResult.from(petId, pet, today);
 	}
 
 }

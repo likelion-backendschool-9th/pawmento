@@ -51,6 +51,8 @@ public class PetJpaEntity {
 
 	private LocalDate birthday;
 
+	private Integer birthYear;
+
 	private Long profilePhotoAssetId;
 
 	@Enumerated(EnumType.STRING)
@@ -69,6 +71,7 @@ public class PetJpaEntity {
 		entity.species = pet.getSpecies();
 		entity.breed = pet.getBreed();
 		entity.birthday = pet.getBirthday();
+		entity.birthYear = pet.getBirthYear();
 		entity.profilePhotoAssetId = pet.getProfilePhotoAssetId();
 		entity.mode = pet.getMode();
 		entity.version = pet.getVersion();
@@ -76,7 +79,7 @@ public class PetJpaEntity {
 	}
 
 	public Pet toDomain() {
-		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, profilePhotoAssetId);
+		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, profilePhotoAssetId, birthYear);
 	}
 
 }

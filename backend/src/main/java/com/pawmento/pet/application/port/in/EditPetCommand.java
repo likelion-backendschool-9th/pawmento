@@ -8,5 +8,10 @@ public record EditPetCommand(
 		String name,
 		String species,
 		String breed,
-		LocalDate birthday) {
+		LocalDate birthday,
+		Integer birthYear) {
+
+	public EditPetCommand(Long memberId, Long petId, String name, String species, String breed, LocalDate birthday) {
+		this(memberId, petId, name, species, breed, birthday, null);
+	}
 }

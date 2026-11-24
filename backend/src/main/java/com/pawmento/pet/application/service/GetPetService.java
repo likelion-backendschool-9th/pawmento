@@ -1,5 +1,9 @@
 package com.pawmento.pet.application.service;
 
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class GetPetService implements GetPetUseCase {
+	private final Clock clock;
 
 	private final LoadPetPort loadPetPort;
 
@@ -21,7 +26,7 @@ public class GetPetService implements GetPetUseCase {
 	@Transactional(readOnly = true)
 	public PetResult get(GetPetQuery query) {
 		Pet pet = PetOwnership.requireOwnedPet(loadPetPort, query.petId(), query.memberId());
-		return PetResult.from(pet);
+		return PetResult.from(pet, LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul"))));
 	}
 
 }

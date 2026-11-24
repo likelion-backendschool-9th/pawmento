@@ -39,7 +39,7 @@ class PetOwnershipTest {
 			LocalDate.of(2020, 1, 1), com.pawmento.pet.domain.PetMode.ACTIVE, 0L);
 		when(load.findById(2L)).thenReturn(Optional.of(pet));
 		when(load.findById(3L)).thenReturn(Optional.empty());
-		var service = new GetPetService(load);
+		var service = new GetPetService(java.time.Clock.systemUTC(), load);
 		var result = service.get(new GetPetQuery(1L, 2L));
 		assertThat(result.petId()).isEqualTo(2L);
 		assertThat(result.name()).isEqualTo("콩이");

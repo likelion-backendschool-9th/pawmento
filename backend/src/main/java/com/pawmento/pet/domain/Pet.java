@@ -18,6 +18,8 @@ public class Pet {
 	private PetSpecies species;
 	private String breed;
 	private LocalDate birthday;
+	// 정확한 날짜가 없을 때만 저장한다.
+	private Integer birthYear;
 	private Long profilePhotoAssetId;
 	private PetMode mode;
 	// 낙관적 잠금용. DB에서 읽은 버전을 저장까지 그대로 나른다
@@ -36,12 +38,19 @@ public class Pet {
 
 	public static Pet create(Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
 			LocalDate birthday, LocalDate today) {
+		return create(ownerMemberId, name, tag, species, breed, birthday, null, today);
+	}
+
+	public static Pet create(Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
+			LocalDate birthday, Integer birthYear, LocalDate today) {
 		String trimmedName = requireName(name);
 		requireOwner(ownerMemberId);
 		requireTag(tag);
 		requireSpecies(species);
-		requireBirthdayNotFuture(birthday, today);
-		return new Pet(ownerMemberId, trimmedName, tag, species, normalizeBreed(breed), birthday, PetMode.ACTIVE);
+		requireBirthInformation(birthday, birthYear, today);
+		Pet pet = new Pet(ownerMemberId, trimmedName, tag, species, normalizeBreed(breed), birthday, PetMode.ACTIVE);
+		pet.birthYear = birthday == null ? birthYear : null;
+		return pet;
 	}
 
 	// DB에서 꺼낸 값을 도메인으로 되돌릴 때 쓴다. 이미 저장된 값이므로 생성 규칙을 다시 검사하지 않는다
@@ -52,7 +61,16 @@ public class Pet {
 
 	public static Pet restore(Long id, Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
 			LocalDate birthday, PetMode mode, Long version, Long profilePhotoAssetId) {
+		return restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, profilePhotoAssetId, null);
+	}
+
+	public static Pet restore(Long id, Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
+			LocalDate birthday, PetMode mode, Long version, Long profilePhotoAssetId, Integer birthYear) {
+		if (birthday != null && birthYear != null) {
+			throw InvalidPetProfileException.inconsistentBirthYear();
+		}
 		Pet pet = new Pet(ownerMemberId, name, tag, species, breed, birthday, mode);
+		pet.birthYear = birthYear;
 		pet.id = id;
 		pet.version = version;
 		pet.profilePhotoAssetId = profilePhotoAssetId;
@@ -61,6 +79,11 @@ public class Pet {
 
 	// null인 항목은 바꾸지 않는다. 비운 품종은 빈 문자열로 보낸다
 	public void edit(String name, PetSpecies species, String breed, LocalDate birthday, LocalDate today) {
+		edit(name, species, breed, birthday, null, today);
+	}
+
+	public void edit(String name, PetSpecies species, String breed, LocalDate birthday, Integer birthYear, LocalDate today) {
+		requireBirthInformation(birthday, birthYear, today);
 		if (name != null) {
 			this.name = requireName(name);
 		}
@@ -71,8 +94,35 @@ public class Pet {
 			this.breed = normalizeBreed(breed);
 		}
 		if (birthday != null) {
-			requireBirthdayNotFuture(birthday, today);
 			this.birthday = birthday;
+			this.birthYear = null;
+		} else if (birthYear != null && !birthYear.equals(effectiveBirthYear())) {
+			this.birthday = null;
+			this.birthYear = birthYear;
+		}
+	}
+
+	public Integer effectiveBirthYear() {
+		if (birthday == null) {
+			return birthYear;
+		}
+		return birthday.getYear();
+	}
+
+	public Integer ageByYear(LocalDate today) {
+		Integer year = effectiveBirthYear();
+		return year == null ? null : today.getYear() - year;
+	}
+
+	private static void requireBirthInformation(LocalDate birthday, Integer birthYear, LocalDate today) {
+		requireBirthdayNotFuture(birthday, today);
+		if (birthYear != null) {
+			if (birthYear < 1900 || birthYear > today.getYear()) {
+				throw InvalidPetProfileException.invalidBirthYear();
+			}
+			if (birthday != null && birthday.getYear() != birthYear) {
+				throw InvalidPetProfileException.inconsistentBirthYear();
+			}
 		}
 	}
 

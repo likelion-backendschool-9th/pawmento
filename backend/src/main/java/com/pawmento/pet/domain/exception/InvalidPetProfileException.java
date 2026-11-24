@@ -27,6 +27,14 @@ public class InvalidPetProfileException extends RuleViolationException {
 		return new InvalidPetProfileException("반려동물의 종류를 선택해 주세요.");
 	}
 
+	public static InvalidPetProfileException invalidBirthYear() {
+		return new InvalidPetProfileException("출생 연도는 1900년부터 올해까지 입력해 주세요.");
+	}
+
+	public static InvalidPetProfileException inconsistentBirthYear() {
+		return new InvalidPetProfileException("생일과 출생 연도가 일치해야 합니다.");
+	}
+
 	public static InvalidPetProfileException futureBirthday() {
 		return new InvalidPetProfileException("생일은 오늘 이전으로 입력해 주세요.");
 	}

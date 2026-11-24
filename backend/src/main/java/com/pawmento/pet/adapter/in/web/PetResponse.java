@@ -13,7 +13,9 @@ public record PetResponse(
 		String breed,
 		LocalDate birthday,
 		String mode,
-		ProfilePhoto profilePhoto) {
+		ProfilePhoto profilePhoto,
+		Integer birthYear,
+		Integer ageByYear) {
 
 	static PetResponse from(PetResult result) {
 		ProfilePhoto photo = null;
@@ -24,7 +26,7 @@ public record PetResponse(
 		}
 
 		return new PetResponse(result.petId(), result.name(), result.tag(), result.species(), result.breed(),
-				result.birthday(), result.mode(), photo);
+				result.birthday(), result.mode(), photo, result.birthYear(), result.ageByYear());
 	}
 
 	public record ProfilePhoto(Long assetId, String contentUrl, String thumbnailUrl) {
