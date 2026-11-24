@@ -11,15 +11,15 @@ import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-// 현재 수정 범위 member/pet/postcard의 import 경계를 고정한다. 동작 테스트를 대체하지 않는다.
+// 현재 수정 범위 member/pet/postcard/family의 import 경계를 고정한다. 동작 테스트를 대체하지 않는다.
 class HexagonalArchitectureTest {
 	private static final Path ROOT = Path.of("src/main/java/com/pawmento");
 	private static final Pattern IMPORT = Pattern.compile("(?m)^import\\s+(?:static\\s+)?([^;]+);");
 
 	@Test
-	@DisplayName("#52-S9 member/pet/postcard의 핵심은 JPA·웹·어댑터에 의존하지 않는다")
+	@DisplayName("#52-S9 member/pet/postcard/family의 핵심은 JPA·웹·어댑터에 의존하지 않는다")
 	void coreDoesNotDependOnTechnology() throws IOException {
-		for (String domain : List.of("member", "pet", "postcard")) {
+		for (String domain : List.of("member", "pet", "postcard", "family")) {
 			try (var paths = Files.walk(ROOT.resolve(domain))) {
 				for (Path path : paths.filter(p -> p.toString().endsWith(".java")).toList()) {
 					String relative = ROOT.relativize(path).toString();
