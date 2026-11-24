@@ -19,6 +19,7 @@ export class DemoPlaceRepository implements PlaceRepository {
           (categories === undefined || categories.includes(place.category)),
       ),
       truncated: false,
+      dataAsOf: null,
       sample: true,
     };
   }

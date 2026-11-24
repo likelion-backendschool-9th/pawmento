@@ -27,6 +27,8 @@ export type PlaceList = {
   places: Place[];
   // 영역 안의 장소가 서버의 한 번에 주는 최대 개수(500)를 넘어 잘렸다
   truncated: boolean;
+  // 이 목록에 든 장소의 종류들을 마지막으로 가져온 시각(UTC 시각 문자열). 모르면 null이라 화면에 보이지 않는다(#172-S21)
+  dataAsOf: string | null;
   // 실제 데이터가 아닌 개발·테스트용 예시 장소다(목업을 명시적으로 켰을 때만)
   sample: boolean;
 };
