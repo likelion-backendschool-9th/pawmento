@@ -23,6 +23,7 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
     var entry = DiaryEntryAccess.load(load, c.petId(), c.diaryId());
     entry.requireAuthor(c.memberId());
     DiaryEntryAccess.version(entry, c.version());
+    access.requireLockedWriteAccess(c.memberId(), c.petId());
     entry = DiaryEntryAccess.locked(load, c.petId(), c.diaryId());
     DiaryEntryAccess.version(entry, c.version());
     DiaryLocationManager.next(entry.getVersion());

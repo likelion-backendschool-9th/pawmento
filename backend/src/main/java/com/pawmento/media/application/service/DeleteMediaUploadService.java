@@ -21,7 +21,7 @@ public class DeleteMediaUploadService implements DeleteMediaUploadUseCase {
 
   @Transactional
   public void delete(DeleteMediaUploadCommand q) {
-    access.requireWriteAccess(q.memberId(), q.petId());
+    access.requireLockedWriteAccess(q.memberId(), q.petId());
     var a = load.findForUpdate(q.assetId()).orElseThrow(() -> new MediaAssetNotFoundException());
     a.requireOwner(q.memberId(), q.petId());
     if (references.isReferenced(a.getId())) throw new MediaAttachmentConflictException();

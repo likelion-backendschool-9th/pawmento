@@ -4,7 +4,7 @@ import com.pawmento.question.application.exception.QuestionPoolEmptyException;
 import com.pawmento.question.application.port.in.EnsureCurrentQuestionPromptCommand;
 import com.pawmento.question.application.port.in.EnsureCurrentQuestionPromptResult;
 import com.pawmento.question.application.port.in.EnsureCurrentQuestionPromptUseCase;
-import com.pawmento.question.application.port.out.CheckQuestionPetAccessPort;
+import com.pawmento.question.application.port.out.CheckQuestionPetWriteAccessPort;
 import com.pawmento.question.application.port.out.LoadActiveQuestionsPort;
 import com.pawmento.question.application.port.out.QuestionProgressStorePort;
 import com.pawmento.question.application.port.out.SelectQuestionPort;
@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class EnsureCurrentQuestionPromptService implements EnsureCurrentQuestionPromptUseCase {
-  private final CheckQuestionPetAccessPort access;
+  private final CheckQuestionPetWriteAccessPort access;
   private final QuestionProgressStorePort store;
   private final LoadActiveQuestionsPort questions;
   private final SelectQuestionPort selection;
@@ -26,7 +26,7 @@ public class EnsureCurrentQuestionPromptService implements EnsureCurrentQuestion
   @Override
   @Transactional
   public EnsureCurrentQuestionPromptResult ensure(EnsureCurrentQuestionPromptCommand command) {
-    var mode = access.currentMode(command.memberId(), command.petId());
+    var mode = access.currentModeForWrite(command.memberId(), command.petId());
     var progress = store.lock(command.petId(), mode);
     if (progress.getCurrentPromptId() != null) {
       var current = store.loadPrompt(progress.getCurrentPromptId());
