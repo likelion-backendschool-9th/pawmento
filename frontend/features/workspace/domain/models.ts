@@ -12,19 +12,19 @@ export type Pet = {
 export type {
   DiaryEntry,
   DiaryEntryInput,
-} from "../../diary/domain/DiaryEntry.ts";
+} from "../../diary/types/DiaryEntry.ts";
 export type {
   QuestionAnswer,
   QuestionPrompt,
   QuestionAnswerInput,
   DemoQuestionAnswerInput,
-} from "../../question/domain/QuestionAnswer.ts";
+} from "../../question/types/QuestionAnswer.ts";
 export type { MediaAttachment } from "../../../lib/domain/MediaAttachment.ts";
-import type { DiaryEntry } from "../../diary/domain/DiaryEntry.ts";
+import type { DiaryEntry } from "../../diary/types/DiaryEntry.ts";
 import type {
   QuestionAnswer,
   QuestionPrompt,
-} from "../../question/domain/QuestionAnswer.ts";
+} from "../../question/types/QuestionAnswer.ts";
 import type { MediaAttachment } from "../../../lib/domain/MediaAttachment.ts";
 // 화면 합성용 모델이다. 저장은 diaries / questionAnswers로 분리한다.
 export type JournalItem =

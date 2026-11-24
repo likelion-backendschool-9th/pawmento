@@ -1,5 +1,5 @@
 "use client";
-import { questionHistory } from "@/features/question/application/history";
+import { questionHistory } from "@/features/question/utils/questionHistory";
 import { registrationDate } from "@/lib/application/JournalStore";
 
 import Link from "next/link";

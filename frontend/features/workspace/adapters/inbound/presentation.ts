@@ -1,4 +1,4 @@
-export { renderQuestion as question } from "../../../question/domain/renderQuestion.ts";
+export { renderQuestion as question } from "../../../question/utils/renderQuestion.ts";
 export const speciesName = {
   DOG: "강아지",
   CAT: "고양이",

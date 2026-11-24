@@ -1,4 +1,4 @@
-import type { QuestionPoolPort } from "../../features/question/application/useCases.ts";
+import type { QuestionPoolPort } from "../../features/question/browserQuestion.ts";
 import type { LifeRepository } from "../../features/life/application/ports.ts";
 export class PoolQuestionRepository implements QuestionPoolPort {
   constructor(private repository: LifeRepository) {}

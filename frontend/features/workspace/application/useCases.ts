@@ -1,6 +1,6 @@
-import { createDiaryUseCases } from "../../diary/application/useCases.ts";
-import { createQuestionAnswerUseCases } from "../../question/application/useCases.ts";
-import type { QuestionPoolPort } from "../../question/application/useCases.ts";
+import { createDiaryUseCases } from "../../diary/browserDiary.ts";
+import { createQuestionAnswerUseCases } from "../../question/browserQuestion.ts";
+import type { QuestionPoolPort } from "../../question/browserQuestion.ts";
 import { validatePet } from "../domain/models.ts";
 import type { PetInput, Workspace } from "../domain/models.ts";
 import type { RuntimePort, WorkspaceRepository } from "./ports.ts";
@@ -76,7 +76,7 @@ export function createWorkspaceUseCases(
     questions,
     seedDemoAnswers: (
       accountId: string,
-      inputs: import("../../question/domain/QuestionAnswer.ts").DemoQuestionAnswerInput[],
+      inputs: import("../../question/types/QuestionAnswer.ts").DemoQuestionAnswerInput[],
     ) =>
       mutate(accountId, (state) => {
         if (accountId !== "demo")

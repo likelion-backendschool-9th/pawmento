@@ -29,7 +29,8 @@ function coreFolders(): string[] {
 }
 
 test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의존하지 않는다", () => {
-  const folders = coreFolders();
+  // 계층을 푼 기능 폴더는 폴더 전체를 같은 기준으로 검사한다
+  const folders = [...coreFolders(), "features/diary", "features/question"];
   for (const folder of folders) {
     for (const path of files(resolve(folder))) {
       const name = relative(resolve("."), path);

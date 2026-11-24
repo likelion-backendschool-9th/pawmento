@@ -1,19 +1,20 @@
-import { renderQuestion } from "../domain/renderQuestion.ts";
+// 브라우저 저장 업무. #182 workspace 묶음에서 mocks로 옮기고, 서버 연결은 담당 이슈에서 한다.
+import { renderQuestion } from "./utils/renderQuestion.ts";
 import type {
   QuestionAnswer,
   QuestionAnswerInput,
   QuestionPrompt,
-} from "../domain/QuestionAnswer.ts";
-import { validateJournalContent } from "../../workspace/domain/models.ts";
+} from "./types/QuestionAnswer.ts";
+import { validateJournalContent } from "../workspace/domain/models.ts";
 import type {
   JournalStore,
   JournalRuntime,
-} from "../../../lib/application/JournalStore.ts";
+} from "../../lib/application/JournalStore.ts";
 import {
   requireJournalPet,
   requireJournalAuthor,
   registrationDate,
-} from "../../../lib/application/JournalStore.ts";
+} from "../../lib/application/JournalStore.ts";
 export type QuestionCollection = {
   answers: QuestionAnswer[];
   prompts: QuestionPrompt[];

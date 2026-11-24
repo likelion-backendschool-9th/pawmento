@@ -1,7 +1,7 @@
 import type {
   QuestionAnswer,
   QuestionPrompt,
-} from "../domain/QuestionAnswer.ts";
+} from "../types/QuestionAnswer.ts";
 /** 완료된 배정은 마지막 답변을 삭제해도 이력에 남는다. */
 export function questionHistory(
   petId: string,
