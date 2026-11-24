@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class FamilyMediaPetAccessAdapter implements CheckMediaPetAccessPort {
+class FamilyMediaPetAccessAdapter implements CheckMediaPetAccessPort {
   private final CheckPetAccessUseCase family;
   private final GetPetOwnerUseCase owners;
   private final LockPetOwnerUseCase locks;

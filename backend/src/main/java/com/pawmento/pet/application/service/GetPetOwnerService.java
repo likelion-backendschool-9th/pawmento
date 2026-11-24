@@ -28,13 +28,13 @@ public class GetPetOwnerService implements GetPetOwnerUseCase, LockPetOwnerUseCa
     @Override
     @Transactional(readOnly = true)
     public Optional<GetPetOwnerResult> get(GetPetOwnerQuery query) {
-        return loadPetPort.findById(query.petId()).map(pet -> new GetPetOwnerResult(pet.getOwnerMemberId()));
+        return loadPetPort.findById(query.petId()).map(pet -> new GetPetOwnerResult(pet.getOwnerMemberId(), pet.getMode().name()));
     }
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public Optional<GetPetOwnerResult> lock(LockPetOwnerQuery query) {
-        return lockPetPort.lock(query.petId()).map(pet -> new GetPetOwnerResult(pet.getOwnerMemberId()));
+        return lockPetPort.lock(query.petId()).map(pet -> new GetPetOwnerResult(pet.getOwnerMemberId(), pet.getMode().name()));
     }
 
 }

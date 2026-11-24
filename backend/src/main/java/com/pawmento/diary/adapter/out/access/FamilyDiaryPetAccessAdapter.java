@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class FamilyDiaryPetAccessAdapter implements CheckDiaryPetAccessPort {
+class FamilyDiaryPetAccessAdapter implements CheckDiaryPetAccessPort {
   private final CheckPetAccessUseCase family;
   private final GetPetOwnerUseCase owners;
   private final LockPetOwnerUseCase locks;
