@@ -37,7 +37,20 @@ const isCategory = (value: string): value is PlaceCategory =>
 const isBasis = (value: string | null): value is Open24hBasis =>
   value === "NAME" || value === "HOURS";
 
+// 지도 SDK가 아주 멀리 줄였을 때 주는 범위 밖 값은 서버가 받는 범위로 맞추지만, 무한대나 거꾸로 된 영역은 맞춘 뒤에 정상으로 보이므로
+// (예: 위도 95~94가 둘 다 90이 됨, ±무한대가 전 세계가 됨) 보정하기 전에 먼저 거절한다.
+function isFiniteAndOrdered(bounds: MapBounds): boolean {
+  return (
+    Object.values(bounds).every(Number.isFinite) &&
+    bounds.minLatitude <= bounds.maxLatitude &&
+    bounds.minLongitude <= bounds.maxLongitude
+  );
+}
+
 export function checkedPlaceArea(bounds: MapBounds): MapBounds {
+  if (!isFiniteAndOrdered(bounds)) {
+    throw new ApplicationError("VALIDATION", "지도 영역을 확인해 주세요.");
+  }
   const area = clampBounds(bounds);
   if (!isValidBounds(area)) {
     throw new ApplicationError("VALIDATION", "지도 영역을 확인해 주세요.");
@@ -67,7 +80,8 @@ export function createPlaceApi(http: ApiClient): PlaceRepository {
         query.categories === undefined
           ? undefined
           : checkedPlaceCategories(query.categories);
-      // 고른 종류가 없으면 보여 줄 것이 없다. 서버에 빈 값을 보내면 세 종류 모두로 읽히니 묻지 않는다.
+      // 고른 종류가 없으면 보여 줄 것이 없다. 서버는 빈 categories를 400으로 거절하고(키를 생략해야 세 종류 모두다) 이 경우는
+      // 칩을 모두 끈 정상 동작이라, 서버에 묻지 않고 빈 목록을 돌려준다.
       if (categories !== undefined && categories.length === 0) {
         return { places: [], truncated: false, sample: false };
       }

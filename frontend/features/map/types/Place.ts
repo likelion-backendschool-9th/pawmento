@@ -32,7 +32,7 @@ export type PlaceList = {
 };
 
 export type PlaceQuery = {
-  // 보내지 않으면 세 종류 모두. 빈 목록이면 고른 종류가 없다는 뜻이라 서버에 묻지 않는다.
+  // 보내지 않으면 세 종류 모두(서버도 키를 생략했을 때만 모두다). 빈 목록은 고른 종류가 없다는 뜻이라 서버에 묻지 않고 빈 결과를 준다.
   categories?: readonly PlaceCategory[];
 };
 
