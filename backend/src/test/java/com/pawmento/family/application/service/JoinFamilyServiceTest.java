@@ -42,7 +42,7 @@ class JoinFamilyServiceTest {
 	private static final String CODE = "K7Q2M9XA";
 	private static final Instant NOW = Instant.parse("2026-11-24T03:00:00Z");
 
-	private final InviteCodes inviteCodes = new InviteCodes();
+	private final InviteCodes inviteCodes = new InviteCodes("test-secret");
 	private final String hash = inviteCodes.hash(CODE);
 
 	private final LoadPetInviteCodePort load = mock(LoadPetInviteCodePort.class);

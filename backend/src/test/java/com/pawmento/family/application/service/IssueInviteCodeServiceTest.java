@@ -3,6 +3,8 @@ package com.pawmento.family.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,11 +20,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import com.pawmento.family.application.exception.FamilyAccessDeniedException;
 import com.pawmento.family.application.exception.FamilyPetNotFoundException;
 import com.pawmento.family.application.port.in.IssueInviteCodeCommand;
 import com.pawmento.family.application.port.in.IssueInviteCodeResult;
+import com.pawmento.family.application.port.out.DeleteExpiredPetInviteCodesPort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.LockPetOwnerPort;
 import com.pawmento.family.application.port.out.SavePetInviteCodePort;
@@ -39,9 +43,10 @@ class IssueInviteCodeServiceTest {
 	private final LockPetOwnerPort lock = mock(LockPetOwnerPort.class);
 	private final LoadPetFamilyMemberPort families = mock(LoadPetFamilyMemberPort.class);
 	private final SavePetInviteCodePort save = mock(SavePetInviteCodePort.class);
-	private final InviteCodes inviteCodes = new InviteCodes();
+	private final DeleteExpiredPetInviteCodesPort deleteExpired = mock(DeleteExpiredPetInviteCodesPort.class);
+	private final InviteCodes inviteCodes = new InviteCodes("test-secret");
 	private final IssueInviteCodeService service = new IssueInviteCodeService(
-			lock, families, save, inviteCodes, Clock.fixed(NOW, ZoneOffset.UTC));
+			lock, families, save, deleteExpired, inviteCodes, Clock.fixed(NOW, ZoneOffset.UTC));
 
 	@BeforeEach
 	void saveReturnsArgument() {
@@ -56,7 +61,12 @@ class IssueInviteCodeServiceTest {
 		IssueInviteCodeResult result = service.issue(new IssueInviteCodeCommand(OWNER, PET));
 
 		ArgumentCaptor<PetInviteCode> saved = ArgumentCaptor.forClass(PetInviteCode.class);
-		verify(save).save(saved.capture());
+		// 잠금 → 같은 반려동물의 만료 코드 정리 → 새 코드 저장. 정리와 발급은 같은 시각을 쓴다
+		InOrder order = inOrder(lock, deleteExpired, save);
+		order.verify(lock).lockOwnerId(PET);
+		order.verify(deleteExpired).deleteExpired(PET, NOW);
+		order.verify(save).save(saved.capture());
+		assertThat(saved.getValue().getCreatedAt()).isEqualTo(NOW);
 		assertThat(result.code()).matches("[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}");
 		assertThat(result.expiresAt()).isEqualTo(NOW.plus(Duration.ofHours(24)));
 		assertThat(saved.getValue().getCodeHash())
@@ -89,6 +99,7 @@ class IssueInviteCodeServiceTest {
 
 		assertThatThrownBy(() -> service.issue(new IssueInviteCodeCommand(STRANGER, PET)))
 				.isInstanceOf(FamilyAccessDeniedException.class);
+		verify(deleteExpired, never()).deleteExpired(anyLong(), any());
 		verify(save, never()).save(any());
 	}
 
@@ -99,6 +110,7 @@ class IssueInviteCodeServiceTest {
 
 		assertThatThrownBy(() -> service.issue(new IssueInviteCodeCommand(OWNER, PET)))
 				.isInstanceOf(FamilyPetNotFoundException.class);
+		verify(deleteExpired, never()).deleteExpired(anyLong(), any());
 		verify(save, never()).save(any());
 	}
 }

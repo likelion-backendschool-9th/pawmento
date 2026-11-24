@@ -366,6 +366,29 @@ class FamilyInviteScenarioTest {
 		assertThat(codeRows(pet)).isZero();
 	}
 
+	@Test
+	@DisplayName("#133 새 코드를 발급하면 같은 반려동물의 만료된 코드만 지우고, 아직 유효한 코드와 다른 반려동물의 코드는 남긴다")
+	void issueDeletesExpiredCodesOfSamePet() {
+		long owner = uniqueMemberId();
+		long pet = pet(owner);
+		long otherOwner = uniqueMemberId();
+		long otherPet = pet(otherOwner);
+		issue(owner, pet);                    // NOW 발급 → NOW+24h 만료
+		issue(otherOwner, otherPet);          // 다른 반려동물, 같이 만료됨
+		clock.set(NOW.plus(Duration.ofHours(1)));
+		String stillValid = issue(owner, pet); // NOW+25h 만료
+
+		// 첫 코드의 만료 시각 정각. 가입 기준(expires_at > now)으로는 이미 쓸 수 없는 코드다
+		clock.set(NOW.plus(Duration.ofHours(24)));
+		issue(owner, pet);
+
+		assertThat(codeRows(pet)).isEqualTo(2);
+		assertThat(codeRows(otherPet)).isEqualTo(1);
+		long joiner = uniqueMemberId();
+		join.join(new JoinFamilyCommand(joiner, stillValid));
+		assertThat(memberships(pet, joiner)).isEqualTo(1);
+	}
+
 	private long pet(long owner) {
 		return createPet.create(new CreatePetCommand(owner, "보리", "DOG", null, null)).petId();
 	}
