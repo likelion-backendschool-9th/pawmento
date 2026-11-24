@@ -134,3 +134,16 @@ DiaryLocationState.value()는 사용하지 않아 제거했다. 관측 상태는
 | `QuestionAnswerWriteServiceTest.pastAnswerDoesNotAdvance` (#31-S6/S9) | `CreateQuestionAnswerServiceTest.pastAnswerDoesNotAdvance` | 생성 유스케이스 분리에 따른 클래스 이름만 변경한다. 과거 회차에 다른 작성자가 답해도 현재 공통 진행을 다시 바꾸지 않는 단위 검증과 실제 가족 연동 미포함 범위를 유지한다. 삭제하거나 자동 확인에서 제외하는 시나리오는 없다. |
 
 (고침 #31: 답변 유스케이스별 서비스 분리에 따른 기존 테스트 위치 대응)
+
+## 프론트 구조 개편의 경계 검사 (#182)
+
+프론트를 `features/<도메인>`의 `components`·`hooks`·`api`·`types`·`utils`로 나누고 브라우저 저장 업무를 `mocks/handlers`로 옮기면서, 계층 이름(`domain`·`application`·`adapters`)으로 검사하던 `tests/hexagonal-architecture.test.ts`를 `tests/dependency-boundaries.test.ts`로 바꿨다. 시나리오 번호는 그대로 둔다. 설계 문서: [프론트 구조 개편](frontend-structure/README.md)
+
+| 기존 기준 | 새 확인 위치 | 남는 확인 범위 |
+| --- | --- | --- |
+| #52-S9 코어(`*/domain`·`*/application`·`lib/application`)는 React·Next·HTTP·`adapters`를 가져오지 않고 `window`·`document`·`localStorage`·`fetch`를 쓰지 않는다 | #52-S9 "기능의 api·types·utils와 lib는 React·Next·mocks를 가져오지 않는다", #52-S9 "기능의 types와 lib/date·lib/application은 브라우저 전역과 fetch를 쓰지 않는다" | 브라우저 전역 검사는 `types`·`lib/date.ts`·`lib/application`만 본다. `utils`에는 지도·엽서 내려받기처럼 브라우저 API를 쓰는 보조가 있어 뺐다. 옛 코어였던 브라우저 저장 업무는 `mocks/handlers`로 옮겨 `localStorage`를 쓰므로 검사하지 않는다 |
+| #52-S9 마이페이지 화면은 `adapters/outbound`와 `lib/http`를 모른다 | #52-S9 "화면과 훅은 HTTP 클라이언트를 직접 가져오지 않는다"(모든 `features/*/components`·`hooks`와 공통 `components`) | 마이페이지만 보던 검사를 모든 화면으로 넓혔다 |
+| #182 회원·반려동물 API는 react·next·mocks를 가져오지 않는다 | #52-S9 "기능의 api·types·utils와 lib는 …"(모든 `features/*/api`) | 없음 |
+| (새 검사) | #182 "공통 components는 features와 mocks를 가져오지 않는다", #182 "기능 폴더에 domain·application·adapters 계층 폴더가 다시 생기지 않는다" | `import()` 호출도 경로를 모아 검사한다. 문자열을 조합해 만든 경로는 잡지 못한다 |
+
+브라우저 저장 업무의 테스트(`workspace.test.ts`, `workspace-migration.test.ts`, `life.test.ts`, `postcard-demo.test.ts`, `question-workflow.test.ts`, `demo-questions.test.ts`)는 이번에 지우지 않고 가져오는 경로만 `mocks/handlers`로 바꿨다. 이 테스트는 이제 데모(목업)의 동작을 확인할 뿐 운영 업무 규칙의 근거가 아니다. 반려동물·일기·질문·엽서·가족·커뮤니티·관리 규칙은 각 화면을 서버 API에 연결하는 이슈(#85, #104, #129 등)에서 백엔드 시나리오 테스트로 확인하고, 그때 해당 목업 테스트를 줄인다.
