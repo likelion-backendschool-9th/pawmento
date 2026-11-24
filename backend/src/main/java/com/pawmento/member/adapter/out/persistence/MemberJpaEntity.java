@@ -22,11 +22,14 @@ import lombok.NoArgsConstructor;
 // 기존 테이블·컬럼·제약 이름을 유지한다. DB 매핑은 도메인과 분리한다.
 @Entity
 @Table(name = "member", uniqueConstraints = {
-		@UniqueConstraint(name = MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT, columnNames = "email") })
+		@UniqueConstraint(name = MemberJpaEntity.EMAIL_UNIQUE_CONSTRAINT, columnNames = "email"),
+		@UniqueConstraint(name = MemberJpaEntity.NICKNAME_TAG_UNIQUE_CONSTRAINT,
+			columnNames = { "nickname", "tag"}) })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 class MemberJpaEntity {
 	static final String EMAIL_UNIQUE_CONSTRAINT = "uk_member_email";
+	static final String NICKNAME_TAG_UNIQUE_CONSTRAINT = "uk_member_nickname_tag";
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,6 +43,9 @@ class MemberJpaEntity {
 
 	@Column(nullable = false, length = 20)
 	private String nickname;
+
+	@Column(nullable = false, length = 4)
+	private String tag;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 20)
@@ -57,6 +63,7 @@ class MemberJpaEntity {
 		entity.email = member.getEmail();
 		entity.passwordHash = member.getPasswordHash();
 		entity.nickname = member.getNickname();
+		entity.tag = member.getTag();
 		entity.role = member.getRole();
 		entity.createdAt = member.getCreatedAt();
 		entity.nicknameChangedAt = member.getNicknameChangedAt();
@@ -64,6 +71,6 @@ class MemberJpaEntity {
 	}
 
 	Member toDomain() {
-		return Member.restore(id, email, passwordHash, nickname, role, createdAt, nicknameChangedAt);
+		return Member.restore(id, email, passwordHash, nickname, tag, role, createdAt, nicknameChangedAt);
 	}
 }
