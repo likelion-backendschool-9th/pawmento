@@ -106,12 +106,20 @@ export function PlacesScreen() {
   const opening = selected ? openingLine(selected) : null;
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
+  const cardRef = useRef<HTMLElement>(null);
+  // 휴대폰에서는 카드가 지도 아래를 가로로 덮는다. 그 높이를 지도에 알려 선택한 마커가 가려지지 않게 한다(PC의 카드는 일부만 덮어서 0).
+  const coveredBottom = useCallback(() => {
+    const card = cardRef.current;
+    if (!card || !window.matchMedia("(max-width: 767px)").matches) return 0;
+    return card.offsetHeight;
+  }, []);
   const canvasProps = {
     center: DEFAULT_MAP_CENTER,
     places,
     selectedId,
     onSelect: setSelectedId,
     onBoundsChange,
+    coveredBottom,
   };
   const nothingChosen = categories.length === 0;
 
@@ -214,6 +222,7 @@ export function PlacesScreen() {
 
         {selected && (
           <aside
+            ref={cardRef}
             className={`${mapStyles.sheet} ${styles.card}`}
             aria-label="선택한 장소"
           >

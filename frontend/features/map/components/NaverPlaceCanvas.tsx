@@ -7,7 +7,7 @@ import {
   type NaverMarker,
 } from "../utils/naverMaps";
 import { placeMarkup } from "../utils/placeMarkup";
-import type { PlaceCanvasProps } from "../utils/placeCanvas";
+import { markerShiftToVisible, type PlaceCanvasProps } from "../utils/placeCanvas";
 import styles from "./MapScreen.module.css";
 
 export function NaverPlaceCanvas({
@@ -18,15 +18,16 @@ export function NaverPlaceCanvas({
   selectedId,
   onSelect,
   onBoundsChange,
+  coveredBottom,
 }: PlaceCanvasProps & { clientId: string; onUnavailable: () => void }) {
   const element = useRef<HTMLDivElement>(null);
   const api = useRef<NaverMapsApi | null>(null);
   const map = useRef<NaverMap | null>(null);
   const markers = useRef<NaverMarker[]>([]);
   // 콜백은 최신 값을 쓰되 지도는 다시 만들지 않는다.
-  const latest = useRef({ onSelect, onBoundsChange, onUnavailable });
+  const latest = useRef({ onSelect, onBoundsChange, onUnavailable, places, coveredBottom });
   useEffect(() => {
-    latest.current = { onSelect, onBoundsChange, onUnavailable };
+    latest.current = { onSelect, onBoundsChange, onUnavailable, places, coveredBottom };
   });
 
   useEffect(() => {
@@ -103,6 +104,31 @@ export function NaverPlaceCanvas({
       return marker;
     });
   }, [places, selectedId]);
+
+  // 장소를 고르면 카드가 지도 아래를 덮는다. 선택한 마커가 카드 뒤에 가려지거나 칩에 가려지면 보이는 영역 가운데로 옮긴다.
+  useEffect(() => {
+    const current = map.current;
+    const maps = api.current;
+    const box = element.current;
+    if (!selectedId || !current || !maps || !box) return;
+    const place = latest.current.places.find((item) => item.id === selectedId);
+    if (!place) return;
+    const height = box.clientHeight;
+    if (height <= 0) return;
+    const bounds = current.getBounds();
+    const north = bounds.getNE().lat();
+    const span = north - bounds.getSW().lat();
+    if (!(span > 0)) return;
+    const shift = markerShiftToVisible({
+      y: ((north - place.latitude) / span) * height,
+      height,
+      covered: latest.current.coveredBottom?.() ?? 0,
+    });
+    if (shift === 0) return;
+    // 마커를 위로 옮기려면 지도의 중심을 그만큼 남쪽으로 옮긴다
+    const center = current.getCenter();
+    current.setCenter(new maps.LatLng(center.lat() - (shift / height) * span, center.lng()));
+  }, [selectedId]);
 
   return (
     <div

@@ -241,6 +241,25 @@
   }
 }
 
+/* 화면이 낮은 작은 휴대폰(iPhone SE 등)에서는 카드를 조금 줄여 지도가 보이는 자리를 남긴다 */
+@media (max-width: 767px) and (max-height: 700px) {
+  .card h2 {
+    margin: 4px 0 4px;
+    font-size: 20px;
+  }
+  .actions {
+    margin: 12px 0 2px;
+  }
+  .call,
+  .copy {
+    min-height: 44px;
+  }
+  .facts li {
+    min-height: 40px;
+  }
+}
+
+
 /* PC에서는 지도가 화면 아래까지 닿지 않고 카드가 잘리지 않게, 머리글과 제목을 뺀 높이에 맞춘다 */
 @media (min-width: 768px) {
   .page [data-places-stage] {
