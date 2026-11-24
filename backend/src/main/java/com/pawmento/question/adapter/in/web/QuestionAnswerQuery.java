@@ -1,7 +1,9 @@
 package com.pawmento.question.adapter.in.web;
 
 import com.pawmento.question.adapter.in.web.exception.InvalidQuestionRequestException;
+import com.pawmento.question.application.port.in.GetQuestionPromptQuery;
 import com.pawmento.question.application.port.in.ListQuestionAnswersQuery;
+import com.pawmento.question.application.port.in.ListQuestionPromptsQuery;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -51,6 +53,24 @@ final class QuestionAnswerQuery {
         number("authorMemberId", false, 1),
         date("from"),
         date("to"),
+        integer("page", 0, 0, Integer.MAX_VALUE),
+        integer("size", 20, 1, 100));
+  }
+
+  ListQuestionPromptsQuery prompts(Long member) {
+    return ListQuestionPromptsQuery.from(
+        member,
+        petId(),
+        values.get("mode"),
+        integer("page", 0, 0, Integer.MAX_VALUE),
+        integer("size", 20, 1, 100));
+  }
+
+  GetQuestionPromptQuery prompt(Long member, Long promptId) {
+    return new GetQuestionPromptQuery(
+        member,
+        petId(),
+        promptId,
         integer("page", 0, 0, Integer.MAX_VALUE),
         integer("size", 20, 1, 100));
   }

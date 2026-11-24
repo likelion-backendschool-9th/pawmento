@@ -1,7 +1,7 @@
 package com.pawmento.question.adapter.in.web;
 
-import com.pawmento.question.application.port.in.*;
 import com.pawmento.global.security.LoginMember;
+import com.pawmento.question.application.port.in.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -22,6 +22,8 @@ public class QuestionController {
   private final EditQuestionAnswerUseCase edit;
   private final DeleteQuestionAnswerUseCase delete;
   private final GetQuestionFileUseCase files;
+  private final ListQuestionPromptsUseCase promptHistory;
+  private final GetQuestionPromptUseCase promptDetails;
 
   @GetMapping("/prompts/current")
   CurrentQuestionPromptResult current(@LoginMember Long memberId, HttpServletRequest request) {
@@ -38,6 +40,22 @@ public class QuestionController {
             new EnsureCurrentQuestionPromptCommand(
                 memberId, QuestionPetQuery.petId(request.getQueryString())));
     return ResponseEntity.status(result.created() ? 201 : 200).body(result.current());
+  }
+
+  @GetMapping("/prompts")
+  QuestionPromptsPage prompts(@LoginMember Long member, HttpServletRequest request) {
+    return promptHistory.list(
+        new QuestionAnswerQuery(request.getQueryString(), "petId", "mode", "page", "size")
+            .prompts(member));
+  }
+
+  @GetMapping("/prompts/{promptId}")
+  QuestionPromptResponse prompt(
+      @LoginMember Long member, @PathVariable Long promptId, HttpServletRequest request) {
+    return QuestionPromptResponse.from(
+        promptDetails.get(
+            new QuestionAnswerQuery(request.getQueryString(), "petId", "page", "size")
+                .prompt(member, promptId)));
   }
 
   @PostMapping("/prompts/{promptId}/answers")
