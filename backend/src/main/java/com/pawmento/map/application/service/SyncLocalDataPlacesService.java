@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Service;
+
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
 import com.pawmento.map.application.exception.LocalDataSyncFailedException.Reason;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
@@ -26,8 +28,7 @@ import lombok.RequiredArgsConstructor;
  * 공공데이터(병원·미용)를 전부 받아 장소를 통째로 맞춘다. 받는 데 몇 분이 걸려서 받기(네트워크)는 트랜잭션 밖에서 하고, 믿을 수
  * 있는 전체 스냅샷일 때만 저장소 포트가 한 트랜잭션으로 반영한다(#172-S4, S5, S20).
  */
-// 아직 @Service로 등록하지 않는다. 공공데이터를 받아오는 어댑터(LoadLocalDataPort 구현)를 다음 PR에서 만들고, 그때 등록해 연결한다.
-// 지금 등록하면 구현이 없는 포트 때문에 앱이 시작하지 못한다
+@Service
 @RequiredArgsConstructor
 class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 
