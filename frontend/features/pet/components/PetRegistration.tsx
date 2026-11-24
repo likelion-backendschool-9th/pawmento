@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
-import { ApplicationError } from "@/lib/application/ApplicationError";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import styles from "../../shell/components/Workspace.module.css";
-import { messageOf } from "../../shell/utils/presentation";
 import type { RegisterPetInput } from "../types/ManagedPet";
+import {
+  createPetRegistrationSubmission,
+  type RegistrationState,
+} from "../utils/petRegistrationSubmission";
 import { PetForm } from "./PetScreens";
 import { PetProfileFields } from "./PetProfileFields";
 
@@ -29,52 +31,38 @@ export function PetRegistration() {
     );
   }
 
-  return <ServerRegistration key={account.id} />;
+  return <ServerRegistration key={account.id} accountId={account.id} />;
 }
 
-function ServerRegistration() {
+function ServerRegistration({ accountId }: { accountId: string }) {
   const { dependencies, notify } = useApp();
   const router = useRouter();
-  const active = useRef(false);
-  const sending = useRef(false);
+  const submission = useRef<ReturnType<typeof createPetRegistrationSubmission> | null>(null);
   const [input, setInput] = useState(initial);
-  const [state, setState] = useState<"idle" | "saving" | "saved" | "unconfirmed" | "login-required">("idle");
-  const [error, setError] = useState("");
+  const [state, setState] = useState<RegistrationState>({ status: "idle" });
+  const error = "message" in state ? state.message : undefined;
 
   useLayoutEffect(() => {
-    active.current = true;
+    let mounted = true;
+    submission.current = createPetRegistrationSubmission(
+      () => mounted ? { source: "http", accountId } : null,
+    );
     return () => {
-      active.current = false;
+      mounted = false;
+      submission.current = null;
     };
-  }, []);
+  }, [accountId]);
 
   useUnsavedChanges(
-    state !== "saved" && JSON.stringify(input) !== JSON.stringify(initial),
+    state.status !== "saved" && JSON.stringify(input) !== JSON.stringify(initial),
   );
 
-  async function save(event: FormEvent<HTMLFormElement>) {
+  function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (sending.current || state !== "idle") return;
-    sending.current = true;
-    setState("saving");
-    setError("");
-    try {
-      const pet = await dependencies.petManagement.register(input);
-      if (!active.current) return;
-      setState("saved");
+    void submission.current?.(input, dependencies.petManagement.register, setState, (pet) => {
       notify(`${pet.name} 프로필을 등록했어요. 태그 ${pet.tag}`);
       router.replace("/pets");
-    } catch (cause) {
-      if (!active.current) return;
-      const code = cause instanceof ApplicationError ? cause.code : undefined;
-      setState(
-        code === "PET_REGISTRATION_UNCONFIRMED" ? "unconfirmed"
-          : code === "UNAUTHORIZED" ? "login-required" : "idle"
-      );
-      setError(messageOf(cause));
-    } finally {
-      sending.current = false;
-    }
+    });
   }
 
   return (
@@ -104,17 +92,17 @@ function ServerRegistration() {
             input={input}
             change={(key, value) => setInput((previous) => ({ ...previous, [key]: value }))}
             breedMaxLength={100}
-            disabled={state !== "idle"}
+            disabled={state.status !== "idle"}
           />
           {error && (
             <p className="error" role="alert">
               {error}
-              {state === "unconfirmed" && <Link className="text-link" href="/pets">목록 확인</Link>}
-              {state === "login-required" && <Link className="text-link" href="/sign-in?returnTo=/pets/new">로그인</Link>}
+              {state.status === "unconfirmed" && <Link className="text-link" href="/pets">목록 확인</Link>}
+              {state.status === "login-required" && <Link className="text-link" href="/sign-in?returnTo=/pets/new">로그인</Link>}
             </p>
           )}
-          <button className="button primary full" disabled={state !== "idle"}>
-            {state === "saving" ? "저장하는 중…" : "반려동물 등록"}
+          <button className="button primary full" disabled={state.status !== "idle"}>
+            {state.status === "saving" ? "저장하는 중…" : "반려동물 등록"}
             <Icon name="arrow" size={17} />
           </button>
         </section>
