@@ -16,6 +16,7 @@
 | 폐기된 샘플 정리 | [#80](https://github.com/likelion-backendschool-9th/pawmento/issues/80), PR #64 |
 | 텍스트 CRUD 첫 구현 계획 | [basic-crud.md](basic-crud.md), #32 |
 | 목록·달력 두 번째 구현 계획 | [list-calendar.md](list-calendar.md), #32 |
+| 제목 입력·표시 계획 | [title.md](title.md), #32-R7 |
 | 개발 이슈 | [#32](https://github.com/likelion-backendschool-9th/pawmento/issues/32) |
 | 설계 문서 작업 | [#30](https://github.com/likelion-backendschool-9th/pawmento/issues/30) |
 
@@ -27,6 +28,8 @@
 - #32-R4 사진·음성 녹음만 첨부·교체·열람·삭제하고 영상 신규 업로드는 제외한다. (고침 #32: 사진/녹음으로 범위 제한)
 - #32-R5 위치 쓰기·작성자 권한 검사를 다이어리로 통일하고 map 입력 포트와 같은 DB 트랜잭션으로 반영한다. (고침 #53: 지도에서 작성자 확인을 역호출하는 포트 제거)
 - #32-R6 업로드 전에 동의한 사진 GPS만 AUTO에 사용한다. 생성 기본은 NONE이고 수동·자동·해제를 단일 body로 받아 지도와 함께 커밋한다. (고침 #53: 사전 동의·동기 지도 반영으로 #44와 연결)
+
+- #32-R7 일기에 선택 제목을 추가하고 기존 일기·본문·첨부·가족 권한과 호환되게 저장·표시한다. 세부 계약은 [제목 계획](title.md)에서 검토한다.
 
 ## 사용자 경험과 범위
 
