@@ -1,5 +1,8 @@
 package com.pawmento.pet.application.service;
 
+import java.time.Clock;
+import java.time.LocalDate;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class PetProfilePhotoService implements GetPetProfilePhotoUseCase, UpdatePetProfilePhotoUseCase {
+	private final Clock clock;
 
 	private final LoadPetPort loadPet;
 	private final LockPetPort lockPet;
@@ -31,10 +35,11 @@ public class PetProfilePhotoService implements GetPetProfilePhotoUseCase, Update
 	@Transactional
 	public PetResult update(Command command) {
 		var pet = PetOwnership.requireUnchangedOwnedPet(loadPet, lockPet, command.petId(), command.memberId());
+		LocalDate today = PetDates.today(clock);
 		Long current = pet.getProfilePhotoAssetId();
 		Long requested = command.assetId();
 		if (Objects.equals(current, requested)) {
-			return PetResult.from(pet);
+			return PetResult.from(pet, today);
 		}
 
 		List<Long> previous = current == null ? List.of() : List.of(current);
@@ -45,7 +50,7 @@ public class PetProfilePhotoService implements GetPetProfilePhotoUseCase, Update
 		pet.changeProfilePhoto(requested);
 		savePet.save(pet);
 		media.changeReferences(command.memberId(), command.petId(), previous, next);
-		return PetResult.from(pet);
+		return PetResult.from(pet, today);
 	}
 
 	@Override

@@ -51,7 +51,7 @@ class PetExceptionPropagationTest {
 		Pet pet = mock(Pet.class);
 		when(load.findById(2L)).thenReturn(Optional.of(pet));
 		var failure = InvalidPetProfileException.invalidName();
-		doThrow(failure).when(pet).edit(eq(" "), isNull(), isNull(), isNull(), any(LocalDate.class));
+		doThrow(failure).when(pet).edit(eq(" "), isNull(), isNull(), isNull(), isNull(), any(LocalDate.class));
 		assertThatThrownBy(() -> new EditPetService(load, save, clock)
 			.edit(new EditPetCommand(1L, 2L, " ", null, null, null))).isSameAs(failure);
 		verifyNoInteractions(save);
@@ -64,7 +64,7 @@ class PetExceptionPropagationTest {
 		when(load.findById(2L)).thenReturn(Optional.of(pet));
 		var failure = InvalidPetProfileException.invalidMode();
 		doThrow(failure).when(pet).changeMode(PetMode.ACTIVE);
-		assertThatThrownBy(() -> new ChangePetModeService(load, save)
+		assertThatThrownBy(() -> new ChangePetModeService(java.time.Clock.systemUTC(), load, save)
 			.changeMode(new ChangePetModeCommand(1L, 2L, "ACTIVE"))).isSameAs(failure);
 		verifyNoInteractions(save);
 	}

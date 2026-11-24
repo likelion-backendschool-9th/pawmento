@@ -1,5 +1,8 @@
 package com.pawmento.pet.application.service;
 
+import java.time.Clock;
+import java.time.LocalDate;
+
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -15,13 +18,15 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ListPetsService implements ListPetsUseCase {
+	private final Clock clock;
 
 	private final LoadPetPort loadPetPort;
 
 	@Override
 	@Transactional(readOnly = true)
 	public List<PetResult> list(ListPetsQuery query) {
-		return loadPetPort.findByOwnerMemberId(query.memberId()).stream().map(PetResult::from).toList();
+		LocalDate today = PetDates.today(clock);
+		return loadPetPort.findByOwnerMemberId(query.memberId()).stream().map(pet -> PetResult.from(pet, today)).toList();
 	}
 
 }

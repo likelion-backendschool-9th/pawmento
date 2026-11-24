@@ -2,6 +2,8 @@ package com.pawmento.pet.adapter.in.web;
 
 import java.time.LocalDate;
 
+import tools.jackson.databind.JsonNode;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -18,5 +20,7 @@ public record CreatePetRequest(
 		@Size(max = 100, message = "품종은 100자까지 입력해 주세요.")
 		String breed,
 
-		LocalDate birthday) {
+		LocalDate birthday,
+
+		JsonNode birthYear) {
 }

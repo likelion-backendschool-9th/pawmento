@@ -57,7 +57,7 @@ public class PetController {
 	@ResponseStatus(HttpStatus.CREATED)
 	PetResponse create(@LoginMember Long memberId, @Valid @RequestBody CreatePetRequest request) {
 		return PetResponse.from(createPetUseCase.create(new CreatePetCommand(memberId, request.name(), request.species(),
-				request.breed(), request.birthday())));
+				request.breed(), request.birthday(), PetBirthYearRequest.parse(request.birthYear()))));
 	}
 
 	@GetMapping
@@ -73,7 +73,7 @@ public class PetController {
 	@PatchMapping("/{petId}")
 	PetResponse edit(@LoginMember Long memberId, @PathVariable Long petId, @Valid @RequestBody EditPetRequest request) {
 		return PetResponse.from(editPetUseCase.edit(new EditPetCommand(memberId, petId, request.name(), request.species(),
-				request.breed(), request.birthday())));
+				request.breed(), request.birthday(), PetBirthYearRequest.parse(request.birthYear()))));
 	}
 
 	@PatchMapping("/{petId}/mode")

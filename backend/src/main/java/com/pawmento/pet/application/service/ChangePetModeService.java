@@ -1,5 +1,7 @@
 package com.pawmento.pet.application.service;
 
+import java.time.Clock;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class ChangePetModeService implements ChangePetModeUseCase {
+	private final Clock clock;
 
 	private final LoadPetPort loadPetPort;
 	private final SavePetPort savePetPort;
@@ -27,7 +30,7 @@ public class ChangePetModeService implements ChangePetModeUseCase {
 		PetMode mode = PetModeParser.require(command.mode());
 		pet.changeMode(mode);
 		savePetPort.save(pet);
-		return PetResult.from(pet);
+		return PetResult.from(pet, PetDates.today(clock));
 	}
 
 }

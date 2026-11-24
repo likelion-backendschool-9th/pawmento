@@ -2,7 +2,6 @@ package com.pawmento.pet.application.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,8 +19,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CreatePetService implements CreatePetUseCase {
 
-	private static final ZoneId SEOUL = ZoneId.of("Asia/Seoul");
-
 	private final SavePetPort savePetPort;
 	private final PetTagGenerator petTagGenerator;
 	private final Clock clock;
@@ -31,11 +28,11 @@ public class CreatePetService implements CreatePetUseCase {
 	public PetResult create(CreatePetCommand command) {
 		PetSpecies species = PetSpeciesParser.require(command.species());
 		String tag = petTagGenerator.nextTag(command.memberId());
-		LocalDate today = LocalDate.now(clock.withZone(SEOUL));
-		Pet pet = Pet.create(command.memberId(), command.name(), tag, species, command.breed(), command.birthday(),
-				today);
+		LocalDate today = PetDates.today(clock);
+		Pet pet = Pet.create(command.memberId(), command.name(), tag, species, command.breed(),
+				command.birthday(), command.birthYear(), today);
 		Long petId = savePetPort.save(pet);
-		return PetResult.from(petId, pet);
+		return PetResult.from(petId, pet, today);
 	}
 
 }
