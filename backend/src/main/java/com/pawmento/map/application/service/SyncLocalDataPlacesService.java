@@ -50,7 +50,9 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 		}
 		// 정렬이 보장되지 않아 페이지가 겹치면 같은 행이 두 번 온다. 관리번호로 합친 고유 수가 totalCount와 같아야 빠진 행이 없다
 		Map<String, LocalDataRecord> unique = new LinkedHashMap<>();
-		snapshot.records().forEach(record -> unique.putIfAbsent(record.sourceId(), record));
+		// 저장 키는 LocalDataPlaceFactory가 앞뒤 공백을 지운 관리번호라서, 고유 수도 같은 값으로 센다. 공백만 다른 `a`와 `a `를 둘로
+		// 세면 totalCount 검사는 통과하는데 저장소에 같은 관리번호가 두 번 넘어간다
+		snapshot.records().forEach(record -> unique.putIfAbsent(record.sourceId().strip(), record));
 		if (unique.size() != snapshot.totalCountAtStart()) {
 			throw LocalDataSyncFailedException.rejected(Reason.TOTAL_COUNT_MISMATCH);
 		}

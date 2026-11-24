@@ -197,6 +197,23 @@ class SyncLocalDataPlacesServiceTest {
 	}
 
 	@Test
+	@DisplayName("#172-S20 관리번호는 앞뒤 공백을 지운 값으로 합쳐서 센다. 공백만 다른 `a`와 `a `를 서로 다른 둘로 세어 totalCount 검사를 통과하지 않는다")
+	void mergesIdsThatDifferOnlyByWhitespace() {
+		var store = new FakeStore();
+
+		// 하나로 합치면 고유 수가 1이라 totalCount 2와 다르다. 둘로 세어 통과하면 저장소에 같은 관리번호가 두 번 간다
+		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(2, 2, List.of(active("a"), active("a "))), store)))
+			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
+		assertThat(store.calls).isEmpty();
+
+		var result = sync(service(new LocalDataSnapshot(1, 1, List.of(active("a"), active("a "))), store));
+
+		assertThat(result.read()).isEqualTo(1);
+		assertThat(store.calls.get(0)).extracting(PlaceDraft::sourceId).containsExactly("a");
+	}
+
+	@Test
 	@DisplayName("#172-S20 원시 건수는 맞아도 겹침 때문에 고유 관리번호가 모자라면(250건 중 240개) 아무것도 반영하지 않고 실패한다")
 	void rejectsWhenOverlapsHideMissingIds() {
 		var rows = List.of(active("a"), active("b"), active("b"), active("b"));

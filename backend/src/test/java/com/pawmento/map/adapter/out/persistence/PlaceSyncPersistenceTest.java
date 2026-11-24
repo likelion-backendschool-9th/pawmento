@@ -121,19 +121,22 @@ class PlaceSyncPersistenceTest {
 	}
 
 	@Test
-	@DisplayName("#172-S5 반영 도중 하나라도 실패하면 추가·갱신·삭제가 하나도 적용되지 않는다")
+	@DisplayName("#172-S5 반영 도중 하나라도 실패하면 이미 실행된 추가·삭제와 갱신까지 하나도 적용되지 않는다")
 	void failureRollsBackEverything() {
-		adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "keep", "그대로", null),
+		adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "keep", "그대로", "02-111-2222"),
 				draft(PlaceCategory.HOSPITAL, "gone", "삭제될 병원", null)));
-		// keep을 갱신하고 gone을 지우고 새 행을 넣는데, 새 행의 이름이 null이라 저장소가 거절한다
-		List<PlaceDraft> broken = List.of(draft(PlaceCategory.HOSPITAL, "keep", "바뀐 이름", null),
-				draft(PlaceCategory.HOSPITAL, "new", null, null));
+		// 새 행(new)은 정상이라 추가가 DB에 먼저 실행되고, gone은 목록에 없어 삭제가 실행된다. 마지막 flush에서 keep의 갱신 값(전화번호
+		// 31자, 컬럼 길이 30)이 거절되어 이미 실행된 추가·삭제를 되돌려야 한다. 트랜잭션이 없으면 추가와 삭제는 남는다
+		List<PlaceDraft> broken = List.of(draft(PlaceCategory.HOSPITAL, "keep", "바뀐 이름", "0".repeat(31)),
+				draft(PlaceCategory.HOSPITAL, "new", "새 병원", null));
 
 		assertThatThrownBy(() -> adapter.replace(PlaceCategory.HOSPITAL, broken)).isInstanceOf(RuntimeException.class);
 
 		assertThat(count(PlaceCategory.HOSPITAL)).isEqualTo(2);
-		assertThat(row(PlaceCategory.HOSPITAL, "keep").get("name")).isEqualTo("그대로");
+		assertThat(jdbcTemplate.queryForObject("select count(*) from places where source_id = 'new'", Long.class)).isZero();
 		assertThat(row(PlaceCategory.HOSPITAL, "gone").get("name")).isEqualTo("삭제될 병원");
+		assertThat(row(PlaceCategory.HOSPITAL, "keep").get("name")).isEqualTo("그대로");
+		assertThat(row(PlaceCategory.HOSPITAL, "keep").get("phone")).isEqualTo("02-111-2222");
 	}
 
 }
