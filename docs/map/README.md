@@ -11,6 +11,8 @@
 | [#73](https://github.com/likelion-backendschool-9th/pawmento/issues/73)   | 산책로 기록과 날짜별 보기                           | [walk-route.md](walk-route.md)           |
 | [#167](https://github.com/likelion-backendschool-9th/pawmento/issues/167) | 새로고침 후 진행 중인 산책 복원                     | [walk-resume.md](walk-resume.md)         |
 | [#172](https://github.com/likelion-backendschool-9th/pawmento/issues/172) | 정보 지도: 동물병원·동물미용·동물보호센터           | [animal-places.md](animal-places.md)     |
+| [#195](https://github.com/likelion-backendschool-9th/pawmento/issues/195) | 정보 지도 검색: 장소 이름·주소, 지역·지하철역       | [place-search.md](place-search.md)       |
+| [#226](https://github.com/likelion-backendschool-9th/pawmento/issues/226) | 정보 지도 내 위치 주변 보기와 가까운 순 목록        | [near-me.md](near-me.md)                 |
 
 ## 정한 것
 
