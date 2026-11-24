@@ -31,19 +31,16 @@ import org.testcontainers.utility.DockerImageName;
 @PropertySource("classpath:testcontainers.properties")
 public class TestcontainersConfiguration {
 
-	// compose.yaml과 같은 이미지를 쓴다
-	static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"))
-		.withCommand("postgres", "-c", "max_connections=400");
-
 	private static final AtomicInteger DATABASES = new AtomicInteger();
 
-	static {
-		POSTGRES.start();
-	}
+	// 처음 쓸 때 띄운다. static 초기화에서 띄우면 실패했을 때 ExceptionInInitializerError, 이후에는
+	// NoClassDefFoundError로만 보여 원인을 찾기 어렵다. 실패하면 다음 컨텍스트가 다시 시도하고 같은 원인을 보여 준다.
+	private static PostgreSQLContainer postgres;
 
 	@Bean
 	JdbcConnectionDetails postgresConnectionDetails() {
-		String url = createDatabase("context_" + DATABASES.incrementAndGet());
+		PostgreSQLContainer container = postgres();
+		String url = createDatabase(container, "context_" + DATABASES.incrementAndGet());
 		return new JdbcConnectionDetails() {
 			@Override
 			public String getJdbcUrl() {
@@ -52,26 +49,44 @@ public class TestcontainersConfiguration {
 
 			@Override
 			public String getUsername() {
-				return POSTGRES.getUsername();
+				return container.getUsername();
 			}
 
 			@Override
 			public String getPassword() {
-				return POSTGRES.getPassword();
+				return container.getPassword();
 			}
 		};
 	}
 
-	private static String createDatabase(String name) {
-		try (Connection connection = DriverManager.getConnection(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(),
-				POSTGRES.getPassword()); Statement statement = connection.createStatement()) {
+	private static synchronized PostgreSQLContainer postgres() {
+		if (postgres == null) {
+			// compose.yaml과 같은 이미지를 쓴다
+			PostgreSQLContainer container = new PostgreSQLContainer(DockerImageName.parse("postgres:18-alpine"))
+				.withCommand("postgres", "-c", "max_connections=400");
+			try {
+				container.start();
+			}
+			catch (RuntimeException e) {
+				throw new IllegalStateException(
+						"테스트용 Postgres 컨테이너를 띄우지 못했습니다. Docker가 켜져 있는지, postgres:18-alpine 이미지를 받을 수 있는지 확인하세요.",
+						e);
+			}
+			postgres = container;
+		}
+		return postgres;
+	}
+
+	private static String createDatabase(PostgreSQLContainer container, String name) {
+		try (Connection connection = DriverManager.getConnection(container.getJdbcUrl(), container.getUsername(),
+				container.getPassword()); Statement statement = connection.createStatement()) {
 			statement.execute("create database " + name);
 		}
 		catch (SQLException e) {
 			throw new IllegalStateException("테스트 데이터베이스를 만들지 못했습니다: " + name, e);
 		}
-		return "jdbc:postgresql://" + POSTGRES.getHost() + ":" + POSTGRES.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT)
-				+ "/" + name;
+		return "jdbc:postgresql://" + container.getHost() + ":"
+				+ container.getMappedPort(PostgreSQLContainer.POSTGRESQL_PORT) + "/" + name;
 	}
 
 }
