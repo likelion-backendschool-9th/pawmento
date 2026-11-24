@@ -56,7 +56,7 @@ class FamilyRecordingConcurrencyTest {
   @Autowired EnsureCurrentQuestionPromptUseCase prompts;
   @Autowired CreateMediaUploadUseCase uploads;
   @MockitoSpyBean LockPetOwnerUseCase locks;
-  long owner, writer, pet, prompt, recordId, assetId;
+  long owner, writer, pet, prompt, recordId, assetId, replacementId;
   Map<String, Object> original;
 
   @BeforeEach
@@ -96,7 +96,9 @@ class FamilyRecordingConcurrencyTest {
     "ANSWER_EDIT,true",
     "ANSWER_EDIT,false",
     "ANSWER_DELETE,true",
-    "ANSWER_DELETE,false"
+    "ANSWER_DELETE,false",
+    "ANSWER_REPLACE,true",
+    "ANSWER_REPLACE,false"
   })
   @DisplayName("#32-S32/#31-S31/#33-S20 쓰기와 가족 회수는 pet 행 잠금 순서대로 처리하고 회수 후 저장을 거부한다")
   void revocationRace(String target, boolean writeFirst) throws Exception {
@@ -150,7 +152,7 @@ class FamilyRecordingConcurrencyTest {
         String table =
             switch (target) {
               case "DIARY", "DIARY_EDIT", "DIARY_DELETE" -> "diary_entries";
-              case "ANSWER", "ANSWER_EDIT", "ANSWER_DELETE" -> "question_answer";
+              case "ANSWER", "ANSWER_EDIT", "ANSWER_DELETE", "ANSWER_REPLACE" -> "question_answer";
               case "UPLOAD" -> "media_assets";
               default -> "question_prompt";
             };
@@ -201,6 +203,11 @@ class FamilyRecordingConcurrencyTest {
           editAnswer.edit(new EditQuestionAnswerCommand(writer, pet, recordId, "변경", 0L));
       case "ANSWER_DELETE" ->
           deleteAnswer.delete(new DeleteQuestionAnswerCommand(writer, pet, recordId, 0L));
+      // 답변은 유지하고 첨부만 바꾼다. 위 ANSWER_EDIT는 첨부 목록을 넘기지 않아 연결 교체를 타지 않는다.
+      case "ANSWER_REPLACE" ->
+          editAnswer.edit(
+              new EditQuestionAnswerCommand(
+                  writer, pet, recordId, "변경", 0L, List.of(replacementId)));
       default -> throw new IllegalArgumentException(target);
     }
   }
@@ -208,24 +215,9 @@ class FamilyRecordingConcurrencyTest {
   void prepareMutation(String target) {
     if (!target.contains("_")) return;
     boolean diary = target.startsWith("DIARY");
-    var now = Instant.now().minusSeconds(60);
-    var asset =
-        MediaAsset.create(
-            writer,
-            pet,
-            diary ? "DIARY_ATTACHMENT" : "QUESTION_ANSWER_ATTACHMENT",
-            "사진.png",
-            "image/png",
-            10,
-            UUID.randomUUID().toString(),
-            now);
-    asset.begin(now);
-    asset.received(new StoredUpload(10, "a".repeat(64)), now);
-    asset.validated(
-        new VerifiedMedia(
-            UUID.randomUUID().toString(), "image/png", 10, "a".repeat(64), null, 1, 1, 5L),
-        now);
-    assetId = media.save(asset).getId();
+    String purpose = diary ? "DIARY_ATTACHMENT" : "QUESTION_ANSWER_ATTACHMENT";
+    assetId = readyAsset(purpose);
+    if (target.equals("ANSWER_REPLACE")) replacementId = readyAsset(purpose);
     recordId =
         diary
             ? diaries
@@ -247,6 +239,20 @@ class FamilyRecordingConcurrencyTest {
         jdbc.queryForMap(
             "select * from " + (diary ? "diary_entries" : "question_answer") + " where id=?",
             recordId);
+  }
+
+  long readyAsset(String purpose) {
+    var now = Instant.now().minusSeconds(60);
+    var asset =
+        MediaAsset.create(
+            writer, pet, purpose, "사진.png", "image/png", 10, UUID.randomUUID().toString(), now);
+    asset.begin(now);
+    asset.received(new StoredUpload(10, "a".repeat(64)), now);
+    asset.validated(
+        new VerifiedMedia(
+            UUID.randomUUID().toString(), "image/png", 10, "a".repeat(64), null, 1, 1, 5L),
+        now);
+    return media.save(asset).getId();
   }
 
   void verifyMutation(String target, boolean writeFirst) {
@@ -274,20 +280,18 @@ class FamilyRecordingConcurrencyTest {
           assertThat(current.get(field)).as(field).isEqualTo(original.get(field));
       }
     }
+    // 첨부 교체가 먼저 끝나면 기존 사진은 연결·참조가 풀리고 삭제 작업이 생긴다. 회수가 먼저면 둘 다 그대로다.
+    boolean replaced = writeFirst && target.equals("ANSWER_REPLACE");
+    boolean released = deleted || replaced;
     assertThat(
-            jdbc.queryForObject(
-                "select count(*) from " + links + " where " + parent + "=?", Long.class, recordId))
-        .isEqualTo(deleted ? 0L : 1L);
-    assertThat(
-            jdbc.queryForObject(
-                "select reference_count from media_assets where id=?", Long.class, assetId))
-        .isEqualTo(deleted ? 0L : 1L);
-    assertThat(
-            jdbc.queryForObject(
-                "select count(*) from media_validation_jobs where asset_id=? and kind='DELETE'",
+            jdbc.queryForList(
+                "select asset_id from " + links + " where " + parent + "=?",
                 Long.class,
-                assetId))
-        .isEqualTo(deleted ? 1L : 0L);
+                recordId))
+        .containsExactlyElementsOf(
+            deleted ? List.of() : List.of(replaced ? replacementId : assetId));
+    assertAsset(assetId, released ? 0L : 1L, released);
+    if (target.equals("ANSWER_REPLACE")) assertAsset(replacementId, replaced ? 1L : 0L, false);
     if (diary) {
       assertThat(
               jdbc.queryForObject(
@@ -320,6 +324,21 @@ class FamilyRecordingConcurrencyTest {
                   prompt))
           .isNotNull();
     }
+  }
+
+  void assertAsset(long id, long references, boolean deletionQueued) {
+    assertThat(
+            jdbc.queryForObject(
+                "select reference_count from media_assets where id=?", Long.class, id))
+        .as("reference_count of %d", id)
+        .isEqualTo(references);
+    assertThat(
+            jdbc.queryForObject(
+                "select count(*) from media_validation_jobs where asset_id=? and kind='DELETE'",
+                Long.class,
+                id))
+        .as("deletion job of %d", id)
+        .isEqualTo(deletionQueued ? 1L : 0L);
   }
 
   static void waitFor(CountDownLatch latch) {
