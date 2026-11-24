@@ -1,6 +1,6 @@
 import { createId } from "../lib/id.ts";
 import { createApiClient } from "../lib/http/apiClient.ts";
-import { isDevelopmentMockEnabled } from "../mocks/setup.ts";
+import { assertDevelopmentMockAllowed } from "../mocks/setup.ts";
 import { SharedWorkspaceRepository } from "../mocks/handlers/SharedWorkspaceRepository.ts";
 import { BrowserLifeRepository } from "../mocks/handlers/BrowserLifeRepository.ts";
 import { DemoPostcardGenerator } from "../mocks/handlers/DemoPostcardGenerator.ts";
@@ -31,7 +31,7 @@ export { demoQuestionInputs } from "../mocks/fixtures/demoQuestions.ts";
 
 export function createDependencies() {
   // 개발용 목업을 운영 빌드에서 켜면 거부한다. 반려동물 id·세션 분기와 데모로 시작하기는 그대로다.
-  isDevelopmentMockEnabled();
+  assertDevelopmentMockAllowed();
   const http = createApiClient();
   const lifeRepository = new BrowserLifeRepository();
   // 데모 산책 기록과 날짜별 보기가 같은 메모리를 보도록 한 곳에서 만든다

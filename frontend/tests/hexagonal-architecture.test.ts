@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
 import { createPetUseCases } from "../features/pets/application/useCases.ts";
@@ -13,24 +13,22 @@ function files(folder: string): string[] {
   });
 }
 
+function coreFolders(): string[] {
+  const folders: string[] = [];
+  for (const feature of readdirSync(resolve("features"), { withFileTypes: true })) {
+    if (!feature.isDirectory()) continue;
+    for (const layer of ["domain", "application"]) {
+      const folder = `features/${feature.name}/${layer}`;
+      const path = resolve(folder);
+      if (existsSync(path) && statSync(path).isDirectory()) folders.push(folder);
+    }
+  }
+  folders.push("lib/application");
+  return folders;
+}
+
 test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의존하지 않는다", () => {
-  const folders = [
-    "features/auth/domain",
-    "features/auth/application",
-    "features/workspace/domain",
-    "features/workspace/application",
-    "features/life/domain",
-    "features/life/application",
-    "features/pets/domain",
-    "features/pets/application",
-    "features/diary/domain",
-    "features/diary/application",
-    "features/question/domain",
-    "features/question/application",
-    "features/map/domain",
-    "features/map/application",
-    "lib/application",
-  ];
+  const folders = coreFolders();
   for (const folder of folders) {
     for (const path of files(resolve(folder))) {
       const name = relative(resolve("."), path);
@@ -81,3 +79,34 @@ test("#19-S9 지도 화면은 구체 outbound 어댑터와 HTTP 클라이언트�
     }
   }
 });
+
+test("#182 app·features·components·lib에서는 composition.ts만 mocks를 가져온다", () => {
+  for (const root of ["app", "features", "components", "lib"]) {
+    for (const path of files(resolve(root))) {
+      const name = relative(resolve("."), path);
+      if (name === "app/composition.ts") continue;
+      for (const specifier of moduleSpecifiers(path)) {
+        assert.doesNotMatch(
+          specifier,
+          /(^|\/)mocks(\/|$)/,
+          `${name} → ${specifier}`,
+        );
+      }
+    }
+  }
+});
+
+function moduleSpecifiers(path: string): string[] {
+  const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
+  const found: string[] = [];
+  for (const node of file.statements) {
+    if (
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
+    ) {
+      found.push(node.moduleSpecifier.text);
+    }
+  }
+  return found;
+}
