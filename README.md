@@ -91,7 +91,7 @@
 ### 현재 구현 범위
 
 - 회원가입·로그인, 여러 반려동물의 프로필 관리, 지도·산책 화면은 백엔드 API에 연결되어 있습니다.
-- 백엔드는 일기·질문 답변의 사진과 음성 첨부, 날짜별 일기 조회, 커뮤니티 게시글 관리, 가족 초대 코드 발급·가입 API를 제공합니다.
+- 백엔드는 일기·질문 답변의 사진과 음성 첨부, 날짜별 일기 조회와 커뮤니티 게시글 관리 API를 제공합니다.
 - 일기·질문·엽서 등 일부 화면은 브라우저 목업으로 동작합니다. 기억 엽서 백엔드는 로컬 기본 설정에서 외부 AI 키 없이 생성 흐름을 확인할 수 있습니다. [앱 데모 문서](docs/app-demo/README.md), [엽서 생성 설계](docs/postcard/generate.md)
 
 ## 기술 스택과 코드 구조
@@ -324,7 +324,7 @@ npm run dev
           <a href="https://github.com/lakesole"><strong>곽다윗</strong></a><br>
           <sub>@lakesole</sub><br><br>
           <strong>회원과 가족</strong><br>
-          <sub>계정 태그·소셜 계정<br>가족 초대 코드</sub><br><br>
+          <sub>계정 태그·소셜 계정<br>가족 초대 코드 개발 중</sub><br><br>
           <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Alakesole">PR 보기 ↗</a>
           </td>
         </tr>
