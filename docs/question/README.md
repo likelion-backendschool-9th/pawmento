@@ -101,7 +101,7 @@
 | `POST /questions/prompts/current?petId={petId}` | 없음. 서버가 현재 pet 모드 확인 | 새 배정 201, 기존 질문 200 |
 | `GET /questions/prompts/current?petId={petId}` | 없음 | 200, 현재 질문. 미배정은 `prompt: null` |
 | `GET /questions/prompts?petId={petId}` | `mode` 선택, `page`, `size` | 200, 가족 공통 질문 이력·답변 수·내 답변 ID |
-| `GET /questions/prompts/{promptId}?petId={petId}` | 없음 | 200, 질문과 가족 답변 목록 |
+| `GET /questions/prompts/{promptId}?petId={petId}` | `page`, `size` 선택 | 200, 회차 정보와 가족 답변 페이지. [세부 계획](question-flow.md#질문-회차-목록상세-api-31-r2r3r5) (고침 #31: 가족 수 제한이 없어 상세 답변도 페이지로 조회) |
 | `POST /questions/prompts/{promptId}/answers?petId={petId}` | `content`, `attachmentIds` | 201, 내 답변·질문 완료 여부·다음 배정 필요 여부 |
 | `GET /questions/answers?petId={petId}` | `mode`, `promptId`, `authorMemberId`, `from`, `to` 선택, `page`, `size` | 200, 가족 답변 이력 |
 | `GET /questions/answers/{answerId}?petId={petId}` | 없음 | 200, 답변 상세 |
