@@ -37,8 +37,18 @@ class CloudflarePostcardImageAdapterTest {
   private static final String TOKEN = "secret-token";
   private static final String URL =
       BASE_URL + "/accounts/acc-1/ai/run/@cf/black-forest-labs/flux-2-klein-9b";
-  private static final byte[] PNG = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0};
-  private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 1, 2};
+  private static final byte[] PNG = encode("png", 12, 8);
+  private static final byte[] JPEG = encode("jpg", 12, 8);
+
+  private static byte[] encode(String format, int width, int height) {
+    try {
+      var out = new ByteArrayOutputStream();
+      ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), format, out);
+      return out.toByteArray();
+    } catch (java.io.IOException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   private static CloudflareImageProperties properties(String accountId, String token) {
     return new CloudflareImageProperties(
@@ -181,10 +191,29 @@ class CloudflarePostcardImageAdapterTest {
                 assertThat(context.getBean(GeneratePostcardImagePort.class).name()).isEqualTo("cloudflare"));
   }
 
-  private static byte[] jpeg(int width, int height) throws Exception {
-    var out = new ByteArrayOutputStream();
-    ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "jpg", out);
-    return out.toByteArray();
+  private static byte[] jpeg(int width, int height) {
+    return encode("jpg", width, height);
+  }
+
+  @Test
+  @DisplayName("#103-S7 앞부분만 맞고 잘리거나 깨진 그림은 완성으로 저장하지 않고 생성 실패로 바꾼다")
+  void brokenImageFails() {
+    var f = fixture();
+    byte[] cutPng = java.util.Arrays.copyOf(PNG, PNG.length - 20);
+    byte[] cutJpeg = java.util.Arrays.copyOf(JPEG, JPEG.length / 2);
+    byte[] garbledPng = PNG.clone();
+    for (int i = 16; i < garbledPng.length - 12; i++) garbledPng[i] = 0;
+    for (byte[] broken : new byte[][] {cutPng, cutJpeg, garbledPng})
+      f.server()
+          .expect(requestTo(URL))
+          .andRespond(withSuccess(imageJson(broken), MediaType.APPLICATION_JSON));
+    var request = new PostcardImageRequest("산책", null, "DOG", null, null);
+
+    for (int i = 0; i < 3; i++)
+      assertThatThrownBy(() -> f.adapter().generate(request))
+          .isInstanceOf(PostcardGenerationFailedException.class)
+          .hasMessageContaining("broken");
+    f.server().verify();
   }
 
   @Test

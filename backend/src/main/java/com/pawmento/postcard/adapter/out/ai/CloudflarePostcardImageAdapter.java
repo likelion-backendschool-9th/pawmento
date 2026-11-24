@@ -218,6 +218,9 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
     String contentType = contentType(bytes);
     if (contentType == null)
       throw new PostcardGenerationFailedException("cloudflare image format is unknown");
+    // 앞부분만 맞고 잘리거나 깨진 그림을 완성으로 저장하지 않는다
+    if (!complete(bytes, contentType))
+      throw new PostcardGenerationFailedException("cloudflare image is broken");
     return new GeneratedPostcardImage(bytes, contentType);
   }
 
@@ -226,16 +229,36 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
     return value.startsWith("data:") && comma > 0 ? value.substring(comma + 1) : value.strip();
   }
 
-  // 모델이 어떤 형식으로 주는지 문서에 없어 첫 바이트로 정한다
+  // 모델이 어떤 형식으로 주는지 문서에 없어 첫 바이트로 정한다.
+  // 끝까지 열어 확인할 수 있는 PNG·JPEG만 받는다(기본 ImageIO는 WebP를 읽지 못한다)
   static String contentType(byte[] b) {
     if (b.length > 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G')
       return "image/png";
     if (b.length > 3 && (b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF)
       return "image/jpeg";
-    if (b.length > 12 && b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
-        && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P')
-      return "image/webp";
     return null;
+  }
+
+  // 끝 표시(PNG IEND, JPEG EOI)가 있고 실제로 열리는지 본다. 잘린 JPEG는 열려도 아랫부분이 비어 있어 끝 표시를 따로 본다
+  static boolean complete(byte[] b, String contentType) {
+    boolean ended =
+        "image/png".equals(contentType)
+            ? endsWith(b, new byte[] {'I', 'E', 'N', 'D', (byte) 0xAE, 0x42, 0x60, (byte) 0x82})
+            : endsWith(b, new byte[] {(byte) 0xFF, (byte) 0xD9});
+    if (!ended) return false;
+    try {
+      BufferedImage image = ImageIO.read(new ByteArrayInputStream(b));
+      return image != null && image.getWidth() > 0 && image.getHeight() > 0;
+    } catch (IOException | RuntimeException e) {
+      return false;
+    }
+  }
+
+  private static boolean endsWith(byte[] b, byte[] tail) {
+    if (b.length < tail.length) return false;
+    for (int i = 0; i < tail.length; i++)
+      if (b[b.length - tail.length + i] != tail[i]) return false;
+    return true;
   }
 
   // 오류 응답 {"errors":[{"code":3036,"message":"..."}]}에서 번호만 꺼낸다
