@@ -8,13 +8,15 @@ import org.springframework.stereotype.Repository;
 import com.pawmento.family.application.port.out.LoadPetInviteCodePort;
 import com.pawmento.family.application.port.out.SavePetInviteCodePort;
 import com.pawmento.family.application.port.out.ConsumePetInviteCodePort;
+import com.pawmento.family.application.port.out.DeleteExpiredPetInviteCodesPort;
 import com.pawmento.family.domain.PetInviteCode;
 
 import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInviteCodePort, ConsumePetInviteCodePort {
+class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInviteCodePort,
+        ConsumePetInviteCodePort, DeleteExpiredPetInviteCodesPort {
 
     private final PetInviteCodeJpaRepository codeJpaRepository;
 
@@ -31,6 +33,11 @@ class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInvi
     @Override
     public boolean consume(String codeHash, Instant now) {
         return codeJpaRepository.deleteUsable(codeHash, now) == 1;
+    }
+
+    @Override
+    public int deleteExpired(Long petId, Instant now) {
+        return codeJpaRepository.deleteExpired(petId, now);
     }
 
 }

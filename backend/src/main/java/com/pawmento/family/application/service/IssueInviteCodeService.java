@@ -10,6 +10,7 @@ import com.pawmento.family.application.exception.FamilyPetNotFoundException;
 import com.pawmento.family.application.port.in.IssueInviteCodeCommand;
 import com.pawmento.family.application.port.in.IssueInviteCodeResult;
 import com.pawmento.family.application.port.in.IssueInviteCodeUseCase;
+import com.pawmento.family.application.port.out.DeleteExpiredPetInviteCodesPort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.LockPetOwnerPort;
 import com.pawmento.family.application.port.out.SavePetInviteCodePort;
@@ -28,6 +29,8 @@ public class IssueInviteCodeService implements IssueInviteCodeUseCase {
 
     private final SavePetInviteCodePort savePetInviteCodePort;
 
+    private final DeleteExpiredPetInviteCodesPort deleteExpiredPetInviteCodesPort;
+
     private final InviteCodes inviteCodes;
 
     private final Clock clock;
@@ -40,6 +43,9 @@ public class IssueInviteCodeService implements IssueInviteCodeUseCase {
         if (!isOwner && !loadPetFamilyMemberPort.existsByPetIdAndMemberId(command.petId(), command.memberId())) {
             throw new FamilyAccessDeniedException();
         }
+        Instant now = Instant.now(clock);
+        deleteExpiredPetInviteCodesPort.deleteExpired(command.petId(), now);
+
         String code = inviteCodes.newCode();
         PetInviteCode saved = savePetInviteCodePort.save(
                 PetInviteCode.issue(command.petId(), inviteCodes.hash(code), command.memberId(), Instant.now(clock)));

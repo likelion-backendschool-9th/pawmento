@@ -16,4 +16,8 @@ interface PetInviteCodeJpaRepository extends JpaRepository<PetInviteCodeJpaEntit
     @Query("delete from PetInviteCodeJpaEntity c where c.codeHash = :codeHash and c.expiresAt > :now")
     int deleteUsable(@Param("codeHash") String codeHash, @Param("now") Instant now);
 
+    @Modifying
+    @Query("delete from PetInviteCodeJpaEntity c where c.petId = :petId and c.expiresAt <= :now")
+    int deleteExpired(@Param("petId") Long petId, @Param("now") Instant now);
+
 }
