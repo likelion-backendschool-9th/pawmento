@@ -7,6 +7,7 @@
 | 이슈 | 내용 | 문서 |
 | --- | --- | --- |
 | [#21](https://github.com/likelion-backendschool-9th/pawmento/issues/21) | 글 작성·조회·수정·삭제 API | [post.md](post.md) |
+| [#104](https://github.com/likelion-backendschool-9th/pawmento/issues/104) | 커뮤니티 화면을 글 API에 연결 | [post-screen.md](post-screen.md) |
 
 ## 정한 것
 
