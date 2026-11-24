@@ -95,7 +95,7 @@ public class DiaryEntryPersistenceAdapter
         e.getUpdatedAt(),
         e.getVersion() + 1,
         e.getLocationIntent(),
-        e.getAuthorNameSnapshot());
+        e.getAuthorName());
   }
 
   public void delete(Long id, Long version) {

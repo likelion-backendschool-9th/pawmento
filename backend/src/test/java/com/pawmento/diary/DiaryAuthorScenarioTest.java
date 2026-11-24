@@ -10,7 +10,7 @@ import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.diary.application.exception.*;
 import com.pawmento.diary.application.port.in.*;
-import com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort;
+import com.pawmento.diary.application.port.out.LoadDiaryAuthorNameForBackfillPort;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.member.application.port.in.*;
@@ -45,7 +45,7 @@ class DiaryAuthorScenarioTest {
   @Autowired SavePetFamilyMemberPort families;
   @Autowired CreateDiaryEntryUseCase create;
   @Autowired GetDiaryEntryUseCase get;
-  @Autowired FindDiaryAuthorNamePort authors;
+  @Autowired LoadDiaryAuthorNameForBackfillPort authors;
   @Autowired JdbcTemplate jdbc;
   @Autowired TransactionTemplate tx;
   @MockitoSpyBean GetMemberUseCase memberDetails;
@@ -164,13 +164,13 @@ class DiaryAuthorScenarioTest {
   void missingMemberDoesNotPoisonCaller() {
     tx.executeWithoutResult(
         status -> {
-          assertThat(authors.findName(Long.MAX_VALUE)).isEmpty();
+          assertThat(authors.loadNameForBackfill(Long.MAX_VALUE)).isEmpty();
           jdbc.update("update pets set breed='커밋 확인' where id=?", pet);
         });
     assertThat(jdbc.queryForObject("select breed from pets where id=?", String.class, pet))
         .isEqualTo("커밋 확인");
     jdbc.update("delete from member where id=?", writer);
-    assertThatThrownBy(this::create).isInstanceOf(DiaryAuthorNotFoundException.class);
+    assertThatThrownBy(this::create).isInstanceOf(DiaryAuthorMemberNotFoundException.class);
     assertThat(
             jdbc.queryForObject(
                 "select count(*) from diary_entries where pet_id=?", Long.class, pet))
@@ -184,9 +184,9 @@ class DiaryAuthorScenarioTest {
     doReturn(new MemberResult(writer, "fixture@test.example", "  ", "0000", "USER"))
         .when(target)
         .get(new GetMemberQuery(writer));
-    assertThatThrownBy(this::create).isInstanceOf(StoredDiaryAuthorInvalidException.class);
-    assertThatThrownBy(() -> authors.findName(writer))
-        .isInstanceOf(StoredDiaryAuthorInvalidException.class);
+    assertThatThrownBy(this::create).isInstanceOf(DiaryAuthorMemberNameInvalidException.class);
+    assertThatThrownBy(() -> authors.loadNameForBackfill(writer))
+        .isInstanceOf(DiaryAuthorMemberNameInvalidException.class);
     var outage = new DataAccessResourceFailureException("test-only lookup outage");
     doThrow(outage).when(target).get(new GetMemberQuery(writer));
     assertThatThrownBy(this::create)

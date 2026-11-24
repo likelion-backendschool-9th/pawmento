@@ -35,7 +35,7 @@ public class CreateDiaryEntryTransaction {
             c.recordedDate(),
             clock.instant(),
             !ids.isEmpty(),
-            com.pawmento.diary.application.DiaryAuthorNames.stored(authors.loadName(c.memberId())));
+            authors.loadName(c.memberId()));
     if (c.features().location().intent() != null)
       original.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var entry = save.save(original);

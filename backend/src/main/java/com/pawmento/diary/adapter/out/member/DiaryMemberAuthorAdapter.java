@@ -1,10 +1,12 @@
 package com.pawmento.diary.adapter.out.member;
 
-import com.pawmento.diary.application.DiaryAuthorNames;
-import com.pawmento.diary.application.exception.DiaryAuthorNotFoundException;
+import com.pawmento.diary.application.exception.DiaryAuthorMemberNameInvalidException;
+import com.pawmento.diary.application.exception.DiaryAuthorMemberNotFoundException;
 import com.pawmento.diary.application.exception.DiaryPersistenceUnavailableException;
-import com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort;
+import com.pawmento.diary.application.port.out.LoadDiaryAuthorNameForBackfillPort;
 import com.pawmento.diary.application.port.out.LoadDiaryAuthorNamePort;
+import com.pawmento.diary.domain.DiaryAuthorName;
+import com.pawmento.diary.domain.exception.InvalidDiaryAuthorNameException;
 import com.pawmento.member.application.exception.MemberNotFoundException;
 import com.pawmento.member.application.port.in.GetMemberQuery;
 import com.pawmento.member.application.port.in.GetMemberUseCase;
@@ -17,7 +19,8 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
 @Component
-class DiaryMemberAuthorAdapter implements LoadDiaryAuthorNamePort, FindDiaryAuthorNamePort {
+class DiaryMemberAuthorAdapter
+    implements LoadDiaryAuthorNamePort, LoadDiaryAuthorNameForBackfillPort {
   private final GetMemberUseCase members;
   private final TransactionTemplate read;
 
@@ -28,22 +31,28 @@ class DiaryMemberAuthorAdapter implements LoadDiaryAuthorNamePort, FindDiaryAuth
     read.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
   }
 
-  public String loadName(Long id) {
+  public DiaryAuthorName loadName(Long id) {
+    String nickname;
     try {
       // 정상 작성은 호출자의 TX에 참여해 별도 DB 연결을 추가로 요구하지 않는다.
-      return DiaryAuthorNames.stored(members.get(new GetMemberQuery(id)).nickname());
+      nickname = members.get(new GetMemberQuery(id)).nickname();
     } catch (MemberNotFoundException missing) {
-      throw new DiaryAuthorNotFoundException(missing);
+      throw new DiaryAuthorMemberNotFoundException(missing);
     } catch (DataAccessResourceFailureException | TransientDataAccessResourceException failure) {
       throw new DiaryPersistenceUnavailableException(failure);
     }
+    try {
+      return new DiaryAuthorName(nickname);
+    } catch (InvalidDiaryAuthorNameException invalid) {
+      throw new DiaryAuthorMemberNameInvalidException(invalid);
+    }
   }
 
-  public Optional<String> findName(Long id) {
+  public Optional<DiaryAuthorName> loadNameForBackfill(Long id) {
     try {
       // 이관에서만 회원 부재를 허용한다. 실패한 내부 TX가 끝난 뒤 빈 값으로 바꾼다.
       return Optional.of(read.execute(status -> loadName(id)));
-    } catch (DiaryAuthorNotFoundException missing) {
+    } catch (DiaryAuthorMemberNotFoundException missing) {
       return Optional.empty();
     }
   }

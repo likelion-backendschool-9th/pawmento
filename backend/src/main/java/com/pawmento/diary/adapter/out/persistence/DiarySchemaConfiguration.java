@@ -17,7 +17,7 @@ class DiarySchemaConfiguration {
       EntityManagerFactory entityManagerFactory,
       DataSource dataSource,
       org.springframework.transaction.PlatformTransactionManager transactionManager,
-      com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort authors) {
+      com.pawmento.diary.application.port.out.LoadDiaryAuthorNameForBackfillPort authors) {
     return () -> {
       var jdbc = new JdbcTemplate(dataSource);
       var sql =

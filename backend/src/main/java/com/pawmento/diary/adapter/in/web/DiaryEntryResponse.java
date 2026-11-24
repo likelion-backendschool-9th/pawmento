@@ -7,7 +7,7 @@ public record DiaryEntryResponse(
     Long diaryId,
     Long petId,
     Long createdBy,
-    GetDiaryEntryResult.Author author,
+    AuthorResponse author,
     String content,
     LocalDate recordedDate,
     Instant createdAt,
@@ -15,6 +15,8 @@ public record DiaryEntryResponse(
     Long version,
     java.util.List<AttachmentResponse> attachments,
     GetDiaryEntryResult.Location location) {
+  public record AuthorResponse(Long memberId, String displayName) {}
+
   public record AttachmentResponse(
       Long assetId,
       String type,
@@ -32,7 +34,7 @@ public record DiaryEntryResponse(
         r.diaryId(),
         r.petId(),
         r.createdBy(),
-        r.author(),
+        new AuthorResponse(r.author().memberId(), r.author().displayName()),
         r.content(),
         r.recordedDate(),
         r.createdAt(),

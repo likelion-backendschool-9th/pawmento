@@ -38,9 +38,7 @@ public record GetDiaryEntryResult(
         e.getId(),
         e.getPetId(),
         e.getCreatedBy(),
-        new Author(
-            e.getCreatedBy(),
-            com.pawmento.diary.application.DiaryAuthorNames.stored(e.getAuthorNameSnapshot())),
+        new Author(e.getCreatedBy(), e.getAuthorName().value()),
         e.getContent(),
         e.getRecordedDate(),
         e.getCreatedAt(),

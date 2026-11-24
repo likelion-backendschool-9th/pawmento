@@ -1,14 +1,16 @@
 package com.pawmento.diary.adapter.out.persistence;
 
-import com.pawmento.diary.application.DiaryAuthorNames;
-import com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort;
+import com.pawmento.diary.application.port.out.LoadDiaryAuthorNameForBackfillPort;
+import com.pawmento.diary.domain.DiaryAuthorName;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 // 시작 시 마이그레이션에서만 JDBC를 쓴다. 일반 일기 CRUD는 기존 JPA를 유지한다.
 final class DiaryAuthorBackfill {
+  private static final DiaryAuthorName UNKNOWN = new DiaryAuthorName("알 수 없는 작성자");
+
   private DiaryAuthorBackfill() {}
 
-  static void run(JdbcTemplate jdbc, FindDiaryAuthorNamePort authors) {
+  static void run(JdbcTemplate jdbc, LoadDiaryAuthorNameForBackfillPort authors) {
     jdbc.queryForObject(
         "select true from pg_advisory_xact_lock(hashtextextended(?,0))",
         Boolean.class,
@@ -23,7 +25,7 @@ final class DiaryAuthorBackfill {
               Long.class);
       if (ids.isEmpty()) break;
       for (var id : ids) {
-        var name = DiaryAuthorNames.stored(authors.findName(id).orElse("알 수 없는 작성자"));
+        var name = authors.loadNameForBackfill(id).orElse(UNKNOWN).value();
         jdbc.update(
             "update diary_entries set author_name_snapshot=?"
                 + " where created_by=? and author_name_snapshot is null",

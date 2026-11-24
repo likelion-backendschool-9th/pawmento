@@ -65,7 +65,7 @@ class DiaryPersistenceFailureTest {
             LocalDate.of(2026, 11, 17),
             Instant.parse("2026-11-17T15:00:00Z"),
             false,
-            "작성자");
+            new com.pawmento.diary.domain.DiaryAuthorName("작성자"));
     for (var error :
         new DataIntegrityViolationException[] {
           failure("another_fk", "23503"), failure("fk_diary_entries_pet", "23514")

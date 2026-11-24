@@ -57,8 +57,7 @@ public class DiaryEntryJpaEntity {
     row.id = e.getId();
     row.petId = e.getPetId();
     row.createdBy = e.getCreatedBy();
-    row.authorNameSnapshot =
-        com.pawmento.diary.application.DiaryAuthorNames.stored(e.getAuthorNameSnapshot());
+    row.authorNameSnapshot = e.getAuthorName().value();
     row.content = e.getContent();
     row.recordedDate = e.getRecordedDate();
     row.createdAt = e.getCreatedAt();
@@ -93,10 +92,14 @@ public class DiaryEntryJpaEntity {
           updatedAt,
           version,
           intent,
-          com.pawmento.diary.application.DiaryAuthorNames.stored(authorNameSnapshot));
+          new com.pawmento.diary.domain.DiaryAuthorName(authorNameSnapshot));
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {
       throw new com.pawmento.diary.application.exception.DiaryLocationDataInvalidException(
           "저장된 일기 위치 원본이 올바르지 않습니다.", failure);
+    } catch (com.pawmento.diary.domain.exception.InvalidDiaryAuthorNameException failure) {
+      // 저장된 이름을 복원하는 이 경로에서만 "저장된 데이터" 예외로 바꾼다.
+      throw new com.pawmento.diary.application.exception.StoredDiaryAuthorInvalidException(
+          failure);
     }
   }
 }

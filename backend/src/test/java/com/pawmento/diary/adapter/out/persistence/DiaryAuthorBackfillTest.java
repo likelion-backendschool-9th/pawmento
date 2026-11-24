@@ -5,7 +5,9 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import com.pawmento.diary.application.exception.*;
-import com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort;
+import com.pawmento.diary.application.port.out.LoadDiaryAuthorNameForBackfillPort;
+import com.pawmento.diary.domain.DiaryAuthorName;
+import com.pawmento.diary.domain.exception.InvalidDiaryAuthorNameException;
 import java.util.*;
 import org.junit.jupiter.api.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -52,9 +54,9 @@ class DiaryAuthorBackfillTest {
   @Test
   @DisplayName("#32-S30 이관은 회원별로 이름을 조회하고 기존 스냅샷·본문·버전·시각을 보존하며 재실행해도 덮어쓰지 않는다")
   void preservesAndRepeats() {
-    var author = mock(FindDiaryAuthorNamePort.class);
-    when(author.findName(10L)).thenReturn(Optional.of("현재 이름"));
-    when(author.findName(20L)).thenReturn(Optional.empty());
+    var author = mock(LoadDiaryAuthorNameForBackfillPort.class);
+    when(author.loadNameForBackfill(10L)).thenReturn(Optional.of(new DiaryAuthorName("현재 이름")));
+    when(author.loadNameForBackfill(20L)).thenReturn(Optional.empty());
     var before =
         jdbc.queryForList(
             "select id,created_by,content,version,created_at from diary_entries order by id");
@@ -68,8 +70,8 @@ class DiaryAuthorBackfillTest {
             jdbc.queryForList(
                 "select id,created_by,content,version,created_at from diary_entries order by id"))
         .isEqualTo(before);
-    verify(author, times(1)).findName(10L);
-    verify(author, times(1)).findName(20L);
+    verify(author, times(1)).loadNameForBackfill(10L);
+    verify(author, times(1)).loadNameForBackfill(20L);
     assertThatThrownBy(
             () -> jdbc.update("insert into diary_entries(id,created_by,version) values(5,10,0)"))
         .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
@@ -83,10 +85,10 @@ class DiaryAuthorBackfillTest {
   void rollsBackOnFailure() {
     var failure =
         new DiaryPersistenceUnavailableException(new IllegalStateException("test outage"));
-    FindDiaryAuthorNamePort author =
+    LoadDiaryAuthorNameForBackfillPort author =
         id -> {
           if (id == 20L) throw failure;
-          return Optional.of("조회 이름");
+          return Optional.of(new DiaryAuthorName("조회 이름"));
         };
     assertThatThrownBy(() -> tx.executeWithoutResult(s -> DiaryAuthorBackfill.run(jdbc, author)))
         .isSameAs(failure);
@@ -94,7 +96,7 @@ class DiaryAuthorBackfillTest {
             jdbc.queryForList(
                 "select author_name_snapshot from diary_entries order by id", String.class))
         .containsExactly(null, null, null, "기존 이름");
-    tx.executeWithoutResult(s -> DiaryAuthorBackfill.run(jdbc, id -> Optional.of("재시도 이름")));
+    tx.executeWithoutResult(s -> DiaryAuthorBackfill.run(jdbc, id -> Optional.of(new DiaryAuthorName("재시도 이름"))));
     assertThat(
             jdbc.queryForObject(
                 "select count(*) from diary_entries where author_name_snapshot is null",
@@ -108,8 +110,14 @@ class DiaryAuthorBackfillTest {
     assertThatThrownBy(
             () ->
                 tx.executeWithoutResult(
-                    s -> DiaryAuthorBackfill.run(jdbc, id -> Optional.of("  "))))
-        .isInstanceOf(StoredDiaryAuthorInvalidException.class);
+                    s ->
+                        DiaryAuthorBackfill.run(
+                            jdbc,
+                            id -> {
+                              throw new DiaryAuthorMemberNameInvalidException(
+                                  new InvalidDiaryAuthorNameException());
+                            })))
+        .isInstanceOf(DiaryAuthorMemberNameInvalidException.class);
     assertThat(
             jdbc.queryForObject(
                 "select count(*) from diary_entries where author_name_snapshot is null",
@@ -121,7 +129,7 @@ class DiaryAuthorBackfillTest {
   @DisplayName("#32-S30 이름 열이 없는 기존 스키마에도 열을 추가해 보강한다")
   void addsMissingColumn() {
     jdbc.execute("alter table diary_entries drop column author_name_snapshot");
-    tx.executeWithoutResult(s -> DiaryAuthorBackfill.run(jdbc, id -> Optional.of("작성자")));
+    tx.executeWithoutResult(s -> DiaryAuthorBackfill.run(jdbc, id -> Optional.of(new DiaryAuthorName("작성자"))));
     assertThat(jdbc.queryForList("select author_name_snapshot from diary_entries", String.class))
         .containsOnly("작성자")
         .hasSize(4);
