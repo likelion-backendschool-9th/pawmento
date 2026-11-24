@@ -65,10 +65,10 @@ function ServerList({ session, listMine }: {
         title="함께하는 친구들"
         body="등록된 친구들의 프로필과 일상·정원 모드를 확인해요."
       >
-        <button type="button" className="button primary" disabled>
+        <Link className="button primary" href="/pets/new">
           <Icon name="plus" size={17} />
           반려동물 등록
-        </button>
+        </Link>
       </PageHeading>
       {state.status === "loading" && <ListLoading />}
       {state.status === "error" && (
@@ -124,10 +124,10 @@ function EmptyServerList() {
       </span>
       <h2>첫 친구를 소개해 주세요</h2>
       <p>함께하는 친구만의 기록 공간을 만들어드릴게요.</p>
-      <button type="button" className="button primary" disabled>
+      <Link className="button primary" href="/pets/new">
         등록하기
         <Icon name="arrow" size={16} />
-      </button>
+      </Link>
     </section>
   );
 }
