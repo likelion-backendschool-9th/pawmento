@@ -1,6 +1,7 @@
 package com.pawmento.map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -26,12 +27,17 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
 import com.pawmento.map.application.port.out.PlaceSyncLockPort;
@@ -68,6 +74,12 @@ class PlaceSyncAdminScenarioTest {
 
 	@Autowired
 	private PlaceSyncLockPort locks;
+
+	@Autowired
+	private SyncLocalDataPlacesUseCase syncUseCase;
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
 
 	@MockitoBean
 	private LoadLocalDataPort loader;
@@ -306,6 +318,19 @@ class PlaceSyncAdminScenarioTest {
 			assertThat(asAdmin("?category=GROOMING").andReturn().getResponse().getStatus()).isEqualTo(202);
 			assertThat(awaitFinished("GROOMING").get("state").asText()).isEqualTo("SUCCEEDED");
 		}
+	}
+
+	@Test
+	@DisplayName("#172-S22 바깥 트랜잭션 안에서는 가져오기를 부를 수 없고, 받기도 잠금도 시작하지 않는다")
+	void cannotRunInsideAnOuterTransaction() {
+		assertThatThrownBy(() -> new TransactionTemplate(transactionManager)
+			.executeWithoutResult(status -> syncUseCase.sync(new SyncLocalDataPlacesCommand("HOSPITAL"))))
+			.isInstanceOf(IllegalTransactionStateException.class);
+
+		verify(loader, never()).load(any());
+		var lock = locks.tryAcquire(PlaceCategory.HOSPITAL);
+		assertThat(lock).isPresent();
+		lock.get().close();
 	}
 
 }

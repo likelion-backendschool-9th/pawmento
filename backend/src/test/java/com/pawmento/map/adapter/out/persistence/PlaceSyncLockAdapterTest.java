@@ -3,6 +3,13 @@ package com.pawmento.map.adapter.out.persistence;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +18,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.pawmento.TestcontainersConfiguration;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.domain.PlaceCategory;
@@ -23,6 +32,9 @@ class PlaceSyncLockAdapterTest {
 
 	@Autowired
 	private PlaceSyncLockPort locks;
+
+	@Autowired
+	private DataSource dataSource;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -92,6 +104,63 @@ class PlaceSyncLockAdapterTest {
 		var again = locks.tryAcquire(PlaceCategory.HOSPITAL);
 		assertThat(again).isPresent();
 		again.get().close();
+	}
+
+	@Test
+	@DisplayName("#172-S22 연결은 살아 있는데 잠금 해제가 실패하면 연결을 끊어 잠금을 풀고, 풀 자리도 돌려준다(반복해도 풀이 바닥나지 않는다)")
+	void failedUnlockReleasesTheLockAndThePoolSlot() throws Exception {
+		HikariDataSource base = dataSource.unwrap(HikariDataSource.class);
+		HikariConfig config = new HikariConfig();
+		config.setJdbcUrl(base.getJdbcUrl());
+		config.setUsername(base.getUsername());
+		config.setPassword(base.getPassword());
+		config.setMaximumPoolSize(2);
+		config.setConnectionTimeout(3000);
+		try (HikariDataSource pool = new HikariDataSource(config)) {
+			PlaceSyncLockAdapter failing = new PlaceSyncLockAdapter(failingUnlock(pool));
+
+			// 풀(2개)보다 많이 반복해도 막히지 않아야 한다. 풀 자리를 하나씩 잃으면 세 번째에서 연결을 못 얻는다
+			for (int i = 0; i < 5; i++) {
+				failing.tryAcquire(PlaceCategory.GROOMING).orElseThrow().close();
+				assertThat(pool.getHikariPoolMXBean().getActiveConnections()).as("%d번째 뒤", i + 1).isZero();
+			}
+			// 끊긴 연결의 잠금은 DB가 풀어서 다른 곳이 바로 잡을 수 있다
+			var again = locks.tryAcquire(PlaceCategory.GROOMING);
+			assertThat(again).isPresent();
+			again.get().close();
+		}
+	}
+
+	// 잠금 해제 질의만 연결이 살아 있는 채로 실패하게 만든 풀
+	private static DataSource failingUnlock(HikariDataSource pool) {
+		return (DataSource) Proxy.newProxyInstance(DataSource.class.getClassLoader(), new Class<?>[] { DataSource.class },
+				(proxy, method, args) -> {
+					try {
+						Object result = method.invoke(pool, args);
+						if (method.getName().equals("getConnection") && result instanceof Connection real) {
+							return wrap(real);
+						}
+						return result;
+					}
+					catch (InvocationTargetException e) {
+						throw e.getCause();
+					}
+				});
+	}
+
+	private static Connection wrap(Connection real) {
+		return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] { Connection.class },
+				(proxy, method, args) -> {
+					if (method.getName().equals("prepareStatement") && ((String) args[0]).contains("pg_advisory_unlock")) {
+						throw new SQLException("잠금 해제 실패(테스트)", "XX000");
+					}
+					try {
+						return method.invoke(real, args);
+					}
+					catch (InvocationTargetException e) {
+						throw e.getCause();
+					}
+				});
 	}
 
 }
