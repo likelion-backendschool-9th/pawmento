@@ -10,6 +10,7 @@ public final class DiaryEntry {
   private final Long id;
   private final Long petId;
   private final Long createdBy;
+  private String authorNameSnapshot;
   private String content;
   private LocalDate recordedDate;
   private final Instant createdAt;
@@ -53,6 +54,7 @@ public final class DiaryEntry {
     return create(petId, memberId, content, date, now, false);
   }
 
+  // 작성자 조회 전 초안 검증용이다. 영속화에는 이름을 받는 create를 사용한다.
   public static DiaryEntry create(
       Long petId,
       Long memberId,
@@ -64,6 +66,19 @@ public final class DiaryEntry {
     requireDate(date, now);
     var entry = new DiaryEntry(null, petId, memberId, content, date, now, now, 0L);
     entry.locationIntent = DiaryLocationIntent.none();
+    return entry;
+  }
+
+  public static DiaryEntry create(
+      Long petId,
+      Long memberId,
+      String content,
+      LocalDate date,
+      Instant now,
+      boolean hasAttachments,
+      String authorName) {
+    var entry = create(petId, memberId, content, date, now, hasAttachments);
+    entry.authorNameSnapshot = new DiaryAuthorName(authorName).value();
     return entry;
   }
 
@@ -92,6 +107,22 @@ public final class DiaryEntry {
       DiaryLocationIntent intent) {
     var entry = restore(id, petId, author, content, date, createdAt, updatedAt, version);
     entry.locationIntent = intent;
+    return entry;
+  }
+
+  public static DiaryEntry restore(
+      Long id,
+      Long petId,
+      Long author,
+      String content,
+      LocalDate date,
+      Instant createdAt,
+      Instant updatedAt,
+      Long version,
+      DiaryLocationIntent intent,
+      String authorName) {
+    var entry = restore(id, petId, author, content, date, createdAt, updatedAt, version, intent);
+    entry.authorNameSnapshot = new DiaryAuthorName(authorName).value();
     return entry;
   }
 

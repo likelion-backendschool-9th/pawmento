@@ -7,6 +7,7 @@ public record GetDiaryEntryResult(
     Long diaryId,
     Long petId,
     Long createdBy,
+    Author author,
     String content,
     LocalDate recordedDate,
     Instant createdAt,
@@ -14,6 +15,8 @@ public record GetDiaryEntryResult(
     Long version,
     java.util.List<DiaryAttachment> attachments,
     Location location) {
+  public record Author(Long memberId, String displayName) {}
+
   public record Location(String mode, Double latitude, Double longitude, String placeName) {}
 
   public GetDiaryEntryResult {
@@ -35,6 +38,9 @@ public record GetDiaryEntryResult(
         e.getId(),
         e.getPetId(),
         e.getCreatedBy(),
+        new Author(
+            e.getCreatedBy(),
+            com.pawmento.diary.application.DiaryAuthorNames.stored(e.getAuthorNameSnapshot())),
         e.getContent(),
         e.getRecordedDate(),
         e.getCreatedAt(),
@@ -43,5 +49,4 @@ public record GetDiaryEntryResult(
         attachments,
         location);
   }
-
 }

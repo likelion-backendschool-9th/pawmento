@@ -47,9 +47,9 @@ class DiaryListSnapshotTest {
   long seed(long pet, String text) {
     return jdbc.queryForObject(
         "insert into"
-            + " diary_entries(pet_id,created_by,content,recorded_date,created_at,updated_at,version)"
-            + " values(?,9001,?,'2026-11-17','2026-11-17T15:00:00Z','2026-11-17T15:00:00Z',0)"
-            + " returning id",
+            + " diary_entries(pet_id,created_by,content,recorded_date,created_at,updated_at,version,author_name_snapshot)"
+            + " values(?,9001,?,'2026-11-17','2026-11-17T15:00:00Z','2026-11-17T15:00:00Z',0,'기존"
+            + " 작성자') returning id",
         Long.class,
         pet,
         text);

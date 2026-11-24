@@ -59,7 +59,13 @@ class DiaryPersistenceFailureTest {
     var adapter = new DiaryEntryPersistenceAdapter(rows, mock(DiaryAttachmentJpaRepository.class));
     var entry =
         DiaryEntry.create(
-            1L, 2L, "일기", LocalDate.of(2026, 11, 17), Instant.parse("2026-11-17T15:00:00Z"));
+            1L,
+            2L,
+            "일기",
+            LocalDate.of(2026, 11, 17),
+            Instant.parse("2026-11-17T15:00:00Z"),
+            false,
+            "작성자");
     for (var error :
         new DataIntegrityViolationException[] {
           failure("another_fk", "23503"), failure("fk_diary_entries_pet", "23514")

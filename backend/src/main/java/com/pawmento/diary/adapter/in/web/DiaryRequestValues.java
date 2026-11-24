@@ -50,6 +50,10 @@ final class DiaryRequestValues {
     return new DiaryWriteFeatures(ids, locationChange);
   }
 
+  static void rejectAuthor(JsonNode... fields) {
+    for (var field : fields) if (field != null) throw new InvalidDiaryRequestException();
+  }
+
   static void id(Long id) {
     if (id == null || id <= 0) throw new InvalidDiaryRequestException();
   }

@@ -26,6 +26,7 @@ class DiaryWritePolicyTest {
     var service =
         new CreateDiaryEntryTransaction(
             access,
+            mock(LoadDiaryAuthorNamePort.class),
             mock(DiaryAttachmentsPort.class),
             mock(DiaryMediaPort.class),
             mock(DiaryResults.class),

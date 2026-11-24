@@ -21,6 +21,10 @@ public class DiaryEntryJpaEntity {
   @Column(nullable = false)
   private Long createdBy;
 
+  // Hibernate는 기존 행에 nullable 열을 먼저 추가하고 시작 시 보강 뒤 NOT NULL을 적용한다.
+  @Column(length = 255, updatable = false)
+  private String authorNameSnapshot;
+
   @Column(nullable = false, length = 3000)
   private String content;
 
@@ -53,6 +57,8 @@ public class DiaryEntryJpaEntity {
     row.id = e.getId();
     row.petId = e.getPetId();
     row.createdBy = e.getCreatedBy();
+    row.authorNameSnapshot =
+        com.pawmento.diary.application.DiaryAuthorNames.stored(e.getAuthorNameSnapshot());
     row.content = e.getContent();
     row.recordedDate = e.getRecordedDate();
     row.createdAt = e.getCreatedAt();
@@ -78,7 +84,16 @@ public class DiaryEntryJpaEntity {
               : new DiaryLocationIntent(
                   locationMode, locationLatitude, locationLongitude, locationPlaceName);
       return DiaryEntry.restore(
-          id, petId, createdBy, content, recordedDate, createdAt, updatedAt, version, intent);
+          id,
+          petId,
+          createdBy,
+          content,
+          recordedDate,
+          createdAt,
+          updatedAt,
+          version,
+          intent,
+          com.pawmento.diary.application.DiaryAuthorNames.stored(authorNameSnapshot));
     } catch (com.pawmento.diary.domain.exception.InvalidDiaryLocationIntentException failure) {
       throw new com.pawmento.diary.application.exception.DiaryLocationDataInvalidException(
           "저장된 일기 위치 원본이 올바르지 않습니다.", failure);

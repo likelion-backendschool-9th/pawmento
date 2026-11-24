@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CreateDiaryEntryTransaction {
   private final CheckDiaryPetAccessPort access;
+  private final LoadDiaryAuthorNamePort authors;
   private final DiaryAttachmentsPort attachments;
   private final DiaryMediaPort media;
   private final DiaryResults results;
@@ -33,7 +34,8 @@ public class CreateDiaryEntryTransaction {
             c.content(),
             c.recordedDate(),
             clock.instant(),
-            !ids.isEmpty());
+            !ids.isEmpty(),
+            com.pawmento.diary.application.DiaryAuthorNames.stored(authors.loadName(c.memberId())));
     if (c.features().location().intent() != null)
       original.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var entry = save.save(original);

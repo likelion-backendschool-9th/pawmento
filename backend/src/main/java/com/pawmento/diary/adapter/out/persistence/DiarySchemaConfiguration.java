@@ -16,7 +16,8 @@ class DiarySchemaConfiguration {
   InitializingBean diarySchema(
       EntityManagerFactory entityManagerFactory,
       DataSource dataSource,
-      org.springframework.transaction.PlatformTransactionManager transactionManager) {
+      org.springframework.transaction.PlatformTransactionManager transactionManager,
+      com.pawmento.diary.application.port.out.FindDiaryAuthorNamePort authors) {
     return () -> {
       var jdbc = new JdbcTemplate(dataSource);
       var sql =
@@ -26,6 +27,7 @@ class DiarySchemaConfiguration {
               status -> {
                 jdbc.execute(sql);
                 DiaryLocationBackfill.run(jdbc);
+                DiaryAuthorBackfill.run(jdbc, authors);
               });
     };
   }

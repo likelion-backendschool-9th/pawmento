@@ -7,4 +7,7 @@ public record EditDiaryEntryRequest(
     JsonNode recordedDate,
     JsonNode version,
     JsonNode attachmentIds,
-    JsonNode location) {}
+    JsonNode location,
+    JsonNode author,
+    JsonNode authorNameSnapshot,
+    JsonNode displayName) {}
