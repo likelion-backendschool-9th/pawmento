@@ -82,7 +82,7 @@
 - Then  403이고 D4와 M2의 참조 수는 그대로다
 - When  A가 D3을 삭제한다
 - Then  204이고 D3과 첨부 연결이 없어지며, M1의 참조 수가 줄어 다른 곳에서 쓰지 않으면 삭제 작업이 등록된다
-- 질문 답변: 첨부 없는 답변의 삭제 204·수정 403은 질문 계획의 텍스트 답변 단계에서, 첨부 있는 답변의 삭제 204·참조 해제와 수정 403·참조 수 유지는 답변 첨부 단계에서 같은 방식으로 확인한다
+- 질문 답변: 첨부 없는 답변과 첨부 있는 답변의 삭제 204·참조 해제, 수정 403·참조 수 유지를 diary·media와 같은 단계에서 같은 방식으로 함께 확인한다. 첨부 유무에 따라 소유주 삭제 권한이 달라지는 단계는 두지 않는다 (고침 #133: 질문 답변 첨부가 이미 구현되어 텍스트 답변 단계가 따로 없음. [가족 연동 계획](../diary/family-integration.md#권한-계약))
 
 #133-S9 반려동물 관리는 소유주만 [테스트: pet 시나리오 테스트]
 - Given B가 P의 가족이다
@@ -202,7 +202,7 @@
      - `previous`에 있는 id(유지·해제): 아이와 용도만 확인한다. 이 목록은 호출하는 도메인이 권한 확인 후 DB에서 읽은 실제 연결이라는 계약이다
      - diary는 `DIARY_ATTACHMENT`, question은 `QUESTION_ANSWER_ATTACHMENT`를 넘긴다.
      - media 담당과 합의
-   - question: `OwnerQuestionPetAccessAdapter`를 가족 포트로 바꾼다. 텍스트 답변 단계에서 첨부 없는 답변의 소유주 삭제·수정 거부를 diary와 같은 규칙으로 넣는다. 답변 첨부 단계에서 위 media 계약을 `QUESTION_ANSWER_ATTACHMENT`로 쓰고, `MediaReferenceAdapter`(`InspectMediaReferencesPort.isReferenced`)가 다이어리뿐 아니라 질문 답변 첨부 연결도 확인하게 한다. 지금 `ValidateMediaReferencesService`(연결 전 검증), `LoadMediaAttachmentsService`(연결된 파일 정보 읽기), `MediaAsset.requireAttached`(파일 내려받기)는 `DIARY_ATTACHMENT`만 허용하므로, 같은 단계에서 호출하는 도메인이 넘긴 `purpose`로 검사하게 바꾸고 question 출력 어댑터가 `QUESTION_ANSWER_ATTACHMENT`로 검증·읽기를 부른다
+   - question: `OwnerQuestionPetAccessAdapter`를 가족 포트로 바꾼다. 소유주 삭제·수정 거부를 첨부 유무와 관계없이 diary·media와 같은 단계에서 같은 규칙으로 넣고, 위 media 계약을 `QUESTION_ANSWER_ATTACHMENT`로 쓴다 (고침 #133: 질문 답변 첨부가 이미 구현되어 텍스트 답변 단계를 먼저 열지 않음). 또 `MediaReferenceAdapter`(`InspectMediaReferencesPort.isReferenced`)가 다이어리뿐 아니라 질문 답변 첨부 연결도 확인하게 한다. 지금 `ValidateMediaReferencesService`(연결 전 검증), `LoadMediaAttachmentsService`(연결된 파일 정보 읽기), `MediaAsset.requireAttached`(파일 내려받기)는 `DIARY_ATTACHMENT`만 허용하므로, 같은 단계에서 호출하는 도메인이 넘긴 `purpose`로 검사하게 바꾸고 question 출력 어댑터가 `QUESTION_ANSWER_ATTACHMENT`로 검증·읽기를 부른다
      - 기존 시나리오 고침: #31-S12의 VIEWER·다른 작성자 변경 문구 끝에 `(고침 #133: 역할은 OWNER·FAMILY 둘, 소유주의 삭제는 허용)`
    - pet: 관리 동작은 소유주만 그대로(S9)
 5. 소유주 이전 — S13~S17, S20
@@ -250,4 +250,4 @@
 - pet은 기록이 있으면 삭제를 막는다(`PetHasRecordsException`, 409). 기록 확인은 출력 포트 `HasPetRecordsPort`와 `pet/adapter/out/records/DiaryPetRecordsAdapter`로 한다.
 - pet 테이블은 `(owner_member_id, tag)`가 유일하다(`uk_pets_owner_tag`). 소유주가 바뀌면 이 조합도 바뀐다.
 - PostgreSQL READ COMMITTED에서 다른 트랜잭션이 잠근 행을 `FOR UPDATE`로 읽으려는 문장은 그 트랜잭션이 끝날 때까지 기다리고, 그 뒤에는 커밋된 최신 값을 읽는다(S17, S18, S20, S22).
-- pet README는 가족 멤버십을 `OWNER/EDITOR/VIEWER`로 적어 두었다. 이 계획은 두 역할로 정했다.
+- 역할은 이 계획대로 두 역할(`OWNER`·`FAMILY`)이다. pet·media 문서에 남아 있던 `EDITOR`·`VIEWER` 표현도 두 역할로 맞췄다.
