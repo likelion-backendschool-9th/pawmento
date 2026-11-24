@@ -351,12 +351,13 @@ class FamilyInviteScenarioTest {
 		long pet = pet(owner);
 		String code = issue(owner, pet);
 		// 첫 저장만 실패하고, 그다음부터는 진짜 저장소를 부른다
-		Mockito.doThrow(new IllegalStateException("테스트용 저장 실패"))
+		// @Repository의 예외 번역이 감쌀 수 있으니, 종류가 아니라 우리가 던진 실패인지만 본다
+		Mockito.doThrow(new RuntimeException("테스트용 저장 실패"))
 				.doCallRealMethod()
 				.when(saveFamily).save(any());
 
 		assertThatThrownBy(() -> join.join(new JoinFamilyCommand(joiner, code)))
-				.isInstanceOf(IllegalStateException.class);
+				.hasStackTraceContaining("테스트용 저장 실패");
 		assertThat(codeRows(pet)).isEqualTo(1);
 		assertThat(memberships(pet, joiner)).isZero();
 
