@@ -48,7 +48,7 @@ public class IssueInviteCodeService implements IssueInviteCodeUseCase {
 
         String code = inviteCodes.newCode();
         PetInviteCode saved = savePetInviteCodePort.save(
-                PetInviteCode.issue(command.petId(), inviteCodes.hash(code), command.memberId(), Instant.now(clock)));
+                PetInviteCode.issue(command.petId(), inviteCodes.hash(code), command.memberId(), now));
         return new IssueInviteCodeResult(code, saved.getExpiresAt());
     }
 
