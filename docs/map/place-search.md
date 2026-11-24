@@ -50,6 +50,8 @@
 #195-S6 잘못된 요청 [테스트]
 - When  `q`가 없거나 앞뒤 공백을 지우고 2자 미만이거나 30자 넘거나, `latitude`만 있고 `longitude`가 없거나(반대도), 위도가 91이거나, `categories`에 `CAFE` 같은 없는 종류가 있다
 - Then  400과 이유를 받는다. 검색어가 너무 짧거나 길다는 이유도 이 응답에 담아 화면이 안내하게 한다
+- When  `q=_ _`처럼 정규화하면 비는 값(공백·구두점뿐)을 보낸다
+- Then  400이다. 길이는 정규화한 뒤에 센다
 
 #195-S7 로그인 없음 [테스트]
 - Given 로그인하지 않았다
@@ -60,6 +62,8 @@
 - Given 어떤 장소도 `동물카페`에 맞지 않는다
 - When  `q=동물카페`로 조회한다
 - Then  200과 빈 `places`, `truncated=false`를 받는다. 오류가 아니다
+- When  `q=%%`나 `q=a\b`처럼 `LIKE` 특수문자가 든 검색어를 보낸다(정규화한 뒤 2자 이상)
+- Then  특수문자를 글자 그대로 찾으므로 모든 장소에 맞지 않고 빈 `places`를 받는다(escape하지 않으면 `%%`가 모든 장소에 맞는다)
 
 #195-S19 이미 저장된 장소도 찾기 [테스트]
 - Given 이름·주소를 정규화한 열(`name_key`, `address_key`)이 비어 있는 장소가 저장돼 있다(열을 더하기 전에 가져온 장소)
@@ -153,9 +157,10 @@
 1. 계획 문서 — 문서만
    - 파일: `docs/map/place-search.md`, `docs/map/README.md`
    - 확인: `git diff --check`
-2. 이름·주소 검색 API — S1, S2, S3, S4, S5, S6, S7, S8
+2. 이름·주소 검색 API — S1, S2, S3, S4, S5, S6, S7, S8, S19
    - 시작 전에: 장소 약 1.5만 곳에서 부분 일치가 느린지 맞는 곳이 많은 검색어(`서울`)와 적은 검색어로 재고, 요청 기록에 검색어가 남는지 확인한다([가정](#가정))
    - 파일: `map/application/port/in/SearchPlacesUseCase.java`, `SearchPlacesQuery.java`, `SearchPlacesResult.java`, `map/application/service/SearchPlacesService.java`, 장소 조회 포트와 `PlacePersistenceAdapter`에 검색 메서드, 기존 `MapController`에 `GET /maps/places/search` 메서드, `PlaceSearchResponse.java`. 이름 정규화와 겹침 제거는 #172-S15의 코드를 다시 쓴다.
+   - 검색 열: `places`에 `name_key`·`address_key` 열을 더한다(`ddl-auto: update`가 만든다, `PlaceJpaEntity`). 열은 가져오기에서 장소를 저장할 때 `PlacePersistenceAdapter.replace`가 도메인의 정규화 메서드(`Place`가 `PlaceSelection.comparableName`을 공개로 감싼 `nameKey()`·`addressKey()`)로 채운다. 이미 저장된 행은 서버가 시작할 때 비어 있는 행만 채운다. 시작 시 채우기는 diary의 `DiarySchemaConfiguration`이 `DiaryLocationBackfill.run(jdbc)`를 부르는 방식처럼 영속성 어댑터의 정적 도우미(`map/adapter/out/persistence/PlaceSearchKeyBackfill.java`)를 시작할 때 한 번 부르게 하고, 여러 번 실행해도 같도록 `name_key is null`인 행만 고친다. 확인: `./gradlew test --tests '*PlaceSearchKey*'`(S19)
    - 확인: `./gradlew test --tests '*PlaceSearch*'`
    - 포트 `port.in`에는 도메인 타입을 쓰지 않는다. 컨트롤러는 `port.in`에만 의존한다.
 3. 검색 화면과 최근 검색어 — S9, S10, S11, S12, S13, S14
@@ -171,7 +176,8 @@
 - 검색은 **서버가 우리 DB(`places`)에서** 찾는다. 화면에 있는 영역의 장소만으로는 다른 동네의 장소를 찾을 수 없고, 장소 데이터는 이미 우리 DB에 있다. (#195)
 - 응답에 지도 중심을 받아 거리를 계산하는 이유: 같은 이름이 전국에 여럿일 수 있어, 지금 보고 있는 곳과 가까운 것을 먼저 보여 준다. 중심을 보내지 않아도 쓸 수 있다. (#195)
 - 이름 비교는 #172-S15와 같은 기준(띄어쓰기·괄호·구두점·대소문자 무시)이고, 이름 비교 코드를 두 곳에 두지 않는다. 그래서 `PlaceSelection.comparableName`으로 정규화한 이름·주소를 **처음부터 열(`name_key`, `address_key`)로 저장**하고, 검색은 같은 함수로 정규화한 검색어를 그 열에 `LIKE '%…%'`로 찾는다. SQL(`regexp_replace` 등)에 규칙을 다시 쓰지 않고, 메모리에서 거르지도 않는다. 열은 가져오기에서 장소를 저장할 때 함께 채운다. 이미 저장된 장소는 열이 비어 있으므로 서버가 시작할 때 비어 있는 행을 한 번 채운다(다음 가져오기까지 기다리면 그동안 검색에서 빠진다). (#195, #194)
-- 검색어는 2자 이상 30자 이하이다. 한 글자는 맞는 곳이 너무 많고, 30자는 장소 이름·주소 일부로 충분하다. (#195)
+- 검색어는 2자 이상 30자 이하이다. 한 글자는 맞는 곳이 너무 많고, 30자는 장소 이름·주소 일부로 충분하다. 길이는 `comparableName`으로 정규화한 **뒤**에 센다(공백·구두점뿐인 검색어는 빈 값이라 400). (#195)
+- 정규화한 검색어는 `LIKE`에 넣기 전에 `%`·`\`를 `\`로 escape하고(`ESCAPE '\'`) 글자 그대로 찾는다. `comparableName`은 `_`는 지우지만 `%`는 남겨서, escape하지 않으면 `q=%%`가 모든 장소에 맞는다. (#195)
 - 지역·지하철역은 `areas`로 **같은 응답에 더한다**. R1의 응답은 바꾸지 않아 R3이 R1·R2의 화면을 깨지 않는다. (#195)
 - 최근 검색어는 기기 브라우저에 저장한다. 서버에 검색 기록을 남기지 않아 개인정보를 늘리지 않는다. (#195)
 - 사용자가 입력한 검색어는 장소와 비교만 하고 애플리케이션의 로그·오류 응답에는 남기지 않는다. 장소 이름은 공개 데이터지만 검색어는 개인이 입력한 값이다. 서버 앞의 프록시 기록은 [가정](#가정)에서 따로 확인한다. (#195)
