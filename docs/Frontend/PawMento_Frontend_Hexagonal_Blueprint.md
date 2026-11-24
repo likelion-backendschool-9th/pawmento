@@ -54,7 +54,7 @@ flowchart LR
 
 ## 2. 프로젝트 폴더 트리 (권장)
 
-기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `src/app/(auth)`·`src/app/(app)`의 명시적인 `page.tsx` 파일에서 관리하고 공통 인증·Shell은 `(app)/layout.tsx`에서 공유한다. 각 페이지는 필요한 inbound 화면만 import하며, 브라우저 저장소를 사용하는 화면의 Client Component 경계를 유지한다. (고침 #12: Next.js 유지 결정과 파일 기반 라우트 리뷰 반영) 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
+기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `app/(auth)`·`app/(app)`의 명시적인 `page.tsx` 파일에서 관리하고 공통 인증·Shell은 `(app)/layout.tsx`에서 공유한다. 각 페이지는 필요한 inbound 화면만 import하며, 브라우저 저장소를 사용하는 화면의 Client Component 경계를 유지한다. (고침 #12: Next.js 유지 결정과 파일 기반 라우트 리뷰 반영) 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
 
 ```text
 frontend/

@@ -165,7 +165,7 @@ community의 단순화 제안에 맞춰 **처리 완료 신고에 대한 모든 
 ## 기존 사실과 제안의 구분
 
 - 담당 분배에는 관리자 담당자의 신고 관리·엽서 판매 관리가 있으며, 관리자 계정·역할은 member 담당자 담당이다. 마이페이지는 사용자의 최신 담당 변경에 따라 당분간 member 담당자 담당이며 이 계획의 수정 범위가 아니다.
-- [기존 프론트 데모](../../frontend/src/life/application/useCases.ts)는 신고 상태 `PENDING / RESOLVED / DISMISSED`를 쓰며 RESOLVED에서 글을 숨긴다. 이는 브라우저 데모 동작이지 서버 상태·권한·데이터 책임의 확정 근거가 아니다. 서버 계약은 Q1·Q3에서 확인한다.
+- [기존 프론트 데모](../../frontend/features/life/application/useCases.ts)는 신고 상태 `PENDING / RESOLVED / DISMISSED`를 쓰며 RESOLVED에서 글을 숨긴다. 이는 브라우저 데모 동작이지 서버 상태·권한·데이터 책임의 확정 근거가 아니다. 서버 계약은 Q1·Q3에서 확인한다.
 - community의 작성자 삭제 계약은 soft delete이고 일반 조회는 삭제된 글을 제외한다. 작성자 수정·삭제 API는 #84의 계약과 실제 통합 상태를 확인한다. 신고 운영 조회를 위해 이 공개 조회의 필터를 풀지 않는다. #84 리뷰의 삭제 원문 조회 질문과 Q4를 연결한다.
 - 운영 경로와 보안 체인에 코드가 보인다는 이유로 ADMIN 전용 접근이 보장됐다고 판단하지 않는다. Q2 합의 후 실제 요청으로 401·403·허용 경계를 확인한다.
 
@@ -316,4 +316,4 @@ community의 단순화 제안에 맞춰 **처리 완료 신고에 대한 모든 
 
 - [관리자 담당 경계](README.md), [community](../community/README.md), [글 CRUD](../community/post.md)
 - [인증](../member/auth-base.md), [백엔드 구조](../backend-architecture.md), [공통 예외](../backend-exceptions.md), [검사 기준](../testing.md)
-- [브라우저 데모 모델](../../frontend/src/life/domain/models.ts), [신고 데모 흐름](../../frontend/src/life/application/useCases.ts): 서버 계약 채택의 근거가 아니라 기존 UI 동작 비교 자료
+- [브라우저 데모 모델](../../frontend/features/life/domain/models.ts), [신고 데모 흐름](../../frontend/features/life/application/useCases.ts): 서버 계약 채택의 근거가 아니라 기존 UI 동작 비교 자료

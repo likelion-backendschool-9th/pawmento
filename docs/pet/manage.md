@@ -146,7 +146,7 @@
 ## 참고
 - 양식·Given/When/Then 규칙: [plan-template.md](../plan-template.md)
 - 인증·에러 JSON: [member](../member/README.md), [auth-base](../member/auth-base.md)
-- 필드·검증 참고(제품 규칙 출처, 이번 PR에서 FE를 구현하지 않음): [models.ts](../../frontend/src/workspace/domain/models.ts), [useCases.ts](../../frontend/src/workspace/application/useCases.ts)
+- 필드·검증 참고(제품 규칙 출처, 이번 PR에서 FE를 구현하지 않음): [models.ts](../../frontend/features/workspace/domain/models.ts), [useCases.ts](../../frontend/features/workspace/application/useCases.ts)
 - 구조: [backend-architecture.md](../backend-architecture.md)
 - question/diary가 기대하는 pet 모드·멤버십: 원격 설계 #30
 - 회의: [2026-11-16](../meetings/2026-11-16.md)
