@@ -3,6 +3,12 @@
   display: block;
 }
 
+/* 예시 지도의 바탕과 마커를 함께 담아, 선택한 마커가 카드에 가려지면 같이 올린다 */
+.shifter {
+  position: absolute;
+  inset: 0;
+  transition: transform 0.25s ease;
+}
 .marker {
   position: absolute;
   width: 34px;

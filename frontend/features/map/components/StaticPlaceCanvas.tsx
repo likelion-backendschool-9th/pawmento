@@ -1,9 +1,9 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { MapBounds } from "@/features/map/types/MapBounds";
 import { toViewportRatio } from "@/features/map/utils/mapBounds";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
-import type { PlaceCanvasProps } from "../utils/placeCanvas";
+import { markerShiftToVisible, type PlaceCanvasProps } from "../utils/placeCanvas";
 import { StaticMapBackdrop } from "./StaticMapBackdrop";
 import mapStyles from "./MapScreen.module.css";
 import styles from "./PlacesScreen.module.css";
@@ -26,47 +26,72 @@ export function StaticPlaceCanvas({
   selectedId,
   onSelect,
   onBoundsChange,
+  coveredBottom,
 }: PlaceCanvasProps) {
   const bounds = boundsAround(center);
+  const box = useRef<HTMLDivElement>(null);
+  const shifter = useRef<HTMLDivElement>(null);
   useEffect(() => {
     onBoundsChange(boundsAround(center));
     // 영역은 중심에서만 정해진다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.latitude, center.longitude]);
 
+  // 장소를 고르면 카드가 지도 아래를 덮는다. 네이버 지도처럼 선택한 마커가 카드 뒤에 가려지면 바탕과 마커를 함께 위로 올린다.
+  // 이 지도는 움직이지 않는 그림이라 카드가 덮은 높이보다 더 올리지 않는다(올린 만큼 생기는 빈자리가 카드 뒤에 숨는다).
+  useEffect(() => {
+    const element = shifter.current;
+    const height = box.current?.clientHeight ?? 0;
+    if (!element) return;
+    const place = places.find((item) => item.id === selectedId);
+    const covered = coveredBottom?.() ?? 0;
+    let shift = 0;
+    if (place && height > 0) {
+      const { y } = toViewportRatio(bounds, place);
+      shift = markerShiftToVisible({ y: y * height, height, covered });
+      if (shift > 0) shift = Math.min(shift, Math.max(covered - 8, 0));
+    }
+    element.style.transform = shift === 0 ? "" : `translateY(${-shift}px)`;
+    // 장소를 고르거나 풀 때만 옮긴다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
+
   return (
     <div
+      ref={box}
       className={mapStyles.canvas + " " + mapStyles.staticMap}
       onClick={() => onSelect(null)}
       role="group"
       aria-label="예시 지도"
     >
-      <StaticMapBackdrop />
-      {places.map((place) => {
-        const { x, y } = toViewportRatio(bounds, place);
-        const selected = place.id === selectedId;
-        return (
-          <button
-            key={place.id}
-            type="button"
-            className={styles.marker}
-            style={{
-              left: `${x * 100}%`,
-              top: `${y * 100}%`,
-              zIndex: selected ? 2 : 1,
-            }}
-            aria-label={`${place.name}, ${PLACE_STYLE[place.category].label}`}
-            aria-pressed={selected}
-            onClick={(event) => {
-              event.stopPropagation();
-              onSelect(place.id);
-            }}
-            dangerouslySetInnerHTML={{
-              __html: placeMarkup(place.category, selected),
-            }}
-          />
-        );
-      })}
+      <div ref={shifter} className={styles.shifter}>
+        <StaticMapBackdrop />
+        {places.map((place) => {
+          const { x, y } = toViewportRatio(bounds, place);
+          const selected = place.id === selectedId;
+          return (
+            <button
+              key={place.id}
+              type="button"
+              className={styles.marker}
+              style={{
+                left: `${x * 100}%`,
+                top: `${y * 100}%`,
+                zIndex: selected ? 2 : 1,
+              }}
+              aria-label={`${place.name}, ${PLACE_STYLE[place.category].label}`}
+              aria-pressed={selected}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSelect(place.id);
+              }}
+              dangerouslySetInnerHTML={{
+                __html: placeMarkup(place.category, selected),
+              }}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
