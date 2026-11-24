@@ -1,58 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import Link from "next/link";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
-import { ApplicationError } from "@/lib/application/ApplicationError";
 import { formatDate } from "@/lib/date";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import styles from "../../shell/components/Workspace.module.css";
-import { messageOf, speciesName } from "../../shell/utils/presentation";
+import { speciesName } from "../../shell/utils/presentation";
 import type { ManagedPet } from "../types/ManagedPet";
+import {
+  loadPetManagementList,
+  petListScreen,
+  type PetListSession,
+  type PetListState,
+} from "../utils/petManagementList";
 import { PetList } from "./PetScreens";
-
-type ListState =
-  | { status: "loading" | "login-required" }
-  | { status: "ready"; pets: ManagedPet[] }
-  | { status: "error"; message: string };
 
 export function PetManagementList() {
   const { account, sessionReady, sessionSource, dependencies } = useApp();
+  const session = {
+    ready: sessionReady,
+    source: sessionSource,
+    accountId: account?.id ?? null,
+  };
+  const screen = petListScreen(session);
 
-  if (!sessionReady) return <ListLoading />;
-  if (account && sessionSource === "demo") return <PetList />;
-  if (!account || sessionSource !== "http") return <LoginRequired />;
+  if (screen === "loading") return <ListLoading />;
+  if (screen === "demo") return <PetList />;
+  if (screen === "login-required") return <LoginRequired />;
 
   return (
-    <ServerList key={account.id} listMine={dependencies.petManagement.listMine} />
+    <ServerList
+      key={session.accountId}
+      session={session}
+      listMine={dependencies.petManagement.listMine}
+    />
   );
 }
 
-function ServerList({ listMine }: { listMine: () => Promise<ManagedPet[]> }) {
-  const [state, setState] = useState<ListState>({ status: "loading" });
+function ServerList({ session, listMine }: {
+  session: PetListSession;
+  listMine: () => Promise<ManagedPet[]>;
+}) {
+  const [state, setState] = useState<PetListState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
+  const { ready, source, accountId } = session;
 
-  useEffect(() => {
-    let cancelled = false;
-    void listMine().then(
-      (pets) => {
-        if (!cancelled) setState({ status: "ready", pets });
-      },
-      (cause: unknown) => {
-        if (cancelled) return;
-        if (cause instanceof ApplicationError && cause.code === "UNAUTHORIZED") {
-          setState({ status: "login-required" });
-        } else {
-          setState({ status: "error", message: messageOf(cause) });
-        }
-      },
-    );
+  useLayoutEffect(() => {
+    let current: PetListSession | null = { ready, source, accountId };
+    void loadPetManagementList(() => current, listMine, setState);
     return () => {
-      cancelled = true;
+      current = null;
     };
-  }, [attempt, listMine]);
+  }, [accountId, attempt, listMine, ready, source]);
 
   if (state.status === "login-required") return <LoginRequired />;
 
@@ -75,10 +77,7 @@ function ServerList({ listMine }: { listMine: () => Promise<ManagedPet[]> }) {
           <button
             type="button"
             className="text-link"
-            onClick={() => {
-              setState({ status: "loading" });
-              setAttempt((previous) => previous + 1);
-            }}
+            onClick={() => setAttempt((previous) => previous + 1)}
           >
             다시 시도
           </button>
