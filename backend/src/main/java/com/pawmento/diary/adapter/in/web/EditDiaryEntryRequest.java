@@ -4,6 +4,7 @@ import tools.jackson.databind.JsonNode;
 
 public record EditDiaryEntryRequest(
     JsonNode content,
+    JsonNode title,
     JsonNode recordedDate,
     JsonNode version,
     JsonNode attachmentIds,

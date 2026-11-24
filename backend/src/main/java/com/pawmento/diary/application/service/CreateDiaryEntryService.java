@@ -17,6 +17,6 @@ public class CreateDiaryEntryService implements CreateDiaryEntryUseCase {
     var features = preparation.create(c);
     return writer.create(
         new CreateDiaryEntryCommand(
-            c.memberId(), c.petId(), c.content(), c.recordedDate(), features));
+            c.memberId(), c.petId(), c.content(), c.recordedDate(), features, c.title()));
   }
 }

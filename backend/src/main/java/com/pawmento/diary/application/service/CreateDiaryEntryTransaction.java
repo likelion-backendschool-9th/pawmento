@@ -36,6 +36,7 @@ public class CreateDiaryEntryTransaction {
             clock.instant(),
             !ids.isEmpty(),
             authors.loadName(c.memberId()));
+    original.changeTitle(c.memberId(), c.title(), original.getCreatedAt());
     if (c.features().location().intent() != null)
       original.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var entry = save.save(original);

@@ -35,11 +35,15 @@ public class EditDiaryEntryTransaction {
     if (c.content() == null
         && c.recordedDate() == null
         && c.features().attachmentIds() == null
-        && !explicit) throw new com.pawmento.diary.domain.exception.InvalidDiaryEntryException();
+        && !explicit
+        && !c.titleChange().provided())
+      throw new com.pawmento.diary.domain.exception.InvalidDiaryEntryException();
     // 조건부 부모 갱신이 경합에서 지면 첨부 변경도 진행하지 않는다.
     var previous = attachments.find(entry.getId());
     var next = c.features().attachmentIds() == null ? previous : c.features().attachmentIds();
     entry.edit(c.memberId(), c.content(), c.recordedDate(), clock.instant(), !next.isEmpty());
+    if (c.titleChange().provided())
+      entry.changeTitle(c.memberId(), c.titleChange().title(), entry.getUpdatedAt());
     if (explicit)
       entry.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var saved = save.save(entry);
