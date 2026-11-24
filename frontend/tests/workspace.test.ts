@@ -1,12 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
-import { validateDate } from "../features/workspace/domain/models.ts";
-import type {
-  DiaryEntryInput,
-  Workspace,
-  PetInput,
-} from "../features/workspace/domain/models.ts";
+import { createWorkspaceUseCases } from "../mocks/handlers/workspaceUseCases.ts";
+import type { DiaryEntryInput } from "../features/diary/types/DiaryEntry.ts";
+import type { PetInput } from "../features/pet/types/Pet.ts";
+import type { Workspace } from "../features/shell/types/workspace.ts";
+import { validateDate } from "../lib/date.ts";
 import { createApiClient } from "../lib/http/apiClient.ts";
 import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";

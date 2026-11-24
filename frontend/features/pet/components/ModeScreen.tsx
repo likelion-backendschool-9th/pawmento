@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
-import type { Pet } from "@/features/workspace/domain/models";
+import type { Pet } from "@/features/pet/types/Pet";
 import { LifeHeading, DemoNote, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function ModeScreen({ pet }: { pet: Pet }) {
   const app = useApp();

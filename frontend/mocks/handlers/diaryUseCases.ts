@@ -1,18 +1,11 @@
-// 브라우저 저장 업무. #182 workspace 묶음에서 mocks로 옮기고, 서버 연결은 담당 이슈에서 한다.
-import type { DiaryEntry, DiaryEntryInput } from "./types/DiaryEntry.ts";
+import type { DiaryEntry, DiaryEntryInput } from "../../features/diary/types/DiaryEntry.ts";
+import { registrationDate, validateDate } from "../../lib/date.ts";
 import {
-  validateDate,
-  validateJournalContent,
-} from "../workspace/domain/models.ts";
-import {
-  requireJournalPet,
   requireJournalAuthor,
-  registrationDate,
-} from "../../lib/application/JournalStore.ts";
-import type {
-  JournalStore,
-  JournalRuntime,
-} from "../../lib/application/JournalStore.ts";
+  requireJournalPet,
+  validateJournalContent,
+} from "./journalStore.ts";
+import type { JournalRuntime, JournalStore } from "./journalStore.ts";
 export function createDiaryUseCases(
   store: JournalStore<DiaryEntry[]>,
   runtime: JournalRuntime,

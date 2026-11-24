@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
-import type { Pet } from "@/features/workspace/domain/models";
-import type { FamilyRole } from "@/features/life/domain/models";
+import type { Pet } from "@/features/pet/types/Pet";
+import type { FamilyRole } from "@/features/family/types/family";
 import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,

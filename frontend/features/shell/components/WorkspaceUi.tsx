@@ -4,8 +4,8 @@ import { QuestionAnswer } from "@/components/QuestionAnswer";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { formatDate } from "@/lib/date";
-import type { JournalItem } from "../../workspace/domain/models";
-import type { Pet } from "../../workspace/domain/models";
+import type { JournalItem } from "../../diary/types/JournalItem";
+import type { Pet } from "../../pet/types/Pet";
 import styles from "./Workspace.module.css";
 import { speciesName } from "../utils/presentation";
 

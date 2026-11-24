@@ -1,19 +1,35 @@
-import {
-  categories,
-  requireText,
-  requireOwner,
-  requireAdmin,
-} from "../domain/models.ts";
-import type {
-  Actor,
-  Category,
-  FamilyRole,
-  LifeState,
-  Postcard,
-} from "../domain/models.ts";
-import type { LifeRepository, PostcardGenerator } from "./ports.ts";
-import type { RuntimePort } from "../../workspace/application/ports.ts";
-import type { JournalItem } from "../../workspace/domain/models.ts";
+import type { Category } from "../../features/community/types/community.ts";
+import { categories } from "../../features/community/utils/categories.ts";
+import type { JournalItem } from "../../features/diary/types/JournalItem.ts";
+import type { FamilyRole } from "../../features/family/types/family.ts";
+import type { Postcard } from "../../features/postcard/types/Postcard.ts";
+import type { Actor, LifeState } from "../../features/shell/types/life.ts";
+import type { RuntimePort } from "./workspaceUseCases.ts";
+export interface LifeRepository {
+  load(): Promise<LifeState>;
+  save(state: LifeState): Promise<void>;
+}
+export interface PostcardGenerator {
+  generate(
+    records: readonly JournalItem[],
+    petName: string,
+    petPhotoUrl?: string,
+  ): Promise<{
+    text: string;
+    imageUrl: string;
+    demoArtwork?: Postcard["demoArtwork"];
+  }>;
+}
+export function requireText(value: string, label: string, max = 3000) {
+  if (!value.trim() || value.length > max)
+    throw Error(`${label}은(는) 1~${max.toLocaleString()}자로 입력해 주세요.`);
+}
+export function requireOwner(ownerId: string, actor: Actor) {
+  if (ownerId !== actor.id) throw Error("작성자만 변경할 수 있어요.");
+}
+export function requireAdmin(actor: Actor) {
+  if (!actor.isAdmin) throw Error("관리자 데모 권한이 필요해요.");
+}
 export function createLifeUseCases(
   repository: LifeRepository,
   generator: PostcardGenerator,

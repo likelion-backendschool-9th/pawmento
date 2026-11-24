@@ -1,5 +1,5 @@
 "use client";
-import { journalItems } from "@/features/workspace/domain/models";
+import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";

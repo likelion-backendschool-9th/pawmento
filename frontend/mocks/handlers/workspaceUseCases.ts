@@ -1,10 +1,24 @@
-import { createDiaryUseCases } from "../../diary/browserDiary.ts";
-import { createQuestionAnswerUseCases } from "../../question/browserQuestion.ts";
-import type { QuestionPoolPort } from "../../question/browserQuestion.ts";
-import { validatePet } from "../domain/models.ts";
-import type { PetInput, Workspace } from "../domain/models.ts";
-import type { RuntimePort, WorkspaceRepository } from "./ports.ts";
-
+import type { PetInput } from "../../features/pet/types/Pet.ts";
+import type { Workspace } from "../../features/shell/types/workspace.ts";
+import { validateDate } from "../../lib/date.ts";
+import { createDiaryUseCases } from "./diaryUseCases.ts";
+import type { QuestionPoolPort } from "./questionAnswerUseCases.ts";
+import { createQuestionAnswerUseCases } from "./questionAnswerUseCases.ts";
+export interface WorkspaceRepository {
+  load(accountId: string): Promise<Workspace>;
+  save(accountId: string, workspace: Workspace): Promise<void>;
+}
+export interface RuntimePort {
+  id(): string;
+  now(): string;
+}
+export function validatePet(input: PetInput): void {
+  if (!input.name.trim() || input.name.trim().length > 20)
+    throw Error("이름은 1~20자로 입력해 주세요.");
+  if (!["DOG", "CAT", "OTHER"].includes(input.species))
+    throw Error("반려동물의 종류를 선택해 주세요.");
+  if (input.birthday) validateDate(input.birthday);
+}
 export function createWorkspaceUseCases(
   repository: WorkspaceRepository,
   runtime: RuntimePort,
@@ -76,7 +90,7 @@ export function createWorkspaceUseCases(
     questions,
     seedDemoAnswers: (
       accountId: string,
-      inputs: import("../../question/types/QuestionAnswer.ts").DemoQuestionAnswerInput[],
+      inputs: import("../../features/question/types/QuestionAnswer.ts").DemoQuestionAnswerInput[],
     ) =>
       mutate(accountId, (state) => {
         if (accountId !== "demo")

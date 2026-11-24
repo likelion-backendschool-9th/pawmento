@@ -1,15 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
+import { createQuestionAnswerUseCases, type QuestionCollection } from "../mocks/handlers/questionAnswerUseCases.ts";
+import type { JournalStore } from "../mocks/handlers/journalStore.ts";
+import { createWorkspaceUseCases } from "../mocks/handlers/workspaceUseCases.ts";
 import {
   emptyWorkspace,
   type Workspace,
-} from "../features/workspace/domain/models.ts";
-import {
-  createQuestionAnswerUseCases,
-  type QuestionCollection,
-} from "../features/question/browserQuestion.ts";
-import type { JournalStore } from "../lib/application/JournalStore.ts";
+} from "../features/shell/types/workspace.ts";
 function setup(poolSize = 2) {
   let state: Workspace = emptyWorkspace(),
     n = 0,

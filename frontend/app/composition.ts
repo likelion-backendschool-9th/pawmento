@@ -5,9 +5,9 @@ import { SharedWorkspaceRepository } from "../mocks/handlers/SharedWorkspaceRepo
 import { BrowserLifeRepository } from "../mocks/handlers/BrowserLifeRepository.ts";
 import { DemoPostcardGenerator } from "../mocks/handlers/DemoPostcardGenerator.ts";
 import { PoolQuestionRepository } from "../mocks/handlers/PoolQuestionRepository.ts";
-import { createLifeUseCases } from "../features/life/application/useCases.ts";
+import { createLifeUseCases } from "../mocks/handlers/lifeUseCases.ts";
 
-import { createWorkspaceUseCases } from "../features/workspace/application/useCases.ts";
+import { createWorkspaceUseCases } from "../mocks/handlers/workspaceUseCases.ts";
 import { BrowserWorkspaceRepository } from "../mocks/handlers/BrowserWorkspaceRepository.ts";
 import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";

@@ -1,5 +1,5 @@
-import type { QuestionPoolPort } from "../../features/question/browserQuestion.ts";
-import type { LifeRepository } from "../../features/life/application/ports.ts";
+import type { QuestionPoolPort } from "./questionAnswerUseCases.ts";
+import type { LifeRepository } from "./lifeUseCases.ts";
 export class PoolQuestionRepository implements QuestionPoolPort {
   constructor(private repository: LifeRepository) {}
   async list(mode: "ACTIVE" | "GARDEN") {

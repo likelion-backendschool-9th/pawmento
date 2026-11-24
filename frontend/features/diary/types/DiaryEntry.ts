@@ -1,4 +1,4 @@
-import type { MediaAttachment } from "../../../lib/domain/MediaAttachment.ts";
+import type { MediaAttachment } from "../../../types/MediaAttachment.ts";
 export type DiaryEntry = {
   id: string;
   petId: string;

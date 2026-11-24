@@ -2,7 +2,7 @@
 import { createContext, useContext } from "react";
 import { notFound, useParams } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
-import type { Pet } from "../../workspace/domain/models";
+import type { Pet } from "../types/Pet";
 import { EmptyState } from "../../shell/components/WorkspaceUi";
 const Context = createContext<Pet | null>(null);
 export function useCurrentPet() {

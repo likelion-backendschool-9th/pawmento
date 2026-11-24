@@ -1,5 +1,5 @@
 "use client";
-import { journalItems } from "@/features/workspace/domain/models";
+import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
@@ -8,7 +8,8 @@ import { useApp } from "@/app/AppProvider";
 import { Photo } from "@/components/Photo";
 import { MediaPlayer } from "@/components/MediaAttachments";
 import { Icon } from "@/components/Icon";
-import type { Pet, MediaAttachment } from "@/features/workspace/domain/models";
+import type { MediaAttachment } from "@/types/MediaAttachment";
+import type { Pet } from "@/features/pet/types/Pet";
 import { LifeHeading, LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function MediaScreen({ pet }: { pet: Pet }) {
   const app = useApp();

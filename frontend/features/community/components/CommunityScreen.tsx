@@ -5,8 +5,8 @@ import { useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { Icon } from "@/components/Icon";
-import { categories } from "@/features/life/domain/models";
-import type { Post, Category } from "@/features/life/domain/models";
+import { categories } from "@/features/community/utils/categories";
+import type { Post, Category } from "@/features/community/types/community";
 import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,

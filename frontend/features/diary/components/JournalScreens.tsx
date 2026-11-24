@@ -1,6 +1,6 @@
 "use client";
 import { MediaAttachments, MediaPlayer } from "@/components/MediaAttachments";
-import type { MediaAttachment } from "../../workspace/domain/models";
+import type { MediaAttachment } from "../../../types/MediaAttachment";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
 import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
 import Link from "next/link";
@@ -16,8 +16,8 @@ import type { PickedLocation } from "@/features/map/types/PickedLocation";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { today } from "@/lib/date";
 import { formatDate } from "@/lib/date";
-import type { JournalItem } from "../../workspace/domain/models";
-import type { Pet } from "../../workspace/domain/models";
+import type { JournalItem } from "../types/JournalItem";
+import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";

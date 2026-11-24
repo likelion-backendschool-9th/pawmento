@@ -1,13 +1,13 @@
 "use client";
 import { questionHistory } from "@/features/question/utils/questionHistory";
-import { registrationDate } from "@/lib/application/JournalStore";
+import { registrationDate } from "@/lib/date";
 
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
-import type { Pet } from "@/features/workspace/domain/models";
+import type { Pet } from "@/features/pet/types/Pet";
 import { LifeHeading, LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();

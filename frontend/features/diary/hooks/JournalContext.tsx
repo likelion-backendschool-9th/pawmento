@@ -2,8 +2,8 @@
 import { createContext, useContext } from "react";
 import { notFound, redirect, useParams, usePathname } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
-import { journalItems } from "../../workspace/domain/models";
-import type { JournalItem } from "../../workspace/domain/models";
+import { journalItems } from "../utils/journalItems";
+import type { JournalItem } from "../types/JournalItem";
 import { usePet } from "../../pet/hooks/PetContext";
 const Context = createContext<JournalItem | null>(null);
 export function JournalBoundary({ children }: { children: React.ReactNode }) {

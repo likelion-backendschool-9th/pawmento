@@ -1,5 +1,5 @@
 "use client";
-import { journalItems } from "@/features/workspace/domain/models";
+import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,8 +9,8 @@ import { useConfirmNavigation } from "@/components/UnsavedChangesProvider";
 import { Icon } from "@/components/Icon";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { today } from "@/lib/date";
-import type { Pet } from "../../workspace/domain/models";
-import type { PetInput } from "../../workspace/domain/models";
+import type { Pet } from "../types/Pet";
+import type { PetInput } from "../types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
 import { PetSummary, EmptyState, PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";

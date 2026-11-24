@@ -1,5 +1,5 @@
 "use client";
-import { journalItems } from "@/features/workspace/domain/models";
+import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
 import { useState } from "react";
@@ -8,7 +8,7 @@ import { today } from "@/lib/date";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
-import type { Pet } from "../../workspace/domain/models";
+import type { Pet } from "../types/Pet";
 import { JournalCard } from "../../shell/components/WorkspaceUi";
 import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
 import { question } from "../../shell/utils/presentation";

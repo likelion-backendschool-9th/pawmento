@@ -7,8 +7,8 @@ import {
   useState,
 } from "react";
 import type { Account, SessionSource } from "../features/member/types/account";
-import { emptyWorkspace } from "../features/workspace/domain/models";
-import type { Workspace } from "../features/workspace/domain/models";
+import { emptyWorkspace } from "../features/shell/types/workspace";
+import type { Workspace } from "../features/shell/types/workspace";
 import {
   createDependencies,
   demoQuestionInputs,

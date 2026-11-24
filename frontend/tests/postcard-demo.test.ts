@@ -2,11 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   drawJournalItem,
-  sceneForJournalItem,
   postcardScenes,
-} from "../features/life/application/postcardScenes.ts";
-import { DemoPostcardGenerator } from "../mocks/handlers/DemoPostcardGenerator.ts";
-import type { JournalItem } from "../features/workspace/domain/models.ts";
+} from "../features/postcard/utils/postcardScenes.ts";
+import {
+  DemoPostcardGenerator,
+  sceneForJournalItem,
+} from "../mocks/handlers/DemoPostcardGenerator.ts";
+import type { JournalItem } from "../features/diary/types/JournalItem.ts";
 const record: JournalItem = {
   id: "park",
   petId: "bori",

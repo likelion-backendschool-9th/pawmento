@@ -1,5 +1,5 @@
 "use client";
-import { journalItems } from "@/features/workspace/domain/models";
+import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -10,9 +10,9 @@ import { QuestionAnswer } from "@/components/QuestionAnswer";
 import {
   drawJournalItem,
   postcardScenes,
-} from "@/features/life/application/postcardScenes";
-import type { Pet } from "@/features/workspace/domain/models";
-import type { Postcard } from "@/features/life/domain/models";
+} from "@/features/postcard/utils/postcardScenes";
+import type { Pet } from "@/features/pet/types/Pet";
+import type { Postcard } from "@/features/postcard/types/Postcard";
 import { PostcardPaper } from "./PostcardPaper";
 import { downloadPostcard } from "../utils/downloadPostcard";
 import { useLife } from "@/features/shell/hooks/useLife";
