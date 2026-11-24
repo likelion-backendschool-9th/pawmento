@@ -59,6 +59,7 @@ export function Shell({
             ]
           : []),
         { href: "/community", label: "커뮤니티", icon: "users" },
+        { href: "/places", label: "지도", icon: "map" },
         {
           href: pet ? `${p}/family` : "/pets",
           label: "가족 공동 기록",

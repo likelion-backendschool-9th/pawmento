@@ -1,0 +1,113 @@
+/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕은 MapScreen.module.css의 .stage를 함께 쓴다. */
+.page {
+  display: block;
+}
+
+.marker {
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  /* 둥근 마커의 가운데가 좌표 위치가 된다 */
+  transform: translate(-50%, -50%);
+}
+.marker > svg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.marker:focus-visible > svg {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 50%;
+}
+
+/* 지도 위쪽의 종류 칩 */
+.filters {
+  position: absolute;
+  z-index: 4;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.filters::-webkit-scrollbar {
+  display: none;
+}
+.filter {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+.filter b {
+  color: var(--text-primary);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.filter[aria-pressed="true"] {
+  border-color: var(--color-sage-400);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.filter:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--dot, var(--brand-primary));
+  opacity: 0.4;
+}
+.filter[aria-pressed="true"] .dot {
+  opacity: 1;
+}
+
+/* 선택한 장소 카드(이름·종류·주소). 전화·운영 시간 등은 다음 PR에서 더한다 */
+.kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--kind, var(--text-secondary));
+}
+.address {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.6;
+}
+
+/* 휴대폰에서는 지도 아래의 선택 카드가 하단 메뉴 뒤로 밀리지 않도록 지도를 화면 높이에 맞춘다.
+   머리글·제목·하단 메뉴의 높이를 뺀 값이고, 너무 작아지지 않게 하한을 둔다. 속성 선택자로 MapScreen.module.css의 .stage보다 우선한다 */
+@media (max-width: 767px) {
+  .page [data-places-stage] {
+    height: calc(100dvh - 440px);
+    min-height: 380px;
+  }
+}

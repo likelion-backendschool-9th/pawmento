@@ -5,6 +5,7 @@ import { useApp } from "@/app/AppProvider";
 import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/Icon";
 import type { Pet } from "../../pet/types/Pet";
+import { mobileNavLinks } from "../utils/mobileNavigation";
 import s from "./SpaceShell.module.css";
 
 export function SpaceShell({
@@ -75,6 +76,13 @@ export function SpaceShell({
       active: route.startsWith("/community"),
     },
   ];
+  // 정보 지도(병원·미용·보호센터). 하단 메뉴의 마지막 칸이다. 전체 메뉴는 위쪽 머리글의 버튼으로 열린다.
+  const mapLink = {
+    href: "/places",
+    label: "지도",
+    icon: "map",
+    active: route.startsWith("/places"),
+  };
   return (
     <div
       className={`${s.garden} ${garden ? "" : s.daily}`}
@@ -125,7 +133,7 @@ export function SpaceShell({
           className={s.navigation}
           aria-label={garden ? "정원 주요 메뉴" : "일상 주요 메뉴"}
         >
-          {links.map((link) => (
+          {[...links, mapLink].map((link) => (
             <Link
               key={link.label}
               href={link.href}
@@ -151,7 +159,7 @@ export function SpaceShell({
         className={s.mobileNav}
         aria-label={garden ? "모바일 정원 메뉴" : "모바일 일상 메뉴"}
       >
-        {links.slice(0, 4).map((link) => (
+        {mobileNavLinks(links, mapLink).map((link) => (
           <Link
             key={link.label}
             href={link.href}
@@ -167,14 +175,6 @@ export function SpaceShell({
             </span>
           </Link>
         ))}
-        <button
-          type="button"
-          aria-label="전체 메뉴 열기"
-          onClick={() => setOpen(true)}
-        >
-          <Icon name="menu" size={21} />
-          <span>더보기</span>
-        </button>
       </nav>
       <dialog
         ref={dialog}
