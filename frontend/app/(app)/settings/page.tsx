@@ -1,4 +1,4 @@
-import { SettingsScreen } from "@/features/life/adapters/inbound/SettingsScreen";
+import { SettingsScreen } from "@/features/mypage/components/SettingsScreen";
 export default function Page() {
   return <SettingsScreen />;
 }

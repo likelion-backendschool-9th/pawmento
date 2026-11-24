@@ -1,5 +1,5 @@
 "use client";
-import { FamilyScreen } from "@/features/life/adapters/inbound/FamilyScreen";
+import { FamilyScreen } from "@/features/family/components/FamilyScreen";
 import { usePet } from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();

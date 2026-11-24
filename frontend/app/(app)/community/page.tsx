@@ -1,4 +1,4 @@
-import { CommunityScreen } from "@/features/life/adapters/inbound/CommunityScreen";
+import { CommunityScreen } from "@/features/community/components/CommunityScreen";
 export default function Page() {
   return <CommunityScreen />;
 }

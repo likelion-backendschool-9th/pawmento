@@ -1,4 +1,4 @@
-import type { Postcard } from "../../domain/models";
+import type { Postcard } from "@/features/life/domain/models";
 const escape = (value: string) =>
   value
     .replaceAll("&", "&amp;")

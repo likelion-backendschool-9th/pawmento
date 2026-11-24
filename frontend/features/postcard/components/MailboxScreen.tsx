@@ -10,19 +10,19 @@ import { QuestionAnswer } from "@/components/QuestionAnswer";
 import {
   drawJournalItem,
   postcardScenes,
-} from "../../application/postcardScenes";
+} from "@/features/life/application/postcardScenes";
 import type { Pet } from "@/features/workspace/domain/models";
-import type { Postcard } from "../../domain/models";
+import type { Postcard } from "@/features/life/domain/models";
 import { PostcardPaper } from "./PostcardPaper";
-import { downloadPostcard } from "../outbound/downloadPostcard";
-import { useLife } from "./useLife";
+import { downloadPostcard } from "../utils/downloadPostcard";
+import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,
   LifeStatus,
   LifeEmpty,
   DemoNote,
   lifeStyles as s,
-} from "./LifeUi";
+} from "@/features/shell/components/LifeUi";
 export function MailboxScreen({
   pet,
   segments = [],

@@ -3,15 +3,15 @@ import Link from "next/link";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { Pet } from "@/features/workspace/domain/models";
-import type { FamilyRole } from "../../domain/models";
-import { useLife } from "./useLife";
+import type { FamilyRole } from "@/features/life/domain/models";
+import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,
   LifeStatus,
   LifeEmpty,
   DemoNote,
   lifeStyles as s,
-} from "./LifeUi";
+} from "@/features/shell/components/LifeUi";
 export function FamilyScreen({
   pet,
   inviteId,

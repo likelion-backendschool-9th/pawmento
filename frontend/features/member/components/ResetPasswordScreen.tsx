@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { lifeStyles as s } from "./LifeUi";
+import { lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function ResetPasswordScreen() {
   const app = useApp();
   const [error, setError] = useState("");

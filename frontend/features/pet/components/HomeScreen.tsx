@@ -12,7 +12,7 @@ import type { Pet } from "../../workspace/domain/models";
 import { JournalCard } from "../../shell/components/WorkspaceUi";
 import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
 import { question } from "../../shell/utils/presentation";
-import { LifeEmpty, lifeStyles as s } from "@/features/life/adapters/inbound/LifeUi";
+import { LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 import g from "./HomeScreen.module.css";
 
 export function HomeScreen({ pet }: { pet: Pet }) {

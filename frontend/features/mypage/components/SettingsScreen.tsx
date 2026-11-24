@@ -3,8 +3,8 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
-import { useLife } from "./useLife";
-import { LifeHeading, DemoNote, lifeStyles as s } from "./LifeUi";
+import { useLife } from "@/features/shell/hooks/useLife";
+import { LifeHeading, DemoNote, lifeStyles as s } from "@/features/shell/components/LifeUi";
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: string }>;

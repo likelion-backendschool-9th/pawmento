@@ -8,7 +8,7 @@ import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
 import type { Pet } from "@/features/workspace/domain/models";
-import { LifeHeading, LifeEmpty, lifeStyles as s } from "./LifeUi";
+import { LifeHeading, LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();
   const [adding, setAdding] = useState(false);

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import type { Pet } from "@/features/workspace/domain/models";
-import { LifeHeading, DemoNote, lifeStyles as s } from "./LifeUi";
+import { LifeHeading, DemoNote, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function ModeScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const router = useRouter();

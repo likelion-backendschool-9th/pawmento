@@ -1,4 +1,4 @@
-import { AdminScreen } from "@/features/life/adapters/inbound/AdminScreen";
+import { AdminScreen } from "@/features/admin/components/AdminScreen";
 export default function Page() {
   return <AdminScreen section="notices" />;
 }

@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import type { LifeState, Actor } from "../../domain/models";
+import type { LifeState, Actor } from "@/features/life/domain/models";
 export function useLife() {
   const app = useApp();
   const [state, setState] = useState<LifeState | null>(null);

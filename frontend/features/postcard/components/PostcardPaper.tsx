@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
-import type { Postcard } from "../../domain/models";
+import type { Postcard } from "@/features/life/domain/models";
 import s from "./PostcardPaper.module.css";
 
 export function PostcardPaper({

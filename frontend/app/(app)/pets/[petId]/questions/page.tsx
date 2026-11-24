@@ -1,5 +1,5 @@
 "use client";
-import { QuestionHistory } from "@/features/life/adapters/inbound/QuestionHistory";
+import { QuestionHistory } from "@/features/question/components/QuestionHistory";
 import { usePet } from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();

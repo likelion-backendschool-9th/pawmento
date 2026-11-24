@@ -1,14 +1,14 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { useLife } from "./useLife";
+import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,
   LifeStatus,
   LifeEmpty,
   DemoNote,
   lifeStyles as s,
-} from "./LifeUi";
+} from "@/features/shell/components/LifeUi";
 export function AdminScreen({ section = "reports" }: { section?: string }) {
   const life = useLife();
   const [editingQuestion, setEditingQuestion] = useState<string>();

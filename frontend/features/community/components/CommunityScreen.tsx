@@ -5,16 +5,16 @@ import { useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { Icon } from "@/components/Icon";
-import { categories } from "../../domain/models";
-import type { Post, Category } from "../../domain/models";
-import { useLife } from "./useLife";
+import { categories } from "@/features/life/domain/models";
+import type { Post, Category } from "@/features/life/domain/models";
+import { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeHeading,
   LifeStatus,
   LifeEmpty,
   DemoNote,
   lifeStyles as s,
-} from "./LifeUi";
+} from "@/features/shell/components/LifeUi";
 export function CommunityScreen({
   segments = [],
   activity = false,

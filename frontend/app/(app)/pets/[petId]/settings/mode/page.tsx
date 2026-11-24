@@ -1,5 +1,5 @@
 "use client";
-import { ModeScreen } from "@/features/life/adapters/inbound/ModeScreen";
+import { ModeScreen } from "@/features/pet/components/ModeScreen";
 import {
   usePet,
   PetWriteAccess,

@@ -1,5 +1,5 @@
 "use client";
-import { MailboxScreen } from "@/features/life/adapters/inbound/MailboxScreen";
+import { MailboxScreen } from "@/features/postcard/components/MailboxScreen";
 import { usePet } from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();

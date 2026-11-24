@@ -9,7 +9,7 @@ import { Photo } from "@/components/Photo";
 import { MediaPlayer } from "@/components/MediaAttachments";
 import { Icon } from "@/components/Icon";
 import type { Pet, MediaAttachment } from "@/features/workspace/domain/models";
-import { LifeHeading, LifeEmpty, lifeStyles as s } from "./LifeUi";
+import { LifeHeading, LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 export function MediaScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const [filter, setFilter] = useState("ALL");
