@@ -6,7 +6,7 @@
 
 - 끝나면: 합의된 관리자만 신고 목록·상세를 보고 처리하거나 기각하며, 중복 처리와 다른 도메인 조치 실패에서 원본이 보존된다.
 - 이번 PR은 목록 기반 이후 상세·처리의 데이터, 응답, 담당별 제공 순서를 기록한다.
-- 결정 필요는 만료 신고의 목록 제목 표현이다. 작업별 구현은 실제 제공 포트와 보호된 관리자 경로를 확인한 뒤 연결한다.
+- 목록·상세의 만료 응답과 처리·숨김 계약을 정했다. 작업별 구현은 실제 제공 포트와 보호된 관리자 경로를 확인한 뒤 연결한다.
 - 규모: 계약 확정 후 백엔드 목록 → 상세 → 처리 순서의 작은 작업·커밋·PR로 분리한다. 프론트는 백엔드 계약 확정 후 별도 계획 검토·구현으로 진행한다.
 - 착수 조건: 해당 단위에 영향을 주는 질문의 답변과 담당 합의가 기록되고 계획이 승인돼야 한다. 문서 머지만으로 미답 질문이나 다른 담당 코드 수정이 승인됐다고 간주하지 않는다.
 
@@ -19,9 +19,10 @@
 - 경로: `GET /api/v1/admin/reports`. `status` 생략 시 PENDING, reportId 내림차순, `size` 생략 시20·허용 범위1~50이다. `status`는 PENDING/RESOLVED/DISMISSED만 허용한다.
 - 커서는 마지막으로 반환한 `reportId`의 양의 10진수 Long 문자열이다. 첫 요청은 `cursor`를 생략하며, 다음 조회는 같은 상태 필터에서 `reportId < cursor`를 적용한다. 응답은 `items`와 `nextCursor`를 제공한다. 더 조회할 항목이 있을 때만 마지막 반환 항목의 ID를 `nextCursor`로 쓰며, 마지막 페이지·빈 목록은 `nextCursor: null`이다. 커서 ID의 실제 존재는 요구하지 않는다. (고침 #92: PR #152 리뷰에 따라 admin이 커서·종료 표현 결정)
 - `status`·`size`·`cursor`는 admin 웹 어댑터가 검증한다. 명시한 빈 값, 허용되지 않은 상태(소문자 포함), 정수가 아닌 size/cursor, 범위 밖 size, 0 이하·Long 범위 초과 cursor는 거절한다. 웹 전용 `InvalidReportListRequestException`을 `RuleViolationException` 하위로 두어 공통 응답400 `VALIDATION`으로 변환한다. 안내 문구는 각각 `status는 PENDING, RESOLVED, DISMISSED 중 하나여야 해요.`, `size는 1 이상 50 이하의 정수여야 해요.`, `cursor는 양의 정수 신고 ID여야 해요.`로 정한다. MVC 기본 타입 변환 오류로 빠져 공통 응답을 우회하지 않도록 문자열 입력부터 검증한다. (고침 #92: 입력 오류는 admin 책임으로 결정)
-- 항목은 `reportId`, `postId`, `status`, `reasonType`, `createdAt`, `snapshotTitle`, `postState`다. 사유 요약은 `reasonType`으로 대신하며 `postState`는 VISIBLE/HIDDEN/DELETED다.
+- 항목은 `reportId`, `postId`, `status`, `reasonType`, `createdAt`, `snapshotTitle`, `snapshotExpired`, `postState`다. 사유 요약은 `reasonType`으로 대신하며 `postState`는 VISIBLE/HIDDEN/DELETED다.
 - 목록 연결 시 admin application에 신고 상태(PENDING/RESOLVED/DISMISSED), 사유(SPAM/ABUSE/HARMFUL/MISINFO/PRIVACY/OTHER), 게시글 상태(VISIBLE/HIDDEN/DELETED)의 enum을 두고, admin outbound 어댑터가 #112 결과를 명시적으로 변환한다. community 도메인 enum을 admin 입력 포트나 웹 응답에 직접 노출하지 않는다. 알 수 없는 제공 값은 기본값이나 사용자 입력400으로 바꾸지 않고 내부 계약 오류로 실패시킨다. 현재 항목 모델의 String 교체와 변환 검사는 실제 포트 연결 작업에 포함한다.
-- `createdAt`의 HTTP 표현은 UTC ISO-8601 문자열(예: `2026-11-21T00:00:00Z`)이다. 목록 연결 시 `@WebMvcTest`에서 Spring 응답 설정으로 7개 필드와 날짜의 고정 기대값을 검사한다. 현재 기본 `JsonMapper` 단위 검사는 항목 매핑만 확인하며 HTTP 형식 검증을 대신하지 않는다.
+- 만료 전에는 `snapshotExpired: false`와 신고 당시 제목을 반환한다. 만료 후에도 신고 행을 목록에 유지하며 `snapshotExpired: true`와 `snapshotTitle: null`을 반환한다. `snapshotExpired`는 JSON boolean이며 제목의 null 여부로 추론하지 않는다. #112가 `FindReportPagePort.Item`에 제공하는 값을 관리자 목록 응답으로 전달한다. ([담당자 답변](https://github.com/likelion-backendschool-9th/pawmento/pull/173#issuecomment-7120572008))
+- `createdAt`의 HTTP 표현은 UTC ISO-8601 문자열(예: `2026-11-21T00:00:00Z`)이다. 목록 연결 시 `@WebMvcTest`에서 Spring 응답 설정으로 8개 필드와 날짜의 고정 기대값을 검사한다. 현재 기본 `JsonMapper` 단위 검사는 항목 매핑만 확인하며 HTTP 형식 검증을 대신하지 않는다.
 - 사유 상세 전문·신고자/작성자 ID·현재 본문·회원 개인정보를 목록에 추가하지 않는다. 상세 계약에서 따로 다룬다.
 - community가 #112에서 신고 저장과 운영 목록의 실제 조회 구현을 제공한다. 관리자 쪽에서는 #152의 목록 입력 포트·서비스·웹 기반에 제공된 조회 구현을 연결한다.
 - 접수 규칙 초안에 관리자 측 이견은 없다. 스냅샷 저장과 보존은 아래 Q4 계약을 따르며 접수 구현은 community #112에서 진행한다.
@@ -35,11 +36,9 @@
 
 제공 순서는 **계약 동의 → #112 신고 저장·운영 목록 포트 → #92 관리자 목록 연결**이다. 포트 제공 전 내부 구현 병행은 아직 별도 승인되지 않았으므로 타입/가짜 포트를 먼저 만들어 공유 계약을 선점하지 않는다. 보안 PR·실제 포트가 없으면 외부 HTTP 경로나 항상 빈 결과로 우회하지 않는다.
 
-만료 행의 목록 `snapshotTitle` 값은 community 담당 확인 뒤 목록 계약과 S1에 반영한다.
-
 ## 상세·처리 계약 (#92-R2·R3)
 
-[community 담당 답변](https://github.com/likelion-backendschool-9th/pawmento/pull/173#issuecomment-7120151197)을 반영한다. 리스트의 필터·정렬·커서·기존 7개 필드는 위 계약을 기준으로 한다.
+[community 담당 답변](https://github.com/likelion-backendschool-9th/pawmento/pull/173#issuecomment-7120151197)을 반영한다. 리스트의 필터·정렬·커서·8개 필드는 위 계약을 기준으로 한다.
 
 ### Q4 — 접수 스냅샷과 운영 상세
 
@@ -47,7 +46,7 @@
 - 상세는 `reportId`, `postId`, `reporterId`, `authorId`, `status`, `reasonType`, `reasonDetail`, `createdAt`, 신고 `version`, `snapshot`(당시 `title`, `body`, `categoryCode`, `postVersion`), 현재 `postState`와 `postVersion`을 반환한다. 처리 뒤에는 `processedBy`, `processedAt`, `resolutionNote`를 반환한다. 신고자·작성자 정보는 내부 ID까지만 제공하고, 판단 자료는 신고 당시 내용으로 한정한다.
 - 작성자가 삭제한 글의 만료 전 스냅샷은 유지하고 현재 상태를 DELETED로 표시한다. 공개 상세는 404다. 회원 탈퇴 이후에도 신고와 스냅샷, 내부 작성자 ID는 기존 보존 정책에 따라 유지한다.
 - RESOLVED 또는 DISMISSED 처리 시점부터 1년이 지나면 `snapshot_title`, `snapshot_body`, `reason_detail`을 지운다. 신고 행과 재신고 판정에 쓰는 `snapshot_post_version`은 유지한다. PENDING은 처리 전에 정리하지 않는다. 만료 상세는 `snapshot: null`, `snapshotExpired: true`로 반환한다. 정리 작업은 첫 만료 전에 별도 PR로 진행한다.
-- **확인 필요**: 제목이 정리된 신고를 목록에서 조회할 때 기존 `snapshotTitle` 필드를 `null`로 유지할지 확인한다.
+- 만료된 신고는 목록에도 남고, 위 목록 계약에 따라 `snapshotTitle: null`과 `snapshotExpired: true`를 반환한다.
 
 ### Q3·Q5 — 처리·기각과 게시글 숨김
 
@@ -108,8 +107,9 @@
 - Then 첫 페이지는 PENDING ID21~2의20건, 다음 페이지는 PENDING ID1의1건으로 중복 없이 내림차순으로 보인다. ID22·23은 두 페이지 모두 제외돼야 하며 다른 상태의 신고가 페이지 크기를 차지하지 않는다 (고침 #92: 기본 PENDING 필터 누락을 검출하는 다른 상태·상위 ID 데이터 추가)
 - Then 조건에 맞는 신고가 없으면 200·빈 목록이며 Q4에서 허용하지 않은 개인정보는 포함되지 않는다
 - 첫 페이지의 nextCursor는 "2", 마지막 페이지와 빈 목록은 null이다. size=1/50과 cursor ID가 존재하지 않아도 배타적 ID 경계로 조회되는 경우를 확인한다. 잘못된 status/size/cursor는 위 admin 계약의400 VALIDATION·안내 문구로 확인한다 (고침 #92: 커서 경계·종료·오류 기대값 구체화)
-- 목록 연결 시 enum 변환과 허용되지 않은 제공 값의 실패를 검사하고, `@WebMvcTest`에서 실제 HTTP 항목의7개 필드와 createdAt의 UTC ISO-8601 고정 기대값을 확인한다. 기본 JsonMapper 단위 검사만으로 HTTP 검사를 완료 처리하지 않는다
-- 목록 항목은 reportId/postId/status/reasonType/createdAt/snapshotTitle/postState만 매핑하며 사유 상세·신고자/작성자 ID·본문·회원 개인정보를 반환하지 않는다 (고침 #92: community 목록 제안의 조회 조건·필드 채택)
+- 목록 연결 시 enum 변환과 허용되지 않은 제공 값의 실패를 검사하고, `@WebMvcTest`에서 실제 HTTP 항목의 8개 필드와 createdAt의 UTC ISO-8601 고정 기대값을 확인한다. 기본 JsonMapper 단위 검사만으로 HTTP 검사를 완료 처리하지 않는다
+- 목록 항목은 reportId/postId/status/reasonType/createdAt/snapshotTitle/snapshotExpired/postState만 매핑하며 사유 상세·신고자/작성자 ID·본문·회원 개인정보를 반환하지 않는다 (고침 #92: 만료 표시 필드 채택)
+- 처리된 신고를 조회할 때 만료 전에는 `snapshotExpired: false`와 제목을, 만료 후에는 같은 신고 행에서 `snapshotExpired: true`와 명시적인 `snapshotTitle: null`을 반환한다. 필드 타입은 JSON boolean이고 상태 필터·정렬·커서 계약은 유지한다. (고침 #92: 스냅샷 만료 경계 반영)
 
 ## 2. 신고와 대상 내용의 운영 조회 (#92-R2)
 

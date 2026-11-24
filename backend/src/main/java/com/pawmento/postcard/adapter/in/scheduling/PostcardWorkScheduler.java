@@ -1,6 +1,6 @@
 package com.pawmento.postcard.adapter.in.scheduling;
 
-import com.pawmento.postcard.application.port.in.ProcessPostcardWorkUseCase;
+import com.pawmento.postcard.application.port.in.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.*;
     matchIfMissing = true)
 public class PostcardWorkScheduler {
   private final ProcessPostcardWorkUseCase worker;
+  private final CleanupPostcardFilesUseCase cleanup;
 
   @Scheduled(fixedDelayString = "${pawmento.postcard.worker.delay-ms:3000}")
   public void process() {
@@ -25,6 +26,15 @@ public class PostcardWorkScheduler {
       for (int n = 0; n < 5 && worker.processNext(); n++) {}
     } catch (RuntimeException e) {
       log.error("Postcard worker temporarily unavailable: {}", e.getClass().getSimpleName());
+    }
+  }
+
+  @Scheduled(fixedDelayString = "${pawmento.postcard.worker.cleanup-delay-ms:3600000}")
+  public void clean() {
+    try {
+      cleanup.cleanup();
+    } catch (RuntimeException e) {
+      log.error("Postcard file cleanup temporarily unavailable: {}", e.getClass().getSimpleName());
     }
   }
 }

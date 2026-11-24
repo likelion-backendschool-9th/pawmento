@@ -2,12 +2,19 @@ package com.pawmento.pet.adapter.in.web;
 
 import java.util.List;
 
+import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -22,10 +29,12 @@ import com.pawmento.pet.application.port.in.DeletePetCommand;
 import com.pawmento.pet.application.port.in.DeletePetUseCase;
 import com.pawmento.pet.application.port.in.EditPetCommand;
 import com.pawmento.pet.application.port.in.EditPetUseCase;
+import com.pawmento.pet.application.port.in.GetPetProfilePhotoUseCase;
 import com.pawmento.pet.application.port.in.GetPetQuery;
 import com.pawmento.pet.application.port.in.GetPetUseCase;
 import com.pawmento.pet.application.port.in.ListPetsQuery;
 import com.pawmento.pet.application.port.in.ListPetsUseCase;
+import com.pawmento.pet.application.port.in.UpdatePetProfilePhotoUseCase;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,6 +50,8 @@ public class PetController {
 	private final EditPetUseCase editPetUseCase;
 	private final ChangePetModeUseCase changePetModeUseCase;
 	private final DeletePetUseCase deletePetUseCase;
+	private final UpdatePetProfilePhotoUseCase updatePetProfilePhotoUseCase;
+	private final GetPetProfilePhotoUseCase getPetProfilePhotoUseCase;
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -76,6 +87,43 @@ public class PetController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void delete(@LoginMember Long memberId, @PathVariable Long petId) {
 		deletePetUseCase.delete(new DeletePetCommand(memberId, petId));
+	}
+
+	@PutMapping("/{petId}/profile-photo")
+	PetResponse updateProfilePhoto(@LoginMember Long memberId, @PathVariable Long petId,
+			@RequestBody UpdatePetProfilePhotoRequest request) {
+		return PetResponse.from(updatePetProfilePhotoUseCase.update(
+				new UpdatePetProfilePhotoUseCase.Command(memberId, petId, request.assetId())));
+	}
+
+	@DeleteMapping("/{petId}/profile-photo")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	void removeProfilePhoto(@LoginMember Long memberId, @PathVariable Long petId) {
+		updatePetProfilePhotoUseCase.update(new UpdatePetProfilePhotoUseCase.Command(memberId, petId, null));
+	}
+
+	@GetMapping("/{petId}/profile-photo/{assetId}/content")
+	ResponseEntity<Resource> profilePhoto(@LoginMember Long memberId, @PathVariable Long petId,
+			@PathVariable Long assetId) {
+		return profilePhotoResponse(new GetPetProfilePhotoUseCase.Query(memberId, petId, assetId, false));
+	}
+
+	@GetMapping("/{petId}/profile-photo/{assetId}/thumbnail")
+	ResponseEntity<Resource> profilePhotoThumbnail(@LoginMember Long memberId, @PathVariable Long petId,
+			@PathVariable Long assetId) {
+		return profilePhotoResponse(new GetPetProfilePhotoUseCase.Query(memberId, petId, assetId, true));
+	}
+
+	private ResponseEntity<Resource> profilePhotoResponse(GetPetProfilePhotoUseCase.Query query) {
+		var photo = getPetProfilePhotoUseCase.get(query);
+		return ResponseEntity.ok()
+				.contentType(MediaType.parseMediaType(photo.mimeType()))
+				.contentLength(photo.sizeBytes())
+				.cacheControl(CacheControl.noStore().cachePrivate())
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.inline().filename(photo.filename()).build().toString())
+				.header("X-Content-Type-Options", "nosniff")
+				.body(new PetProfilePhotoResource(photo));
 	}
 
 }

@@ -2,6 +2,7 @@ package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -38,6 +39,7 @@ import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.application.port.out.SocialProfile;
 import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
+import com.pawmento.member.application.service.MemberTagGenerator;
 
 import jakarta.servlet.http.Cookie;
 
@@ -61,6 +63,9 @@ class SocialLoginScenarioTest {
 
 	@Autowired
 	private SaveMemberPort saveMemberPort;
+
+	@Autowired
+    private MemberTagGenerator tags;
 
 	@TestConfiguration
 	static class FakeSocialConfig {
@@ -104,6 +109,7 @@ class SocialLoginScenarioTest {
 			.andExpect(jsonPath("$.id").isNumber())
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.nickname").value("다윗"))
+			.andExpect(jsonPath("$.tag").value(matchesPattern("\\d{4}")))
 			.andExpect(jsonPath("$.role").value("USER"))
 			.andExpect(jsonPath("$.accessToken").doesNotExist())
 			.andExpect(cookie().httpOnly(AccessTokenCookie.NAME, true))
@@ -115,8 +121,7 @@ class SocialLoginScenarioTest {
 			.andExpect(jsonPath("$.email").value(email));
 
 		Member saved = loadMemberPort.loadByEmail(email).orElseThrow();
-		assertThat(saved.getProvider()).isEqualTo(AuthProvider.GOOGLE);
-		assertThat(saved.getProviderUserId()).isEqualTo(sub);
+		assertThat(loadMemberPort.loadByProvider(AuthProvider.GOOGLE, sub)).map(Member::getId).contains(saved.getId());
 		assertThat(saved.getPasswordHash()).isNull();
 	}
 
@@ -198,13 +203,13 @@ class SocialLoginScenarioTest {
 	void uniqueConstraintsAreTranslated() {
 		String sub = uniqueSub();
 		String email = uniqueEmail();
-		saveMemberPort.save(Member.registerSocial(AuthProvider.GOOGLE, sub, email, "다윗", Instant.now()));
+		saveMemberPort.saveSocial(Member.registerSocial(email, "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.GOOGLE, sub);
 
 		assertThatThrownBy(() -> saveMemberPort
-			.save(Member.registerSocial(AuthProvider.GOOGLE, sub, uniqueEmail(), "다윗", Instant.now())))
+			.saveSocial(Member.registerSocial(uniqueEmail(), "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.GOOGLE, sub))
 			.isInstanceOf(DuplicateSocialAccountException.class);
 		assertThatThrownBy(() -> saveMemberPort
-			.save(Member.registerSocial(AuthProvider.KAKAO, uniqueSub(), email, "다윗", Instant.now())))
+			.saveSocial(Member.registerSocial(email, "다윗",  tags.next("다윗"), Instant.now()), AuthProvider.KAKAO, uniqueSub()))
 			.isInstanceOf(DuplicateEmailException.class);
 	}
 

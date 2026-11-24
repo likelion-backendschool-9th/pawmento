@@ -1,9 +1,13 @@
 package com.pawmento.postcard.adapter.out.storage;
 
 import com.pawmento.postcard.application.exception.PostcardStorageUnavailableException;
-import com.pawmento.postcard.application.port.out.StorePostcardFilePort;
+import com.pawmento.postcard.application.port.out.*;
 import java.io.IOException;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
+import java.util.*;
+import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,7 +19,9 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 @Slf4j
 @EnableConfigurationProperties(PostcardStorageProperties.class)
-public class VolumePostcardFileAdapter implements StorePostcardFilePort {
+public class VolumePostcardFileAdapter implements StorePostcardFilePort, CollectPostcardFilesPort {
+  private static final Pattern NAME = Pattern.compile("([0-9]{1,18})\\.(png|jpg|webp)(\\.part)?");
+
   static final String SOURCES = "sources";
   static final String IMAGES = "images";
 
@@ -50,8 +56,49 @@ public class VolumePostcardFileAdapter implements StorePostcardFilePort {
   }
 
   @Override
+  public byte[] readImage(String key) {
+    try {
+      return Files.readAllBytes(properties.imageRoot().resolve(IMAGES).resolve(safe(key)));
+    } catch (IOException e) {
+      throw new PostcardStorageUnavailableException(e);
+    }
+  }
+
+  @Override
   public void deleteImage(String key) {
     delete(IMAGES, key);
+  }
+
+  @Override
+  public List<PostcardFile> settledFiles(Instant now) {
+    var cutoff = now.minus(properties.cleanupGrace());
+    var found = new ArrayList<PostcardFile>();
+    collect(IMAGES, PostcardFile.Kind.IMAGE, cutoff, found);
+    collect(SOURCES, PostcardFile.Kind.SOURCE, cutoff, found);
+    return found;
+  }
+
+  @Override
+  public void delete(PostcardFile file) {
+    delete(file.kind() == PostcardFile.Kind.IMAGE ? IMAGES : SOURCES, file.name());
+  }
+
+  // 이름 규칙에 맞는 일반 파일만 본다. 링크나 하위 폴더, 다른 이름은 건드리지 않는다.
+  private void collect(String folder, PostcardFile.Kind kind, Instant cutoff, List<PostcardFile> out) {
+    Path dir = properties.imageRoot().resolve(folder);
+    if (!Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) return;
+    try (var paths = Files.list(dir)) {
+      for (Path path : (Iterable<Path>) paths::iterator) {
+        var match = NAME.matcher(path.getFileName().toString());
+        if (!match.matches()) continue;
+        var attrs = Files.readAttributes(path, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS);
+        if (!attrs.isRegularFile() || !attrs.lastModifiedTime().toInstant().isBefore(cutoff)) continue;
+        out.add(
+            new PostcardFile(kind, path.getFileName().toString(), Long.parseLong(match.group(1)), match.group(3) != null));
+      }
+    } catch (IOException e) {
+      throw new PostcardStorageUnavailableException(e);
+    }
   }
 
   // 지우지 못한 파일은 정리 작업이 다시 지운다. 정상 경로의 응답을 막지 않는다.
@@ -74,7 +121,7 @@ public class VolumePostcardFileAdapter implements StorePostcardFilePort {
 
   // 파일 이름은 "<엽서 ID>.<확장자>"뿐이다. 다른 경로로 빠져나가지 않게 막는다.
   static String safe(String key) {
-    if (key == null || !key.matches("[0-9]{1,19}\\.(png|jpg|webp)"))
+    if (key == null || !NAME.matcher(key).matches())
       throw new PostcardStorageUnavailableException(null);
     return key;
   }

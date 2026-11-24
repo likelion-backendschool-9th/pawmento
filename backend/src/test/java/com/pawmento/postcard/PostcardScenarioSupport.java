@@ -123,6 +123,8 @@ abstract class PostcardScenarioSupport {
     // 앞 테스트가 남긴 만드는 중 엽서를 이번 테스트의 작업이 집어 가지 않게 한다.
     jdbc.update(
         "update postcards set status='FAILED', error_message='test reset' where status='PROCESSING'");
+    // 전체 하루 상한(100)은 테스트마다 따로 센다.
+    jdbc.update("delete from postcard_daily_total");
     // 썸네일 파일 내용은 저장 키로 구분한다.
     doAnswer(i -> new ByteArrayInputStream(("jpeg:" + i.getArgument(0)).getBytes()))
         .when(mediaFiles)

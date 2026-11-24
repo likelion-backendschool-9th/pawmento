@@ -50,11 +50,29 @@ class QuestionJpaEntity {
 
   protected QuestionJpaEntity() {}
 
+  static QuestionJpaEntity fromNew(Question question) {
+    if (question.getId() != null) throw new IllegalArgumentException("신규 질문만 등록할 수 있습니다.");
+    var entity = new QuestionJpaEntity();
+    entity.mode = question.getMode();
+    entity.content = question.getContent();
+    entity.enabled = question.isEnabled();
+    entity.createdAt = question.getCreatedAt();
+    entity.updatedAt = question.getUpdatedAt();
+    entity.version = question.getVersion();
+    return entity;
+  }
+
   Question toDomain() {
     try {
       return Question.restore(id, mode, content, enabled, createdAt, updatedAt, version);
     } catch (InvalidQuestionException cause) {
       throw new StoredQuestionInvalidException(cause);
     }
+  }
+
+  void apply(Question question) {
+    content = question.getContent();
+    enabled = question.isEnabled();
+    updatedAt = question.getUpdatedAt();
   }
 }

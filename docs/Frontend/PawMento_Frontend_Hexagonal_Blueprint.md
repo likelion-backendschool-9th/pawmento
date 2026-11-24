@@ -1,3 +1,5 @@
+> 구조 개편 검토안: 사용자는 프론트를 화면·상호작용·API 연결로 제한하고 업무 규칙·영구 저장을 백엔드로 통일하는 방향을 요청했다. 새 구조와 목업 분리 기준은 [프론트 구조 개편](../frontend-structure/README.md)을 검토한다. 이 문서의 헥사고날 계층과 브라우저 저장 방식은 이전 설계 참고이며, 문서 승인 후 신규 구조 기준으로 사용하지 않는다. 현재 코드를 이미 이전했다는 뜻은 아니다.
+
 # 현재 구현에서의 명칭과 데이터 경계
 
 자유 일기는 `DiaryEntry`·`diaries`, 질문 답변은 `QuestionAnswer`·`questionAnswers`, 배정 질문은 `QuestionPrompt`·`questionPrompts`로 구분한다. 아래 초기 청사진의 단일 `Record`·`Memory` 및 `DIARY` 유형은 현재 저장 계약이 아니다. 현재 경로·이관·질문 진행 규칙은 [이름 정리](../diary/naming-cleanup.md)를 우선한다. 새 첨부는 사진·음성만 지원하고 영상은 이전 데모 데이터의 읽기만 보존한다.
@@ -52,7 +54,7 @@ flowchart LR
 
 ## 2. 프로젝트 폴더 트리 (권장)
 
-기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `src/app/(auth)`·`src/app/(app)`의 명시적인 `page.tsx` 파일에서 관리하고 공통 인증·Shell은 `(app)/layout.tsx`에서 공유한다. 각 페이지는 필요한 inbound 화면만 import하며, 브라우저 저장소를 사용하는 화면의 Client Component 경계를 유지한다. (고침 #12: Next.js 유지 결정과 파일 기반 라우트 리뷰 반영) 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
+기존 선호를 반영해 `pages/`, `features/`, `services/`, 전체 CSS를 모아둔 `styles/` 폴더는 만들지 않는다. 라우트 정의는 `app/(auth)`·`app/(app)`의 명시적인 `page.tsx` 파일에서 관리하고 공통 인증·Shell은 `(app)/layout.tsx`에서 공유한다. 각 페이지는 필요한 inbound 화면만 import하며, 브라우저 저장소를 사용하는 화면의 Client Component 경계를 유지한다. (고침 #12: Next.js 유지 결정과 파일 기반 라우트 리뷰 반영) 화면·스타일은 **각 기능의 inbound adapter 옆에 코로케이션**한다.
 
 ```text
 frontend/

@@ -1,6 +1,7 @@
 package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -25,6 +26,9 @@ import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.domain.MemberRole;
 import com.pawmento.member.domain.exception.MemberNicknameLimitException;
+import com.pawmento.member.application.exception.DuplicateSocialAccountException;
+import com.pawmento.member.domain.AuthProvider;
+import com.pawmento.member.application.service.MemberTagGenerator;
 
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -35,21 +39,25 @@ class MemberPersistenceTest {
 	private LoadMemberPort loadMemberPort;
 	@Autowired
 	private ChangeMemberNicknameUseCase changeNickname;
+	@Autowired
+    private MemberTagGenerator tags;
 
 	@Test
 	@DisplayName("#52-S3 DB와 도메인의 왕복 변환이 회원 정보와 닉네임 변경 시각을 보존한다")
 	void roundTripPreservesState() {
 		Instant createdAt = Instant.parse("2026-11-01T00:00:00Z");
 		Instant changedAt = Instant.parse("2026-11-17T03:00:00Z");
-		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", createdAt);
+		Member original = Member.register(uniqueEmail(), "password-hash", "보호자", tags.next("보호자"), createdAt);
 		Member saved = saveMemberPort.save(original);
 		Member loaded = loadMemberPort.loadById(saved.getId()).orElseThrow();
-		loaded.changeNickname("콩이 보호자", changedAt, ZoneId.of("Asia/Seoul"));
+		String newTag = tags.next("콩이 보호자", loaded.getTag());
+		loaded.changeNickname("콩이 보호자", newTag, changedAt, ZoneId.of("Asia/Seoul"));
 		// 순수 도메인을 바꾸는 것만으로 DB가 더티 체킹되지 않는다.
 		assertThat(loadMemberPort.loadById(saved.getId()).orElseThrow().getNickname()).isEqualTo("보호자");
 		saveMemberPort.save(loaded);
 		Member restored = loadMemberPort.loadByEmail(saved.getEmail()).orElseThrow();
 		assertThat(restored.getNickname()).isEqualTo("콩이 보호자");
+		assertThat(restored.getTag()).isEqualTo(newTag);
 		assertThat(restored.getNicknameChangedAt()).isEqualTo(changedAt);
 		assertThat(restored.getPasswordHash()).isEqualTo("password-hash");
 		assertThat(restored.getCreatedAt()).isEqualTo(createdAt);
@@ -60,7 +68,7 @@ class MemberPersistenceTest {
 	@Test
 	@DisplayName("#52-S4 같은 회원의 동시 닉네임 변경 중 하나만 성공하고 한도가 보존된다")
 	void simultaneousChangesConsumeLimitOnce() throws Exception {
-		Long id = saveMemberPort.save(Member.register(uniqueEmail(), "hash", "보호자", Instant.now())).getId();
+		Long id = saveMemberPort.save(Member.register(uniqueEmail(), "hash", "보호자", tags.next("보호자"), Instant.now())).getId();
 		CyclicBarrier start = new CyclicBarrier(2);
 		try (var executor = Executors.newFixedThreadPool(2)) {
 			Callable<Boolean> first = () -> attempt(start, id, "첫번째");
@@ -71,6 +79,35 @@ class MemberPersistenceTest {
 					.containsExactlyInAnyOrder(true, false);
 		}
 		assertThat(loadMemberPort.loadById(id).orElseThrow().getNickname()).isIn("첫번째", "두번째");
+	}
+
+	@Test
+	@DisplayName("#109-S18 처음 소셜 가입은 회원과 소셜 계정을 함께 저장한다")
+	void saveSocialStoresMemberAndAccount() {
+		String email = uniqueEmail();
+		String sub = "g-" + UUID.randomUUID();
+
+		Member saved = saveMemberPort.saveSocial(Member.registerSocial(email, "다윗", tags.next("다윗"), Instant.now()),
+				AuthProvider.GOOGLE, sub);
+
+		assertThat(loadMemberPort.loadByEmail(email)).map(Member::getId).contains(saved.getId());
+		assertThat(loadMemberPort.loadByProvider(AuthProvider.GOOGLE, sub)).map(Member::getId)
+				.contains(saved.getId());
+	}
+
+	@Test
+	@DisplayName("#109-S18 소셜 계정 저장이 실패하면 새 회원도 남지 않는다")
+	void saveSocialRollsBackMemberWhenAccountFails() {
+		String sub = "g-" + UUID.randomUUID();
+		saveMemberPort.saveSocial(Member.registerSocial(uniqueEmail(), "먼저", tags.next("먼저"), Instant.now()),
+				AuthProvider.GOOGLE, sub);
+		String newEmail = uniqueEmail();
+
+		assertThatThrownBy(() -> saveMemberPort.saveSocial(Member.registerSocial(newEmail, "나중", tags.next("나중"), Instant.now()),
+				AuthProvider.GOOGLE, sub))
+				.isInstanceOf(DuplicateSocialAccountException.class);
+
+		assertThat(loadMemberPort.loadByEmail(newEmail)).isEmpty();
 	}
 
 	private boolean attempt(CyclicBarrier start, Long id, String nickname) throws Exception {

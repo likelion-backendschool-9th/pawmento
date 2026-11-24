@@ -38,7 +38,7 @@ public final class QuestionPrompt {
 
   public void complete(Instant now) {
     if (now == null) throw new InvalidQuestionException();
-    if (completedAt == null) completedAt = now;
+    if (completedAt == null) completedAt = QuestionTime.forWrite(now);
   }
 
   public static QuestionPrompt restore(
@@ -60,7 +60,7 @@ public final class QuestionPrompt {
     if (question == null || question.getMode() != mode || !question.isEnabled())
       throw new IllegalStateException("배정할 수 없는 질문입니다.");
     return new QuestionPrompt(
-        null, petId, mode, question.getId(), question.getContent(), sequence, now);
+        null, petId, mode, question.getId(), question.getContent(), sequence, QuestionTime.forWrite(now));
   }
 
   public static QuestionPrompt restore(

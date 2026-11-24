@@ -9,12 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.pawmento.map.adapter.in.web.exception.CoordinateRange;
 import com.pawmento.map.adapter.in.web.exception.InvalidMapRequestException;
+import com.pawmento.map.application.port.in.ListPlacesQuery;
 
 /**
  * 요청의 원본 쿼리 문자열만 읽어 이 API가 받는 키의 값을 엄격하게 해석한다.
@@ -127,6 +129,21 @@ final class MapQueryParameters {
 			}
 		}
 		throw InvalidMapRequestException.invalidDate(name);
+	}
+
+	// 쉼표로 구분한 장소 종류의 이름. 보내지 않으면 모든 종류다. 소문자, 없는 종류, 빈 항목, 공백, 중복은 거절한다
+	Set<String> placeCategories(String name) {
+		String value = values.get(name);
+		if (value == null) {
+			return new LinkedHashSet<>(ListPlacesQuery.CATEGORIES);
+		}
+		Set<String> categories = new LinkedHashSet<>();
+		for (String item : value.split(",", -1)) {
+			if (!ListPlacesQuery.CATEGORIES.contains(item) || !categories.add(item)) {
+				throw InvalidMapRequestException.invalidCategories(name);
+			}
+		}
+		return categories;
 	}
 
 	private String required(String name) {

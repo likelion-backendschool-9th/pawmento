@@ -70,7 +70,10 @@ class PostcardWorkScenarioTest extends PostcardScenarioSupport {
         .andExpect(jsonPath("$.text").value("바닷가에서 노을을 보며 산책했다"))
         .andExpect(jsonPath("$.imageUrl").value("/api/v1/postcards/" + id + "/image?petId=" + pet))
         .andExpect(jsonPath("$.completedAt").isNotEmpty());
-    assertThat(Files.readAllBytes(ROOT.resolve("images/" + id + ".png"))).isEqualTo(PNG);
+    call(a, get("/api/v1/postcards/" + id + "/image?petId=" + pet))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Content-Type", "image/png"))
+        .andExpect(content().bytes(PNG));
   }
 
   @Test
@@ -111,7 +114,8 @@ class PostcardWorkScenarioTest extends PostcardScenarioSupport {
     long usedBefore = used(a), totalBefore = total();
     doAnswer(
             i -> {
-              jdbc.update("delete from postcards where id=?", id);
+              call(a, delete("/api/v1/postcards/" + id + "?petId=" + pet))
+                  .andExpect(status().isNoContent());
               return new GeneratedPostcardImage(PNG, "image/png");
             })
         .when(generator)
@@ -120,6 +124,7 @@ class PostcardWorkScenarioTest extends PostcardScenarioSupport {
     worker.processNext();
 
     call(a, get("/api/v1/postcards/" + id + "?petId=" + pet)).andExpect(status().isNotFound());
+    call(a, get("/api/v1/postcards?petId=" + pet)).andExpect(jsonPath("$.items").isEmpty());
     assertThat(Files.exists(ROOT.resolve("images/" + id + ".png"))).isFalse();
     assertThat(used(a)).isEqualTo(usedBefore);
     assertThat(total()).isEqualTo(totalBefore);

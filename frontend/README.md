@@ -50,16 +50,16 @@ npm run dev
 
 ## 아키텍처
 
-`src/app/(auth)`와 `src/app/(app)`의 파일 기반 페이지를 사용한다. 공통 인증·Shell은 `(app)/layout.tsx`에 있고 각 page는 필요한 inbound 화면만 import한다. 없는 URL은 Next.js의 404, 로딩과 예상하지 못한 오류는 `loading.tsx`·`error.tsx`로 처리한다. 도메인과 유스케이스는 라우팅을 참조하지 않는다.
+`app/(auth)`와 `app/(app)`의 파일 기반 페이지를 사용한다. 공통 인증·Shell은 `(app)/layout.tsx`에 있고 각 page는 필요한 inbound 화면만 import한다. 없는 URL은 Next.js의 404, 로딩과 예상하지 못한 오류는 `loading.tsx`·`error.tsx`로 처리한다. 도메인과 유스케이스는 라우팅을 참조하지 않는다.
 
 미저장 편집기는 링크·탭 닫기와 프로그램 방식의 반려동물 전환 전에 같은 확인을 사용한다. 전환을 취소하면 선택 아이와 입력을 유지한다. 날짜 표시는 브라우저 시간대와 관계없이 한국 날짜를 사용한다.
 
-- `src/auth`, `src/workspace`, `src/life`의 `domain`: 순수 모델과 검증
+- `features/auth`, `features/workspace`, `features/life`의 `domain`: 순수 모델과 검증
 - `application`: 포트·유스케이스. React·브라우저 저장소를 참조하지 않음
 - `adapters/outbound`: 데모 인증·저장소·가족 공유·질문 풀·데모 엽서·다운로드
 - `adapters/inbound`: 화면·표현 훅·CSS Modules
-- `src/app/composition.ts`: 어댑터 주입
-- `src/shared/ui`: 로고·입력·미디어·질문/답변 표현 컴포넌트
+- `app/composition.ts`: 어댑터 주입
+- `components`: 로고·입력·미디어·질문/답변 표현 컴포넌트
 
 서버 계약 확정 후 HTTP 어댑터로 교체하고 실제 인증·권한·업로드·공유·AI 처리를 연결한다. 인증 정보를 localStorage에 저장하는 방식으로 확장하지 않는다.
 

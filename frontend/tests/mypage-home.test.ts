@@ -1,10 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createApiClient, ApiError } from "../src/shared/http/apiClient.ts";
-import { HttpAuthRepository } from "../src/auth/adapters/outbound/HttpAuthRepository.ts";
-import { HttpPetListRepository } from "../src/pets/adapters/outbound/HttpPetListRepository.ts";
-import { createAuthUseCases } from "../src/auth/application/auth.ts";
-import { resolveProtectedAccess } from "../src/auth/application/sessionView.ts";
+import { createApiClient, ApiError } from "../lib/http/apiClient.ts";
+import { createMemberApi } from "../features/member/api/memberApi.ts";
+import { createPetApi } from "../features/pet/api/petApi.ts";
+import { resolveProtectedAccess } from "../features/member/utils/access.ts";
 
 type MockCall = {
   url: string;
@@ -55,9 +54,7 @@ test("#52-S1 로그인 세션이면 GET /members/me로 닉네임·이메일을 �
       role: "USER",
     });
   });
-  const auth = createAuthUseCases(
-    new HttpAuthRepository(createApiClient({ fetch: fetchImpl })),
-  );
+  const auth = createMemberApi(createApiClient({ fetch: fetchImpl }));
   const account = await auth.current();
   assert.deepEqual(account, {
     id: "7",
@@ -85,9 +82,7 @@ test("#52-S2 쿠키가 없으면 current는 null이고 me 본문을 열 수 없�
   const { fetchImpl } = mockFetch(() =>
     jsonResponse(401, { code: "UNAUTHORIZED", message: "로그인이 필요합니다." }),
   );
-  const auth = createAuthUseCases(
-    new HttpAuthRepository(createApiClient({ fetch: fetchImpl })),
-  );
+  const auth = createMemberApi(createApiClient({ fetch: fetchImpl }));
   assert.equal(await auth.current(), null);
   assert.equal(resolveProtectedAccess(true, await auth.current()), "login-required");
 });
@@ -104,9 +99,7 @@ test("#52-S3 닉네임 저장은 PATCH /members/me이고 화면에 반영할 값
       role: "USER",
     });
   });
-  const auth = createAuthUseCases(
-    new HttpAuthRepository(createApiClient({ fetch: fetchImpl })),
-  );
+  const auth = createMemberApi(createApiClient({ fetch: fetchImpl }));
   const account = await auth.update("콩이 보호자");
   assert.equal(account.nickname, "콩이 보호자");
   assert.equal(calls.length, 1);
@@ -139,7 +132,7 @@ test("#52-S4 같은 달 재변경은 409 CONFLICT이고 닉네임은 그대로�
     });
   });
   const http = createApiClient({ fetch: fetchImpl });
-  const auth = createAuthUseCases(new HttpAuthRepository(http));
+  const auth = createMemberApi(http);
   await auth.update("첫번째");
   await assert.rejects(() => auth.update("두번째"), (error: unknown) => {
     assert.ok(error instanceof ApiError);
@@ -157,7 +150,7 @@ test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이다"
       { petId: 2, name: "보리" },
     ]),
   );
-  const pets = new HttpPetListRepository(createApiClient({ fetch: fetchImpl }));
+  const pets = createPetApi(createApiClient({ fetch: fetchImpl }));
   const list = await pets.listMine();
   assert.equal(list.length, 2);
   assert.equal(list[0]?.name, "콩이");
@@ -168,7 +161,7 @@ test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이다"
 
 test("#52-S7 반려동물이 없으면 친구 수는 0이다", async () => {
   const { fetchImpl } = mockFetch(() => jsonResponse(200, []));
-  const pets = new HttpPetListRepository(createApiClient({ fetch: fetchImpl }));
+  const pets = createPetApi(createApiClient({ fetch: fetchImpl }));
   assert.equal((await pets.listMine()).length, 0);
 });
 
@@ -197,9 +190,7 @@ test("#52-S8 로그아웃은 POST /auth/logout이고 이후 me 접근이 막힌�
     }
     return jsonResponse(500, { message: "unexpected" });
   });
-  const auth = createAuthUseCases(
-    new HttpAuthRepository(createApiClient({ fetch: fetchImpl })),
-  );
+  const auth = createMemberApi(createApiClient({ fetch: fetchImpl }));
   assert.ok(await auth.current());
   await auth.signOut();
   assert.ok(calls.some((call) => call.url.includes("/auth/logout")));

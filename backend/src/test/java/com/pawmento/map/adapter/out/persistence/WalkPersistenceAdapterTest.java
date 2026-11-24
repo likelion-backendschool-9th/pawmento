@@ -414,6 +414,46 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
+	@DisplayName("#167-S1 회원·반려동물의 끝내지 않았고 기준 시각 이후에 활동한 산책을 시작 날짜와 상관없이 읽는다")
+	void loadOpenWalkActiveSince() {
+		// 이틀 전에 시작했지만 4분 전에 마지막 좌표를 받은 산책. 저장한 뒤 컨텍스트를 비웠으므로 바로 DB 값을 바꿔도 덮어쓰이지 않는다
+		Long walkId = saveWalk(PET, MEMBER, NOW.minusSeconds(2 * 24 * 3600));
+		jdbcTemplate.update("update walks set last_activity_at = ? where id = ?",
+				java.sql.Timestamp.from(NOW.minusSeconds(240)), walkId);
+
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW.minusSeconds(300))).map(Walk::getId)
+			.contains(walkId);
+		// 다른 회원, 다른 반려동물은 찾지 않는다
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER + 1, PET, NOW.minusSeconds(300))).isEmpty();
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET + 1, NOW.minusSeconds(300))).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#167-S3 마지막 활동이 정확히 기준 시각이면 포함하고, 조금이라도 오래됐거나 끝낸 산책은 읽지 않는다")
+	void loadOpenWalkActiveSinceBoundaryAndEnded() {
+		Long walkId = saveWalk(PET, MEMBER, NOW);
+		Long endedId = saveWalk(PET + 1, MEMBER, NOW);
+		Walk ended = adapter.loadById(endedId).orElseThrow();
+		ended.end(MEMBER, NOW.plusSeconds(30));
+		adapter.save(ended);
+		flushAndClear();
+
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW)).map(Walk::getId).contains(walkId);
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW.plusNanos(1000))).isEmpty();
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET + 1, NOW.minusSeconds(300))).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#167-S1 진행 중인 산책이 둘로 보이는 이상한 경우에도 가장 늦게 시작한 것 하나만 읽는다")
+	void loadOpenWalkActiveSincePicksTheLatestStarted() {
+		saveWalk(PET, MEMBER, NOW.minusSeconds(600));
+		Long later = saveWalk(PET, MEMBER, NOW.minusSeconds(60));
+
+		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW.minusSeconds(900))).map(Walk::getId)
+			.contains(later);
+	}
+
+	@Test
 	@DisplayName("#73-S14 행을 잠그고 읽으면 같은 산책이 돌아온다")
 	void loadByIdForUpdate() {
 		Long id = saveWalk(PET, MEMBER, NOW);
