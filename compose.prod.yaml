@@ -34,6 +34,9 @@ services:
       # 네이버 지도 키 (docs/map/record-location.md). 비어 있으면 주소 조회만 건너뛴다
       NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
       NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
+      # 공공데이터포털 인증키 (docs/map/animal-places.md). 병원·미용·보호센터 장소를 매일·매주 자동으로 가져온다.
+      # 비어 있으면 자동 가져오기만 꺼지고 앱은 정상으로 뜬다
+      PUBLIC_DATA_SERVICE_KEY: ${PUBLIC_DATA_SERVICE_KEY:-}
       # 구글 로그인 키 (docs/member/social-login.md). 비어 있으면 구글 로그인만 401로 막힌다
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
