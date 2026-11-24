@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter;
 /**
  * 인허가 행 하나를 장소로 바꾼다. 영업/정상이고 좌표가 올바른 행만 장소가 되고, 아니면 이유와 함께 제외한다.
  * 좌표는 도쿄 측지계 보정을 포함해 위도·경도로 바꾸고({@link KoreaTmConverter}), 전화번호는 걸 수 있는 번호만 남기며
- * ({@link PlacePhone}), 이름에 "24시"가 있으면 24시로 표시한다({@link Open24hRule}). (#172-S1, S3, S6, S7)
+ * ({@link PlacePhone}), 병원 이름에 "24시"가 있으면 24시로 표시한다({@link Open24hRule}). (#172-S1, S3, S6, S7)
  */
 public final class LocalDataPlaceFactory {
 
@@ -22,8 +22,15 @@ public final class LocalDataPlaceFactory {
 	private LocalDataPlaceFactory() {
 	}
 
-	/** 장소가 되었거나(draft) 제외된 이유(exclusion) 중 하나만 있다. */
+	/** 장소가 되었거나(draft) 제외된 이유(exclusion) 중 정확히 하나만 있다. */
 	public record Outcome(PlaceDraft draft, LocalDataExclusion exclusion) {
+
+		public Outcome {
+			// 둘 다 없거나 둘 다 있으면 제외 이유별 건수를 셀 때 값이 어긋나므로 만들 때 막는다
+			if ((draft == null) == (exclusion == null)) {
+				throw new IllegalArgumentException("draft와 exclusion 중 정확히 하나만 있어야 합니다.");
+			}
+		}
 
 		public boolean excluded() {
 			return draft == null;
@@ -65,7 +72,8 @@ public final class LocalDataPlaceFactory {
 		}
 
 		String address = firstNotBlank(record.roadAddress(), record.lotAddress());
-		Open24hBasis basis = Open24hRule.fromName(record.name());
+		// 이름의 "24시" 판단은 병원 데이터로만 확인했다(병원 이름에 24가 든 195곳 중 190곳이 24시). 미용은 확인하지 못해 보지 않는다
+		Open24hBasis basis = category == PlaceCategory.HOSPITAL ? Open24hRule.fromName(record.name()) : null;
 		return new Outcome(new PlaceDraft(category, record.sourceId().strip(), record.name().strip(), address,
 				PlacePhone.normalize(record.phone(), address), point.latitude(), point.longitude(), basis != null,
 				basis, null, null, parseUpdatedAt(record.updatedAt())), null);

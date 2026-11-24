@@ -2,6 +2,7 @@ package com.pawmento.map.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.offset;
 
 import java.time.Instant;
 
@@ -39,8 +40,8 @@ class LocalDataPlaceFactoryTest {
 		assertThat(draft.name()).isEqualTo("대학로동물병원");
 		assertThat(draft.address()).isEqualTo("서울특별시 종로구 대학로 1");
 		assertThat(draft.phone()).isEqualTo("02-2273-3233");
-		assertThat(draft.latitude()).isCloseTo(37.584648, org.assertj.core.data.Offset.offset(0.0001));
-		assertThat(draft.longitude()).isCloseTo(127.000190, org.assertj.core.data.Offset.offset(0.0001));
+		assertThat(draft.latitude()).isCloseTo(37.584648, offset(0.0001));
+		assertThat(draft.longitude()).isCloseTo(127.000190, offset(0.0001));
 		assertThat(draft.open24h()).isFalse();
 		assertThat(draft.open24hBasis()).isNull();
 		assertThat(draft.openingHours()).isNull();
@@ -118,6 +119,17 @@ class LocalDataPlaceFactoryTest {
 	}
 
 	@Test
+	@DisplayName("#172-S7 이름의 24시 판단은 병원에만 쓴다. 미용은 이름에 24시가 있어도 24시로 보지 않는다(실제 데이터로 확인하지 못했다)")
+	void open24hByNameAppliesOnlyToHospitals() {
+		var grooming = LocalDataPlaceFactory.create(PlaceCategory.GROOMING,
+				record(ACTIVE, "24시 펫미용", "서울특별시 종로구 1", null, null, X, Y, null));
+
+		assertThat(grooming.excluded()).isFalse();
+		assertThat(grooming.draft().open24h()).isFalse();
+		assertThat(grooming.draft().open24hBasis()).isNull();
+	}
+
+	@Test
 	@DisplayName("#172-S1 미용도 같은 규칙으로 GROOMING 장소가 된다")
 	void groomingUsesTheSameRules() {
 		var outcome = LocalDataPlaceFactory.create(PlaceCategory.GROOMING, normal());
@@ -152,7 +164,7 @@ class LocalDataPlaceFactoryTest {
 	}
 
 	@Test
-	@DisplayName("#172-S5 필수 항목(관리번호·상태·이름·좌표 항목)이 빠진 행은 isComplete가 false이고, 만들려고 하면 거절한다")
+	@DisplayName("#172-S5 필수 항목(관리번호·상태·이름·좌표 항목)이 빠졌거나 관리번호·이름이 비어 있는 행은 isComplete가 false이고, 만들려고 하면 거절한다")
 	void incompleteRecords() {
 		assertThat(normal().isComplete()).isTrue();
 		assertThat(record(ACTIVE, "병원", "주소", null, null, X, Y, null).isComplete()).isTrue();
@@ -161,11 +173,28 @@ class LocalDataPlaceFactoryTest {
 				new LocalDataRecord("MNG-1", null, "병원", "주소", null, null, X, Y, null),
 				new LocalDataRecord("MNG-1", ACTIVE, null, "주소", null, null, X, Y, null),
 				new LocalDataRecord("MNG-1", ACTIVE, "병원", "주소", null, null, null, Y, null),
-				new LocalDataRecord("MNG-1", ACTIVE, "병원", "주소", null, null, X, null, null) }) {
+				new LocalDataRecord("MNG-1", ACTIVE, "병원", "주소", null, null, X, null, null),
+				new LocalDataRecord("", ACTIVE, "병원", "주소", null, null, X, Y, null),
+				new LocalDataRecord("  ", ACTIVE, "병원", "주소", null, null, X, Y, null),
+				new LocalDataRecord("MNG-1", ACTIVE, "", "주소", null, null, X, Y, null),
+				new LocalDataRecord("MNG-1", ACTIVE, "  ", "주소", null, null, X, Y, null) }) {
 			assertThat(incomplete.isComplete()).isFalse();
 			assertThatThrownBy(() -> LocalDataPlaceFactory.create(PlaceCategory.HOSPITAL, incomplete))
 				.isInstanceOf(IllegalArgumentException.class);
 		}
+	}
+
+	@Test
+	@DisplayName("#172-S1 결과(Outcome)는 장소와 제외 이유 중 정확히 하나만 가진다. 둘 다 없거나 둘 다 있으면 만들 수 없다")
+	void outcomeHasExactlyOneOfDraftAndExclusion() {
+		PlaceDraft draft = LocalDataPlaceFactory.create(PlaceCategory.HOSPITAL, normal()).draft();
+
+		assertThatThrownBy(() -> new LocalDataPlaceFactory.Outcome(null, null))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new LocalDataPlaceFactory.Outcome(draft, LocalDataExclusion.CLOSED))
+			.isInstanceOf(IllegalArgumentException.class);
+		assertThat(new LocalDataPlaceFactory.Outcome(draft, null).excluded()).isFalse();
+		assertThat(new LocalDataPlaceFactory.Outcome(null, LocalDataExclusion.CLOSED).excluded()).isTrue();
 	}
 
 	@Test
