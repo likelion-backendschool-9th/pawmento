@@ -16,14 +16,14 @@ class EnsureCurrentQuestionPromptServiceTest {
   @Test
   @DisplayName("#31-S2 선택기가 같은 ID의 새 객체를 돌려줘도 원본 후보 문구·모드로 배정한다")
   void canonicalizesSelectedId() {
-    var access = mock(CheckQuestionPetAccessPort.class);
+    var access = mock(CheckQuestionPetWriteAccessPort.class);
     var store = mock(QuestionProgressStorePort.class);
     var questions = mock(LoadActiveQuestionsPort.class);
     var selection = mock(SelectQuestionPort.class);
     var now = Instant.parse("2026-11-20T00:00:00Z");
     var original = Question.restore(7L, QuestionMode.ACTIVE, "원본 질문", true, now, now, 0);
     var clone = Question.restore(7L, QuestionMode.GARDEN, "선택기에서 바꾼 문구", true, now, now, 0);
-    when(access.currentMode(1L, 2L)).thenReturn(QuestionMode.ACTIVE);
+    when(access.currentModeForWrite(1L, 2L)).thenReturn(QuestionMode.ACTIVE);
     when(store.lock(2L, QuestionMode.ACTIVE))
         .thenReturn(QuestionProgress.create(2L, QuestionMode.ACTIVE));
     when(questions.loadByMode(QuestionMode.ACTIVE)).thenReturn(List.of(original));

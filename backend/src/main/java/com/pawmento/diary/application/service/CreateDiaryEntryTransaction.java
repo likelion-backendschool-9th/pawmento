@@ -21,7 +21,7 @@ public class CreateDiaryEntryTransaction {
   @Transactional
   public GetDiaryEntryResult create(CreateDiaryEntryCommand c) {
     DiaryWritePolicy.requireSupported(c.features());
-    access.requireAccess(c.memberId(), c.petId());
+    access.requireLockedWriteAccess(c.memberId(), c.petId());
     var ids =
         c.features().attachmentIds() == null
             ? java.util.List.<Long>of()
