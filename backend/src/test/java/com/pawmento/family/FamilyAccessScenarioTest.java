@@ -2,7 +2,9 @@ package com.pawmento.family;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -115,36 +117,50 @@ class FamilyAccessScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133 잠금을 쥔 트랜잭션이 끝날 때까지 같은 반려동물의 잠금 조회는 기다리고, 커밋된 최신 소유주를 읽는다")
+	@DisplayName("#133 lock()만 쥔 트랜잭션이 끝날 때까지 같은 반려동물의 잠금 조회는 DB에서 기다리고, 먼저 읽어 둔 값이 아니라 커밋된 최신 소유주를 읽는다")
 	void lockWaitsForHolderAndReadsCommittedOwner() throws Exception {
 		long owner = uniqueMemberId();
 		long newOwner = uniqueMemberId();
 		long pet = createPet.create(new CreatePetCommand(owner, "두부", "CAT", null, null)).petId();
 		CountDownLatch locked = new CountDownLatch(1);
-		CountDownLatch release = new CountDownLatch(1);
+		CountDownLatch changeOwner = new CountDownLatch(1);
 
 		try (var executor = Executors.newFixedThreadPool(2)) {
-			// 첫 트랜잭션: 잠그고 소유주를 바꾼 뒤, 신호를 받을 때까지 커밋하지 않고 기다린다
+			// 첫 트랜잭션: lock()만으로 행을 잡는다. 신호를 받으면 그때 소유주를 바꾸고 커밋한다
 			Future<?> holder = executor.submit(() -> transaction.executeWithoutResult(status -> {
 				lockPetOwners.lock(new LockPetOwnerQuery(pet));
-				jdbc.update("UPDATE pets SET owner_member_id = ? WHERE id = ?", newOwner, pet);
 				locked.countDown();
-				awaitQuietly(release);
+				awaitQuietly(changeOwner);
+				jdbc.update("UPDATE pets SET owner_member_id = ? WHERE id = ?", newOwner, pet);
 			}));
 			assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
 
-			// 두 번째 트랜잭션: 같은 반려동물을 잠그려다 기다린다
-			Future<Optional<GetPetOwnerResult>> waiter = executor
-				.submit(() -> transaction.execute(status -> lockPetOwners.lock(new LockPetOwnerQuery(pet))));
-			Thread.sleep(300);
+			// 두 번째 트랜잭션: 잠금 없이 먼저 읽어 예전 소유주를 올려 둔 뒤, 같은 반려동물의 잠금을 시도한다
+			Future<long[]> waiter = executor.submit(() -> transaction.execute(status -> {
+				long before = petOwners.get(new GetPetOwnerQuery(pet)).orElseThrow().ownerMemberId();
+				long after = lockPetOwners.lock(new LockPetOwnerQuery(pet)).orElseThrow().ownerMemberId();
+				return new long[] { before, after };
+			}));
+
+			// 첫 트랜잭션은 lock()만 한 상태다. 두 번째가 실제로 PostgreSQL의 행 잠금을 기다리는지 확인한다
+			blockedOnPetsLock();
 			assertThat(waiter.isDone()).isFalse();
 
-			// 첫 트랜잭션이 커밋하면 기다리던 쪽이 바뀐 소유주를 읽는다
-			release.countDown();
+			// 첫 트랜잭션이 소유주를 바꾸고 커밋하면, 기다리던 쪽은 먼저 읽은 값이 아니라 바뀐 소유주를 읽는다(refresh)
+			changeOwner.countDown();
 			holder.get(5, TimeUnit.SECONDS);
-			assertThat(waiter.get(5, TimeUnit.SECONDS))
-					.hasValueSatisfying(result -> assertThat(result.ownerMemberId()).isEqualTo(newOwner));
+			long[] owners = waiter.get(5, TimeUnit.SECONDS);
+			assertThat(owners[0]).isEqualTo(owner);
+			assertThat(owners[1]).isEqualTo(newOwner);
 		}
+	}
+
+	// PostgreSQL에서 다른 연결이 pets 행 잠금을 기다리고 있는지 본다 (DiaryConcurrencyTest와 같은 방식)
+	private void blockedOnPetsLock() {
+		await().atMost(Duration.ofSeconds(8)).until(() -> jdbc.queryForObject(
+				"select count(*) from pg_stat_activity where pid <> pg_backend_pid()"
+						+ " and wait_event_type = 'Lock' and lower(query) like '%from pets%for %'",
+				Long.class) > 0);
 	}
 
 	private static void awaitQuietly(CountDownLatch latch) {
