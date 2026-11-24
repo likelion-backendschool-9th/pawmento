@@ -1,6 +1,6 @@
 # 배포와 DB 구성
 
-배포·DB 구성에서 정한 것과 그 이유, 아직 정하지 않은 것을 모은다. 실행 명령과 파일 역할은 [README의 실행과 확인](../README.md#실행과-확인)에 있다.
+배포·DB 구성에서 정한 것과 그 이유, 아직 정하지 않은 것을 모은다. 로컬 실행 명령은 [README의 실행과 확인](../README.md#실행과-확인)에 있다.
 
 ## 브랜치와 서버
 
@@ -11,6 +11,19 @@
 
 - `main`으로 바로 배포하지 않는다. `main`에 반영하려면 `develop → main` PR과 승인이 필요해서, 기능을 머지할 때마다 서버에서 확인하기 어렵다. `develop`은 자주 바뀌는 팀 확인용, `main`은 검증된 것만 올라가는 출시용으로 나눈다.
 - 운영 서버가 생기면 `main` push에 배포 단계를 더한다. 브랜치 규칙은 바꾸지 않는다.
+
+## Docker Compose 파일
+
+| 파일 | 역할 | 실행 |
+| --- | --- | --- |
+| `backend/compose.yaml` | 백엔드 로컬 개발용 PostgreSQL | `backend/`에서 `./gradlew bootRun`을 실행하면 Spring Boot가 자동으로 띄운다 |
+| `compose.yaml` | DB·백엔드·프론트엔드·nginx의 공통 정의 | 로컬 또는 서버용 파일과 함께 적용한다 |
+| `compose.override.yaml` | 로컬에서 Dockerfile로 직접 빌드하고 `localhost:8000`에 연결 | 저장소 루트에서 `docker compose up --build`를 실행하면 자동으로 적용된다 |
+| `compose.prod.yaml` | 서버에서 `IMAGE_TAG`에 해당하는 GHCR 이미지를 실행하고 팀 포트와 재시작 정책을 적용 | `docker compose -f compose.yaml -f compose.prod.yaml up -d` |
+
+백엔드를 실행할 때는 IDE에서도 작업 디렉터리를 `backend/`로 지정한다. 저장소 루트에서 `bootRun`을 실행하면 Spring Boot가 전체 서비스용 `compose.yaml`을 읽어 실행에 실패한다.
+
+서버의 `~/pawmento/.env`는 [`.env.prod.example`](../.env.prod.example)을 바탕으로 설정한다. 필수 값은 `TEAM_PORT`, `GITHUB_OWNER`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRET`이다. 배포 워크플로가 `IMAGE_TAG`를 별도로 전달하고, 서버에서 직접 실행할 때는 사용할 태그를 지정한다.
 
 ## 로컬·테스트 DB (#5)
 
@@ -48,17 +61,6 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 - HTTPS는 호스트 nginx가 처리한다. 호스트 nginx에 필요한 설정은 [`nginx/host.conf.example`](../nginx/host.conf.example)에 있다.
 - HTTPS는 호스트 nginx에서 끝나므로 백엔드는 `X-Forwarded-Proto`를 믿어야 요청을 HTTPS로 인식한다(`SERVER_FORWARD_HEADERS_STRATEGY: native`, `compose.prod.yaml`). 로그인 쿠키의 `Secure`와 리다이렉트 주소가 여기에 달려 있다. Tomcat은 내부망 주소(Docker 네트워크 포함)에서 온 헤더만 믿는다. 팀 nginx(`nginx/proxy.conf`)는 호스트 nginx가 보낸 헤더를 그대로 넘긴다.
 - 백엔드 API 경로는 `/api/v1`로 시작한다(#22). 팀 nginx는 `/api/` 전체를 백엔드로 넘기므로 버전이 바뀌어도 nginx는 고치지 않는다.
-- compose 파일은 Docker 공식 관례대로 셋으로 나눈다.
-
-  | 파일 | 역할 | 실행 |
-  | --- | --- | --- |
-  | `compose.yaml` | 공통 정의 (서비스, DB 연결, `nginx/proxy.conf`) | 혼자 쓰지 않음 |
-  | `compose.override.yaml` | 로컬: Dockerfile로 직접 빌드, `localhost:8000` | `docker compose up --build` (자동으로 합쳐짐) |
-  | `compose.prod.yaml` | 서버: GHCR 이미지, 팀 포트, `restart`, `.env` 필수 값 | `docker compose -f compose.yaml -f compose.prod.yaml up -d` |
-
-  - 로컬과 서버가 같은 공통 정의와 같은 Dockerfile·nginx 설정을 쓴다. 서버에서만 드러나던 문제(이미지 빌드, nginx 경로, 컨테이너 사이 연결)를 머지 전에 로컬에서 볼 수 있다.
-  - override는 아무 옵션 없이 자동으로 합쳐지므로 로컬용으로 둔다. 서버는 `-f`로 prod 파일을 직접 지정하고, 이때 override는 읽지 않는다.
-  - 매일 개발은 지금처럼 `bootRun`(`backend/compose.yaml`의 DB)과 `npm run dev`로 한다. 루트 `compose.yaml`은 Docker 관례, `backend/compose.yaml`은 Spring Boot 표준(의존 서비스만)이라 폴더를 나눠 둘 다 지킨다. IDE에서 백엔드를 실행할 때 작업 폴더를 `backend/`로 두는 이유다.
 - 서버에는 저장소를 clone하지 않는다. 배포 워크플로가 이미지를 만든 커밋의 `compose.yaml`, `compose.prod.yaml`, `nginx/proxy.conf`를 서버 `~/pawmento`에 복사한다(`appleboy/scp-action`). 그래서 서버의 설정과 이미지가 항상 같은 커밋에서 온다. `git pull`은 develop의 최신 커밋을 받아서, 머지가 이어지면 이미지보다 새 설정이 들어갈 수 있다. 서버에서 직접 만드는 것은 `.env`뿐이고, 복사할 때 덮어쓰지 않는다.
 
 ### 공용 서버에서 지킬 것
