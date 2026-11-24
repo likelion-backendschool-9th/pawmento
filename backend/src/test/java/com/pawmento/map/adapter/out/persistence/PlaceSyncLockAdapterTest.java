@@ -2,11 +2,13 @@ package com.pawmento.map.adapter.out.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.awaitility.Awaitility.await;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Duration;
 
 import javax.sql.DataSource;
 
@@ -129,26 +131,13 @@ class PlaceSyncLockAdapterTest {
 	}
 
 	// 잠금이 풀릴 때까지 최대 10초 기다렸다가 잡아 본다. 연결을 강제로 끊으면 DB가 끊김을 알아채고 잠금을 푸는 일이 비동기라서
-	// 끊은 직후에 바로 잡으면 가끔 실패한다(CI의 느린 서버에서 드러남). 끝까지 못 잡으면 진짜 문제라 실패시킨다
+	// 끊은 직후에 바로 잡으면 가끔 실패한다(CI의 느린 서버에서 드러남). 끝까지 못 잡으면 진짜 문제라 실패한다
 	private void awaitAcquirable(PlaceCategory category) {
-		long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
-		java.util.Optional<PlaceSyncLockPort.SyncLock> lock;
-		do {
-			lock = locks.tryAcquire(category);
-			if (lock.isPresent()) {
-				lock.get().close();
-				return;
-			}
-			try {
-				Thread.sleep(50);
-			}
-			catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-				throw new AssertionError("기다리다 중단됨", e);
-			}
-		}
-		while (System.nanoTime() < deadline);
-		throw new AssertionError("10초가 지나도 " + category + " 잠금이 풀리지 않았다");
+		await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+			var lock = locks.tryAcquire(category);
+			assertThat(lock).as("%s 잠금", category).isPresent();
+			lock.get().close();
+		});
 	}
 
 	// 잠금 해제 질의만 연결이 살아 있는 채로 실패하게 만든 풀

@@ -26,7 +26,7 @@ public final class ShelterPlaceFactory {
 	/**
 	 * @throws IllegalArgumentException 필수 항목이 빠진 행(호출한 쪽이 isComplete로 먼저 확인한다)
 	 */
-	public static LocalDataPlaceFactory.Outcome create(ShelterRecord record) {
+	public static PlaceOutcome create(ShelterRecord record) {
 		if (!record.isComplete()) {
 			throw new IllegalArgumentException("필수 항목이 빠진 행입니다. 호출하기 전에 isComplete로 확인해야 합니다.");
 		}
@@ -50,14 +50,14 @@ public final class ShelterPlaceFactory {
 
 		String address = notBlank(record.address());
 		Open24hBasis basis = Open24hRule.fromHours(record.openTime(), record.closeTime());
-		return new LocalDataPlaceFactory.Outcome(new PlaceDraft(PlaceCategory.SHELTER, record.careRegNo().strip(),
+		return new PlaceOutcome(new PlaceDraft(PlaceCategory.SHELTER, record.careRegNo().strip(),
 				record.name().strip(), address, PlacePhone.normalize(record.phone(), address), latitude, longitude,
 				basis != null, basis, openingHours(record), closedDays(record.closeDay()),
 				parseStandardDate(record.dataStdDt())), null);
 	}
 
-	private static LocalDataPlaceFactory.Outcome excluded(LocalDataExclusion exclusion) {
-		return new LocalDataPlaceFactory.Outcome(null, exclusion);
+	private static PlaceOutcome excluded(LocalDataExclusion exclusion) {
+		return new PlaceOutcome(null, exclusion);
 	}
 
 	// 시작과 끝이 모두 있을 때만 "09:00~18:00"로 만든다. 한쪽만 있으면 운영 시간을 알 수 없다

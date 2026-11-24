@@ -64,6 +64,17 @@ final class PublicDataPageFetcher {
 		}
 	}
 
+	// 기본 쉬는 방법. 쉬는 동안 중단되면 가져오기를 멈춘다
+	static void sleep(Duration duration) {
+		try {
+			Thread.sleep(duration);
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw LocalDataSyncFailedException.fetchFailed(new CallFailure("가져오기가 중단됨", true));
+		}
+	}
+
 	void pause() {
 		sleeper.accept(properties.pageInterval());
 	}

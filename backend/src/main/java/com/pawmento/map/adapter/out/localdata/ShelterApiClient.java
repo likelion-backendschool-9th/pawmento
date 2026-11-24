@@ -29,7 +29,7 @@ class ShelterApiClient implements LoadShelterDataPort {
 
 	@Autowired
 	ShelterApiClient(LocalDataProperties properties) {
-		this(properties, LocalDataApiClient::sleep);
+		this(properties, PublicDataPageFetcher::sleep);
 	}
 
 	// 테스트에서 쉬는 시간을 기록만 하고 실제로 쉬지 않게 한다

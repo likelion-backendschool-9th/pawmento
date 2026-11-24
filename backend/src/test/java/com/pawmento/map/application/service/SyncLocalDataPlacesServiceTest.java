@@ -176,7 +176,7 @@ class SyncLocalDataPlacesServiceTest {
 	}
 
 	@Test
-	@DisplayName("#172-S9 위도·경도 항목이 아예 없는 센터는 실패시키지 않고 좌표 없음으로 제외하며, 모든 센터가 좌표가 없으면 지도를 비우지 않고 실패한다")
+	@DisplayName("#172-S9 위도·경도 항목이 아예 없는 센터는 실패시키지 않고 좌표 없음으로 제외하며, 모든 센터가 좌표가 없으면 지도를 비우지 않고 다시 시도하지 않는 이유(MISSING_FIELDS)로 실패한다")
 	void shelterWithoutCoordinateFieldsIsExcludedNotRejected() {
 		var store = new FakeStore();
 		var noCoordinates = new ShelterRecord("x", "좌표 항목 없는 센터", "주소", null, null, null, null, null, null, null);
@@ -191,11 +191,14 @@ class SyncLocalDataPlacesServiceTest {
 		assertThatThrownBy(() -> shelterService(List.of(noCoordinates), new FakeStore())
 			.sync(new SyncLocalDataPlacesCommand("SHELTER")))
 			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+					e -> {
+						assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.MISSING_FIELDS);
+						assertThat(e.retryable()).isFalse();
+					});
 	}
 
 	@Test
-	@DisplayName("#172-S9 저장될 센터가 기존(339곳)의 절반보다 적으면 지도를 비우지 않고 실패한다")
+	@DisplayName("#172-S9 저장될 센터가 기존(339곳)의 90%보다 적으면 지도를 비우지 않고 실패한다")
 	void shelterRejectsTooFewPlaces() {
 		var store = new FakeStore();
 		store.existing = 339;

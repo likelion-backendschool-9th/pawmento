@@ -32,6 +32,7 @@ import com.pawmento.map.domain.LocalDataPlaceFactory;
 import com.pawmento.map.domain.LocalDataRecord;
 import com.pawmento.map.domain.PlaceCategory;
 import com.pawmento.map.domain.PlaceDraft;
+import com.pawmento.map.domain.PlaceOutcome;
 import com.pawmento.map.domain.ShelterPlaceFactory;
 import com.pawmento.map.domain.ShelterRecord;
 
@@ -140,9 +141,11 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 		for (ShelterRecord record : records) {
 			tally.add(ShelterPlaceFactory.create(record));
 		}
-		// 모든 행이 좌표가 없어 장소가 하나도 안 남으면 원본의 좌표 항목 이름이 바뀐 것일 수 있어 지도를 비우지 않는다
+		// 모든 행이 좌표가 없어 장소가 하나도 안 남으면 원본의 좌표 항목 이름이 바뀐 것일 가능성이 커서, 필수 항목이 빠진 응답과
+		// 같게 다시 시도하지 않는 이유(MISSING_FIELDS)로 실패시키고 지도를 비우지 않는다
 		if (tally.drafts.isEmpty()) {
-			throw LocalDataSyncFailedException.rejected(Reason.TOO_FEW_PLACES);
+			log.warn("보호센터 응답의 모든 행에 위도·경도가 없습니다: 전체 {}", records.size());
+			throw LocalDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
 		}
 		return apply(PlaceCategory.SHELTER, records.size(), tally, SHELTER_MIN_KEEP_PERCENT, lock);
 	}
@@ -172,7 +175,7 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 
 		int outOfRange;
 
-		void add(LocalDataPlaceFactory.Outcome outcome) {
+		void add(PlaceOutcome outcome) {
 			if (!outcome.excluded()) {
 				drafts.add(outcome.draft());
 			}

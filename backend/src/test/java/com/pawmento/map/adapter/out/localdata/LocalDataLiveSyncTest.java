@@ -83,7 +83,7 @@ class LocalDataLiveSyncTest {
 
 	@Test
 	@Timeout(value = 180, unit = TimeUnit.MINUTES)
-	@DisplayName("진짜 서버: 병원·미용·보호센터를 DB에 가져오고, 다시 가져와도 그대로이며, 영역 조회가 된다")
+	@DisplayName("#172-S8 #172-S9 진짜 서버: 병원·미용·보호센터를 DB에 가져오고, 다시 가져와도 그대로이며, 영역 조회가 된다")
 	void importAndQuery() throws IOException {
 		StringBuilder report = new StringBuilder("===== 진짜 서버 → 진짜 DB 가져오기 확인 =====\n");
 		List<String> problems = new ArrayList<>();

@@ -29,7 +29,7 @@ class LocalDataApiClient implements LoadLocalDataPort {
 
 	@Autowired
 	LocalDataApiClient(LocalDataProperties properties) {
-		this(properties, LocalDataApiClient::sleep);
+		this(properties, PublicDataPageFetcher::sleep);
 	}
 
 	// 테스트에서 쉬는 시간을 기록만 하고 실제로 쉬지 않게 한다
@@ -76,17 +76,6 @@ class LocalDataApiClient implements LoadLocalDataPort {
 
 	private static String text(JsonNode node, String name) {
 		return PublicDataPageFetcher.text(node, name);
-	}
-
-	static void sleep(Duration duration) {
-		try {
-			Thread.sleep(duration);
-		}
-		catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-			throw LocalDataSyncFailedException
-				.fetchFailed(new PublicDataPageFetcher.CallFailure("가져오기가 중단됨", true));
-		}
 	}
 
 }
