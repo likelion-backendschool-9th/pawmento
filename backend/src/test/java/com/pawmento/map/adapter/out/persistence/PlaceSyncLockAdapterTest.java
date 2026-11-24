@@ -101,9 +101,8 @@ class PlaceSyncLockAdapterTest {
 		assertThatThrownBy(lock::requireHeld).isInstanceOf(PlaceSyncLockLostException.class);
 		lock.close();
 
-		var again = locks.tryAcquire(PlaceCategory.HOSPITAL);
-		assertThat(again).isPresent();
-		again.get().close();
+		// 끊긴 연결의 잠금은 DB가 연결 종료를 알아챈 뒤에 풀어서, 느린 환경에서는 잠깐 기다려야 한다
+		awaitAcquirable(PlaceCategory.HOSPITAL);
 	}
 
 	@Test
@@ -124,11 +123,32 @@ class PlaceSyncLockAdapterTest {
 				failing.tryAcquire(PlaceCategory.GROOMING).orElseThrow().close();
 				assertThat(pool.getHikariPoolMXBean().getActiveConnections()).as("%d번째 뒤", i + 1).isZero();
 			}
-			// 끊긴 연결의 잠금은 DB가 풀어서 다른 곳이 바로 잡을 수 있다
-			var again = locks.tryAcquire(PlaceCategory.GROOMING);
-			assertThat(again).isPresent();
-			again.get().close();
+			// 끊긴 연결의 잠금은 DB가 풀어서 다른 곳이 잡을 수 있다(풀리는 데 잠깐 걸릴 수 있다)
+			awaitAcquirable(PlaceCategory.GROOMING);
 		}
+	}
+
+	// 잠금이 풀릴 때까지 최대 10초 기다렸다가 잡아 본다. 연결을 강제로 끊으면 DB가 끊김을 알아채고 잠금을 푸는 일이 비동기라서
+	// 끊은 직후에 바로 잡으면 가끔 실패한다(CI의 느린 서버에서 드러남). 끝까지 못 잡으면 진짜 문제라 실패시킨다
+	private void awaitAcquirable(PlaceCategory category) {
+		long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(10);
+		java.util.Optional<PlaceSyncLockPort.SyncLock> lock;
+		do {
+			lock = locks.tryAcquire(category);
+			if (lock.isPresent()) {
+				lock.get().close();
+				return;
+			}
+			try {
+				Thread.sleep(50);
+			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new AssertionError("기다리다 중단됨", e);
+			}
+		}
+		while (System.nanoTime() < deadline);
+		throw new AssertionError("10초가 지나도 " + category + " 잠금이 풀리지 않았다");
 	}
 
 	// 잠금 해제 질의만 연결이 살아 있는 채로 실패하게 만든 풀
