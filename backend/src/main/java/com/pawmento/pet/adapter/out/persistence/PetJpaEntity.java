@@ -24,12 +24,14 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "pets", uniqueConstraints = @UniqueConstraint(name = "uk_pets_owner_tag",
+@Table(name = "pets", uniqueConstraints = @UniqueConstraint(name = PetJpaEntity.OWNER_TAG_UNIQUE_CONSTRAINT,
 		columnNames = { "owner_member_id", "tag" }),
 		indexes = @Index(name = "ix_pets_profile_photo_asset", columnList = "profile_photo_asset_id"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class PetJpaEntity {
+
+	static final String OWNER_TAG_UNIQUE_CONSTRAINT = "uk_pets_owner_tag";
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)

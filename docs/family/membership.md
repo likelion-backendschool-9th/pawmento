@@ -197,7 +197,7 @@
      - media에 넘기는 `previous`는 권한 확인을 마친 뒤 `DiaryAttachmentsPort.find(entryId)`로 DB에서 읽은 그 일기의 실제 첨부만 쓴다. 요청 본문의 값은 `previous`로 넘기지 않는다
      - `DiaryMediaPort.lock(memberId, petId, previous, requested)`로 바꾼다. 삭제는 `lock(…, previous, List.of())`, 수정은 `lock(…, previous, requested)`다
      - 기존 시나리오 고침: #32-S2의 "타 작성자 변경 403" 끝에 `(고침 #133: 소유주의 삭제는 허용)`, #32-S5의 VIEWER 문구 끝에 `(고침 #133: 역할은 OWNER·FAMILY 둘)`
-   - media: `ChangeMediaReferencesCommand`는 이미 `(memberId, petId, previous, requested, purpose)`를 받는다. `LockMediaReferencesCommand`는 아직 `(memberId, petId, assetIds, purpose)`라서 `previous`·`requested`를 나눠 받게 바꾸고, 지금 `ChangeMediaReferencesService.lock`이 모든 id에 하는 업로더 검사를 아래 기준으로 나눈다. 잠금과 `change`의 검사는 같은 기준이다 (고침 #133: 현재 코드 기준으로 남은 범위만 적음)
+   - media — 5단계 pet 작업([#206](https://github.com/likelion-backendschool-9th/pawmento/pull/206))에서 `LockMediaReferencesCommand`와 `ChangeMediaReferencesCommand` 모두 `previous`·`requested`를 구분하고, `PET_PROFILE`의 `previous`에만 업로더 검사 예외를 적용한다. 4단계에서 남은 일은 일기·질문의 실제 연결을 `previous`로 전달하고 `DIARY_ATTACHMENT`·`QUESTION_ANSWER_ATTACHMENT`에도 아래 기준을 적용하는 것이다. 잠금과 `change`는 같은 기준을 쓴다. (고침 #133: 프로필 사진에 적용한 분리와 일기·질문 후속 범위를 구분)
      - `requested`에만 있는 id(새 연결): 지금처럼 업로더가 요청자이고, 아이가 같고, 용도가 `purpose`와 같아야 한다
      - `previous`에 있는 id(유지·해제): 아이와 용도만 확인한다. 이 목록은 호출하는 도메인이 권한 확인 후 DB에서 읽은 실제 연결이라는 계약이다
      - diary는 `DIARY_ATTACHMENT`, question은 `QUESTION_ANSWER_ATTACHMENT`를 넘긴다.
@@ -207,6 +207,7 @@
    - pet: 관리 동작은 소유주만 그대로(S9)
 5. 소유주 이전 — S13~S17, S20
    - pet: 새 입력 포트 `ChangePetOwnerUseCase`·`ChangePetOwnerCommand(petId, currentOwnerId, newOwnerId)`. 소유주가 `currentOwnerId`가 아니면 409(`StateConflictException` 상속)를 던지는 방어 확인을 둔다. 새 소유주 안에서 태그가 겹치면 `PetTagGenerator`로 다시 뽑는다. pet 담당과 합의
+   - pet은 소유권을 확인하고 잠근 반려동물 행에서 읽은 기존 프로필 사진을 `previous`로 따로 넘긴다. 이전받은 소유주도 사진을 교체·제거할 수 있고, 기존 삭제 조건을 충족하면 사진이 연결된 반려동물도 삭제할 수 있다. 새로 연결하는 사진은 요청자가 업로드한 자산이어야 한다. (고침 #133: 이전 후에도 기존 프로필 사진 관리가 가능하도록 연결의 출처를 구분)
    - HTTP 경계는 `FamilyController`가 맡는다. family 서비스가 한 트랜잭션에서 반려동물 행 잠금 → 요청자가 소유주인지 확인(아니면 403, 대상 조회 전) → 대상의 멤버십 삭제(한 문장, 0줄이면 400) → pet 소유주 변경 → 이전 소유주의 멤버십 저장을 한다. 어디서 실패해도 전부 롤백된다
 6. 반려동물 삭제 — S21, S22
    - pet: `DeletePetService`가 반려동물 행을 `FOR UPDATE`로 읽고 소유주를 확인한 뒤, 새 출력 포트 `PetFamilyPort`로 가족 이어받기를 묻는다

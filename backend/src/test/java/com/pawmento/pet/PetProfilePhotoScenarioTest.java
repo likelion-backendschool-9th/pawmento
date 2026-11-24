@@ -64,6 +64,8 @@ import com.pawmento.media.application.exception.MediaPersistenceUnavailableExcep
 import com.pawmento.media.application.port.in.ProcessMediaWorkUseCase;
 import com.pawmento.media.application.service.MediaCleanupTransactions;
 import com.pawmento.media.domain.MediaAsset;
+import com.pawmento.pet.application.port.in.ChangePetOwnerCommand;
+import com.pawmento.pet.application.port.in.ChangePetOwnerUseCase;
 import com.pawmento.pet.application.port.out.LockPetPort;
 import com.pawmento.pet.application.port.out.PetProfilePhotoMediaPort;
 
@@ -93,6 +95,7 @@ class PetProfilePhotoScenarioTest {
 	@Autowired MediaCleanupTransactions cleanup;
 	@Autowired MediaValidationJobJpaRepository jobs;
 	@Autowired TransactionTemplate transactions;
+	@Autowired ChangePetOwnerUseCase changePetOwner;
 	@MockitoSpyBean LockPetPort petLocks;
 	@MockitoSpyBean PetProfilePhotoMediaPort photoMedia;
 	@LocalServerPort int port;
@@ -167,6 +170,49 @@ class PetProfilePhotoScenarioTest {
 			.andExpect(jsonPath("$.profilePhoto").value(nullValue()));
 		mvc.perform(get(owner.photoPath() + "/" + second + "/thumbnail").cookie(owner.cookie()))
 			.andExpect(status().isNotFound());
+	}
+
+	enum InheritedPhotoAction { REPLACE, REMOVE, DELETE_PET }
+
+	@ParameterizedTest(name = "{0}")
+	@EnumSource(InheritedPhotoAction.class)
+	@DisplayName("#133-S13 이전받은 소유주가 기존 프로필 사진을 교체·제거하거나 반려동물을 삭제한다")
+	void manageInheritedPhoto(InheritedPhotoAction action) throws Exception {
+		Owner original = owner();
+		Owner recipient = new Owner(owner().cookie(), original.petId());
+		long inherited = png(original);
+		long unlinked = png(original);
+		attach(original, inherited).andExpect(status().isOk());
+		long originalId = memberId(original.cookie());
+		long recipientId = memberId(recipient.cookie());
+		transactions.executeWithoutResult(status ->
+			changePetOwner.changeOwner(new ChangePetOwnerCommand(original.petId(), originalId, recipientId)));
+
+		mvc.perform(get(recipient.photoPath() + "/" + inherited + "/content").cookie(recipient.cookie()))
+			.andExpect(status().isOk());
+		mvc.perform(delete(original.photoPath()).cookie(original.cookie())).andExpect(status().isForbidden());
+		attach(recipient, unlinked).andExpect(status().isNotFound());
+		assertAsset(inherited, "READY", 1, false);
+		assertAsset(unlinked, "READY", 0, false);
+
+		switch (action) {
+			case REPLACE -> {
+				long replacement = png(recipient);
+				attach(recipient, replacement).andExpect(status().isOk())
+					.andExpect(jsonPath("$.profilePhoto.assetId").value(replacement));
+				assertAsset(replacement, "READY", 1, false);
+			}
+			case REMOVE -> {
+				mvc.perform(delete(recipient.photoPath()).cookie(recipient.cookie())).andExpect(status().isNoContent());
+				mvc.perform(get(recipient.petPath()).cookie(recipient.cookie()))
+					.andExpect(status().isOk()).andExpect(jsonPath("$.profilePhoto").value(nullValue()));
+			}
+			case DELETE_PET -> {
+				mvc.perform(delete(recipient.petPath()).cookie(recipient.cookie())).andExpect(status().isNoContent());
+				mvc.perform(get(recipient.petPath()).cookie(recipient.cookie())).andExpect(status().isNotFound());
+			}
+		}
+		assertAsset(inherited, "DELETING", 0, true);
 	}
 
 	@Test
@@ -603,6 +649,11 @@ class PetProfilePhotoScenarioTest {
 				.content("{\"name\":\"보리\",\"species\":\"DOG\"}"))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.profilePhoto").value(nullValue())).andReturn(), "$.petId");
+	}
+
+	private long memberId(Cookie cookie) throws Exception {
+		return number(mvc.perform(get("/api/v1/members/me").cookie(cookie))
+			.andExpect(status().isOk()).andReturn(), "$.id");
 	}
 
 	private long number(MvcResult result, String path) throws Exception {
