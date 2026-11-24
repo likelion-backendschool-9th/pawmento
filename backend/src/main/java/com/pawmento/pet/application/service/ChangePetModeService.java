@@ -1,8 +1,6 @@
 package com.pawmento.pet.application.service;
 
 import java.time.Clock;
-import java.time.LocalDate;
-import java.time.ZoneId;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +30,7 @@ public class ChangePetModeService implements ChangePetModeUseCase {
 		PetMode mode = PetModeParser.require(command.mode());
 		pet.changeMode(mode);
 		savePetPort.save(pet);
-		return PetResult.from(pet, LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul"))));
+		return PetResult.from(pet, PetDates.today(clock));
 	}
 
 }

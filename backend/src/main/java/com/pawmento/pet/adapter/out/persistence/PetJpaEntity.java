@@ -2,9 +2,11 @@ package com.pawmento.pet.adapter.out.persistence;
 
 import java.time.LocalDate;
 
+import com.pawmento.pet.application.exception.StoredPetDataInvalidException;
 import com.pawmento.pet.domain.Pet;
 import com.pawmento.pet.domain.PetMode;
 import com.pawmento.pet.domain.PetSpecies;
+import com.pawmento.pet.domain.exception.InvalidStoredBirthInformationException;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -79,7 +81,12 @@ public class PetJpaEntity {
 	}
 
 	public Pet toDomain() {
-		return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, profilePhotoAssetId, birthYear);
+		try {
+			return Pet.restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version,
+					profilePhotoAssetId, birthYear);
+		} catch (InvalidStoredBirthInformationException e) {
+			throw new StoredPetDataInvalidException(id, e);
+		}
 	}
 
 }

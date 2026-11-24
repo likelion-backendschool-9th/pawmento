@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.pawmento.pet.domain.exception.InvalidPetProfileException;
+import com.pawmento.pet.domain.exception.InvalidStoredBirthInformationException;
 
 class PetBirthYearTest {
 	private static final LocalDate TODAY = LocalDate.of(2026, 11, 24);
@@ -35,7 +36,7 @@ class PetBirthYearTest {
 	void cannotRestoreBoth() {
 		assertThatThrownBy(() -> Pet.restore(1L, 1L, "보리", "abcd", PetSpecies.DOG, null,
 				LocalDate.of(2020, 5, 12), PetMode.ACTIVE, 0L, null, 2020))
-				.isInstanceOf(InvalidPetProfileException.class);
+				.isInstanceOf(InvalidStoredBirthInformationException.class);
 	}
 
 	@Test

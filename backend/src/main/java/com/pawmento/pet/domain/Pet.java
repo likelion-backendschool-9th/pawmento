@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import com.pawmento.pet.domain.exception.InvalidPetProfileException;
 import com.pawmento.pet.domain.exception.PetOwnershipViolationException;
+import com.pawmento.pet.domain.exception.InvalidStoredBirthInformationException;
 
 import lombok.Getter;
 
@@ -53,7 +54,7 @@ public class Pet {
 		return pet;
 	}
 
-	// DB에서 꺼낸 값을 도메인으로 되돌릴 때 쓴다. 이미 저장된 값이므로 생성 규칙을 다시 검사하지 않는다
+	// 기존 날짜는 보존하고, 날짜와 연도를 동시에 저장할 수 없다는 불변 조건만 검사한다.
 	public static Pet restore(Long id, Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
 			LocalDate birthday, PetMode mode, Long version) {
 		return restore(id, ownerMemberId, name, tag, species, breed, birthday, mode, version, null);
@@ -67,7 +68,7 @@ public class Pet {
 	public static Pet restore(Long id, Long ownerMemberId, String name, String tag, PetSpecies species, String breed,
 			LocalDate birthday, PetMode mode, Long version, Long profilePhotoAssetId, Integer birthYear) {
 		if (birthday != null && birthYear != null) {
-			throw InvalidPetProfileException.inconsistentBirthYear();
+			throw new InvalidStoredBirthInformationException();
 		}
 		Pet pet = new Pet(ownerMemberId, name, tag, species, breed, birthday, mode);
 		pet.birthYear = birthYear;
@@ -83,7 +84,11 @@ public class Pet {
 	}
 
 	public void edit(String name, PetSpecies species, String breed, LocalDate birthday, Integer birthYear, LocalDate today) {
-		requireBirthInformation(birthday, birthYear, today);
+		// 응답에 포함된 1900년 이전 연도를 다시 보내도 저장된 정확한 날짜는 보존한다.
+		boolean keepsLegacyBirthday = this.birthday != null && birthYear != null
+				&& birthYear < 1900 && this.birthday.getYear() == birthYear
+				&& (birthday == null || this.birthday.equals(birthday));
+		requireBirthInformation(birthday, keepsLegacyBirthday ? null : birthYear, today);
 		if (name != null) {
 			this.name = requireName(name);
 		}

@@ -2,7 +2,6 @@ package com.pawmento.pet.application.service;
 
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 import java.util.List;
 
@@ -26,7 +25,7 @@ public class ListPetsService implements ListPetsUseCase {
 	@Override
 	@Transactional(readOnly = true)
 	public List<PetResult> list(ListPetsQuery query) {
-		LocalDate today = LocalDate.now(clock.withZone(ZoneId.of("Asia/Seoul")));
+		LocalDate today = PetDates.today(clock);
 		return loadPetPort.findByOwnerMemberId(query.memberId()).stream().map(pet -> PetResult.from(pet, today)).toList();
 	}
 
