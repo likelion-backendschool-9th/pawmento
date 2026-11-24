@@ -22,7 +22,7 @@ function withEnv(
   }
 }
 
-test("#182 개발용 목업은 명시적으로 켠 경우에만 켜지고 운영 빌드에서는 거부된다", () => {
+test("#182 운영 빌드에서는 개발용 목업을 켤 수 없다", () => {
   for (const nodeEnv of ["development", "test"]) {
     for (const flag of [undefined, "1"]) {
       withEnv({ NODE_ENV: nodeEnv, NEXT_PUBLIC_PAWMENTO_MOCK: flag }, () => {
