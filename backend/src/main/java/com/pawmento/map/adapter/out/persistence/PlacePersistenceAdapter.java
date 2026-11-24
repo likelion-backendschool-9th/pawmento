@@ -3,11 +3,11 @@ package com.pawmento.map.adapter.out.persistence;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
@@ -49,13 +49,16 @@ class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort, LoadPl
 	}
 
 	@Override
-	public Optional<Instant> oldestSyncedAt(Set<PlaceCategory> categories) {
+	public Map<PlaceCategory, Instant> syncedAt(Set<PlaceCategory> categories) {
 		if (categories == null || categories.isEmpty()) {
 			throw new IllegalArgumentException("종류가 필요합니다.");
 		}
-		return MapPersistenceOperations.execute(
-				() -> Optional.ofNullable(placeSyncRunJpaRepository.oldestSyncedAt(categories)),
-				PlacePersistenceUnavailableException::new);
+		return MapPersistenceOperations.execute(() -> {
+			Map<PlaceCategory, Instant> synced = new EnumMap<>(PlaceCategory.class);
+			placeSyncRunJpaRepository.findAllById(categories)
+				.forEach(run -> synced.put(run.getCategory(), run.getLastSyncedAt()));
+			return synced;
+		}, PlacePersistenceUnavailableException::new);
 	}
 
 	@Override
