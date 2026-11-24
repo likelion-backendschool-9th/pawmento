@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import { messageOf } from "./presentation";
+import { messageOf } from "../../shell/utils/presentation";
 export function useCurrentQuestion(petId: string, enabled = true) {
   const { dependencies, account, state } = useApp();
   const mode = state.pets.find((p) => p.id === petId)?.mode;

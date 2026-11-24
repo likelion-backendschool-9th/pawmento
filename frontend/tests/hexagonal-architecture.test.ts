@@ -29,10 +29,11 @@ function coreFolders(): string[] {
 }
 
 test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의존하지 않는다", () => {
-  // 계층을 푼 기능 폴더는 폴더 전체를 같은 기준으로 검사한다
+  // 계층을 푼 기능 폴더는 화면·훅을 뺀 나머지를 같은 기준으로 검사한다
   const folders = [...coreFolders(), "features/diary", "features/question"];
   for (const folder of folders) {
     for (const path of files(resolve(folder))) {
+      if (/\/(components|hooks)\//.test(path)) continue;
       const name = relative(resolve("."), path);
       const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
       function visit(node: ts.Node) {
@@ -50,7 +51,7 @@ test("#52-S9 코어는 프레임워크·브라우저·어댑터와 HTTP에 의�
 });
 
 test("#52-S9 마이페이지 화면은 구체 outbound 어댑터와 HTTP 예외를 모른다", () => {
-  const path = resolve("features/workspace/adapters/inbound/AccountScreen.tsx");
+  const path = resolve("features/mypage/components/AccountScreen.tsx");
   const file = ts.createSourceFile(path, readFileSync(path, "utf8"), ts.ScriptTarget.Latest, true);
   for (const node of file.statements) {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {

@@ -1,7 +1,7 @@
 "use client";
-import { HomeScreen } from "@/features/workspace/adapters/inbound/HomeScreen";
-import { useCurrentPet } from "@/features/workspace/adapters/inbound/PetContext";
-import { EmptyState } from "@/features/workspace/adapters/inbound/WorkspaceUi";
+import { HomeScreen } from "@/features/pet/components/HomeScreen";
+import { useCurrentPet } from "@/features/pet/hooks/PetContext";
+import { EmptyState } from "@/features/shell/components/WorkspaceUi";
 export default function Page() {
   const pet = useCurrentPet();
   return pet ? (

@@ -3,7 +3,7 @@ import { ModeScreen } from "@/features/life/adapters/inbound/ModeScreen";
 import {
   usePet,
   PetWriteAccess,
-} from "@/features/workspace/adapters/inbound/PetContext";
+} from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();
   return (

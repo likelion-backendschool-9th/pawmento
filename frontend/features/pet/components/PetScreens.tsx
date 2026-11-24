@@ -9,12 +9,12 @@ import { useConfirmNavigation } from "@/components/UnsavedChangesProvider";
 import { Icon } from "@/components/Icon";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { today } from "@/lib/date";
-import type { Pet } from "../../domain/models";
-import type { PetInput } from "../../domain/models";
-import styles from "./Workspace.module.css";
-import { PetSummary, EmptyState, PageHeading } from "./WorkspaceUi";
-import { useUnsavedChanges } from "./useUnsavedChanges";
-import { speciesName, messageOf } from "./presentation";
+import type { Pet } from "../../workspace/domain/models";
+import type { PetInput } from "../../workspace/domain/models";
+import styles from "../../shell/components/Workspace.module.css";
+import { PetSummary, EmptyState, PageHeading } from "../../shell/components/WorkspaceUi";
+import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
+import { speciesName, messageOf } from "../../shell/utils/presentation";
 
 export function PetList() {
   const app = useApp();

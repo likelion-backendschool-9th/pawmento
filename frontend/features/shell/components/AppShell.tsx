@@ -5,10 +5,10 @@ import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { useConfirmNavigation } from "@/components/UnsavedChangesProvider";
 import { Icon } from "@/components/Icon";
-import type { Pet } from "../../domain/models";
+import type { Pet } from "../../workspace/domain/models";
 import styles from "./AppShell.module.css";
 import { SpaceShell } from "./SpaceShell";
-import { messageOf } from "./presentation";
+import { messageOf } from "../utils/presentation";
 export function Shell({
   children,
   pet,

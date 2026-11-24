@@ -11,12 +11,12 @@ import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { today } from "@/lib/date";
 import { formatDate } from "@/lib/date";
-import { validateDate } from "../../domain/models";
-import type { JournalItem } from "../../domain/models";
-import type { Pet } from "../../domain/models";
-import styles from "./Workspace.module.css";
-import { JournalCard, EmptyState, PageHeading } from "./WorkspaceUi";
-import { messageOf } from "./presentation";
+import { validateDate } from "../../workspace/domain/models";
+import type { JournalItem } from "../../workspace/domain/models";
+import type { Pet } from "../../workspace/domain/models";
+import styles from "../../shell/components/Workspace.module.css";
+import { JournalCard, EmptyState, PageHeading } from "../../shell/components/WorkspaceUi";
+import { messageOf } from "../../shell/utils/presentation";
 
 export function Calendar({
   pet,

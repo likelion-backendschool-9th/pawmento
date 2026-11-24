@@ -8,10 +8,10 @@ import { today } from "@/lib/date";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
-import type { Pet } from "../../domain/models";
-import { JournalCard } from "./WorkspaceUi";
-import { useCurrentQuestion } from "./useCurrentQuestion";
-import { question } from "./presentation";
+import type { Pet } from "../../workspace/domain/models";
+import { JournalCard } from "../../shell/components/WorkspaceUi";
+import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
+import { question } from "../../shell/utils/presentation";
 import { LifeEmpty, lifeStyles as s } from "@/features/life/adapters/inbound/LifeUi";
 import g from "./HomeScreen.module.css";
 

@@ -1,6 +1,6 @@
 "use client";
 import { useApp } from "@/app/AppProvider";
-import { usePet } from "@/features/workspace/adapters/inbound/PetContext";
+import { usePet } from "@/features/pet/hooks/PetContext";
 import { MapScreen } from "./MapScreen";
 import { isOpenableDiary } from "../utils/pinDetail";
 

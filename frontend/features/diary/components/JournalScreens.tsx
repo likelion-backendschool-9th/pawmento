@@ -1,8 +1,8 @@
 "use client";
 import { MediaAttachments, MediaPlayer } from "@/components/MediaAttachments";
-import type { MediaAttachment } from "../../domain/models";
+import type { MediaAttachment } from "../../workspace/domain/models";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
-import { useCurrentQuestion } from "./useCurrentQuestion";
+import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -16,12 +16,12 @@ import type { PickedLocation } from "@/features/map/types/PickedLocation";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { today } from "@/lib/date";
 import { formatDate } from "@/lib/date";
-import type { JournalItem } from "../../domain/models";
-import type { Pet } from "../../domain/models";
-import styles from "./Workspace.module.css";
-import { PageHeading } from "./WorkspaceUi";
-import { useUnsavedChanges } from "./useUnsavedChanges";
-import { question, messageOf } from "./presentation";
+import type { JournalItem } from "../../workspace/domain/models";
+import type { Pet } from "../../workspace/domain/models";
+import styles from "../../shell/components/Workspace.module.css";
+import { PageHeading } from "../../shell/components/WorkspaceUi";
+import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
+import { question, messageOf } from "../../shell/utils/presentation";
 
 export function JournalForm({
   pet,

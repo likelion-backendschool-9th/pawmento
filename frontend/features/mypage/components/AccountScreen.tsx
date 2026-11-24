@@ -8,9 +8,9 @@ import { useApp } from "@/app/AppProvider";
 import { isDemoAccount } from "@/features/member/types/account";
 import { ApplicationError } from "@/lib/application/ApplicationError";
 import { Icon } from "@/components/Icon";
-import styles from "./Workspace.module.css";
-import { PageHeading } from "./WorkspaceUi";
-import { messageOf } from "./presentation";
+import styles from "../../shell/components/Workspace.module.css";
+import { PageHeading } from "../../shell/components/WorkspaceUi";
+import { messageOf } from "../../shell/utils/presentation";
 
 export function AccountScreen() {
   const app = useApp();

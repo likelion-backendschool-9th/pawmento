@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { AuthenticatedLayout } from "@/features/workspace/adapters/inbound/AuthenticatedLayout";
+import { AuthenticatedLayout } from "@/features/shell/components/AuthenticatedLayout";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense

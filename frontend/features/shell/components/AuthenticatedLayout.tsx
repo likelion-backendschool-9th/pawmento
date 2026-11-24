@@ -4,7 +4,7 @@ import { useApp } from "@/app/AppProvider";
 import { AuthScreen } from "@/features/member/components/AuthScreen";
 import { resolveProtectedAccess } from "@/features/member/utils/access";
 import { Shell } from "./AppShell";
-import { useCurrentPet } from "./PetContext";
+import { useCurrentPet } from "../../pet/hooks/PetContext";
 
 export function AuthenticatedLayout({
   children,

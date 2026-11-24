@@ -1,9 +1,9 @@
 "use client";
-import { PetForm } from "@/features/workspace/adapters/inbound/PetScreens";
+import { PetForm } from "@/features/pet/components/PetScreens";
 import {
   usePet,
   PetWriteAccess,
-} from "@/features/workspace/adapters/inbound/PetContext";
+} from "@/features/pet/hooks/PetContext";
 export default function Page() {
   const pet = usePet();
   return (

@@ -4,10 +4,10 @@ import { QuestionAnswer } from "@/components/QuestionAnswer";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { formatDate } from "@/lib/date";
-import type { JournalItem } from "../../domain/models";
-import type { Pet } from "../../domain/models";
+import type { JournalItem } from "../../workspace/domain/models";
+import type { Pet } from "../../workspace/domain/models";
 import styles from "./Workspace.module.css";
-import { speciesName } from "./presentation";
+import { speciesName } from "../utils/presentation";
 
 export function PetSummary({ pet, count }: { pet: Pet; count: number }) {
   return (

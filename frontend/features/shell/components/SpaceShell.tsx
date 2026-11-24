@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/Icon";
-import type { Pet } from "../../domain/models";
+import type { Pet } from "../../workspace/domain/models";
 import s from "./SpaceShell.module.css";
 
 export function SpaceShell({

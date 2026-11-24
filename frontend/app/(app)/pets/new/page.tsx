@@ -1,4 +1,4 @@
-import { PetForm } from "@/features/workspace/adapters/inbound/PetScreens";
+import { PetForm } from "@/features/pet/components/PetScreens";
 export default function Page() {
   return <PetForm key="new" />;
 }

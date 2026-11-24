@@ -1,4 +1,4 @@
-import { JournalBoundary } from "@/features/workspace/adapters/inbound/JournalContext";
+import { JournalBoundary } from "@/features/diary/hooks/JournalContext";
 export default function JournalLayout({
   children,
 }: {

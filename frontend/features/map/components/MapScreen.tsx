@@ -5,7 +5,7 @@ import { useApp } from "@/app/AppProvider";
 import { isDemoAccount } from "@/features/member/types/account";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { Icon } from "@/components/Icon";
-import { PageHeading } from "@/features/workspace/adapters/inbound/WorkspaceUi";
+import { PageHeading } from "@/features/shell/components/WorkspaceUi";
 import type { MapBounds } from "@/features/map/types/MapBounds";
 import type { MapPinList } from "@/features/map/types/MapPin";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
