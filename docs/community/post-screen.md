@@ -159,8 +159,13 @@
    - 파일: `frontend/features/community/source.ts`, `frontend/app/composition.ts`, 같은 테스트 파일
    - 확인: `cd frontend && npm test`
 3. 화면 나누기 (동작 변경 없음) — 시나리오 없음. 데모 화면이 그대로인지 확인
-   - 파일: `CommunityScreen.tsx`를 목록(`PostList.tsx`)·상세(`PostDetail.tsx`)·편집기(`PostEditor.tsx`)로 나누고, `CommunityScreen.tsx`는 경로에 따라 고르기만 한다
-   - 확인: `cd frontend && npm run lint && npm run build`, 데모 계정으로 목록·상세·작성·수정·삭제·댓글이 전과 같은지
+   - 파일: `CommunityScreen.tsx`를 목록(`PostList.tsx`)·상세(`PostDetail.tsx`)·편집기(`PostEditor.tsx`)·내 활동(`ActivityView.tsx`)으로 나누고, `CommunityScreen.tsx`는 경로와 `activity` 속성에 따라 네 화면 중 하나를 고르기만 한다. `me/activity/page.tsx`도 같은 컴포넌트를 쓰기 때문이다 (#229 리뷰)
+   - 방법: 함수 본문은 고치지 않고 옮기기만 한다. 한 파일을 여러 파일로 나누면 `git diff -M`이 이동으로 잡지 못하므로, `git diff --color-moved=zebra`로 옮긴 줄만 보이는지 확인한다
+   - 확인: `cd frontend && npm run lint && npm run build`, 데모 계정으로 아래가 전과 같은지. 같은 목록으로 구현 PR 본문에 결과를 적는다
+     - 목록: 카테고리 탭 5개와 주소의 `category`, 장례 정보·추모 방식의 전문가 확인 안내, 검색, 최신순·인기순 정렬, 글 카드의 사진·좋아요 수·댓글 수, 빈 목록 안내, 데모 데이터 안내, "내가 쓴 글 · 댓글 · 북마크" 링크
+     - 상세: 본문과 사진, 작성자에게만 보이는 수정·삭제, 좋아요·북마크 토글, 신고 대화상자, 댓글 작성·수정·삭제, 없는 글 안내
+     - 편집기: 새 글의 기본 카테고리(주소의 `category`), 수정 폼의 기존 값, 사진 선택, 남의 글 수정 안내, 저장 뒤 상세로 이동
+     - 내 활동(`/me/activity`): 내가 쓴 글·내 댓글·북마크 탭, "커뮤니티로" 링크
 4. 목록 화면: 서버 카테고리 탭, 최신순 목록, 더 보기 — S2, S3, S12, S13
    - 파일: `frontend/features/community/components/PostList.tsx`, `frontend/features/community/hooks/usePosts.ts`, `frontend/features/community/utils/postList.ts`(카테고리 고르기·이어 붙이기), `frontend/features/community/utils/categories.ts`·`types/community.ts`(데모 전용임을 주석으로 표시, 값은 그대로), 테스트 `frontend/tests/community-post-api.test.ts`
    - 확인: `cd frontend && npm test && npm run lint && npm run build`, 로컬 백엔드로 S2·S3
@@ -168,7 +173,7 @@
    - 파일: `PostDetail.tsx`, `PostEditor.tsx`, `usePosts.ts`
    - 확인: `cd frontend && npm run lint && npm run build`, 로컬 백엔드와 두 브라우저로 S4·S6·S7·S8, 마지막에 S11(기존 동작 확인)
 6. 서버 세션에서 없는 기능 숨기기와 내 활동 안내 — S10
-   - 파일: `PostList.tsx`, `PostDetail.tsx`, `PostEditor.tsx`, `frontend/app/(app)/me/activity/page.tsx`
+   - 파일: `PostList.tsx`, `PostDetail.tsx`, `PostEditor.tsx`, `ActivityView.tsx`
    - 확인: 같은 명령, HTTP 계정과 데모 계정으로 S10
 
 ## 정한 것
@@ -177,7 +182,7 @@
 - 데모로 시작한 계정은 브라우저 데모(`BrowserLifeRepository`)를 그대로 쓴다. 데모 계정에는 서버 쿠키가 없어 글을 쓸 수 없기 때문이다. 지도(`features/map/source.ts`)처럼 출처를 한 파일에서 고르고, #168 결정 뒤 정리한다.
 - 서버 글은 새 타입(`types/post.ts`)에 담는다. 목록 항목 `PostSummary`는 `preview`를, 상세 `PostDetail`은 `body`·`updatedAt`을 가진다. 서버 `postId`는 `id`, 숫자 id는 문자열로 바꾼다. 서버에 없는 `photoUrl`·`likes`·`bookmarks`·`hidden`을 기본값으로 채우지 않는다. 채우면 "좋아요 0개"처럼 사실이 아닌 값이 화면에 나오기 때문이다. 데모 화면은 기존 `Post` 타입(`types/community.ts`)을 그대로 쓴다. (#229 리뷰)
 - 카테고리는 HTTP 세션에서 서버의 `code`·`name`을 쓰고, 데모 세션은 기존 `utils/categories.ts`와 `Category` 타입을 쓴다. 둘은 #168 결정 뒤 데모를 정리할 때 함께 지운다. (#229 리뷰)
-- `CommunityScreen.tsx`(576줄)를 4~6단계가 모두 고치므로, 먼저 동작을 바꾸지 않고 목록·상세·편집기로 나눈다. (#229 리뷰)
+- `CommunityScreen.tsx`(576줄)를 4~6단계가 모두 고치므로, 먼저 동작을 바꾸지 않고 목록·상세·편집기·내 활동으로 나눈다. (#229 리뷰)
 - 저장 중에 401(쿠키 만료)을 받으면 로그인 화면으로 가고, 입력한 제목·본문은 잃는다. 로그인 전에 입력을 보관하려면 브라우저 저장소가 필요한데, [구조 문서](../frontend-structure/README.md#3-데이터-저장과-화면-상태)가 업무 데이터의 브라우저 저장을 막고 있다. (#229 리뷰)
 
 ## 가정
