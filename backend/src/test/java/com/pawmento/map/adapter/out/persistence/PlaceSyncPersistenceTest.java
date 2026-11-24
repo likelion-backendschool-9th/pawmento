@@ -4,8 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +41,7 @@ class PlaceSyncPersistenceTest {
 	@AfterEach
 	void clean() {
 		jdbcTemplate.update("delete from places");
+		jdbcTemplate.update("delete from place_sync_runs");
 	}
 
 	private static PlaceDraft draft(PlaceCategory category, String sourceId, String name, String phone) {
@@ -127,16 +130,56 @@ class PlaceSyncPersistenceTest {
 				draft(PlaceCategory.HOSPITAL, "gone", "삭제될 병원", null)));
 		// 새 행(new)은 정상이라 추가가 DB에 먼저 실행되고, gone은 목록에 없어 삭제가 실행된다. 마지막 flush에서 keep의 갱신 값(전화번호
 		// 31자, 컬럼 길이 30)이 거절되어 이미 실행된 추가·삭제를 되돌려야 한다. 트랜잭션이 없으면 추가와 삭제는 남는다
+		Instant syncedBefore = adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL)).orElseThrow();
 		List<PlaceDraft> broken = List.of(draft(PlaceCategory.HOSPITAL, "keep", "바뀐 이름", "0".repeat(31)),
 				draft(PlaceCategory.HOSPITAL, "new", "새 병원", null));
 
 		assertThatThrownBy(() -> adapter.replace(PlaceCategory.HOSPITAL, broken)).isInstanceOf(RuntimeException.class);
+
+		// 반영이 되돌아가면 가져온 시각도 새로 남지 않는다(#172-S21)
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL))).contains(syncedBefore);
 
 		assertThat(count(PlaceCategory.HOSPITAL)).isEqualTo(2);
 		assertThat(jdbcTemplate.queryForObject("select count(*) from places where source_id = 'new'", Long.class)).isZero();
 		assertThat(row(PlaceCategory.HOSPITAL, "gone").get("name")).isEqualTo("삭제될 병원");
 		assertThat(row(PlaceCategory.HOSPITAL, "keep").get("name")).isEqualTo("그대로");
 		assertThat(row(PlaceCategory.HOSPITAL, "keep").get("phone")).isEqualTo("02-111-2222");
+	}
+
+	@Test
+	@DisplayName("#172-S21 반영하면 그 종류의 가져온 시각이 남고, 바뀐 것이 없어도 다시 가져오면 시각이 갱신된다")
+	void recordsWhenEachCategoryWasSynced() throws InterruptedException {
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL))).isEmpty();
+
+		Instant before = Instant.now();
+		adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null)));
+		Instant first = adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL)).orElseThrow();
+		assertThat(first).isBetween(before.minusSeconds(1), Instant.now().plusSeconds(1));
+		// 다른 종류는 가져온 적이 없다
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.GROOMING))).isEmpty();
+
+		Thread.sleep(20);
+		// 바뀐 것이 없는 같은 목록으로 다시 가져와도 가져오기에 성공했으니 시각은 새로 남는다
+		var applied = adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null)));
+		assertThat(applied).isEqualTo(new AppliedPlaces(0, 0, 0));
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL)).orElseThrow()).isAfter(first);
+		assertThat(jdbcTemplate.queryForObject("select count(*) from place_sync_runs", Long.class)).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("#172-S21 요청한 종류 중 가장 오래된 시각을 돌려주고, 가져온 적이 없는 종류는 세지 않는다")
+	void returnsTheOldestOfTheRequestedCategories() throws InterruptedException {
+		adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null)));
+		Instant hospital = adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL)).orElseThrow();
+		Thread.sleep(20);
+		adapter.replace(PlaceCategory.GROOMING, List.of(draft(PlaceCategory.GROOMING, "g", "가미용", null)));
+		Instant grooming = adapter.oldestSyncedAt(Set.of(PlaceCategory.GROOMING)).orElseThrow();
+
+		assertThat(grooming).isAfter(hospital);
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.HOSPITAL, PlaceCategory.GROOMING))).contains(hospital);
+		// 가져온 적이 없는 보호센터가 섞여도 가져온 종류 중 가장 오래된 시각이다
+		assertThat(adapter.oldestSyncedAt(EnumSet.allOf(PlaceCategory.class))).contains(hospital);
+		assertThat(adapter.oldestSyncedAt(Set.of(PlaceCategory.SHELTER))).isEmpty();
 	}
 
 }

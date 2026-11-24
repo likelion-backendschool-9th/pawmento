@@ -4,7 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.junit.jupiter.api.DisplayName;
@@ -36,7 +38,7 @@ class ListPlacesServiceTest {
 					new Place(1L, PlaceCategory.SHELTER, "센터", "주소", "051-111-2222", 37.58, 127.0, true,
 							Open24hBasis.HOURS, "00:00~24:00", null),
 					new Place(2L, PlaceCategory.HOSPITAL, "병원", null, null, 37.58, 127.0, false, null, null, null));
-		});
+		}, categories -> Optional.empty());
 
 		ListPlacesResult result = service.list(query("HOSPITAL", "SHELTER"));
 
@@ -56,10 +58,28 @@ class ListPlacesServiceTest {
 	@Test
 	@DisplayName("#172-S11 종류가 비어 있거나 모르는 이름이면 호출한 쪽의 버그로 거절한다")
 	void rejectsEmptyOrUnknownCategories() {
-		var service = new ListPlacesService((area, categories) -> List.of());
+		var service = new ListPlacesService((area, categories) -> List.of(), categories -> Optional.empty());
 
 		assertThatThrownBy(() -> service.list(query())).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> service.list(query("CAFE"))).isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	@DisplayName("#172-S21 요청한 종류의 가져온 시각을 응답에 싣고, 가져온 적이 없으면 null이다")
+	void carriesTheDataAsOfTime() {
+		var seen = new Object() {
+			Set<PlaceCategory> categories;
+		};
+		Instant oldest = Instant.parse("2026-11-21T13:00:00Z");
+		var withRun = new ListPlacesService((area, categories) -> List.of(), categories -> {
+			seen.categories = categories;
+			return Optional.of(oldest);
+		});
+		var withoutRun = new ListPlacesService((area, categories) -> List.of(), categories -> Optional.empty());
+
+		assertThat(withRun.list(query("HOSPITAL", "SHELTER")).dataAsOf()).isEqualTo(oldest);
+		assertThat(seen.categories).containsExactlyInAnyOrder(PlaceCategory.HOSPITAL, PlaceCategory.SHELTER);
+		assertThat(withoutRun.list(query("HOSPITAL")).dataAsOf()).isNull();
 	}
 
 }

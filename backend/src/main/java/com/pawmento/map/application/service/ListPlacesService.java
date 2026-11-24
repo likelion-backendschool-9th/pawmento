@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import com.pawmento.map.application.port.in.ListPlacesQuery;
 import com.pawmento.map.application.port.in.ListPlacesResult;
 import com.pawmento.map.application.port.in.ListPlacesUseCase;
+import com.pawmento.map.application.port.out.LoadPlaceDataAsOfPort;
 import com.pawmento.map.application.port.out.LoadPlacesPort;
 import com.pawmento.map.domain.MapArea;
 import com.pawmento.map.domain.Place;
@@ -26,6 +27,8 @@ class ListPlacesService implements ListPlacesUseCase {
 
 	private final LoadPlacesPort loadPlacesPort;
 
+	private final LoadPlaceDataAsOfPort loadPlaceDataAsOfPort;
+
 	@Override
 	public ListPlacesResult list(ListPlacesQuery query) {
 		if (query.categories().isEmpty()) {
@@ -37,7 +40,7 @@ class ListPlacesService implements ListPlacesUseCase {
 		List<Place> candidates = loadPlacesPort.loadInArea(area, categories);
 		PlaceSelection.Selected selected = PlaceSelection.select(candidates, area, categories, MAX_PLACES);
 		return new ListPlacesResult(selected.places().stream().map(ListPlacesService::toItem).toList(),
-				selected.truncated());
+				selected.truncated(), loadPlaceDataAsOfPort.oldestSyncedAt(categories).orElse(null));
 	}
 
 	// 웹 어댑터가 이름을 검사한 뒤에 오므로 모르는 이름은 호출한 쪽의 버그다(IllegalArgumentException)

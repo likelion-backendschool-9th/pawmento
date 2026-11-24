@@ -65,6 +65,7 @@ class PlaceListScenarioTest {
 	@AfterEach
 	void deletePlaces() {
 		jdbcTemplate.update("delete from places where source_id like ?", prefix + "%");
+		jdbcTemplate.update("delete from place_sync_runs");
 	}
 
 	private record Guardian(long id, Cookie cookie) {
@@ -127,6 +128,33 @@ class PlaceListScenarioTest {
 
 		assertThat(body.get("places")).isEmpty();
 		assertThat(body.get("truncated").asBoolean()).isFalse();
+	}
+
+	@Test
+	@DisplayName("#172-S21 응답의 dataAsOf는 요청한 종류 중 가장 오래된 가져온 시각이고, 가져온 적이 없으면 null이다")
+	void reportsWhenTheDataWasLastImported() throws Exception {
+		Guardian me = signUpAndLogin();
+		jdbcTemplate.update("delete from place_sync_runs");
+
+		assertThat(readBody(list(me, "").andExpect(status().isOk()).andReturn()).get("dataAsOf").isNull()).isTrue();
+
+		jdbcTemplate.update("insert into place_sync_runs (category, last_synced_at) values ('HOSPITAL', ?)",
+				Timestamp.from(Instant.parse("2026-11-21T13:00:00Z")));
+		jdbcTemplate.update("insert into place_sync_runs (category, last_synced_at) values ('GROOMING', ?)",
+				Timestamp.from(Instant.parse("2026-11-23T13:00:00Z")));
+
+		JsonNode hospitalOnly = readBody(list(me, "&categories=HOSPITAL").andExpect(status().isOk()).andReturn());
+		JsonNode groomingOnly = readBody(list(me, "&categories=GROOMING").andExpect(status().isOk()).andReturn());
+		JsonNode both = readBody(list(me, "&categories=HOSPITAL,GROOMING").andExpect(status().isOk()).andReturn());
+		JsonNode withNeverImported = readBody(list(me, "").andExpect(status().isOk()).andReturn());
+		JsonNode shelterOnly = readBody(list(me, "&categories=SHELTER").andExpect(status().isOk()).andReturn());
+
+		assertThat(Instant.parse(hospitalOnly.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-21T13:00:00Z"));
+		assertThat(Instant.parse(groomingOnly.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-23T13:00:00Z"));
+		// 둘 다 요청하면 더 오래된 시각이다. 가져온 적 없는 보호센터가 섞여도 그 시각이다
+		assertThat(Instant.parse(both.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-21T13:00:00Z"));
+		assertThat(Instant.parse(withNeverImported.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-21T13:00:00Z"));
+		assertThat(shelterOnly.get("dataAsOf").isNull()).isTrue();
 	}
 
 	@Test
