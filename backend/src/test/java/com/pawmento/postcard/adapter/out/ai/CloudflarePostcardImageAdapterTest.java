@@ -14,7 +14,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 import com.pawmento.postcard.application.exception.PostcardGenerationFailedException;
 import com.pawmento.postcard.application.port.out.PostcardImageRequest;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.time.Duration;
+import javax.imageio.ImageIO;
 import java.util.Base64;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -175,5 +179,37 @@ class CloudflarePostcardImageAdapterTest {
         .run(
             context ->
                 assertThat(context.getBean(GeneratePostcardImagePort.class).name()).isEqualTo("cloudflare"));
+  }
+
+  private static byte[] jpeg(int width, int height) throws Exception {
+    var out = new ByteArrayOutputStream();
+    ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "jpg", out);
+    return out.toByteArray();
+  }
+
+  @Test
+  @DisplayName("#103-S7 참조 사진은 512x512보다 작게 줄여 보내고, 이미 작은 사진은 그대로 보낸다")
+  void photoIsShrunkBelow512() throws Exception {
+    var square = ImageIO.read(new ByteArrayInputStream(CloudflarePostcardImageAdapter.fitPhoto(jpeg(512, 512))));
+    assertThat(square.getWidth()).isLessThan(512);
+    assertThat(square.getHeight()).isLessThan(512);
+
+    var wide = ImageIO.read(new ByteArrayInputStream(CloudflarePostcardImageAdapter.fitPhoto(jpeg(512, 384))));
+    assertThat(wide.getWidth()).isEqualTo(511);
+    assertThat(wide.getHeight()).isEqualTo(383);
+
+    byte[] small = jpeg(400, 300);
+    assertThat(CloudflarePostcardImageAdapter.fitPhoto(small)).isSameAs(small);
+  }
+
+  @Test
+  @DisplayName("#103-S7 긴 일기 글은 프롬프트에서 자르되 두 칸 문자를 반으로 나누지 않는다")
+  void longContentIsClippedSafely() {
+    String content = "a".repeat(CloudflarePostcardImageAdapter.MAX_CONTENT_LENGTH - 1) + "🐶" + "b".repeat(10);
+    String prompt =
+        CloudflarePostcardImageAdapter.prompt(new PostcardImageRequest(content, null, "DOG", null, null));
+
+    assertThat(prompt).doesNotContain("bbb").contains("aaa\"");
+    assertThat(prompt.chars().filter(c -> Character.isSurrogate((char) c)).count()).isZero();
   }
 }

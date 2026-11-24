@@ -6,8 +6,17 @@ import com.pawmento.postcard.application.exception.PostcardGenerationFailedExcep
 import com.pawmento.postcard.application.port.out.GeneratePostcardImagePort;
 import com.pawmento.postcard.application.port.out.GeneratedPostcardImage;
 import com.pawmento.postcard.application.port.out.PostcardImageRequest;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.net.http.HttpClient;
 import java.util.Base64;
+import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,6 +43,10 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
   static final int HEIGHT = 832;
   // 프롬프트가 지나치게 길어지지 않게 일기 글을 자른다
   static final int MAX_CONTENT_LENGTH = 1000;
+  // 참조 사진은 512x512보다 작아야 한다(Cloudflare 문서). 썸네일은 최대 512px라 경계에 걸리면 줄인다
+  static final int MAX_PHOTO_SIDE = 511;
+
+  private static final Logger log = LoggerFactory.getLogger(CloudflarePostcardImageAdapter.class);
 
   private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -74,7 +87,7 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
     form.add("prompt", prompt(request));
     form.add("width", String.valueOf(WIDTH));
     form.add("height", String.valueOf(HEIGHT));
-    if (request.photoJpeg() != null) form.add("input_image_0", jpegPart(request.photoJpeg()));
+    if (request.photoJpeg() != null) form.add("input_image_0", jpegPart(fitPhoto(request.photoJpeg())));
 
     String body;
     try {
@@ -90,13 +103,50 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
               .body(String.class);
     } catch (RestClientResponseException e) {
       // 상태와 Cloudflare 오류 번호만 남긴다(3036: 하루 무료 한도 소진 등)
-      throw new PostcardGenerationFailedException(
-          "cloudflare status " + e.getStatusCode().value() + errorCode(e.getResponseBodyAsString()));
+      throw failed("cloudflare status " + e.getStatusCode().value() + errorCode(e.getResponseBodyAsString()), null);
     } catch (RestClientException e) {
-      throw new PostcardGenerationFailedException(
-          "cloudflare call failed: " + e.getClass().getSimpleName(), e);
+      throw failed("cloudflare call failed: " + e.getClass().getSimpleName(), e);
     }
-    return toImage(body);
+    try {
+      return toImage(body);
+    } catch (PostcardGenerationFailedException e) {
+      throw failed(e.getMessage(), null);
+    }
+  }
+
+  // 작업 서비스는 외부 응답이 섞일까 봐 예외 클래스 이름만 남긴다. 원인(상태, 오류 번호)은 여기서 남긴다.
+  // 메시지는 이 클래스가 만든 고정 문구와 숫자뿐이라 토큰이나 응답 본문이 들어가지 않는다
+  private static PostcardGenerationFailedException failed(String reason, Throwable cause) {
+    log.warn("Postcard image generation failed: {}", reason);
+    return cause == null
+        ? new PostcardGenerationFailedException(reason)
+        : new PostcardGenerationFailedException(reason, cause);
+  }
+
+  // 긴 변이 MAX_PHOTO_SIDE보다 크면 비율을 지켜 줄인다. 읽을 수 없는 사진은 그대로 보내 Cloudflare가 판단하게 한다
+  static byte[] fitPhoto(byte[] jpeg) {
+    try {
+      BufferedImage source = ImageIO.read(new ByteArrayInputStream(jpeg));
+      if (source == null) return jpeg;
+      int longSide = Math.max(source.getWidth(), source.getHeight());
+      if (longSide <= MAX_PHOTO_SIDE) return jpeg;
+      double scale = (double) MAX_PHOTO_SIDE / longSide;
+      int w = Math.max(1, (int) Math.floor(source.getWidth() * scale));
+      int h = Math.max(1, (int) Math.floor(source.getHeight() * scale));
+      var resized = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+      Graphics2D g = resized.createGraphics();
+      try {
+        g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g.drawImage(source, 0, 0, w, h, null);
+      } finally {
+        g.dispose();
+      }
+      var out = new ByteArrayOutputStream();
+      if (!ImageIO.write(resized, "jpg", out)) return jpeg;
+      return out.toByteArray();
+    } catch (IOException | RuntimeException e) {
+      return jpeg;
+    }
   }
 
   // 프롬프트는 영어 지시문에 사용자의 글을 따옴표로 넣는다. 글자·워터마크가 그림에 들어가지 않게 한다.
@@ -126,7 +176,10 @@ public class CloudflarePostcardImageAdapter implements GeneratePostcardImagePort
 
   private static String clip(String text) {
     String s = text.strip().replace('"', '\'');
-    return s.length() <= MAX_CONTENT_LENGTH ? s : s.substring(0, MAX_CONTENT_LENGTH);
+    if (s.length() <= MAX_CONTENT_LENGTH) return s;
+    // 이모지처럼 두 칸을 쓰는 문자를 반으로 자르지 않는다
+    int end = Character.isHighSurrogate(s.charAt(MAX_CONTENT_LENGTH - 1)) ? MAX_CONTENT_LENGTH - 1 : MAX_CONTENT_LENGTH;
+    return s.substring(0, end);
   }
 
   // 파일 이름이 있어야 multipart에서 파일 부분으로 보낸다
