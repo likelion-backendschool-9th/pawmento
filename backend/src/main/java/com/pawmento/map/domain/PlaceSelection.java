@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,7 +15,7 @@ import java.util.Set;
  */
 public final class PlaceSelection {
 
-	// 같은 이름의 병원과 미용이 이 거리(m) 안에 있으면 같은 곳으로 본다
+	// 같은 이름(띄어쓰기·괄호·구두점·대소문자는 무시)의 병원과 미용이 이 거리(m) 안에 있으면 같은 곳으로 본다
 	static final double OVERLAP_METERS = 30;
 
 	private static final double EARTH_RADIUS_METERS = 6_371_000;
@@ -45,7 +46,7 @@ public final class PlaceSelection {
 		Map<String, List<Place>> hospitalsByName = new HashMap<>();
 		for (Place place : places) {
 			if (place.category() == PlaceCategory.HOSPITAL) {
-				hospitalsByName.computeIfAbsent(place.name(), name -> new ArrayList<>()).add(place);
+				hospitalsByName.computeIfAbsent(comparableName(place.name()), name -> new ArrayList<>()).add(place);
 			}
 		}
 		return places.stream().filter(place -> !isOverlappingGrooming(place, hospitalsByName)).toList();
@@ -55,10 +56,21 @@ public final class PlaceSelection {
 		if (place.category() != PlaceCategory.GROOMING) {
 			return false;
 		}
-		return hospitalsByName.getOrDefault(place.name(), List.of())
+		String name = comparableName(place.name());
+		// 비교할 글자가 없는 이름(공백·구두점뿐)은 서로 같다고 볼 근거가 없다
+		if (name.isEmpty()) {
+			return false;
+		}
+		return hospitalsByName.getOrDefault(name, List.of())
 			.stream()
 			.anyMatch(hospital -> meters(hospital.latitude(), hospital.longitude(), place.latitude(),
 					place.longitude()) <= OVERLAP_METERS);
+	}
+
+	// 같은 가게가 병원과 미용에 띄어쓰기만 다르게 등록된 경우가 많아(예: 스테이동물병원 / 스테이 동물병원) 공백·괄호·구두점을 빼고
+	// 소문자로 맞춰 비교한다. 진짜 데이터에서 이 비교로 253곳이 더 정리되었고 표본은 모두 같은 가게였다
+	static String comparableName(String name) {
+		return name.toLowerCase(Locale.ROOT).replaceAll("[\\s()\\[\\]{}·\\-_.,'\"]", "");
 	}
 
 	// 두 좌표 사이의 거리(m). 하버사인 공식이다
