@@ -71,28 +71,6 @@
   filter: drop-shadow(0 0 9px #ffc76a);
   animation: glimmer 4s ease-in-out infinite;
 }
-.butterflyHalo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid #ffe5ae85;
-  background: radial-gradient(#fff0bf20, transparent 72%);
-  box-shadow:
-    0 0 18px 5px #ffd48a30,
-    inset 0 0 10px #ffeac31a;
-  transition:
-    transform 0.2s,
-    background 0.2s;
-}
-.butterfly:hover .butterflyHalo,
-.butterfly:focus-visible .butterflyHalo {
-  transform: scale(1.15);
-  background: #ffeab52b;
-  border-color: #fff1c3;
-}
-.butterfly:active .butterflyHalo {
-  transform: scale(0.9);
-}
 .butterfly:focus-visible {
   outline: 2px solid #fff1b1;
   outline-offset: 4px;

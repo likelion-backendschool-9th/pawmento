@@ -100,9 +100,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
               }}
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
-            >
-              <span className={s.butterflyHalo} aria-hidden="true" />
-            </button>
+            />
           ))}
         </div>
       </section>
