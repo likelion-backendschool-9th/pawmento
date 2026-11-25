@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
-import s from "../../shell/components/Workspace.module.css";
+import { lifeStyles as s } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 import type { JoinedPet } from "../types/serverFamily";

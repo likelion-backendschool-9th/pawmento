@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"; // ★ useCallback 뺐음
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { ApplicationError } from "@/lib/application/ApplicationError";
-import s from "../../shell/components/Workspace.module.css";
+import { lifeStyles as s } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 import type { FamilyList, FamilyPerson, InviteCode } from "../types/serverFamily";
