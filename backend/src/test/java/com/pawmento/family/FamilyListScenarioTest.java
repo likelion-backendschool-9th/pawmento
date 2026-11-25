@@ -138,6 +138,36 @@ class FamilyListScenarioTest {
 				.andExpect(jsonPath("$.members[0].tag").value(nullValue()));
 	}
 
+	@Test
+	@DisplayName("#133 가족이 되면 GET /families/pets에 그 반려동물이 들어간 순서대로 보이고, 소유주 자신의 반려동물은 들어가지 않는다")
+	void myFamilyPets() throws Exception {
+		MemberResult owner = member("다윗");
+		MemberResult joiner = member("수민");
+		long first = createPet.create(new CreatePetCommand(owner.id(), "보리", "DOG", null, null)).petId();
+		long second = createPet.create(new CreatePetCommand(owner.id(), "콩이", "CAT", null, null)).petId();
+		joinWithCode(owner.id(), first, joiner.id());
+		joinWithCode(owner.id(), second, joiner.id());
+
+		myPets(joiner.id())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].petId").value(equalTo(first), Long.class))
+				.andExpect(jsonPath("$[0].name").value("보리"))
+				.andExpect(jsonPath("$[0].tag").isString())
+				.andExpect(jsonPath("$[0].joinedAt").isString())
+				.andExpect(jsonPath("$[1].petId").value(equalTo(second), Long.class))
+				.andExpect(jsonPath("$[1].name").value("콩이"));
+		myPets(owner.id())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
+		mvc.perform(get("/api/v1/families/pets"))
+				.andExpect(status().isUnauthorized());
+	}
+
+	private ResultActions myPets(long member) throws Exception {
+		return mvc.perform(get("/api/v1/families/pets").with(jwt().jwt(j -> j.subject("" + member))));
+	}
+
 	private MemberResult member(String nickname) {
 		String email = "family-" + UUID.randomUUID() + "@pawmento.test";
 		return signUp.signUp(new SignUpMemberCommand(email, "correct-password", nickname));
