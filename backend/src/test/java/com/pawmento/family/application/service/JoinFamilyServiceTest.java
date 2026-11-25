@@ -28,7 +28,9 @@ import com.pawmento.family.application.port.in.JoinFamilyResult;
 import com.pawmento.family.application.port.out.ConsumePetInviteCodePort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.LoadPetInviteCodePort;
+import com.pawmento.family.application.port.out.LoadPetSummaryPort;
 import com.pawmento.family.application.port.out.LockPetOwnerPort;
+import com.pawmento.family.application.port.out.PetSummary;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.family.domain.PetInviteCode;
@@ -50,13 +52,14 @@ class JoinFamilyServiceTest {
 	private final LoadPetFamilyMemberPort families = mock(LoadPetFamilyMemberPort.class);
 	private final ConsumePetInviteCodePort consume = mock(ConsumePetInviteCodePort.class);
 	private final SavePetFamilyMemberPort save = mock(SavePetFamilyMemberPort.class);
+	private final LoadPetSummaryPort pets = mock(LoadPetSummaryPort.class);
 
 	// 테스트 중에 시각을 옮길 수 있게, 시계는 이 값을 읽는다
 	private final AtomicReference<Instant> now = new AtomicReference<>(NOW);
 	private final Clock clock = mock(Clock.class);
 
 	private final JoinFamilyService service = new JoinFamilyService(
-			inviteCodes, load, lock, families, consume, save, clock);
+			inviteCodes, load, lock, families, consume, save, pets, clock);
 
 	@BeforeEach
 	void setUp() {
@@ -66,21 +69,23 @@ class JoinFamilyServiceTest {
 				.thenReturn(Optional.of(PetInviteCode.issue(PET, hash, OWNER, NOW.minusSeconds(3600))));
 		when(lock.lockOwnerId(PET)).thenReturn(Optional.of(OWNER));
 		when(consume.consume(any(), any())).thenReturn(true);
+		when(pets.loadSummary(PET)).thenReturn(Optional.of(new PetSummary(PET, "보리", "0001")));
 	}
 
 	@Test
-	@DisplayName("#133-S3 유효한 코드면 반려동물을 잠근 뒤 확인하고, 코드를 소비하고, 가족으로 저장한다")
+	@DisplayName("#133-S3 유효한 코드면 반려동물을 잠근 뒤 확인하고, 코드를 소비하고, 가족으로 저장한 뒤 반려동물 이름·태그를 돌려준다")
 	void joinsInOrder() {
 		JoinFamilyResult result = service.join(new JoinFamilyCommand(JOINER, CODE));
 
-		assertThat(result.petId()).isEqualTo(PET);
+		assertThat(result).isEqualTo(new JoinFamilyResult(PET, "보리", "0001"));
 		ArgumentCaptor<PetFamilyMember> saved = ArgumentCaptor.forClass(PetFamilyMember.class);
-		InOrder order = inOrder(load, lock, families, consume, save);
+		InOrder order = inOrder(load, lock, families, consume, save, pets);
 		order.verify(load).loadByCodeHash(hash);
 		order.verify(lock).lockOwnerId(PET);
 		order.verify(families).existsByPetIdAndMemberId(PET, JOINER);
 		order.verify(consume).consume(hash, NOW);
 		order.verify(save).save(saved.capture());
+		order.verify(pets).loadSummary(PET);
 		assertThat(saved.getValue().getPetId()).isEqualTo(PET);
 		assertThat(saved.getValue().getMemberId()).isEqualTo(JOINER);
 		assertThat(saved.getValue().getJoinedAt()).isEqualTo(NOW);

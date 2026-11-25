@@ -188,7 +188,7 @@ class FamilyInviteScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133-S3 유효한 코드로 가족이 되고(200, petId), 같은 코드를 다시 쓰면 404다")
+	@DisplayName("#133-S3 유효한 코드로 가족이 되고(200, petId·반려동물 이름·태그), 같은 코드를 다시 쓰면 404다")
 	void joinWithCode() throws Exception {
 		long owner = uniqueMemberId();
 		long joiner = uniqueMemberId();
@@ -198,7 +198,10 @@ class FamilyInviteScenarioTest {
 		// 사용자가 소문자와 공백을 섞어 입력해도 된다
 		joinCall(joiner, "  " + code.toLowerCase() + " ")
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.petId").value(equalTo(pet), Long.class));
+				.andExpect(jsonPath("$.petId").value(equalTo(pet), Long.class))
+				.andExpect(jsonPath("$.name").value("보리"))
+				.andExpect(jsonPath("$.tag").value(
+						jdbc.queryForObject("select tag from pets where id = ?", String.class, pet)));
 
 		assertThat(access.check(new CheckPetAccessQuery(pet, joiner)).role()).isEqualTo("FAMILY");
 		assertThat(codeRows(pet)).isZero();
