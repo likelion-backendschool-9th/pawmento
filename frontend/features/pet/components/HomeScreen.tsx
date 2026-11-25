@@ -94,7 +94,11 @@ export function HomeScreen({ pet }: { pet: Pet }) {
                     />
                   </div>
                   <time>{record.recordedDate.replaceAll("-", ". ")}</time>
-                  <p>{record.body || record.question || "함께한 작은 순간"}</p>
+                  <p>
+                    {record.kind === "DIARY"
+                      ? record.title || "제목 없는 일기"
+                      : record.question}
+                  </p>
                 </Link>
               ))}
             </div>

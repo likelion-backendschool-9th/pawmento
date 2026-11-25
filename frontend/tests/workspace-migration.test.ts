@@ -211,6 +211,7 @@ test("#32-S29 5MiB 한도에 v2 복사본을 둘 수 없어도 기존 음성 기
         {
           petId: "pet",
           body: "수정",
+          title: "이전 기록에 붙인 제목",
           recordedDate: "2026-11-15",
           photoUrl: "",
         },

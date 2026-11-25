@@ -106,7 +106,10 @@ export function JournalCard({ record }: { record: JournalItem }) {
             compact
           />
         ) : (
-          <p>{record.body || "사진으로 남긴 우리의 순간"}</p>
+          <>
+            <h3>{record.title || "제목 없는 일기"}</h3>
+            <p>{record.body || "사진으로 남긴 우리의 순간"}</p>
+          </>
         )}
         <span>
           기억 펼쳐보기 <Icon name="arrow" size={13} />

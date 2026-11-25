@@ -30,6 +30,7 @@ export type QuestionAnswerInput = Pick<
 >;
 
 export type DemoQuestionAnswerInput = {
+  authorId?: string;
   petId: string;
   questionId: string;
   questionSnapshot: string;

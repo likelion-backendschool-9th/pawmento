@@ -1,4 +1,7 @@
-import type { DiaryEntry, DiaryEntryInput } from "../../features/diary/types/DiaryEntry.ts";
+import type {
+  DiaryEntry,
+  DiaryEntryInput,
+} from "../../features/diary/types/DiaryEntry.ts";
 import { registrationDate, validateDate } from "../../lib/date.ts";
 import {
   requireJournalAuthor,
@@ -14,6 +17,13 @@ export function createDiaryUseCases(
     save: (accountId: string, input: DiaryEntryInput, id?: string) =>
       store.mutate(accountId, (ctx) => {
         requireJournalPet(ctx.pets, input.petId, true);
+        const title = input.title?.trim() ?? "";
+        if (
+          !title ||
+          /[\p{Cc}\p{Cs}\u2028\u2029]/u.test(input.title ?? "") ||
+          [...title].length > 100
+        )
+          throw Error("제목은 줄바꿈 없이 1~100자로 입력해 주세요.");
         validateDate(input.recordedDate);
         if (input.recordedDate > registrationDate(runtime.now()))
           throw Error("미래 날짜의 일기는 남길 수 없어요.");
@@ -31,6 +41,7 @@ export function createDiaryUseCases(
         }
         const entry: DiaryEntry = {
           ...input,
+          title,
           id: id ?? runtime.id(),
           authorId: old?.authorId ?? accountId,
           authorName: old ? old.authorName : input.authorName,

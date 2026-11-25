@@ -12,19 +12,25 @@ const pet: Pet = {
   photoUrl: "",
   mode: "ACTIVE",
 };
-test("#12-S1 데모 질문은 날짜·질문 식별자·답변을 가진 세 일기로 생성한다", () => {
+test("#12-S1 (고침 #233: 가족별 답변 데모) 세 질문에 나·엄마·아빠의 답변을 각각 준비한다", () => {
   const inputs = demoQuestionInputs(pet, [], "2026-11-02");
   assert.deepEqual(
-    inputs.map((input) => input.registeredAt.slice(0, 10)),
+    inputs
+      .filter((input) => input.authorId === "demo")
+      .map((input) => input.registeredAt.slice(0, 10)),
     ["2026-10-31", "2026-10-29", "2026-10-27"],
   );
+  assert.equal(inputs.length, 9);
+  assert.equal(new Set(inputs.map((input) => input.questionId)).size, 3);
+  assert.equal(new Set(inputs.map((input) => input.authorId)).size, 3);
   assert.ok(
     inputs.every(
       (input) =>
         input.questionId &&
         input.questionSnapshot.includes("보리") &&
         input.body &&
-        input.photoUrl,
+        input.authorName &&
+        input.authorId,
     ),
   );
 });

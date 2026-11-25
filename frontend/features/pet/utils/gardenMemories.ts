@@ -7,10 +7,15 @@ export function gardenMemories(
   source: SessionSource,
   petId: string,
   items: readonly JournalItem[],
+  memberId?: string,
 ): GardenMemory[] {
   if (source !== "demo") return [];
   return items
-    .filter((item) => item.petId === petId)
+    .filter(
+      (item) =>
+        item.petId === petId &&
+        (!memberId || item.kind === "DIARY" || item.authorId === memberId),
+    )
     .map((item) => ({
       key: `${item.kind}:${item.id}`,
       href: `/pets/${petId}/${item.kind === "DIARY" ? "diary" : "questions/answers"}/${item.id}`,

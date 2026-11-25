@@ -40,7 +40,7 @@
   font-size: 12px;
   text-overflow: ellipsis;
 }
-.profile {
+.moreButton {
   width: 44px;
   height: 44px;
   flex-shrink: 0;
@@ -103,7 +103,7 @@
 .space[data-immersive="true"] .identity option {
   color: #252440;
 }
-.space[data-immersive="true"] .profile {
+.space[data-immersive="true"] .moreButton {
   border-color: #ffffff35;
 }
 .space[data-immersive="true"] .main {
@@ -123,4 +123,59 @@
 
 .space[data-immersive="true"] .header :global(.brand) {
   color: #fff0cf;
+}
+
+.moreButton {
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.moreSheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: min(100%, 480px);
+  max-height: 85svh;
+  margin: 0 auto;
+  padding: 24px 22px calc(24px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  border: 1px solid var(--border-default);
+  border-radius: 26px 26px 0 0;
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.moreSheet::backdrop {
+  background: #17142a80;
+  backdrop-filter: blur(4px);
+}
+.moreHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.moreHeading span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+}
+.moreHeading h2 {
+  margin: 6px 0 0;
+  font-size: 23px;
+}
+.moreLinks {
+  display: grid;
+}
+.moreLinks a {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border-default);
+  font-size: 14px;
+}
+.moreLinks a svg:last-child {
+  margin-left: auto;
+}
+.moreLinks a:last-child {
+  border: 0;
 }

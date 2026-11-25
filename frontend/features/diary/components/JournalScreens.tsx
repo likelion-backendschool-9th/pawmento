@@ -50,6 +50,9 @@ export function JournalForm({
     record?.question ??
     requestedPrompt?.questionSnapshot ??
     (prompt.text ? question(pet.name, prompt.text) : "");
+  const [title, setTitle] = useState(
+    record?.kind === "DIARY" ? (record.title ?? "") : "",
+  );
   const [body, setBody] = useState(record?.body ?? "");
   const [date, setDate] = useState(
     record?.recordedDate ??
@@ -65,6 +68,8 @@ export function JournalForm({
   // 지도에서 고른 위치. 서버 일기와 연결되면 저장할 때 함께 보낸다(지금 데모 저장소에는 위치가 없다)
   const [location, setLocation] = useState<PickedLocation | null>(null);
   const dirty =
+    (!questionAnswer &&
+      title !== (record?.kind === "DIARY" ? (record.title ?? "") : "")) ||
     JSON.stringify(attachments) !== JSON.stringify(record?.attachments ?? []) ||
     body !== (record?.body ?? "") ||
     photo !== (record?.photoUrl ?? "") ||
@@ -97,13 +102,14 @@ export function JournalForm({
           )
         : await app.dependencies.workspace.diary.save(
             app.account!.id,
-            { ...content, recordedDate: date },
+            { ...content, title, recordedDate: date },
             record?.id,
           );
       setSaved(true);
       await app.refresh();
       app.notify(record ? "이야기를 수정했어요." : "소중한 오늘을 기록했어요.");
       if (!record) {
+        setTitle("");
         setBody("");
         setPhoto("");
         setAttachments([]);
@@ -175,6 +181,23 @@ export function JournalForm({
             {questionAnswer ? "질문 답변" : "자유 기록"}
           </span>
 
+          {!questionAnswer && (
+            <label htmlFor="diary-title">
+              제목 <span aria-hidden="true">*</span>
+              <input
+                id="diary-title"
+                required
+                maxLength={200}
+                value={title}
+                placeholder="오늘의 기억에 이름을 붙여 주세요"
+                onChange={(event) => {
+                  setSaved(false);
+                  setTitle(event.target.value);
+                }}
+              />
+              <small>{[...title].length} / 100자 · 필수 입력</small>
+            </label>
+          )}
           <label>
             {questionAnswer ? "답변 등록일" : "기억하고 싶은 날짜"}
             <input
@@ -329,14 +352,18 @@ export function JournalDetail({
           {record.type === "QUESTION_ANSWER" ? "질문과 답변" : "다이어리"}
         </span>
         <h1>
+          {record.kind === "DIARY"
+            ? record.title || "제목 없는 일기"
+            : "질문과 함께 남긴 답변"}
+        </h1>
+        <p>
           {formatDate(record.recordedDate, {
             year: "numeric",
             month: "long",
             day: "numeric",
           })}
-          <br />
-          우리의 이야기
-        </h1>
+          {record.authorName ? ` · ${record.authorName}` : ""}
+        </p>
         <p>{pet.name}와 함께한 소중한 하루</p>
       </header>
       <article className={styles.detail}>

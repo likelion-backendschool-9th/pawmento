@@ -24,6 +24,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
     app.sessionSource,
     pet.id,
     journalItems(app.state),
+    app.account?.id,
   );
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -120,7 +121,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             <h2 id="garden-memory-title">
               {memory.item.kind === "QUESTION_ANSWER"
                 ? memory.item.question
-                : "함께한 날의 한 페이지"}
+                : memory.item.title || "제목 없는 일기"}
             </h2>
             <p className={s.date}>
               {formatDate(memory.item.recordedDate)}

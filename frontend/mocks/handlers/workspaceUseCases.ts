@@ -1,3 +1,4 @@
+import { demoDiarySamples } from "../fixtures/demoDiaries.ts";
 import type { PetInput } from "../../features/pet/types/Pet.ts";
 import type { Workspace } from "../../features/shell/types/workspace.ts";
 import { validateDate } from "../../lib/date.ts";
@@ -88,6 +89,19 @@ export function createWorkspaceUseCases(
   return {
     diary,
     questions,
+    seedDemoDiaryTitles: (accountId: string) =>
+      mutate(accountId, (state) => {
+        if (accountId !== "demo")
+          throw Error("데모 계정에서만 샘플을 추가할 수 있어요.");
+        for (const entry of state.diaries) {
+          if (entry.authorId !== "demo" || entry.title !== undefined) continue;
+          const sample = demoDiarySamples.find(
+            (sample) =>
+              sample.body === entry.body && sample.photoUrl === entry.photoUrl,
+          );
+          if (sample) entry.title = sample.title;
+        }
+      }),
     seedDemoAnswers: (
       accountId: string,
       inputs: import("../../features/question/types/QuestionAnswer.ts").DemoQuestionAnswerInput[],
@@ -99,27 +113,42 @@ export function createWorkspaceUseCases(
           const pet = state.pets.find((p) => p.id === input.petId);
           if (!pet || pet.accessRole === "VIEWER")
             throw Error("기록을 추가할 수 없어요.");
+          const authorId = input.authorId ?? accountId;
+          if (
+            !["demo", "demo-family-mom", "demo-family-dad"].includes(authorId)
+          )
+            throw Error("예시 작성자를 확인해 주세요.");
           if (
             state.questionAnswers.some(
-              (a) => a.petId === pet.id && a.questionId === input.questionId,
+              (a) =>
+                a.petId === pet.id &&
+                a.questionId === input.questionId &&
+                a.authorId === authorId,
             )
           )
             continue;
-          const promptId = runtime.id();
-          state.questionPrompts.push({
-            id: promptId,
-            petId: pet.id,
-            questionId: input.questionId,
-            questionSnapshot: input.questionSnapshot,
-            mode: pet.mode,
-            createdAt: input.registeredAt,
-            completedAt: input.registeredAt,
-          });
+          let prompt = state.questionPrompts.find(
+            (p) => p.petId === pet.id && p.questionId === input.questionId,
+          );
+          if (!prompt) {
+            prompt = {
+              id: runtime.id(),
+              petId: pet.id,
+              questionId: input.questionId,
+              questionSnapshot: input.questionSnapshot,
+              mode: pet.mode,
+              createdAt: input.registeredAt,
+              completedAt: input.registeredAt,
+            };
+            state.questionPrompts.push(prompt);
+          }
           state.questionAnswers.push({
             ...input,
             id: runtime.id(),
-            promptId,
-            authorId: accountId,
+            promptId: prompt.id,
+            questionId: prompt.questionId,
+            questionSnapshot: prompt.questionSnapshot,
+            authorId,
             updatedAt: input.registeredAt,
           });
         }
