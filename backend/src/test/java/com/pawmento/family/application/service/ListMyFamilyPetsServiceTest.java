@@ -29,7 +29,7 @@ class ListMyFamilyPetsServiceTest {
 	private final ListMyFamilyPetsService service = new ListMyFamilyPetsService(families, pets);
 
 	@Test
-	@DisplayName("#133 내가 가족으로 들어간 반려동물을 들어간 순서대로 이름·태그·가입 시각과 함께 준다")
+	@DisplayName("#133-S23 내가 가족으로 들어간 반려동물을 들어간 순서대로 이름·태그·가입 시각과 함께 준다")
 	void listsPetsInJoinOrder() {
 		when(families.loadByMemberId(ME)).thenReturn(List.of(
 				PetFamilyMember.restore(1L, 10L, ME, EARLY),
@@ -45,7 +45,7 @@ class ListMyFamilyPetsServiceTest {
 	}
 
 	@Test
-	@DisplayName("#133 반려동물 요약을 찾지 못한 줄은 목록에서 빠진다")
+	@DisplayName("#133-S23 반려동물 요약을 찾지 못한 줄은 목록에서 빠진다")
 	void skipsMissingPet() {
 		when(families.loadByMemberId(ME)).thenReturn(List.of(
 				PetFamilyMember.restore(1L, 10L, ME, EARLY),
@@ -58,7 +58,7 @@ class ListMyFamilyPetsServiceTest {
 	}
 
 	@Test
-	@DisplayName("#133 가족으로 들어간 반려동물이 없으면 빈 목록이다")
+	@DisplayName("#133-S23 가족으로 들어간 반려동물이 없으면 빈 목록이다")
 	void emptyWhenNone() {
 		when(families.loadByMemberId(ME)).thenReturn(List.of());
 

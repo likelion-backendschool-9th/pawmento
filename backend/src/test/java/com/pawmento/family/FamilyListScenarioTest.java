@@ -139,7 +139,7 @@ class FamilyListScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133 가족이 되면 GET /families/pets에 그 반려동물이 들어간 순서대로 보이고, 소유주 자신의 반려동물은 들어가지 않는다")
+	@DisplayName("#133-S23 가족이 되면 GET /families/pets에 그 반려동물이 들어간 순서대로 보이고, 소유주 자신의 반려동물은 들어가지 않는다")
 	void myFamilyPets() throws Exception {
 		MemberResult owner = member("다윗");
 		MemberResult joiner = member("수민");

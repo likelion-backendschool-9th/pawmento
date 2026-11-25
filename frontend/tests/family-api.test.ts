@@ -1,0 +1,101 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { createFamilyApi } from "../features/family/api/familyApi.ts";
+import { createApiClient } from "../lib/http/apiClient.ts";
+
+type Call = { url: string; method?: string; body?: unknown };
+
+function server(respond: (call: Call) => Response) {
+  const calls: Call[] = [];
+  const http = createApiClient({
+    async fetch(url, options) {
+      const call = {
+        url: String(url),
+        method: options?.method,
+        body: options?.body ? JSON.parse(String(options.body)) : undefined,
+      };
+      calls.push(call);
+      return respond(call);
+    },
+  });
+  return { api: createFamilyApi(http), calls };
+}
+
+test("#133-S24 가족 목록은 서버의 숫자 회원 id를 문자열로 바꾸고, 닉네임이 없는 회원도 그대로 둔다", async () => {
+  const { api, calls } = server(() =>
+    Response.json({
+      owner: { memberId: 1, nickname: "다윗", tag: "0427" },
+      members: [
+        { memberId: 2, nickname: "수민", tag: "1093", joinedAt: "2026-11-25T03:00:00Z" },
+        { memberId: 3, nickname: null, tag: null, joinedAt: "2026-11-25T04:00:00Z" },
+      ],
+    }),
+  );
+
+  assert.deepEqual(await api.list("42"), {
+    owner: { memberId: "1", nickname: "다윗", tag: "0427" },
+    members: [
+      { memberId: "2", nickname: "수민", tag: "1093", joinedAt: "2026-11-25T03:00:00Z" },
+      { memberId: "3", nickname: null, tag: null, joinedAt: "2026-11-25T04:00:00Z" },
+    ],
+  });
+  assert.deepEqual(calls, [{ url: "/api/v1/families?petId=42", method: "GET", body: undefined }]);
+});
+
+test("#133-S24 초대 코드 발급은 petId를 숫자로 보내고 코드와 만료 시각을 그대로 돌려준다", async () => {
+  const { api, calls } = server(() =>
+    Response.json({ code: "K7Q2M9XA", expiresAt: "2026-11-26T03:00:00Z" }, { status: 201 }),
+  );
+
+  assert.deepEqual(await api.issueCode("42"), { code: "K7Q2M9XA", expiresAt: "2026-11-26T03:00:00Z" });
+  assert.deepEqual(calls, [{ url: "/api/v1/families/invite-codes", method: "POST", body: { petId: 42 } }]);
+});
+
+test("#133-S24 숫자가 아닌 반려동물 id는 서버에 보내지 않고 NOT_FOUND다", async () => {
+  const { api, calls } = server(() => assert.fail("예상하지 않은 서버 요청"));
+
+  for (const petId of ["..", "0", "-1", "abc", ""]) {
+    await assert.rejects(api.list(petId), { code: "NOT_FOUND" });
+    await assert.rejects(api.issueCode(petId), { code: "NOT_FOUND" });
+  }
+  assert.equal(calls.length, 0);
+});
+
+test("#133-S25 코드로 참여는 앞뒤 공백을 지워 보내고, 반려동물 id를 문자열로 바꾼다", async () => {
+  const { api, calls } = server(() => Response.json({ petId: 42, name: "보리", tag: "0001" }));
+
+  assert.deepEqual(await api.join("  k7q2m9xa "), { id: "42", name: "보리", tag: "0001" });
+  assert.deepEqual(calls, [{ url: "/api/v1/families/members", method: "POST", body: { code: "k7q2m9xa" } }]);
+});
+
+test("#133-S25 쓸 수 없는 코드는 서버의 code와 문구를 그대로 전한다", async () => {
+  const { api } = server(() =>
+    Response.json({ code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." }, { status: 404 }),
+  );
+
+  await assert.rejects(api.join("ZZZZZZZZ"), { code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." });
+});
+
+test("#133-S23 내가 가족인 반려동물 목록은 id를 문자열로 바꾸고 순서를 지킨다", async () => {
+  const { api, calls } = server(() =>
+    Response.json([
+      { petId: 10, name: "보리", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" },
+      { petId: 20, name: "콩이", tag: "0002", joinedAt: "2026-11-25T03:00:00Z" },
+    ]),
+  );
+
+  assert.deepEqual(await api.myPets(), [
+    { id: "10", name: "보리", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" },
+    { id: "20", name: "콩이", tag: "0002", joinedAt: "2026-11-25T03:00:00Z" },
+  ]);
+  assert.deepEqual(calls, [{ url: "/api/v1/families/pets", method: "GET", body: undefined }]);
+});
+
+test("#133-S24 로그인이 풀리면 UNAUTHORIZED로 알린다", async () => {
+  const { api } = server(() =>
+    Response.json({ code: "UNAUTHORIZED", message: "로그인이 필요합니다." }, { status: 401 }),
+  );
+
+  await assert.rejects(api.list("42"), { code: "UNAUTHORIZED" });
+  await assert.rejects(api.myPets(), { code: "UNAUTHORIZED" });
+});
