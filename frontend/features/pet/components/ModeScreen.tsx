@@ -10,7 +10,6 @@ export function ModeScreen({ pet }: { pet: Pet }) {
   const app = useApp();
   const router = useRouter();
   const [mode, setMode] = useState<Pet["mode"]>(pet.mode);
-  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   async function save() {
@@ -41,6 +40,35 @@ export function ModeScreen({ pet }: { pet: Pet }) {
       <Link className="text-link" href="/pets">
         ← 반려동물 관리로 돌아가기
       </Link>
+      <PetModeForm pet={pet} mode={mode} onSelect={setMode} busy={busy} onSave={save} feedback={
+        error && <p className="error" role="alert">{error}</p>
+      } />
+    </>
+  );
+}
+
+export function PetModeForm({
+  pet,
+  mode,
+  onSelect,
+  busy,
+  blocked = false,
+  onSave,
+  feedback,
+  server = false,
+}: {
+  pet: Pick<Pet, "name" | "mode">;
+  mode: Pet["mode"];
+  onSelect: (mode: Pet["mode"]) => void;
+  busy: boolean;
+  blocked?: boolean;
+  onSave: () => Promise<void>;
+  feedback?: React.ReactNode;
+  server?: boolean;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  return (
+    <>
       <LifeHeading
         label="PET MODE"
         title={`${pet.name}의 공간 설정`}
@@ -62,10 +90,12 @@ export function ModeScreen({ pet }: { pet: Pet }) {
           },
         ].map((item) => (
           <button
+            type="button"
             key={item.key}
+            disabled={server && (busy || blocked)}
             className={mode === item.key ? s.modeSelected : ""}
             onClick={() => {
-              setMode(item.key as Pet["mode"]);
+              onSelect(item.key as Pet["mode"]);
               setConfirming(false);
             }}
             aria-pressed={mode === item.key}
@@ -81,30 +111,27 @@ export function ModeScreen({ pet }: { pet: Pet }) {
         모드를 바꿔도 모든 질문·답변·사진·기억은 그대로 유지됩니다. 언제든
         되돌릴 수 있고, 정원에서도 새 기록을 남길 수 있어요.
       </DemoNote>
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
+      {feedback}
       {confirming ? (
         <div className={s.panel}>
           <h2>
             {mode === "GARDEN"
-              ? "기억의 정원으로 이동할까요?"
+              ? server ? "기억의 정원으로 바꿀까요?" : "기억의 정원으로 이동할까요?"
               : "함께하는 오늘로 돌아갈까요?"}
           </h2>
           <p>{pet.name}의 모드만 변경합니다. 모든 기록은 그대로 유지돼요.</p>
           <div className={s.inlineActions}>
             <button
               className="button secondary"
+              disabled={server && busy}
               onClick={() => setConfirming(false)}
             >
               취소
             </button>
             <button
               className="button primary"
-              disabled={busy}
-              onClick={() => void save()}
+              disabled={busy || blocked}
+              onClick={() => void onSave()}
             >
               {busy ? "변경 중…" : "확인하고 모드 변경"}
             </button>
@@ -113,7 +140,7 @@ export function ModeScreen({ pet }: { pet: Pet }) {
       ) : (
         <button
           className="button primary"
-          disabled={mode === pet.mode}
+          disabled={mode === pet.mode || blocked}
           onClick={() => setConfirming(true)}
         >
           선택한 모드 적용
