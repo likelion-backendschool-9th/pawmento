@@ -117,8 +117,29 @@ test("#172-S11 고른 종류가 없으면 서버에 묻지 않고 빈 목록이�
 
   const result = await api.list(SEOUL_FOREST, { categories: [] });
 
-  assert.deepEqual(result, { places: [], truncated: false, sample: false });
+  assert.deepEqual(result, {
+    places: [],
+    truncated: false,
+    dataAsOf: null,
+    sample: false,
+  });
   assert.equal(seen.length, 0);
+});
+
+test("#172-S21 서버가 준 가져온 시각을 그대로 전하고, 없거나 문자열이 아니면 null이다", async () => {
+  const withTime = createPlaceApi(
+    fakeApi({ places: [], truncated: false, dataAsOf: "2026-11-21T13:00:00Z" }),
+  );
+  assert.equal((await withTime.list(SEOUL_FOREST)).dataAsOf, "2026-11-21T13:00:00Z");
+
+  const nullTime = createPlaceApi(
+    fakeApi({ places: [], truncated: false, dataAsOf: null }),
+  );
+  assert.equal((await nullTime.list(SEOUL_FOREST)).dataAsOf, null);
+
+  // 서버가 아직 이 값을 주지 않는 배포여도 목록은 그대로 보인다
+  const missing = createPlaceApi(fakeApi({ places: [], truncated: false }));
+  assert.equal((await missing.list(SEOUL_FOREST)).dataAsOf, null);
 });
 
 test("#172-S12 500개를 넘어 잘렸으면 truncated를 그대로 알려 준다", async () => {

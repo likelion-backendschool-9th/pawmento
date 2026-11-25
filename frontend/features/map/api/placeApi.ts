@@ -26,6 +26,8 @@ type PlacesDto = {
     closedDays: string | null;
   }[];
   truncated: boolean;
+  // 서버가 아직 주지 않는 배포와도 맞도록 없을 수 있는 값으로 읽는다
+  dataAsOf?: string | null;
 };
 
 // 서버는 영역 값을 십진수 문자열로만 받는다. toFixed는 지수 표기(1e-7)를 만들지 않아 항상 그 모양이다.
@@ -83,7 +85,7 @@ export function createPlaceApi(http: ApiClient): PlaceRepository {
       // 고른 종류가 없으면 보여 줄 것이 없다. 서버는 빈 categories를 400으로 거절하고(키를 생략해야 세 종류 모두다) 이 경우는
       // 칩을 모두 끈 정상 동작이라, 서버에 묻지 않고 빈 목록을 돌려준다.
       if (categories !== undefined && categories.length === 0) {
-        return { places: [], truncated: false, sample: false };
+        return { places: [], truncated: false, dataAsOf: null, sample: false };
       }
       const params = [
         `minLatitude=${decimal(area.minLatitude)}`,
@@ -108,6 +110,7 @@ export function createPlaceApi(http: ApiClient): PlaceRepository {
           closedDays: place.closedDays,
         })),
         truncated: result.truncated,
+        dataAsOf: typeof result.dataAsOf === "string" ? result.dataAsOf : null,
         sample: false,
       };
     },

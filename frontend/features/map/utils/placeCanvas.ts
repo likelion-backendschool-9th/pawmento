@@ -8,4 +8,30 @@ export type PlaceCanvasProps = {
   selectedId: string | null;
   onSelect: (placeId: string | null) => void;
   onBoundsChange: (bounds: MapBounds) => void;
+  // 카드가 지도 아래를 덮은 높이(px). 덮고 있지 않으면 0이다. 선택한 마커가 카드 뒤에 가려지지 않게 지도를 옮길 때 쓴다.
+  coveredBottom?: () => number;
 };
+
+// 카드가 지도 아래쪽을 덮을 때 선택한 마커(위에서 y픽셀)가 보이는 영역 안에 오도록 마커를 위로 옮길 픽셀을 구한다.
+// 위로 옮기면 양수, 아래로 옮기면 음수이고, 이미 보이면 0이다. 위쪽 topInset은 종류 칩이 차지하는 자리다.
+export function markerShiftToVisible({
+  y,
+  height,
+  covered,
+  topInset = 64,
+  margin = 36,
+}: {
+  y: number;
+  height: number;
+  covered: number;
+  topInset?: number;
+  margin?: number;
+}): number {
+  if (covered <= 0) return 0;
+  const visibleBottom = height - covered - margin;
+  if (visibleBottom <= topInset) return 0;
+  if (y >= topInset && y <= visibleBottom) return 0;
+  // 보이는 영역의 가운데쯤에 둔다
+  const target = topInset + (visibleBottom - topInset) / 2;
+  return y - target;
+}

@@ -85,7 +85,7 @@ export function SpaceShell({
   };
   return (
     <div
-      className={`${s.garden} ${garden ? "" : s.daily}`}
+      className={`${s.garden} ${garden ? "" : s.daily} ${route.startsWith("/places") ? s.immersive : ""}`}
       data-experience={garden ? "garden" : "daily"}
     >
       <a className="skip-link" href="#main">

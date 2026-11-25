@@ -121,6 +121,12 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
         <path d="M11 18.5h2" />
       </>
     ),
+    copy: (
+      <>
+        <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" />
+        <path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
+      </>
+    ),
     stop: <rect x="6" y="6" width="12" height="12" rx="3" />,
     arrow: <path d="M4 12h16m-6-6 6 6-6 6" />,
     chevron: <path d="m9 5 7 7-7 7" />,

@@ -368,3 +368,22 @@
 .daily .mobileNav > a[aria-current="page"] svg {
   background: #dfeccf;
 }
+
+/* 정보 지도(/places)는 휴대폰에서 지도가 화면을 채운다. 반려동물 선택 줄과 위쪽 메뉴 줄, 바닥글을 접어 지도에 자리를 준다.
+   남은 머리글(로고·설정·전체 메뉴)과 하단 메뉴의 높이를 지도 화면이 쓰도록 값으로 알려 준다. */
+@media (max-width: 767px) {
+  .immersive {
+    --shell-top: 76px;
+    /* 하단 메뉴의 높이와 같은 식이다: 위 여백 8 + 내용 53 + 아래 여백 max(9, 안전 영역). 안전 영역이 있는 기기에서 틈이 생기지 않는다 */
+    --shell-bottom: calc(62px + max(9px, env(safe-area-inset-bottom, 0px)));
+  }
+  .immersive .identity,
+  .immersive .navigation,
+  .immersive .footer {
+    display: none;
+  }
+  .immersive .main {
+    padding: 0;
+    min-height: 0;
+  }
+}
