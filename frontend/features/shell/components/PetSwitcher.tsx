@@ -23,7 +23,7 @@ export function PetSwitcher({ pets, selectedId, switching, onSelect }: {
         aria-haspopup="dialog" aria-expanded={open}
         aria-label={selected ? `보고 있는 반려동물: ${selected.name}, ${modeName(selected)} 모드. 변경하기` : "반려동물 선택하기"}
         onClick={() => { dialog.current?.showModal(); setOpen(true); }}>
-        <span className={s.selectedName}>{selected?.name ?? "아이를 선택해 주세요"}</span>
+        <span className={s.selectedName} title={selected?.name}>{selected?.name ?? "아이를 선택해 주세요"}</span>
         {selected && <span className={s.mode} data-garden={selected.mode === "GARDEN"}>{modeName(selected)}</span>}
         <Icon name="chevron" size={14} />
       </button>

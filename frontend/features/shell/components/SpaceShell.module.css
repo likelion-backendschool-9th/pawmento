@@ -19,16 +19,16 @@
   min-width: 44px;
   min-height: 44px;
   gap: 6px;
-  font-size: 17px;
+  font-size: 18px;
 }
 .header :global(.brand small) {
   display: none;
 }
 .header :global(.brand-logo) {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
 }
-.header :global(.brand-words) { display: none; }
+.header :global(.brand-words) { display: block; white-space: nowrap; }
 .moreButton {
   width: 44px;
   height: 44px;
