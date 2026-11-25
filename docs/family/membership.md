@@ -210,13 +210,15 @@
      - `GetPetOwnerUseCase`·`GetPetOwnerQuery(petId)`·`GetPetOwnerResult(ownerMemberId)`. 반환은 `Optional<GetPetOwnerResult>`, 요청자 검사와 잠금은 없다(읽기용)
      - `LockPetOwnerUseCase`·`LockPetOwnerQuery(petId)`. 반려동물 행을 `FOR UPDATE`로 읽어 소유주를 돌려준다. 호출자의 트랜잭션 안에서만 부른다(`Propagation.MANDATORY`)
    - 다른 도메인은 아직 바꾸지 않는다(동작 변화 없음)
-2. 초대 코드와 가족 되기·목록 — S2~S6, S19
+2. 초대 코드와 가족 되기·목록·가족 화면 — S2~S6, S19, S23~S25
    - 파일: `family/adapter/in/web/FamilyController`(`@RequestMapping("/families")`), `PetInviteCode`(`pet_invite_codes`, 코드 해시와 발급자 저장), 초대·가입·목록 유스케이스
    - 발급: 한 트랜잭션에서 반려동물 행 잠금 → 요청자가 소유주나 가족인지 확인(아니면 403) → 코드 저장
    - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 시각을 읽어 코드가 있고 만료 전인지 다시 확인(아니면 404) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(`code_hash`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
    - 목록: 소유주 id → 가족 줄(가입 순, 같으면 id 순) → 요청자가 소유주나 가족인지 확인(아니면 403) → 회원 프로필을 한 번에 조회. 잠그지 않는다
    - member: 새 입력 포트 `ListMemberProfilesUseCase`·`ListMemberProfilesQuery(memberIds)` → `List<MemberProfileResult(memberId, nickname, tag)>`. 다른 회원에게 보여도 되는 값만 주고(이메일·역할 제외), 없는 회원은 예외 없이 빠진다
    - pet: 새 입력 포트 `GetPetSummaryUseCase`·`GetPetSummaryQuery(petId)` → `Optional<PetSummaryResult(petId, name, tag)>`. 요청자 검사가 없다. 부르는 도메인이 권한을 먼저 확인한 뒤에만 부른다. pet 담당과 합의(#236)
+   - 내가 가족인 반려동물(S23): 요청자의 가족 줄을 `member_id`로 조회(들어간 순, 같으면 id 순) → 한 마리씩 `GetPetSummaryUseCase`. `GetPetSummaryUseCase`의 "권한을 먼저 확인한 뒤에만 부른다" 계약은 요청자 본인의 가족 줄이 채운다. 그 줄에서 나온 petId만 쓰기 때문이다. 한 회원이 가족인 반려동물은 적어 한 마리씩 읽는다. `pet_family_members.member_id` 인덱스는 스키마 파일을 둘 때 함께 둔다
+   - 가족 화면(S24·S25): 같은 단계에서 한다. 새 파일은 `features/family/api/familyApi.ts`, `features/family/types/serverFamily.ts`, `features/family/components/ServerFamilyScreen.tsx`·`JoinFamilyScreen.tsx`·`MyFamilyPets.tsx`, 경로 `app/(app)/pets/manage/[managedPetId]/family/page.tsx`·`app/(app)/family/join/page.tsx`다. 공용 파일 `app/composition.ts`에는 `family` 의존성 한 줄만 더한다. pet 관리 목록 `features/pet/components/PetManagementList.tsx`에 가족 버튼·참여 버튼·"가족으로 함께하는 친구" 섹션을 더하며, 시각 변경은 pet 담당 확인을 받는다(#242)
 3. 나가기·내보내기 — S10, S11, S18
    - 한 트랜잭션에서 반려동물 행 잠금 → 권한 확인 → 멤버십 삭제 → 그 회원이 발급한 P의 코드 삭제
 4. 다른 도메인 접근 교체 — S7~S9, S12 (도메인별 PR, 담당과 순서 합의)

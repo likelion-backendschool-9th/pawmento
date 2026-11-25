@@ -36,6 +36,7 @@ function FamilyBody({ petId }: { petId: string }) {
   const [loginRequired, setLoginRequired] = useState(false);
   const [code, setCode] = useState<InviteCode | null>(null);
   const [notice, setNotice] = useState("");
+  const [issueError, setIssueError] = useState("");
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const href = `/pets/manage/${encodeURIComponent(petId)}/family`;
@@ -68,10 +69,11 @@ function FamilyBody({ petId }: { petId: string }) {
   async function issue() {
     setBusy(true);
     setNotice("");
+    setIssueError("");
     try {
       setCode(await dependencies.family.issueCode(petId));
     } catch (cause) {
-      setNotice(messageOf(cause));
+      setIssueError(messageOf(cause));
     } finally {
       setBusy(false);
     }
@@ -162,6 +164,7 @@ function FamilyBody({ petId }: { petId: string }) {
             </>
           )}
           {notice && <p role="status">{notice}</p>}
+          {issueError && <p className="error" role="alert">{issueError}</p>}
         </section>
       </div>
     </>
