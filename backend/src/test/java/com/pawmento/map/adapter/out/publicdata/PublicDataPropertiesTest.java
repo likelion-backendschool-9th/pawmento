@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -13,23 +13,23 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.source.MapConfigurationPropertySource;
 
 // 시나리오는 docs/map/animal-places.md(#172-S5, S20)에 있다. 가져오기 설정이 잘못되면 호출이 어긋난 채 실패하지 않고 앱이 시작할 때 거절하는지 확인한다
-class LocalDataPropertiesTest {
+class PublicDataPropertiesTest {
 
-	private static LocalDataProperties valid(int pageSize, int maxAttempts, Duration connect, Duration read, Duration backoff,
+	private static PublicDataProperties valid(int pageSize, int maxAttempts, Duration connect, Duration read, Duration backoff,
 			Duration maxBackoff, Duration interval) {
-		return new LocalDataProperties("key", "https://apis.data.go.kr", pageSize, connect, read, maxAttempts, backoff, maxBackoff,
+		return new PublicDataProperties("key", "https://apis.data.go.kr", pageSize, connect, read, maxAttempts, backoff, maxBackoff,
 				interval);
 	}
 
-	private static LocalDataProperties bind(Map<String, String> values) {
-		return new Binder(new MapConfigurationPropertySource(values)).bind("pawmento.map.local-data", LocalDataProperties.class)
+	private static PublicDataProperties bind(Map<String, String> values) {
+		return new Binder(new MapConfigurationPropertySource(values)).bind("pawmento.map.public-data", PublicDataProperties.class)
 			.get();
 	}
 
 	@Test
 	@DisplayName("#172-S5 설정을 하나도 주지 않으면 기본값이 모두 올바르다")
 	void defaultsAreValid() {
-		LocalDataProperties defaults = bind(Map.of("pawmento.map.local-data.service-key", "k"));
+		PublicDataProperties defaults = bind(Map.of("pawmento.map.public-data.service-key", "k"));
 
 		assertThat(defaults.pageSize()).isEqualTo(100);
 		assertThat(defaults.maxAttempts()).isEqualTo(8);
@@ -70,9 +70,9 @@ class LocalDataPropertiesTest {
 	@Test
 	@DisplayName("#172-S5 환경 설정(application.yml·환경 변수)에서 잘못된 값을 주면 바인딩이 실패해 앱이 시작되지 않는다")
 	void invalidConfigurationFailsToBind() {
-		assertThatThrownBy(() -> bind(Map.of("pawmento.map.local-data.page-size", "0"))).isInstanceOf(BindException.class);
-		assertThatThrownBy(() -> bind(Map.of("pawmento.map.local-data.max-attempts", "0"))).isInstanceOf(BindException.class);
-		assertThatThrownBy(() -> bind(Map.of("pawmento.map.local-data.read-timeout", "0s"))).isInstanceOf(BindException.class);
+		assertThatThrownBy(() -> bind(Map.of("pawmento.map.public-data.page-size", "0"))).isInstanceOf(BindException.class);
+		assertThatThrownBy(() -> bind(Map.of("pawmento.map.public-data.max-attempts", "0"))).isInstanceOf(BindException.class);
+		assertThatThrownBy(() -> bind(Map.of("pawmento.map.public-data.read-timeout", "0s"))).isInstanceOf(BindException.class);
 	}
 
 }

@@ -17,7 +17,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.pawmento.map.application.port.out.LoadAddressPort;
 
 /**
- * 네이버 Reverse Geocoding으로 좌표를 주소로 바꾼다.
+ * 네이버 Reverse Geocoding으로 좌표를 주소로 바꾼다. 일기 위치(#19)가 쓰는 이 포트는 도로명이 없으면 지번으로 돌아간다.
+ * 장소 카드(#239)가 쓰는 도로명 전용 조회는 {@link NaverRoadAddressAdapter}가 이 클래스의 호출을 빌려 쓴다.
+ * 포트마다 빈을 따로 두는 것은 테스트에서 한 포트를 가짜로 바꿔도 다른 포트가 함께 바뀌지 않게 하기 위해서다.
  * 키가 없거나 외부 호출이 실패하면 빈 값을 돌려준다. 내부 프로그래밍 오류는 전파한다.
  */
 @Component
@@ -56,6 +58,16 @@ class NaverAddressAdapter implements LoadAddressPort {
 
 	@Override
 	public Optional<String> loadByCoordinates(double latitude, double longitude) {
+		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toAddress);
+	}
+
+	// 시·도, 도로명, 건물번호가 모두 있을 때만 받는다. 지번 주소로 돌아가지 않고, 앞부분이 빠진 번호만으로는 성공으로 치지 않는다(#239-S9).
+	// NaverRoadAddressAdapter가 부른다
+	Optional<String> loadRoadAddress(double latitude, double longitude) {
+		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toRoadAddress);
+	}
+
+	private Optional<ReverseGeocodeResponse> fetch(double latitude, double longitude) {
 		if (!properties.hasCredentials()) {
 			log.warn("네이버 지도 키가 설정되지 않아 주소를 조회하지 않습니다.");
 			return Optional.empty();
@@ -73,7 +85,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 				.header("X-NCP-APIGW-API-KEY", properties.clientSecret())
 				.retrieve()
 				.body(ReverseGeocodeResponse.class);
-			return Optional.ofNullable(response).flatMap(NaverAddressAdapter::toAddress);
+			return Optional.ofNullable(response);
 		}
 		catch (org.springframework.web.client.RestClientException e) {
 			// 요청 헤더(키)는 로그에 남기지 않는다
@@ -86,8 +98,32 @@ class NaverAddressAdapter implements LoadAddressPort {
 		return BigDecimal.valueOf(value).toPlainString();
 	}
 
+	// 시·도, 도로명, 건물번호가 모두 있어야 찾아갈 수 있는 도로명 주소로 본다. 시·군·구는 세종특별자치시처럼 없을 수 있어 요구하지 않는다
+	private static boolean isCompleteRoadAddress(Result result) {
+		return result.region() != null && result.region().area1() != null && hasText(result.region().area1().name())
+				&& result.land() != null && hasText(result.land().name()) && hasText(result.land().number1());
+	}
+
+	private static boolean hasText(String text) {
+		return text != null && !text.isBlank();
+	}
+
+	private static boolean isOk(ReverseGeocodeResponse response) {
+		return response.status() != null && response.status().code() == 0 && response.results() != null;
+	}
+
+	private static Optional<String> toRoadAddress(ReverseGeocodeResponse response) {
+		if (!isOk(response)) {
+			return Optional.empty();
+		}
+		return findResult(response, "roadaddr")
+			.filter(NaverAddressAdapter::isCompleteRoadAddress)
+			.map(NaverAddressAdapter::compose)
+			.filter(address -> !address.isBlank());
+	}
+
 	private static Optional<String> toAddress(ReverseGeocodeResponse response) {
-		if (response.status() == null || response.status().code() != 0 || response.results() == null) {
+		if (!isOk(response)) {
 			return Optional.empty();
 		}
 		return findResult(response, "roadaddr").or(() -> findResult(response, "addr"))

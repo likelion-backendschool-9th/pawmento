@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,7 +58,7 @@ class LocalDataLiveCheckTest {
 
 	private static void check(PlaceCategory category) throws IOException {
 		String baseUrl = System.getenv().getOrDefault("PUBLIC_DATA_BASE_URL", "https://apis.data.go.kr");
-		var defaults = new LocalDataProperties(System.getenv("PUBLIC_DATA_SERVICE_KEY"), baseUrl, 100, Duration.ofSeconds(5),
+		var defaults = new PublicDataProperties(System.getenv("PUBLIC_DATA_SERVICE_KEY"), baseUrl, 100, Duration.ofSeconds(5),
 				Duration.ofSeconds(20), 8, Duration.ofSeconds(1), Duration.ofSeconds(30), Duration.ofMillis(500));
 		AtomicInteger sleeps = new AtomicInteger();
 		long[] slept = { 0 };

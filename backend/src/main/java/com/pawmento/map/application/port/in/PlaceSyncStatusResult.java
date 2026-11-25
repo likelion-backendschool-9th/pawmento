@@ -13,5 +13,5 @@ import java.time.Instant;
  * @param failure 실패했을 때의 이유(FETCH_FAILED, FETCH_REJECTED, MISSING_FIELDS, LOCK_LOST 등). 아니면 null
  */
 public record PlaceSyncStatusResult(String category, String state, Instant startedAt, Instant finishedAt,
-		SyncLocalDataPlacesResult result, String failure) {
+		SyncPublicDataPlacesResult result, String failure) {
 }

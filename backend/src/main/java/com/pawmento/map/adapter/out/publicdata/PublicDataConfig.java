@@ -1,10 +1,10 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(LocalDataProperties.class)
-class LocalDataConfig {
+@EnableConfigurationProperties(PublicDataProperties.class)
+class PublicDataConfig {
 
 }

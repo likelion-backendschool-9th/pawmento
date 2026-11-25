@@ -11,6 +11,8 @@ import {
 } from "../types/Place.ts";
 import { clampBounds, isValidBounds } from "../utils/mapBounds.ts";
 
+type PlaceAddressDto = { address: string | null };
+
 type PlacesDto = {
   places: {
     id: number | string;
@@ -74,8 +76,21 @@ export function checkedPlaceCategories(
   return unique;
 }
 
+// 서버의 장소 id는 양의 정수다. 예시 장소처럼 그렇지 않은 id는 서버에 묻지 않는다.
+const isServerPlaceId = (id: string) => /^[1-9][0-9]*$/.test(id);
+
 export function createPlaceApi(http: ApiClient): PlaceRepository {
   return {
+    async resolveAddress(placeId: string): Promise<string | null> {
+      if (!isServerPlaceId(placeId)) return null;
+      const result = await http.get<PlaceAddressDto>(
+        `/maps/places/${placeId}/address`,
+      );
+      return typeof result.address === "string" && result.address.trim() !== ""
+        ? result.address
+        : null;
+    },
+
     async list(bounds: MapBounds, query: PlaceQuery = {}): Promise<PlaceList> {
       const area = checkedPlaceArea(bounds);
       const categories =

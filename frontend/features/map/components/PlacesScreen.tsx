@@ -18,6 +18,7 @@ import {
   phoneHref,
   sourceLine,
 } from "../utils/placeCard";
+import { PlaceAddressResolver } from "../utils/placeAddress";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
@@ -101,6 +102,22 @@ export function PlacesScreen() {
       setCopyResult({ id, status: "failed" });
     }
   };
+  // 가려진 주소는 카드를 열 때 좌표로 찾은 주소로 바꿔 보인다(#239). 못 찾으면 원래 주소 그대로다.
+  const [, notifyAddress] = useState(0);
+  // 찾은 주소(found)와 찾는 중(inFlight)을 들고 있는 상태 객체라서 한 번만 만든다. useMemo는 성능 최적화로만 보장되어
+  // 다시 만들어질 수 있고, 그러면 이미 찾은 주소가 사라져 같은 카드에서 서버를 또 부른다(#239-S4).
+  // dependencies는 앱을 시작할 때 한 번 만들어지는 값이라 처음 것을 쓴다. 바뀌어야 한다면 이 화면을 key로 새로 연다.
+  const [addresses] = useState(
+    () =>
+      new PlaceAddressResolver(
+        (placeId) => dependencies.places.resolveAddress(placeId),
+        () => notifyAddress((count) => count + 1),
+      ),
+  );
+  useEffect(() => {
+    if (selected) addresses.request(selected);
+  }, [selected, addresses]);
+  const shownAddress = selected ? addresses.addressOf(selected) : null;
   const callHref = selected ? phoneHref(selected.phone) : null;
   const open24h = selected ? open24hLabel(selected) : null;
   const opening = selected ? openingLine(selected) : null;
@@ -252,9 +269,9 @@ export function PlacesScreen() {
             <h2>{selected.name}</h2>
             <p className={styles.address}>
               <Icon name="pin" size={16} />
-              {selected.address ?? "주소 정보 없음"}
+              {shownAddress ?? "주소 정보 없음"}
             </p>
-            {(callHref || selected.address) && (
+            {(callHref || shownAddress) && (
               <div className={styles.actions}>
                 {callHref && (
                   <a className={`button primary ${styles.call}`} href={callHref}>
@@ -262,11 +279,11 @@ export function PlacesScreen() {
                     전화 걸기
                   </a>
                 )}
-                {selected.address && (
+                {shownAddress && (
                   <button
                     type="button"
                     className={`button secondary ${styles.copy}`}
-                    onClick={() => void copyAddress(selected.id, selected.address ?? "")}
+                    onClick={() => void copyAddress(selected.id, shownAddress)}
                   >
                     <Icon name={copy === "done" ? "check" : "copy"} size={18} />
                     {copy === "done"

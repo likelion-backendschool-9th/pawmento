@@ -13,6 +13,6 @@ package com.pawmento.map.application.port.in;
  * @param updated 값이 바뀌어 갱신한 장소
  * @param deleted 이번 목록에 없어서 지운 장소
  */
-public record SyncLocalDataPlacesResult(String category, int read, int saved, int excluded, int closed,
+public record SyncPublicDataPlacesResult(String category, int read, int saved, int excluded, int closed,
 		int noCoordinates, int outOfRange, int inserted, int updated, int deleted) {
 }

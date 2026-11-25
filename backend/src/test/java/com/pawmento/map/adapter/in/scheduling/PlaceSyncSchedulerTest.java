@@ -9,12 +9,12 @@ import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlacePersistenceUnavailableException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 
 // 시나리오는 docs/map/animal-places.md(#172-S22 자동 실행)에 있다. 매일 자동 실행의 규칙(두 종류를 차례로, 실패하면 시간을 두고 다시, 포기)을
 // 가짜 실행기로 확인한다. 실제 스레드와 시각 계산은 쓰지 않는다
@@ -46,26 +46,26 @@ class PlaceSyncSchedulerTest {
 
 	}
 
-	private static class FakeUseCase implements SyncLocalDataPlacesUseCase {
+	private static class FakeUseCase implements SyncPublicDataPlacesUseCase {
 
 		final List<String> calls = new ArrayList<>();
 
 		java.util.function.Function<String, RuntimeException> failure = category -> null;
 
 		@Override
-		public SyncLocalDataPlacesResult sync(SyncLocalDataPlacesCommand command) {
+		public SyncPublicDataPlacesResult sync(SyncPublicDataPlacesCommand command) {
 			calls.add(command.category());
 			RuntimeException error = failure.apply(command.category());
 			if (error != null) {
 				throw error;
 			}
-			return new SyncLocalDataPlacesResult(command.category(), 10, 8, 2, 1, 1, 0, 8, 0, 0);
+			return new SyncPublicDataPlacesResult(command.category(), 10, 8, 2, 1, 1, 0, 8, 0, 0);
 		}
 
 	}
 
 	private static RuntimeException fetchFailure() {
-		return LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
+		return PublicDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
 	}
 
 	@Test
@@ -132,8 +132,8 @@ class PlaceSyncSchedulerTest {
 	void permanentFailuresAreNotRetried() {
 		var useCase = new FakeUseCase();
 		useCase.failure = category -> "HOSPITAL".equals(category)
-				? LocalDataSyncFailedException.fetchRejected(new RuntimeException("인증키 거절"))
-				: LocalDataSyncFailedException.rejected(LocalDataSyncFailedException.Reason.MISSING_FIELDS);
+				? PublicDataSyncFailedException.fetchRejected(new RuntimeException("인증키 거절"))
+				: PublicDataSyncFailedException.rejected(PublicDataSyncFailedException.Reason.MISSING_FIELDS);
 		var runner = new ManualRunner();
 
 		new PlaceSyncScheduler(useCase, runner, RETRY_DELAY, 3).trigger();
@@ -145,11 +145,11 @@ class PlaceSyncSchedulerTest {
 	@Test
 	@DisplayName("#172-S9 보호센터 응답이 잘렸을 수 있거나(받은 수 = 요청한 수) 등록번호가 겹치면 다시 시도해도 같아서 다시 시도하지 않는다")
 	void shelterShapeProblemsAreNotRetried() {
-		for (var reason : List.of(LocalDataSyncFailedException.Reason.POSSIBLY_TRUNCATED,
-				LocalDataSyncFailedException.Reason.DUPLICATE_IDS)) {
-			assertThat(LocalDataSyncFailedException.rejected(reason).retryable()).as("%s", reason).isFalse();
+		for (var reason : List.of(PublicDataSyncFailedException.Reason.POSSIBLY_TRUNCATED,
+				PublicDataSyncFailedException.Reason.DUPLICATE_IDS)) {
+			assertThat(PublicDataSyncFailedException.rejected(reason).retryable()).as("%s", reason).isFalse();
 		}
-		assertThat(LocalDataSyncFailedException.rejected(LocalDataSyncFailedException.Reason.EMPTY_SNAPSHOT).retryable())
+		assertThat(PublicDataSyncFailedException.rejected(PublicDataSyncFailedException.Reason.EMPTY_SNAPSHOT).retryable())
 			.isTrue();
 	}
 

@@ -9,10 +9,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 
 import com.pawmento.global.exception.StateConflictException;
 import com.pawmento.global.exception.StorageUnavailableException;
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 
 /**
  * 매일 정해진 시각에 병원과 미용을, 매주 한 번 보호센터를 가져온다(#172-S22). 한 종류가 실패해도 다른 종류는 이어서 가져오고, 일시 장애는 정한 시간을
@@ -24,7 +24,7 @@ class PlaceSyncScheduler {
 
 	private static final List<String> CATEGORIES = List.of("HOSPITAL", "GROOMING");
 
-	private final SyncLocalDataPlacesUseCase useCase;
+	private final SyncPublicDataPlacesUseCase useCase;
 
 	private final PlaceSyncRunner runner;
 
@@ -32,7 +32,7 @@ class PlaceSyncScheduler {
 
 	private final int maxRetries;
 
-	PlaceSyncScheduler(SyncLocalDataPlacesUseCase useCase, PlaceSyncRunner runner, Duration retryDelay,
+	PlaceSyncScheduler(SyncPublicDataPlacesUseCase useCase, PlaceSyncRunner runner, Duration retryDelay,
 			int maxRetries) {
 		this.useCase = useCase;
 		this.runner = runner;
@@ -40,27 +40,27 @@ class PlaceSyncScheduler {
 		this.maxRetries = maxRetries;
 	}
 
-	@Scheduled(cron = "${pawmento.map.local-data.sync.cron:0 30 4 * * *}", zone = "Asia/Seoul")
+	@Scheduled(cron = "${pawmento.map.public-data.sync.cron:0 30 4 * * *}", zone = "Asia/Seoul")
 	void trigger() {
 		runner.runNow(() -> CATEGORIES.forEach(category -> attempt(category, 0)));
 	}
 
 	// 보호센터는 바뀌는 일이 드물어 주 1회만 가져온다(#172-S8)
-	@Scheduled(cron = "${pawmento.map.local-data.sync.shelter-cron:0 50 4 * * MON}", zone = "Asia/Seoul")
+	@Scheduled(cron = "${pawmento.map.public-data.sync.shelter-cron:0 50 4 * * MON}", zone = "Asia/Seoul")
 	void triggerShelters() {
 		runner.runNow(() -> attempt("SHELTER", 0));
 	}
 
 	private void attempt(String category, int retriesDone) {
 		try {
-			SyncLocalDataPlacesResult result = useCase.sync(new SyncLocalDataPlacesCommand(category));
+			SyncPublicDataPlacesResult result = useCase.sync(new SyncPublicDataPlacesCommand(category));
 			log.info("장소 자동 가져오기 완료: {} 읽음 {}, 저장 {}, 추가 {}, 갱신 {}, 삭제 {}", category, result.read(),
 					result.saved(), result.inserted(), result.updated(), result.deleted());
 		}
 		catch (StateConflictException e) {
 			log.info("장소 자동 가져오기 건너뜀(이미 가져오는 중): {}", category);
 		}
-		catch (LocalDataSyncFailedException e) {
+		catch (PublicDataSyncFailedException e) {
 			if (e.retryable()) {
 				retryLater(category, retriesDone, e);
 			}

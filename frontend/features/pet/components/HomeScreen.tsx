@@ -174,7 +174,7 @@ function DailyHome({ pet }: { pet: Pet }) {
                     ? `/pets/${pet.id}/questions/answers/${answer.id}`
                     : pet.accessRole === "VIEWER"
                       ? `/pets/${pet.id}/questions`
-                      : `/pets/${pet.id}/questions/answers/new`
+                      : `/pets/${pet.id}/questions`
                 }
               >
                 {answer
@@ -183,7 +183,7 @@ function DailyHome({ pet }: { pet: Pet }) {
                     ? "질문 기록 보기"
                     : "오늘의 질문 답하기"}
               </Link>
-              <Link className="text-link" href={`/pets/${pet.id}/questions`}>
+              <Link className="text-link" href={`/pets/${pet.id}/questions/history`}>
                 지난 질문과 답변 <Icon name="arrow" size={15} />
               </Link>
             </div>
