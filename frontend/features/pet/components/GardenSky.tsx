@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
@@ -15,12 +15,12 @@ import { gardenGuide } from "../hooks/gardenGuidePreference";
 
 // Viewport-relative targets keep the scattered butterflies inside the touch area.
 const lights = [
-  { x: 18, y: 25, angle: -38, size: 29, beat: 2.1 },
-  { x: 70, y: 23, angle: 28, size: 24, beat: 2.7 },
+  { x: 14, y: 25, angle: -38, size: 29, beat: 2.1 },
+  { x: 72, y: 23, angle: 28, size: 24, beat: 2.7 },
   { x: 46, y: 34, angle: -12, size: 31, beat: 1.8 },
-  { x: 85, y: 39, angle: 57, size: 23, beat: 2.4 },
-  { x: 23, y: 46, angle: -65, size: 26, beat: 2.2 },
-  { x: 62, y: 49, angle: 18, size: 29, beat: 1.9 },
+  { x: 88, y: 43, angle: 57, size: 23, beat: 2.4 },
+  { x: 23, y: 52, angle: -65, size: 26, beat: 2.2 },
+  { x: 54, y: 51, angle: 18, size: 29, beat: 1.9 },
   { x: 13, y: 60, angle: -24, size: 22, beat: 2.8 },
   { x: 80, y: 58, angle: 69, size: 28, beat: 2.5 },
   { x: 40, y: 59, angle: -49, size: 24, beat: 2.3 },
@@ -44,6 +44,19 @@ export function GardenSky({ pet }: { pet: Pet }) {
   const previous = useRef<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const guide = useRef<HTMLDialogElement>(null);
+  const intro = useRef<HTMLDivElement>(null);
+  const butterflies = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const node = intro.current;
+    if (!node) return;
+    const placeButterflies = () => butterflies.current?.style.setProperty(
+      "--intro-bottom", `${node.offsetTop + node.offsetHeight}px`,
+    );
+    placeButterflies();
+    const observer = new ResizeObserver(placeButterflies);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (gardenGuide.shouldShow() && !guide.current?.open)
       guide.current?.showModal();
@@ -94,7 +107,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             ))}
           </div>
         </div>
-        <div className={s.intro}>
+        <div className={s.intro} ref={intro}>
           <div className={s.petIdentity}>
             <span className={s.petPortrait}>
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
@@ -113,7 +126,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             <Icon name="question" size={18} />
           </button>
         </div>
-        <div className={s.butterflies}>
+        <div className={s.butterflies} ref={butterflies}>
           {lights.map((point, i) => (
             <button
               key={i}
@@ -121,7 +134,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
               className={s.butterfly}
               style={{
                 left: `${point.x}%`,
-                top: `${point.y}%`,
+                top: `max(${point.y}%, calc(var(--intro-bottom, 0px) + 28px))`,
                 animationDelay: `${i * -0.8}s`,
               }}
               onClick={reveal}
