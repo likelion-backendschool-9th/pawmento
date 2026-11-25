@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { PageHeading } from "@/features/shell/components/WorkspaceUi";
@@ -59,6 +60,16 @@ export function MoreScreen() {
           </Link>
         ))}
       </section>
+      <div className={s.developers}>
+        <Image
+          src="/images/developer-lineup.png"
+          alt="PawMento 개발자들의 대표 캐릭터: 샴고양이, 고슴도치, 초록 뱀, 왕관앵무, 친칠라"
+          width={2160}
+          height={720}
+          sizes="(max-width: 480px) calc(100vw - 36px), 444px"
+          className={s.developerLineup}
+        />
+      </div>
     </>
   );
 }
