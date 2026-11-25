@@ -374,7 +374,8 @@
 @media (max-width: 767px) {
   .immersive {
     --shell-top: 76px;
-    --shell-bottom: calc(71px + env(safe-area-inset-bottom, 0px));
+    /* 하단 메뉴의 높이와 같은 식이다: 위 여백 8 + 내용 53 + 아래 여백 max(9, 안전 영역). 안전 영역이 있는 기기에서 틈이 생기지 않는다 */
+    --shell-bottom: calc(62px + max(9px, env(safe-area-inset-bottom, 0px)));
   }
   .immersive .identity,
   .immersive .navigation,
