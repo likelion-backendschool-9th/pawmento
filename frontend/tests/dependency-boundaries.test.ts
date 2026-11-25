@@ -257,6 +257,12 @@ test("#52-S6 반려동물 목록 API는 조회 결과를 아이 요약으로 돌
     patch: async () => {
       throw Error("unused");
     },
+    put: async () => {
+      throw Error("unused");
+    },
+    delete: async () => {
+      throw Error("unused");
+    },
     postEmpty: async () => {
       throw Error("unused");
     },
