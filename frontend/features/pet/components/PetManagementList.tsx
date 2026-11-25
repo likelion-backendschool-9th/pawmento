@@ -97,7 +97,8 @@ function ServerList({ session, listMine }: {
         ) : (
           <EmptyServerList />
         ))}
-      {state.status === "ready" && <MyFamilyPets />}
+      {/* 가족 반려동물은 내 목록 조회의 성공 여부와 따로 불러온다 */}
+      <MyFamilyPets />
     </>
   );
 }
