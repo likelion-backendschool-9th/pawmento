@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { PageHeading } from "@/features/shell/components/WorkspaceUi";
@@ -104,13 +104,15 @@ export function PlacesScreen() {
   };
   // 가려진 주소는 카드를 열 때 좌표로 찾은 주소로 바꿔 보인다(#239). 못 찾으면 원래 주소 그대로다.
   const [, notifyAddress] = useState(0);
-  const addresses = useMemo(
+  // 찾은 주소(found)와 찾는 중(inFlight)을 들고 있는 상태 객체라서 한 번만 만든다. useMemo는 성능 최적화로만 보장되어
+  // 다시 만들어질 수 있고, 그러면 이미 찾은 주소가 사라져 같은 카드에서 서버를 또 부른다(#239-S4).
+  // dependencies는 앱을 시작할 때 한 번 만들어지는 값이라 처음 것을 쓴다. 바뀌어야 한다면 이 화면을 key로 새로 연다.
+  const [addresses] = useState(
     () =>
       new PlaceAddressResolver(
         (placeId) => dependencies.places.resolveAddress(placeId),
         () => notifyAddress((count) => count + 1),
       ),
-    [dependencies],
   );
   useEffect(() => {
     if (selected) addresses.request(selected);
