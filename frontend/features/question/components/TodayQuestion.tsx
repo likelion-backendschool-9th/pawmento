@@ -88,7 +88,7 @@ export function TodayQuestion({ pet }: { pet: Pet }) {
                 placeholder="문득 떠오르는 작은 순간부터 들려주세요." />
               <div className={s.count}>{body.length.toLocaleString()} / 3,000</div>
               <details className={s.media}>
-                <summary><Icon name="plus" size={16} /> 사진·음성 함께 남기기{(photo || attachments.length > 0) && <span> · 첨부 있음</span>}</summary>
+                <summary>사진·목소리 추가{(photo || attachments.length > 0) && <span> · 첨부 있음</span>}</summary>
                 <div className={s.mediaContent}>
                   <PhotoPicker value={photo} onChange={value => { setPhoto(value); setSaved(false); }} />
                   <MediaAttachments value={attachments} onChange={value => { setAttachments(value); setSaved(false); }} />

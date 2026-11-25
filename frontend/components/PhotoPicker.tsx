@@ -1,7 +1,8 @@
 "use client";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Photo } from "./Photo";
 import { Icon } from "./Icon";
+import s from "./PhotoPicker.module.css";
 export function PhotoPicker({
   value,
   onChange,
@@ -10,6 +11,7 @@ export function PhotoPicker({
   onChange: (value: string) => void;
 }) {
   const id = useId();
+  const input = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   async function select(file?: File) {
@@ -48,27 +50,26 @@ export function PhotoPicker({
     }
   }
   return (
-    <div className="photo-picker">
-      {value ? (
-        <Photo key={value} src={value} alt="선택한 사진 미리보기" />
-      ) : (
-        <div className="upload-placeholder">
-          <Icon name="camera" size={34} />
-          <strong>이 순간을 함께 담아볼까요?</strong>
-          <span>사진 없이 글만 남겨도 괜찮아요.</span>
-        </div>
-      )}
-      <label htmlFor={id} className="button secondary">
-        <Icon name="plus" size={16} />
-        {loading
-          ? "사진을 확인하는 중…"
-          : value
-            ? "사진 바꾸기"
-            : "사진 선택하기"}
-      </label>
+    <div className={`photo-picker ${s.picker}`}>
+      <button type="button" className={s.surface} disabled={loading}
+        aria-label={value ? "사진 바꾸기" : "사진 추가"}
+        aria-describedby={`${id}-hint`}
+        onClick={() => input.current?.click()}>
+        {value ? <>
+          <Photo key={value} src={value} alt="선택한 사진 미리보기" />
+          <span className={s.caption}><Icon name="camera" size={17} />{loading ? "사진 확인 중…" : "사진 바꾸기"}</span>
+        </> : <span className={s.placeholder}>
+          <Icon name="camera" size={28} />
+          <strong>{loading ? "사진 확인 중…" : "사진 추가"}</strong>
+          <span>이곳을 눌러 사진을 선택해 주세요.</span>
+        </span>}
+      </button>
       <input
         className="visually-hidden"
         id={id}
+        ref={input}
+        tabIndex={-1}
+        aria-label="대표 사진 파일"
         type="file"
         accept="image/jpeg,image/png,image/webp"
         disabled={loading}
@@ -86,7 +87,7 @@ export function PhotoPicker({
           사진 빼기
         </button>
       )}
-      <small>JPG, PNG, WebP · 최대 1MB · 브라우저에 저장</small>
+      <small id={`${id}-hint`}>JPG · PNG · WebP / 최대 1MB</small>
       {error && (
         <p className="error" role="alert">
           {error}
