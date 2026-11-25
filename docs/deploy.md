@@ -21,6 +21,10 @@
 | `compose.override.yaml` | 로컬에서 Dockerfile로 직접 빌드하고 `localhost:8000`에 연결 | 저장소 루트에서 `docker compose up --build`를 실행하면 자동으로 적용된다 |
 | `compose.prod.yaml` | 서버에서 `IMAGE_TAG`에 해당하는 GHCR 이미지를 실행하고 팀 포트와 재시작 정책을 적용 | `docker compose -f compose.yaml -f compose.prod.yaml up -d` |
 
+- 로컬과 서버가 같은 공통 정의와 같은 Dockerfile·nginx 설정을 쓴다. 서버에서만 드러나던 문제(이미지 빌드, nginx 경로, 컨테이너 사이 연결)를 머지 전에 로컬에서 볼 수 있다.
+- override는 아무 옵션 없이 자동으로 합쳐지므로 로컬용으로 둔다. 서버는 `-f`로 prod 파일을 직접 지정하고, 이때 override는 읽지 않는다.
+- 매일 개발은 지금처럼 `bootRun`(`backend/compose.yaml`의 DB)과 `npm run dev`로 한다. 루트 `compose.yaml`은 Docker 관례, `backend/compose.yaml`은 Spring Boot 표준(의존 서비스만)이라 폴더를 나눠 둘 다 지킨다. IDE에서 백엔드를 실행할 때 작업 폴더를 `backend/`로 두는 이유다.
+
 백엔드를 실행할 때는 IDE에서도 작업 디렉터리를 `backend/`로 지정한다. 저장소 루트에서 `bootRun`을 실행하면 Spring Boot가 전체 서비스용 `compose.yaml`을 읽어 실행에 실패한다.
 
 서버의 `~/pawmento/.env`는 [`.env.prod.example`](../.env.prod.example)을 바탕으로 설정한다. 필수 값은 `TEAM_PORT`, `GITHUB_OWNER`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRET`이다. 배포 워크플로가 `IMAGE_TAG`를 별도로 전달하고, 서버에서 직접 실행할 때는 사용할 태그를 지정한다.
