@@ -21,6 +21,18 @@ function toManagedPet(pet: ManagedPetDto): ManagedPet {
   };
 }
 
+function rethrowPetError(cause: unknown): never {
+  if (cause instanceof ApiError) {
+    switch (cause.status) {
+      case 401: throw new ApplicationError("UNAUTHORIZED", cause.message);
+      case 403: throw new ApplicationError("FORBIDDEN", cause.message);
+      case 404: throw new ApplicationError("NOT_FOUND", cause.message);
+      case 409: throw new ApplicationError("CONFLICT", cause.message);
+    }
+  }
+  throw cause;
+}
+
 export function createPetManagementApi(http: ApiClient) {
   return {
     async get(petId: string): Promise<ManagedPet> {
@@ -30,12 +42,18 @@ export function createPetManagementApi(http: ApiClient) {
       try {
         return toManagedPet(await http.get<ManagedPetDto>(`/pets/${petId}`));
       } catch (cause) {
-        if (cause instanceof ApiError) {
-          if (cause.status === 401) throw new ApplicationError("UNAUTHORIZED", cause.message);
-          if (cause.status === 403) throw new ApplicationError("FORBIDDEN", cause.message);
-          if (cause.status === 404) throw new ApplicationError("NOT_FOUND", cause.message);
-        }
-        throw cause;
+        rethrowPetError(cause);
+      }
+    },
+
+    async edit(petId: string, changes: Partial<RegisterPetInput>): Promise<void> {
+      if (!/^[1-9]\d*$/.test(petId)) {
+        throw new ApplicationError("NOT_FOUND", "반려동물을 찾을 수 없어요.");
+      }
+      try {
+        await http.patch<ManagedPetDto>(`/pets/${petId}`, changes);
+      } catch (cause) {
+        rethrowPetError(cause);
       }
     },
 
