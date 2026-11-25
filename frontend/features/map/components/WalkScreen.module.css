@@ -247,3 +247,9 @@
   background: var(--brand-primary);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
 }
+
+.card > * { min-width: 0; max-width: 100%; overflow-wrap: anywhere; word-break: normal; }
+.card .petName { margin: 0; font-size: 13px; line-height: 1.7; font-weight: 550; color: var(--text-secondary); }
+.top .close, .top .status { flex-shrink: 0; }
+.top .chip:not(.status) { min-width: 0; flex: 1; }
+.walkingName { display: block; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }

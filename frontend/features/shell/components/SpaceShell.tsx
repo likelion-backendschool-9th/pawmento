@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useApp } from "@/app/AppProvider";
+import { PetSwitcher } from "./PetSwitcher";
 import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/Icon";
 import type { Pet } from "../../pet/types/Pet";
@@ -35,22 +36,8 @@ export function SpaceShell({
       </a>
       <header className={s.header}>
         <Brand href="/home" />
-        <label className={s.identity}>
-          <span className="visually-hidden">보고 있는 반려동물</span>
-          <select
-            aria-label="보고 있는 반려동물"
-            value={pet?.id ?? app.state.selectedPetId}
-            disabled={switching || !app.state.pets.length}
-            onChange={(e) => void onSelect(e.target.value)}
-          >
-            {!app.state.pets.length && <option value="">아이 선택</option>}
-            {app.state.pets.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name} · {item.mode === "GARDEN" ? "정원" : "일상"}
-              </option>
-            ))}
-          </select>
-        </label>
+        <PetSwitcher pets={app.state.pets} selectedId={pet?.id ?? app.state.selectedPetId}
+          switching={switching} onSelect={onSelect} />
         <Link
           href="/more"
           className={s.moreButton}

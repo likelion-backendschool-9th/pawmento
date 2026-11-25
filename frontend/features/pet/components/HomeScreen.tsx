@@ -58,7 +58,7 @@ function DailyHome({ pet }: { pet: Pet }) {
         <section className={g.hero}>
           <div className={g.heroCopy}>
             <span>OUR DAYS, TOGETHER</span>
-            <h1>{pet.name}의 하루</h1>
+            <h1 data-long-name={pet.name.length > 10}><span>{pet.name}</span><span>의 하루</span></h1>
             <p>
               함께한 날들이, 오래도록.
               <br />

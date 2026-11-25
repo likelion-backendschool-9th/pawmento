@@ -113,7 +113,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
             </span>
             <div>
-              <h1>{pet.name}의 기억 정원</h1>
+              <h1 data-long-name={pet.name.length > 10}><span>{pet.name}</span><span>의 기억 정원</span></h1>
               <p className={s.welcome}>함께한 순간은, 언제나 여기.</p>
             </div>
           </div>

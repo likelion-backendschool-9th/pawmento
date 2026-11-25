@@ -43,7 +43,8 @@ export function ModeScreen({ pet }: { pet: Pet }) {
       </Link>
       <LifeHeading
         label="PET MODE"
-        title={`${pet.name}의 공간 설정`}
+        title="공간 설정"
+        subject={pet.name}
         body={`${pet.name}의 모드만 변경해요. 다른 반려동물의 설정과 기록은 그대로 유지돼요.`}
       />
       <div className={s.modeGrid}>

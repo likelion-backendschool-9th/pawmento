@@ -255,3 +255,7 @@
   justify-self: center;
   font-size: 12px;
 }
+
+.heroCopy h1[data-long-name="true"] { font-size: 20px; line-height: 1.5; letter-spacing: -.5px; }
+.heroCopy h1[data-long-name="true"] > span { display: block; overflow-wrap: anywhere; word-break: normal; }
+.heroCopy h1[data-long-name="true"] > span:last-child { margin-top: 5px; font-size: 13px; font-weight: 400; }

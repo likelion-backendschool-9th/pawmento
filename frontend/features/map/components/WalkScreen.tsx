@@ -60,9 +60,9 @@ export function WalkScreen({ pet }: Props) {
         </Link>
         {walking && (
           <>
-            <span className={styles.chip}>
+            <span className={styles.chip} aria-label={`${pet.name}와 산책 중`} title={`${pet.name}와 산책 중`}>
               <Icon name="paw" size={15} />
-              {pet.name}와 산책 중
+              <span className={styles.walkingName}>{pet.name}</span>
             </span>
             <span className={styles.chip + " " + styles.status + " " + (recording ? styles.rec : styles.paused)}>
               <i aria-hidden="true" />
@@ -165,7 +165,8 @@ export function WalkScreen({ pet }: Props) {
         ) : (
           <>
             <p className={styles.eyebrow}>WALK</p>
-            <h2>{pet.name}와 산책을 시작할까요?</h2>
+            <p className={styles.petName}>{pet.name}</p>
+            <h2>산책을 시작할까요?</h2>
             <p className={styles.notice}>걷는 동안 지나온 길을 지도에 그려 드려요.</p>
             {practice && (
               <p className={styles.notice}>

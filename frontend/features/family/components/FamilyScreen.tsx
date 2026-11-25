@@ -121,7 +121,8 @@ export function FamilyScreen({
     <>
       <LifeHeading
         label="FAMILY SPACE"
-        title={`${pet.name}와 함께 기록하는 가족`}
+        title="함께 기록하는 가족"
+        subject={pet.name}
         body="역할을 나누고, 같은 친구의 소중한 순간을 함께 남겨요."
       />
       <DemoNote>

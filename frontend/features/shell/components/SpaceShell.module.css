@@ -15,7 +15,9 @@
   background: var(--surface-card);
 }
 .header :global(.brand) {
-  margin-right: auto;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
   gap: 6px;
   font-size: 17px;
 }
@@ -26,22 +28,7 @@
   width: 40px;
   height: 40px;
 }
-.identity {
-  margin: 0;
-  min-width: 0;
-  max-width: 145px;
-}
-.identity select {
-  width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 20px;
-  padding: 8px 22px 8px 10px;
-  background: var(--surface-subtle);
-  color: var(--text-primary);
-  font-size: 12px;
-  text-overflow: ellipsis;
-}
+.header :global(.brand-words) { display: none; }
 .moreButton {
   width: 44px;
   height: 44px;
