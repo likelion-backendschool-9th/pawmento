@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { PageHeading } from "@/features/shell/components/WorkspaceUi";
@@ -18,6 +18,7 @@ import {
   phoneHref,
   sourceLine,
 } from "../utils/placeCard";
+import { PlaceAddressResolver } from "../utils/placeAddress";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
@@ -101,6 +102,20 @@ export function PlacesScreen() {
       setCopyResult({ id, status: "failed" });
     }
   };
+  // 가려진 주소는 카드를 열 때 좌표로 찾은 주소로 바꿔 보인다(#239). 못 찾으면 원래 주소 그대로다.
+  const [, notifyAddress] = useState(0);
+  const addresses = useMemo(
+    () =>
+      new PlaceAddressResolver(
+        (placeId) => dependencies.places.resolveAddress(placeId),
+        () => notifyAddress((count) => count + 1),
+      ),
+    [dependencies],
+  );
+  useEffect(() => {
+    if (selected) addresses.request(selected);
+  }, [selected, addresses]);
+  const shownAddress = selected ? addresses.addressOf(selected) : null;
   const callHref = selected ? phoneHref(selected.phone) : null;
   const open24h = selected ? open24hLabel(selected) : null;
   const opening = selected ? openingLine(selected) : null;
@@ -252,9 +267,9 @@ export function PlacesScreen() {
             <h2>{selected.name}</h2>
             <p className={styles.address}>
               <Icon name="pin" size={16} />
-              {selected.address ?? "주소 정보 없음"}
+              {shownAddress ?? "주소 정보 없음"}
             </p>
-            {(callHref || selected.address) && (
+            {(callHref || shownAddress) && (
               <div className={styles.actions}>
                 {callHref && (
                   <a className={`button primary ${styles.call}`} href={callHref}>
@@ -262,11 +277,11 @@ export function PlacesScreen() {
                     전화 걸기
                   </a>
                 )}
-                {selected.address && (
+                {shownAddress && (
                   <button
                     type="button"
                     className={`button secondary ${styles.copy}`}
-                    onClick={() => void copyAddress(selected.id, selected.address ?? "")}
+                    onClick={() => void copyAddress(selected.id, shownAddress)}
                   >
                     <Icon name={copy === "done" ? "check" : "copy"} size={18} />
                     {copy === "done"
