@@ -37,7 +37,6 @@ export function MediaAttachments({
 }) {
   const id = useId();
   const photoInput = useRef<HTMLInputElement>(null);
-  const voiceInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -61,7 +60,7 @@ export function MediaAttachments({
       reader.readAsDataURL(file);
     });
   }
-  async function select(files: FileList | null, kind: "PHOTO" | "VOICE") {
+  async function select(files: FileList | null) {
     if (!files) return;
     setError("");
     try {
@@ -69,8 +68,8 @@ export function MediaAttachments({
         throw Error("기록 하나에 추가 첨부는 5개까지 가능해요.");
       const added: MediaAttachment[] = [];
       for (const file of Array.from(files)) {
-        if (!(kind === "PHOTO" ? /^image\/(jpeg|png|webp)$/.test(file.type) : file.type.startsWith("audio/")))
-          throw Error(kind === "PHOTO" ? "JPG, PNG, WebP 사진을 선택해 주세요." : "음성 파일을 선택해 주세요.");
+        if (!/^image\/(jpeg|png|webp)$/.test(file.type))
+          throw Error("JPG, PNG, WebP 사진을 선택해 주세요.");
         if (file.size > 2 * 1024 * 1024)
           throw Error(
             "브라우저 데모에서는 첨부 파일 한 개가 2MB 이하여야 해요.",
@@ -79,7 +78,7 @@ export function MediaAttachments({
           id: createId(),
           name: file.name,
           mimeType: file.type,
-          type: file.type.startsWith("image/") ? "PHOTO" : "VOICE",
+          type: "PHOTO",
           url: await read(file),
         });
       }
@@ -94,7 +93,7 @@ export function MediaAttachments({
       if (value.length >= 5) throw Error("추가 첨부는 5개까지 가능해요.");
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw Error(
-          "이 브라우저는 녹음을 지원하지 않아요. 음성 파일로 첨부해 주세요.",
+          "이 환경에서는 녹음을 지원하지 않아요. 다른 브라우저에서 시도해 주세요.",
         );
       stream.current = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -140,10 +139,6 @@ export function MediaAttachments({
   }
   return (
     <section className="attachments">
-      <div className="attachments-heading">
-        <strong>사진 · 목소리</strong>
-        <span>선택</span>
-      </div>
       <div className="attachments-actions">
         <button type="button" className="button secondary" disabled={recording}
           onClick={() => photoInput.current?.click()}>
@@ -152,14 +147,7 @@ export function MediaAttachments({
         <input className="visually-hidden" id={`${id}-photo`} ref={photoInput}
           type="file" tabIndex={-1} aria-label="추가 사진 파일" disabled={recording} multiple
           accept="image/jpeg,image/png,image/webp"
-          onChange={event => { void select(event.target.files, "PHOTO"); event.target.value = ""; }} />
-        <button type="button" className="button secondary" disabled={recording}
-          onClick={() => voiceInput.current?.click()}>
-          <Icon name="mic" size={16} />목소리 추가
-        </button>
-        <input className="visually-hidden" id={`${id}-voice`} ref={voiceInput}
-          type="file" tabIndex={-1} aria-label="목소리 파일" disabled={recording} multiple accept="audio/*"
-          onChange={event => { void select(event.target.files, "VOICE"); event.target.value = ""; }} />
+          onChange={event => { void select(event.target.files); event.target.value = ""; }} />
         <button
           type="button"
           className={`button ${recording ? "destructive" : "secondary"}`}
@@ -168,7 +156,7 @@ export function MediaAttachments({
           }
         >
           <Icon name="mic" size={16} />
-          {recording ? "녹음 끝내기" : "녹음하기"}
+          {recording ? "녹음 끝내기" : "목소리 녹음"}
         </button>
       </div>
       {recording && (
