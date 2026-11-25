@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { CollectionHeading } from "@/components/CollectionHeading";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
@@ -84,10 +85,9 @@ export function CommunityScreen({
   );
   return (
     <>
-      <LifeHeading
-        label={activity ? "MY ACTIVITY" : "COMMUNITY"}
-        title={activity ? "나의 커뮤니티 활동" : "함께 나누는 이야기"}
-        body="반려생활의 발견부터 소중한 기억까지, 서로의 이야기를 천천히 나누어요."
+      <CollectionHeading
+        title={activity ? "내 커뮤니티 활동" : "커뮤니티"}
+        body={<>반려생활의 발견부터 소중한 기억까지,<br />서로의 이야기를 나누어요.</>}
       >
         <Link
           className="button primary"
@@ -95,7 +95,7 @@ export function CommunityScreen({
         >
           <Icon name="edit" size={16} />글 쓰기
         </Link>
-      </LifeHeading>
+      </CollectionHeading>
       <div className={s.communityBanner}>
         <Icon name="users" size={29} />
         <div>
