@@ -1,5 +1,5 @@
 .card {
-  padding: 20px;
+  padding: 22px;
   border: 1px solid var(--border-default);
   border-radius: 22px;
   background: var(--surface-card);
@@ -18,14 +18,15 @@
   display: block;
 }
 .preview h3 {
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.6;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
   letter-spacing: -0.6px;
 }
 .myAnswer {
-  padding: 0 0 0 12px;
-  border-left: 2px solid var(--border-default);
+  padding: 15px;
+  border-radius: 15px;
+  background: var(--surface-subtle);
 }
 .badge {
   display: inline-block;
@@ -38,7 +39,7 @@
   margin: 8px 0 10px;
   line-height: 1.8;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -165,11 +166,3 @@
   line-height: 1.8;
   padding: 20px 6px;
 }
-
-.historyList { display: grid; gap: 14px; }
-.number { color: var(--brand-primary); font-size: 14px; font-weight: 650; letter-spacing: 0; }
-.demoTools { margin: 0 0 20px; font-size: 11px; color: var(--text-secondary); }
-.demoTools summary { cursor: pointer; padding: 8px 0; }
-.demoTools > svg { display: none; }
-.demoTools > div { padding: 12px; border: 1px solid var(--border-default); border-radius: 14px; line-height: 1.8; }
-.demoTools button { margin-top: 8px; }
