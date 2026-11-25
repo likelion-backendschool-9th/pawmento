@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
+import { formatDate } from "@/lib/date";
 import { ApplicationError } from "@/lib/application/ApplicationError";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import styles from "../../shell/components/Workspace.module.css";
@@ -11,7 +12,7 @@ import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
 import { messageOf, speciesName } from "../../shell/utils/presentation";
 import type { createPetManagementApi } from "../api/petManagementApi";
 import type { ManagedPet } from "../types/ManagedPet";
-import { profileChanges, profileInput } from "../utils/petManagementEdit";
+import { profileChanges, profileInput, rebaseProfileInput } from "../utils/petManagementEdit";
 import { PetProfileFields } from "./PetProfileFields";
 
 export function PetManagementEditor({ pet, api, href, onCancel, onSaved }: {
@@ -131,7 +132,7 @@ export function PetManagementEditor({ pet, api, href, onCancel, onSaved }: {
             <div>
               <p role="status">
                 서버 프로필 · {latest.name} · {speciesName[latest.species]} · {latest.breed || "품종 미입력"} ·{" "}
-                {latest.birthday || "생일 미입력"}
+                {latest.birthday ? formatDate(latest.birthday) : "생일 미입력"}
               </p>
               <button
                 type="button"
@@ -139,12 +140,7 @@ export function PetManagementEditor({ pet, api, href, onCancel, onSaved }: {
                 disabled={busy || blocked}
                 onClick={() => {
                   const current = profileInput(latest);
-                  setInput({
-                    name: input.name === original.name ? current.name : input.name,
-                    species: input.species === original.species ? current.species : input.species,
-                    breed: input.breed === original.breed ? current.breed : input.breed,
-                    birthday: input.birthday === original.birthday ? current.birthday : input.birthday,
-                  });
+                  setInput(rebaseProfileInput(original, input, current));
                   setOriginal(current);
                   setLatest(null);
                   setConflict(false);

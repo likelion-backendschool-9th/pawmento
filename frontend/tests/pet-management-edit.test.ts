@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPetManagementApi } from "../features/pet/api/petManagementApi.ts";
-import { profileChanges } from "../features/pet/utils/petManagementEdit.ts";
+import { profileChanges, rebaseProfileInput } from "../features/pet/utils/petManagementEdit.ts";
 import type { RegisterPetInput } from "../features/pet/types/ManagedPet.ts";
 import { createApiClient, type ApiClient } from "../lib/http/apiClient.ts";
 
@@ -50,4 +50,25 @@ test("#85-S8 수정 API는 HTTP 실패를 화면이 해석할 수 있는 앱 오
       message: "실패",
     });
   }
+});
+
+test("#85-S8 최신 프로필과 병합해도 미저장 편집을 유지하고 변경한 필드만 다시 보낸다", () => {
+  const input = { ...original, name: " 콩콩 ", breed: "" };
+  const latest: RegisterPetInput = {
+    name: "서버 이름",
+    species: "CAT",
+    breed: "서버 품종",
+    birthday: "2016-04-05",
+  };
+
+  const merged = rebaseProfileInput(original, input, latest);
+  assert.deepEqual(merged, { ...latest, name: " 콩콩 ", breed: "" });
+  assert.deepEqual(profileChanges(latest, merged), { name: "콩콩", breed: "" });
+});
+
+test("#85-S8 앞뒤 공백만 바꾼 입력은 서버의 최신 이름이나 품종을 덮지 않는다", () => {
+  const latest = { ...original, name: "서버 이름", breed: "서버 품종" };
+  const input = { ...original, name: " 콩이 ", breed: " 푸들 " };
+
+  assert.deepEqual(rebaseProfileInput(original, input, latest), latest);
 });

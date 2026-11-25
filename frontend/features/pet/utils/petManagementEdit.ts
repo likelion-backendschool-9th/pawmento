@@ -27,3 +27,16 @@ export function profileChanges(original: RegisterPetInput, input: RegisterPetInp
     ...(input.birthday !== original.birthday && { birthday: input.birthday }),
   };
 }
+
+export function rebaseProfileInput(
+  original: RegisterPetInput,
+  input: RegisterPetInput,
+  latest: RegisterPetInput,
+): RegisterPetInput {
+  return {
+    name: input.name.trim() === original.name ? latest.name : input.name,
+    species: input.species === original.species ? latest.species : input.species,
+    breed: input.breed.trim() === original.breed ? latest.breed : input.breed,
+    birthday: input.birthday === original.birthday ? latest.birthday : input.birthday,
+  };
+}

@@ -62,8 +62,8 @@ function ServerDetail({ session, api, href }: {
 }) {
   const [state, setState] = useState<PetDetailState>({ status: "loading" });
   const [editing, setEditing] = useState(false);
-  const { get } = api;
   const [attempt, setAttempt] = useState(0);
+  const { get } = api;
   const { accountId, petId, ready, source } = session;
 
   useLayoutEffect(() => {
