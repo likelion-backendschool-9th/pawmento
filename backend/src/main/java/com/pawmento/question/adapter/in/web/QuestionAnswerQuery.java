@@ -1,7 +1,9 @@
 package com.pawmento.question.adapter.in.web;
 
 import com.pawmento.question.adapter.in.web.exception.InvalidQuestionRequestException;
+import com.pawmento.question.application.port.in.GetQuestionPromptQuery;
 import com.pawmento.question.application.port.in.ListQuestionAnswersQuery;
+import com.pawmento.question.application.port.in.ListQuestionPromptsQuery;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -55,6 +57,24 @@ final class QuestionAnswerQuery {
         integer("size", 20, 1, 100));
   }
 
+  ListQuestionPromptsQuery prompts(Long member) {
+    return ListQuestionPromptsQuery.from(
+        member,
+        petId(),
+        values.get("mode"),
+        integer("page", 0, 0, Integer.MAX_VALUE),
+        integer("size", 20, 1, 100));
+  }
+
+  GetQuestionPromptQuery prompt(Long member, String promptId) {
+    return new GetQuestionPromptQuery(
+        member,
+        petId(),
+        decimal(promptId, 1),
+        integer("page", 0, 0, Integer.MAX_VALUE),
+        integer("size", 20, 1, 100));
+  }
+
   private int integer(String key, int defaultValue, int min, int max) {
     Long n = number(key, false, min);
     if (n == null) return defaultValue;
@@ -65,6 +85,10 @@ final class QuestionAnswerQuery {
   private Long number(String key, boolean required, long min) {
     String value = values.get(key);
     if (value == null && !required) return null;
+    return decimal(value, min);
+  }
+
+  private static Long decimal(String value, long min) {
     if (value == null || !value.matches("[0-9]+")) throw new InvalidQuestionRequestException();
     try {
       long n = Long.parseLong(value);
