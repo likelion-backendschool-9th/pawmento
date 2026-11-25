@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
+import { ApplicationError } from "@/lib/application/ApplicationError";
 import { lifeStyles as s } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
@@ -14,11 +15,12 @@ export function JoinFamilyScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [joined, setJoined] = useState<JoinedPet | null>(null);
+  const [loginRequired, setLoginRequired] = useState(false);
 
   if (!sessionReady) {
     return <p className="loading-bar" role="status">로그인 상태를 확인하고 있어요…</p>;
   }
-  if (sessionSource !== "http" || !account) {
+  if (sessionSource !== "http" || !account || loginRequired) {
     return (
       <div className="error" role="alert">
         <span>초대 코드로 참여하려면 로그인해 주세요.</span>{" "}
@@ -52,7 +54,8 @@ export function JoinFamilyScreen() {
     try {
       setJoined(await dependencies.family.join(code));
     } catch (cause) {
-      setError(messageOf(cause));
+      if (cause instanceof ApplicationError && cause.code === "UNAUTHORIZED") setLoginRequired(true);
+      else setError(messageOf(cause));
     } finally {
       setBusy(false);
     }

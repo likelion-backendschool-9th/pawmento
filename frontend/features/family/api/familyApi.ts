@@ -38,7 +38,7 @@ export function createFamilyApi(http: ApiClient) {
       };
     },
 
-    issueCode(petId: string): Promise<InviteCode> {
+      async issueCode(petId: string): Promise<InviteCode> {
       requirePetId(petId);
       return http.post<InviteCode>("/families/invite-codes", { petId: Number(petId) });
     },

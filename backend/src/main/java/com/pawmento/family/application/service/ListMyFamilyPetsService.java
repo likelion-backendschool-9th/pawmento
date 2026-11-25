@@ -27,7 +27,7 @@ public class ListMyFamilyPetsService implements ListMyFamilyPetsUseCase {
     public List<MyFamilyPetResult> list(ListMyFamilyPetsQuery query) {
         return loadPetFamilyMemberPort.loadByMemberId(query.memberId()).stream()
                 .map(member -> loadPetSummaryPort.loadSummary(member.getPetId())
-                        .map(pet -> new MyFamilyPetResult(pet.petId(), pet.name(), pet.tag(),member.getJoinedAt())))
+                        .map(pet -> new MyFamilyPetResult(pet.petId(), pet.name(), pet.tag(), member.getJoinedAt())))
                 .flatMap(Optional::stream)
                 .toList();
     }

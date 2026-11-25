@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react"; // ★ useCallback 뺐음
+import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { ApplicationError } from "@/lib/application/ApplicationError";
@@ -10,6 +10,8 @@ import { lifeStyles as s } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 import type { FamilyList, FamilyPerson, InviteCode } from "../types/serverFamily";
+
+type LoadError = { message: string; retry: boolean };
 
 const dateTime = (iso: string) =>
   new Intl.DateTimeFormat("ko-KR", {
@@ -22,18 +24,24 @@ const dateTime = (iso: string) =>
 
 export function ServerFamilyScreen() {
   const { managedPetId: petId } = useParams<{ managedPetId: string }>();
+  const { account } = useApp();
+  // 계정이나 반려동물이 바뀌면 새로 그려서 앞의 목록·초대 코드가 남지 않게 한다
+  return <FamilyBody key={`${account?.id ?? "none"}:${petId}`} petId={petId} />;
+}
+
+function FamilyBody({ petId }: { petId: string }) {
   const { account, sessionReady, sessionSource, dependencies } = useApp();
   const [family, setFamily] = useState<FamilyList | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<LoadError | null>(null);
   const [loginRequired, setLoginRequired] = useState(false);
   const [code, setCode] = useState<InviteCode | null>(null);
-  const [issueError, setIssueError] = useState("");
+  const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
-  const [attempt, setAttempt] = useState(0); // ★ 다시 시도 횟수
+  const [attempt, setAttempt] = useState(0);
   const href = `/pets/manage/${encodeURIComponent(petId)}/family`;
   const server = sessionReady && sessionSource === "http" && !!account;
 
-  // ★ load 함수 대신, effect 안에서 .then() 콜백으로만 상태를 바꾼다
+  // 상태는 서버 응답이 온 뒤의 콜백에서만 바꾼다
   useEffect(() => {
     if (!server) return;
     let active = true;
@@ -43,8 +51,13 @@ export function ServerFamilyScreen() {
       },
       (cause) => {
         if (!active) return;
-        if (cause instanceof ApplicationError && cause.code === "UNAUTHORIZED") setLoginRequired(true);
-        else setError(messageOf(cause));
+        if (cause instanceof ApplicationError && cause.code === "UNAUTHORIZED") {
+          setLoginRequired(true);
+          return;
+        }
+        // 403·404는 다시 불러도 같으므로 다시 시도를 보이지 않는다
+        const final = cause instanceof ApplicationError && (cause.code === "FORBIDDEN" || cause.code === "NOT_FOUND");
+        setError({ message: messageOf(cause), retry: !final });
       },
     );
     return () => {
@@ -54,14 +67,21 @@ export function ServerFamilyScreen() {
 
   async function issue() {
     setBusy(true);
-    setIssueError("");
+    setNotice("");
     try {
       setCode(await dependencies.family.issueCode(petId));
     } catch (cause) {
-      setIssueError(messageOf(cause));
+      setNotice(messageOf(cause));
     } finally {
       setBusy(false);
     }
+  }
+
+  function copy(value: string) {
+    navigator.clipboard.writeText(value).then(
+      () => setNotice("코드를 복사했어요."),
+      () => setNotice("복사하지 못했어요. 코드를 직접 옮겨 적어 주세요."),
+    );
   }
 
   if (!sessionReady) {
@@ -78,11 +98,12 @@ export function ServerFamilyScreen() {
   if (error) {
     return (
       <div className="error" role="alert">
-        <span>{error}</span>{" "}
-        {/* ★ load() 대신 attempt를 올려서 effect를 다시 돌린다 */}
-        <button type="button" className="text-link" onClick={() => { setError(""); setAttempt((n) => n + 1); }}>
-          다시 시도
-        </button>
+        <span>{error.message}</span>{" "}
+        {error.retry && (
+          <button type="button" className="text-link" onClick={() => { setError(null); setAttempt((n) => n + 1); }}>
+            다시 시도
+          </button>
+        )}
       </div>
     );
   }
@@ -120,16 +141,14 @@ export function ServerFamilyScreen() {
           </div>
           {code ? (
             <>
-              <p><strong style={{ fontSize: 28, letterSpacing: 4 }}>{code.code}</strong></p>
+              <div className={s.inviteLink}>
+                <strong>{code.code}</strong>
+              </div>
               <p>
                 {dateTime(code.expiresAt)}까지 한 번만 쓸 수 있어요.
                 이 화면을 나가면 코드를 다시 볼 수 없어요.
               </p>
-              <button
-                type="button"
-                className="button secondary"
-                onClick={() => void navigator.clipboard.writeText(code.code)}
-              >
+              <button type="button" className="button secondary" onClick={() => copy(code.code)}>
                 <Icon name="copy" size={16} />
                 코드 복사
               </button>
@@ -142,7 +161,7 @@ export function ServerFamilyScreen() {
               </button>
             </>
           )}
-          {issueError && <p className="error" role="alert">{issueError}</p>}
+          {notice && <p role="status">{notice}</p>}
         </section>
       </div>
     </>
