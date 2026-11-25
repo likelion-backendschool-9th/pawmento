@@ -1,0 +1,9 @@
+.picker { width: 100%; gap: 8px; }
+.surface { position: relative; display: block; width: 100%; padding: 0; border: 1px solid var(--border-default); border-radius: 20px; overflow: hidden; background: var(--surface-subtle); color: var(--brand-primary); cursor: pointer; text-align: center; }
+.surface:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 4px; }
+.surface:disabled { opacity: .65; cursor: wait; }
+.surface > :global(.photo) { display: block; width: 100%; height: 220px; border-radius: 0; }
+.placeholder { min-height: 170px; padding: 22px 14px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 10px; }
+.placeholder strong { font-size: 14px; font-weight: 550; }
+.placeholder > span { font-size: 11px; color: var(--text-secondary); }
+.caption { position: absolute; inset: auto 0 0; display: flex; justify-content: center; align-items: center; gap: 7px; padding: 20px 12px 12px; background: linear-gradient(transparent, #172319a6); color: #fff; font-size: 12px; }
