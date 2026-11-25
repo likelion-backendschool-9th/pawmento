@@ -57,6 +57,17 @@ export function createPetManagementApi(http: ApiClient) {
       }
     },
 
+    async changeMode(petId: string, mode: ManagedPet["mode"]): Promise<void> {
+      if (!/^[1-9]\d*$/.test(petId)) {
+        throw new ApplicationError("NOT_FOUND", "반려동물을 찾을 수 없어요.");
+      }
+      try {
+        await http.patch<ManagedPetDto>(`/pets/${petId}/mode`, { mode });
+      } catch (cause) {
+        rethrowPetError(cause);
+      }
+    },
+
     async listMine(): Promise<ManagedPet[]> {
       let pets: ManagedPetDto[];
       try {

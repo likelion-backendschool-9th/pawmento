@@ -7,9 +7,11 @@ import { useApp } from "@/app/AppProvider";
 import { Photo } from "@/components/Photo";
 import { formatDate } from "@/lib/date";
 import styles from "../../shell/components/Workspace.module.css";
+import { lifeStyles } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { speciesName } from "../../shell/utils/presentation";
 import type { createPetManagementApi } from "../api/petManagementApi";
+import { PetManagementMode } from "./PetManagementMode";
 import { PetManagementEditor } from "./PetManagementEditor";
 import {
   loadPetManagementDetail,
@@ -61,7 +63,7 @@ function ServerDetail({ session, api, href }: {
   href: string;
 }) {
   const [state, setState] = useState<PetDetailState>({ status: "loading" });
-  const [editing, setEditing] = useState(false);
+  const [view, setView] = useState<"profile" | "edit" | "mode">("profile");
   const [attempt, setAttempt] = useState(0);
   const { get } = api;
   const { accountId, petId, ready, source } = session;
@@ -94,18 +96,31 @@ function ServerDetail({ session, api, href }: {
   }
 
   const { pet } = state;
-  if (editing) {
+  function reloadProfile() {
+    setView("profile");
+    setState({ status: "loading" });
+    setAttempt((previous) => previous + 1);
+  }
+
+  if (view === "mode") {
+    return (
+      <PetManagementMode
+        pet={pet}
+        changeMode={api.changeMode}
+        href={href}
+        onBack={() => setView("profile")}
+        onReload={reloadProfile}
+      />
+    );
+  }
+  if (view === "edit") {
     return (
       <PetManagementEditor
         pet={pet}
         api={api}
         href={href}
-        onCancel={() => setEditing(false)}
-        onSaved={() => {
-          setEditing(false);
-          setState({ status: "loading" });
-          setAttempt((previous) => previous + 1);
-        }}
+        onCancel={() => setView("profile")}
+        onSaved={reloadProfile}
       />
     );
   }
@@ -127,9 +142,14 @@ function ServerDetail({ session, api, href }: {
           <div><strong>{pet.tag}</strong><span>태그</span></div>
           <div><strong>{pet.birthday ? formatDate(pet.birthday) : "—"}</strong><span>생일</span></div>
         </div>
-        <button type="button" className="button secondary" onClick={() => setEditing(true)}>
-          프로필 수정
-        </button>
+        <div className={lifeStyles.inlineActions}>
+          <button type="button" className="button secondary" onClick={() => setView("edit")}>
+            프로필 수정
+          </button>
+          <button type="button" className="button secondary" onClick={() => setView("mode")}>
+            모드 변경
+          </button>
+        </div>
       </section>
     </div>
   );
