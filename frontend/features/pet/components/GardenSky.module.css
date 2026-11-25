@@ -28,13 +28,14 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 20px;
-  width: fit-content;
+  padding-right: 44px;
+  min-height: 44px;
 }
 .petPortrait {
   display: block;
-  width: 38px;
-  height: 38px;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid #fff4d54d;
   overflow: hidden;
@@ -44,29 +45,17 @@
   height: 100%;
   object-fit: cover;
 }
-.petIdentity strong {
-  display: block;
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.6;
-}
-.petIdentity > span > span {
-  display: block;
-  font-size: 10px;
-  color: #d7d7ed;
-  font-weight: 400;
-}
 .intro h1 {
   font-family: var(--font-sans);
-  font-size: 31px;
-  font-weight: 350;
+  font-size: 21px;
+  font-weight: 450;
   line-height: 1.4;
-  letter-spacing: -1.3px;
+  letter-spacing: -0.7px;
   margin: 0;
 }
 .welcome {
-  margin: 7px 0 0;
-  font-size: 12px;
+  margin: 14px 0 0;
+  font-size: 14px;
   font-weight: 350;
   letter-spacing: -0.1px;
   color: #dcdced;

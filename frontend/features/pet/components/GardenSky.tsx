@@ -81,9 +81,8 @@ export function GardenSky({ pet }: { pet: Pet }) {
             <span className={s.petPortrait}>
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
             </span>
-            <span><strong>{pet.name}</strong><span>{pet.breed}</span></span>
+            <h1>{pet.name}의 기억 정원</h1>
           </div>
-          <h1 aria-label={`${pet.name}의 기억 정원`}>기억 정원</h1>
           <p className={s.welcome}>함께한 순간은, 언제나 여기.</p>
           <button
             type="button"
