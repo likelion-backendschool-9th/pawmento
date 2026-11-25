@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.stereotype.Component;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.map.application.exception.PlacePersistenceUnavailableException;
 import com.pawmento.map.application.port.out.AppliedPlaces;
+import com.pawmento.map.application.port.out.LoadPlaceByIdPort;
 import com.pawmento.map.application.port.out.LoadPlaceDataAsOfPort;
 import com.pawmento.map.application.port.out.LoadPlacesPort;
 import com.pawmento.map.application.port.out.StorePlacesPort;
@@ -27,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort, LoadPlaceDataAsOfPort {
+class PlacePersistenceAdapter implements LoadPlacesPort, LoadPlaceByIdPort, StorePlacesPort, LoadPlaceDataAsOfPort {
 
 	private final PlaceJpaRepository placeJpaRepository;
 
@@ -46,6 +48,16 @@ class PlacePersistenceAdapter implements LoadPlacesPort, StorePlacesPort, LoadPl
 			.stream()
 			.map(PlaceJpaEntity::toDomain)
 			.toList(), PlacePersistenceUnavailableException::new);
+	}
+
+	@Override
+	public Optional<Place> loadById(Long placeId) {
+		if (placeId == null) {
+			throw new IllegalArgumentException("장소 id가 필요합니다.");
+		}
+		return MapPersistenceOperations.execute(
+				() -> placeJpaRepository.findById(placeId).map(PlaceJpaEntity::toDomain),
+				PlacePersistenceUnavailableException::new);
 	}
 
 	@Override

@@ -1,5 +1,5 @@
 "use client";
-import { CollectionHeading } from "@/components/CollectionHeading";
+import { QuestionHeading } from "./QuestionHeading";
 import { questionHistory } from "@/features/question/utils/questionHistory";
 import { registrationDate } from "@/lib/date";
 
@@ -7,12 +7,12 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
+import { questionNumber } from "../utils/questionNumber";
 import { myAnswer } from "../utils/myAnswer";
 import q from "./QuestionHistory.module.css";
 import type { Pet } from "@/features/pet/types/Pet";
 import {
   LifeEmpty,
-  lifeStyles as s,
 } from "@/features/shell/components/LifeUi";
 export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();
@@ -25,22 +25,23 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
   );
   return (
     <>
-      <CollectionHeading
-        title="오늘의 질문"
-        body="함께한 순간을 떠올리고, 가족의 답변을 만나보세요."
+      <QuestionHeading
+        title="이전 질문"
+        body="한 질문에 담긴 나와 가족의 이야기를 다시 만나요."
       >
         {pet.accessRole !== "VIEWER" && (
           <Link
             className="button primary"
-            href={`/pets/${pet.id}/questions/answers/new`}
+            href={`/pets/${pet.id}/questions`}
           >
             <Icon name="edit" size={15} />
-            질문 답하기
+            오늘의 질문
           </Link>
         )}
-      </CollectionHeading>
+      </QuestionHeading>
       {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
-        <div className="demo-banner">
+        <details className={q.demoTools}>
+          <summary>데모 질문 기록 관리</summary>
           <Icon name="question" size={18} />
           <div>
             <p>
@@ -69,24 +70,23 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
               {adding ? "추가 중…" : "데모 질문 기록 추가"}
             </button>
           </div>
-        </div>
+        </details>
       )}
       {demoError && (
         <p className="error" role="alert">
           {demoError}
         </p>
       )}
-      {history.length > 0 && <h2>지난 질문과 답변</h2>}
       {history.length ? (
-        <div className={s.twoGrid}>
+        <div className={q.historyList}>
           {history.map(({ prompt, answers }) => {
             const mine = myAnswer(answers, app.account?.id);
             const href = `/pets/${pet.id}/questions/prompts/${prompt.id}`;
             return (
               <article key={prompt.id} className={q.card}>
                 <div className={q.eyebrow}>
-                  <span>지난 질문</span>
-                  <span>{prompt.mode === "GARDEN" ? "기억" : "일상"}</span>
+                  <span className={q.number}>#{questionNumber(pet.id, prompt.id, app.state.questionPrompts)}</span>
+                  <span>{prompt.mode === "GARDEN" ? "기억" : prompt.mode === "ACTIVE" ? "일상" : "이전 질문"}</span>
                 </div>
                 <Link href={href} className={q.preview}>
                   <h3>{prompt.questionSnapshot}</h3>
@@ -121,7 +121,7 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
         <LifeEmpty
           title="첫 질문을 기다리는 공간"
           body="오늘의 질문에 답하면 이곳에 질문과 답변이 함께 쌓여요."
-          href={`/pets/${pet.id}/questions/answers/new`}
+          href={`/pets/${pet.id}/questions`}
           action="답변 남기기"
         />
       )}
