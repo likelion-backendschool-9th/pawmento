@@ -74,7 +74,6 @@ public class JoinFamilyService implements JoinFamilyUseCase {
         PetSummary pet = loadPetSummaryPort.loadSummary(petId)
                 .orElseThrow(() -> new IllegalStateException("잠근 반려동물을 읽지 못했습니다: " + petId));
         return new JoinFamilyResult(petId, pet.name(), pet.tag());
-
     }
 
 }
