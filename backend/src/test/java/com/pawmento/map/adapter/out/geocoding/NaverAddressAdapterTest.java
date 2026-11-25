@@ -208,4 +208,77 @@ class NaverAddressAdapterTest {
 		}
 	}
 
+	private static final String ROAD_WITHOUT_NUMBER_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "서울특별시"}, "area2": {"name": "성동구"},
+		      "area3": {"name": "성수동1가"}, "area4": {"name": ""}}, "land": {"name": "서울숲2길", "number1": "", "number2": ""}}
+		  ]
+		}
+		""";
+
+	// 이하는 장소 카드의 가려진 주소 보완(#239)이 쓰는 도로명 전용 조회다. 일기 위치(#19)의 지번 폴백은 위에서 그대로 확인한다
+
+	@Test
+	@DisplayName("#239-S1 도로명 전용 조회는 도로명과 건물번호를 받는다")
+	void loadsRoadAddressOnly() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andExpect(queryParam("coords", "127.0276,37.4979"))
+			.andExpect(header("X-NCP-APIGW-API-KEY-ID", "test-id"))
+			.andRespond(withSuccess(ROAD_ADDRESS_JSON, MediaType.APPLICATION_JSON));
+
+		Optional<String> address = f.adapter().loadRoadAddressByCoordinates(37.4979, 127.0276);
+
+		assertThat(address).contains("서울특별시 강남구 테헤란로 152");
+		f.server().verify();
+	}
+
+	@Test
+	@DisplayName("#239-S9 도로명 주소 없이 지번만 있으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupDoesNotFallBackToLotAddress() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(LOT_ADDRESS_ONLY_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(f.adapter().loadRoadAddressByCoordinates(37.4979, 127.0276)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 같은 응답에서 일기 위치의 조회(#19)는 여전히 지번을 받는다")
+	void lotLookupForDiaryLocationIsUnchanged() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(LOT_ADDRESS_ONLY_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(f.adapter().loadByCoordinates(37.4979, 127.0276)).contains("서울특별시 강남구 역삼동 737-3");
+	}
+
+	@Test
+	@DisplayName("#239-S9 도로명은 있지만 건물번호가 없으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupNeedsBuildingNumber() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(ROAD_WITHOUT_NUMBER_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(f.adapter().loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S3 도로명 전용 조회도 주소가 없는 좌표, 서버 오류, 키 없음이면 빈 값이다")
+	void roadOnlyLookupIsEmptyOnFailures() {
+		Fixture noAddress = fixture("test-id", "test-secret");
+		noAddress.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess("{\"status\":{\"code\":3,\"name\":\"no results\"},\"results\":[]}",
+					MediaType.APPLICATION_JSON));
+		assertThat(noAddress.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+
+		Fixture serverError = fixture("test-id", "test-secret");
+		serverError.server().expect(method(HttpMethod.GET)).andRespond(withServerError());
+		assertThat(serverError.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+
+		Fixture noKey = fixture("", "");
+		assertThat(noKey.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+		noKey.server().verify();
+	}
+
 }
