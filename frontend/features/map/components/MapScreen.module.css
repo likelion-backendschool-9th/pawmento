@@ -160,14 +160,14 @@
 }
 
 /* PC에서는 선택 카드가 지도 폭 전체로 늘어나지 않게 폭을 제한하고 왼쪽 아래에 붙인다 */
-@media (min-width: 768px) {
+@container app (min-width: 768px) {
   .sheet {
     right: auto;
     width: min(440px, calc(100% - 24px));
   }
 }
 
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .stage {
     height: min(72vh, 620px);
     border-radius: 18px;

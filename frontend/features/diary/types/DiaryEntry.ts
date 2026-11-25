@@ -8,6 +8,8 @@ export type DiaryEntry = {
   recordedDate: string;
   createdAt: string;
   updatedAt: string;
+  /** Missing only on older demo records. */
+  title?: string;
   body: string;
   photoUrl: string;
   attachments?: MediaAttachment[];
@@ -15,5 +17,11 @@ export type DiaryEntry = {
 };
 export type DiaryEntryInput = Pick<
   DiaryEntry,
-  "petId" | "recordedDate" | "body" | "photoUrl" | "attachments" | "authorName"
+  | "title"
+  | "petId"
+  | "recordedDate"
+  | "body"
+  | "photoUrl"
+  | "attachments"
+  | "authorName"
 >;

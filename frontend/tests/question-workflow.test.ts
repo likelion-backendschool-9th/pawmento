@@ -84,6 +84,7 @@ test("#12-S6 (고침 #32) 일기·질문 저장과 날짜 조회를 분리하고
   const pet = await uc.savePet("owner", petInput);
   const active = await uc.questions.current("owner", pet.id);
   await uc.diary.save("owner", {
+    title: "함께한 하루",
     petId: pet.id,
     recordedDate: "2026-11-14",
     body: "자유 일기",
@@ -294,12 +295,14 @@ test("#12-S4 (고침 #32) 같은 날짜의 혼합 데이터에서 페이지 ID·
     photoUrl: "",
   });
   const a = await uc.diary.save("owner", {
+    title: "함께한 하루",
     petId: pet.id,
     recordedDate: "2026-11-15",
     body: "일기 A",
     photoUrl: "",
   });
   const b = await uc.diary.save("owner", {
+    title: "함께한 하루",
     petId: pet.id,
     recordedDate: "2026-11-14",
     body: "일기 B",

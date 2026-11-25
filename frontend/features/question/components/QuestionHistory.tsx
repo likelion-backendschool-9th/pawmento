@@ -6,9 +6,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
-import { QuestionAnswer } from "@/components/QuestionAnswer";
+import { myAnswer } from "../utils/myAnswer";
+import q from "./QuestionHistory.module.css";
 import type { Pet } from "@/features/pet/types/Pet";
-import { LifeHeading, LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
+import {
+  LifeHeading,
+  LifeEmpty,
+  lifeStyles as s,
+} from "@/features/shell/components/LifeUi";
 export function QuestionHistory({ pet }: { pet: Pet }) {
   const app = useApp();
   const [adding, setAdding] = useState(false);
@@ -39,8 +44,8 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
           <Icon name="question" size={18} />
           <div>
             <p>
-              질문과 답변 샘플을 읽고, 날짜를 눌러 기록을 열어보세요. 기존
-              답변은 그대로 유지돼요.
+              목록에는 내 답변만 보여요. 질문을 열어 가족의 이야기도 함께
+              읽어보세요. 기존 답변은 그대로 유지돼요.
             </p>
             <button
               className="button secondary"
@@ -75,48 +80,39 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
       {history.length ? (
         <div className={s.twoGrid}>
           {history.map(({ prompt, answers }) => {
-            const canAnswer =
-              pet.accessRole !== "VIEWER" &&
-              prompt.mode === pet.mode &&
-              !answers.some((a) => a.authorId === app.account?.id);
+            const mine = myAnswer(answers, app.account?.id);
+            const href = `/pets/${pet.id}/questions/prompts/${prompt.id}`;
             return (
-              <article key={prompt.id} className={s.panel}>
-                <h3>{prompt.questionSnapshot}</h3>
-                {prompt.questionId.startsWith("demo-question-") && (
-                  <span className="badge">데모 기록</span>
-                )}
-                {answers.length ? (
-                  answers.map((answer) => (
-                    <Link
-                      key={answer.id}
-                      href={`/pets/${pet.id}/questions/answers/${answer.id}`}
-                      className="text-link"
-                    >
-                      <time className={s.meta}>
-                        {answer.legacyRecordedDate ??
-                          registrationDate(answer.registeredAt)}
+              <article key={prompt.id} className={q.card}>
+                <div className={q.eyebrow}>
+                  <span>지난 질문</span>
+                  <span>{prompt.mode === "GARDEN" ? "기억" : "일상"}</span>
+                </div>
+                <Link href={href} className={q.preview}>
+                  <h3>{prompt.questionSnapshot}</h3>
+                  {mine ? (
+                    <div className={q.myAnswer}>
+                      <span className={q.badge}>나의 답변</span>
+                      <p>{mine.body}</p>
+                      <time>
+                        {mine.legacyRecordedDate ??
+                          registrationDate(mine.registeredAt)}
                       </time>
-                      <span> · {answer.authorName ?? "가족 기록"}</span>
-                      <QuestionAnswer
-                        question={prompt.questionSnapshot}
-                        answer={answer.body}
-                      />
-                    </Link>
-                  ))
-                ) : (
-                  <p>
-                    현재 남아 있는 답변이 없어요.
-                    {canAnswer && " 이 질문에 다시 답할 수 있어요."}
-                  </p>
-                )}
-                {canAnswer && (
-                  <Link
-                    className="text-link"
-                    href={`/pets/${pet.id}/questions/answers/new?promptId=${encodeURIComponent(prompt.id)}`}
-                  >
-                    이 질문에 답변 남기기
-                  </Link>
-                )}
+                    </div>
+                  ) : (
+                    <p className={q.unanswered}>
+                      아직 내 답변을 남기지 않았어요.
+                    </p>
+                  )}
+                </Link>
+                <Link href={href} className={q.footer}>
+                  <span>
+                    <Icon name="users" size={16} /> 가족 답변 {answers.length}개
+                  </span>
+                  <span>
+                    질문 열기 <Icon name="chevron" size={16} />
+                  </span>
+                </Link>
               </article>
             );
           })}

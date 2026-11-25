@@ -107,12 +107,9 @@ export function PlacesScreen() {
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
   const cardRef = useRef<HTMLElement>(null);
-  // 휴대폰에서는 카드가 지도 아래를 가로로 덮는다. 그 높이를 지도에 알려 선택한 마커가 가려지지 않게 한다(PC의 카드는 일부만 덮어서 0).
-  const coveredBottom = useCallback(() => {
-    const card = cardRef.current;
-    if (!card || !window.matchMedia("(max-width: 767px)").matches) return 0;
-    return card.offsetHeight;
-  }, []);
+  // 모든 화면 크기에서 모바일 카드가 지도 아래를 덮는다.
+  // 브라우저 너비 대신 실제 카드 높이를 전달해 PC에서도 마커가 가려지지 않게 한다.
+  const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
   const canvasProps = {
     center: DEFAULT_MAP_CENTER,
     places,

@@ -5,6 +5,8 @@
   --map-water: #d7e6df;
   position: fixed;
   inset: 0;
+  width: min(100%, 480px);
+  margin-inline: auto;
   z-index: 60; /* 앱 머리글·하단 메뉴(45)보다 위, 알림(100)보다 아래 */
   overflow: hidden;
   background: var(--map-land);

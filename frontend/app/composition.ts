@@ -28,6 +28,7 @@ import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts"
 import { DemoPlaceRepository } from "../mocks/handlers/DemoPlaceRepository.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
+export { demoDiarySamples } from "../mocks/fixtures/demoDiaries.ts";
 export { demoQuestionInputs } from "../mocks/fixtures/demoQuestions.ts";
 
 export function createDependencies() {

@@ -1,7 +1,6 @@
 "use client";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
@@ -64,9 +63,8 @@ export function AccountScreen() {
   return (
     <>
       <PageHeading
-        eyebrow="MY LITTLE SPACE"
-        title="나의 작은 공간"
-        body="함께 기록하는 당신의 이야기."
+        title="내 정보 관리"
+        body="닉네임과 계정 정보를 확인하고 관리해요."
       />
       <div className={styles.accountGrid}>
         <section className={styles.accountCard}>
@@ -145,9 +143,6 @@ export function AccountScreen() {
         </section>
         <section className={styles.accountInfo}>
           <h2>차곡차곡 쌓인 우리의 시간</h2>
-          <Link href="/me/activity" className="text-link">
-            내 글 · 댓글 · 북마크 보기
-          </Link>
           <div className={styles.accountStats}>
             <div>
               <strong>{friendCount}</strong>
@@ -160,10 +155,6 @@ export function AccountScreen() {
               </div>
             )}
           </div>
-          <Link className="button secondary full" href="/pets">
-            반려동물 관리
-            <Icon name="arrow" size={17} />
-          </Link>
           {demo && (
             <div className="demo-banner">
               <Icon name="leaf" />

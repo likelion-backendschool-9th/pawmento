@@ -99,27 +99,42 @@ export function createWorkspaceUseCases(
           const pet = state.pets.find((p) => p.id === input.petId);
           if (!pet || pet.accessRole === "VIEWER")
             throw Error("기록을 추가할 수 없어요.");
+          const authorId = input.authorId ?? accountId;
+          if (
+            !["demo", "demo-family-mom", "demo-family-dad"].includes(authorId)
+          )
+            throw Error("예시 작성자를 확인해 주세요.");
           if (
             state.questionAnswers.some(
-              (a) => a.petId === pet.id && a.questionId === input.questionId,
+              (a) =>
+                a.petId === pet.id &&
+                a.questionId === input.questionId &&
+                a.authorId === authorId,
             )
           )
             continue;
-          const promptId = runtime.id();
-          state.questionPrompts.push({
-            id: promptId,
-            petId: pet.id,
-            questionId: input.questionId,
-            questionSnapshot: input.questionSnapshot,
-            mode: pet.mode,
-            createdAt: input.registeredAt,
-            completedAt: input.registeredAt,
-          });
+          let prompt = state.questionPrompts.find(
+            (p) => p.petId === pet.id && p.questionId === input.questionId,
+          );
+          if (!prompt) {
+            prompt = {
+              id: runtime.id(),
+              petId: pet.id,
+              questionId: input.questionId,
+              questionSnapshot: input.questionSnapshot,
+              mode: pet.mode,
+              createdAt: input.registeredAt,
+              completedAt: input.registeredAt,
+            };
+            state.questionPrompts.push(prompt);
+          }
           state.questionAnswers.push({
             ...input,
             id: runtime.id(),
-            promptId,
-            authorId: accountId,
+            promptId: prompt.id,
+            questionId: prompt.questionId,
+            questionSnapshot: prompt.questionSnapshot,
+            authorId,
             updatedAt: input.registeredAt,
           });
         }

@@ -5,7 +5,10 @@ import {
   type Place,
   type PlaceCategory,
 } from "../features/map/types/Place.ts";
-import { countByCategory, toggleCategory } from "../features/map/utils/placeCounts.ts";
+import {
+  countByCategory,
+  toggleCategory,
+} from "../features/map/utils/placeCounts.ts";
 import { PLACE_STYLE, placeMarkup } from "../features/map/utils/placeMarkup.ts";
 import {
   MOBILE_NAV_LIMIT,
@@ -27,7 +30,11 @@ test("#172-S16 종류 칩의 숫자는 영역 안 장소를 종류별로 센 값
   ]);
 
   assert.deepEqual(counts, { HOSPITAL: 2, GROOMING: 1, SHELTER: 0 });
-  assert.deepEqual(countByCategory([]), { HOSPITAL: 0, GROOMING: 0, SHELTER: 0 });
+  assert.deepEqual(countByCategory([]), {
+    HOSPITAL: 0,
+    GROOMING: 0,
+    SHELTER: 0,
+  });
 });
 
 test("#172-S16 칩을 누르면 그 종류가 켜지고 꺼지며, 켜진 종류의 순서는 항상 같다", () => {
@@ -51,13 +58,26 @@ test("#172-S16 칩을 누르면 그 종류가 켜지고 꺼지며, 켜진 종류
 
 test("#172-S16 종류마다 마커의 색과 모양이 다르고 선택하면 후광이 생긴다", () => {
   const markups = PLACE_CATEGORIES.map((category) => placeMarkup(category));
-  assert.equal(new Set(markups).size, PLACE_CATEGORIES.length, "종류마다 다르다");
-  const colors = PLACE_CATEGORIES.map((category) => PLACE_STYLE[category].color);
-  assert.equal(new Set(colors).size, PLACE_CATEGORIES.length, "색이 겹치지 않는다");
+  assert.equal(
+    new Set(markups).size,
+    PLACE_CATEGORIES.length,
+    "종류마다 다르다",
+  );
+  const colors = PLACE_CATEGORIES.map(
+    (category) => PLACE_STYLE[category].color,
+  );
+  assert.equal(
+    new Set(colors).size,
+    PLACE_CATEGORIES.length,
+    "색이 겹치지 않는다",
+  );
   for (const category of PLACE_CATEGORIES) {
     assert.ok(placeMarkup(category).includes(PLACE_STYLE[category].color));
     assert.ok(placeMarkup(category).includes('aria-hidden="true"'));
-    assert.ok(placeMarkup(category, true).length > placeMarkup(category).length, "선택하면 후광이 더해진다");
+    assert.ok(
+      placeMarkup(category, true).length > placeMarkup(category).length,
+      "선택하면 후광이 더해진다",
+    );
   }
   assert.deepEqual(
     PLACE_CATEGORIES.map((category) => PLACE_STYLE[category].label),
@@ -65,7 +85,7 @@ test("#172-S16 종류마다 마커의 색과 모양이 다르고 선택하면 �
   );
 });
 
-test("#172-S16 모바일 하단 메뉴는 앞의 네 개와 지도로 이루어지고, 더보기는 없다", () => {
+test("#172-S16 (고침 #233: 마지막 메뉴는 모드별 선택) 하단은 앞 네 개와 지정한 마지막 칸이며 더보기는 없다", () => {
   const links = [
     { label: "홈" },
     { label: "오늘의 질문" },
@@ -82,12 +102,16 @@ test("#172-S16 모바일 하단 메뉴는 앞의 네 개와 지도로 이루어�
   );
   assert.equal(nav.length, MOBILE_NAV_LIMIT + 1);
 
-  // 정원 모드처럼 메뉴가 다섯 개여도 하단은 다섯 칸을 넘지 않고 지도가 마지막이다
-  const garden = [...links.slice(0, 3), { label: "우체통" }, { label: "커뮤니티" }];
-  const gardenNav = mobileNavLinks(garden, map);
-  assert.equal(gardenNav.length, 5);
-  assert.equal(gardenNav[gardenNav.length - 1].label, "지도");
-  assert.ok(!gardenNav.some((link) => link.label === "더보기"));
+  // 후보가 다섯 개여도 하단은 다섯 칸이며 전달한 마지막 항목을 보존한다. 모드 선택은 #233-S2에서 검사한다.
+  const candidates = [
+    ...links.slice(0, 3),
+    { label: "우체통" },
+    { label: "커뮤니티" },
+  ];
+  const crowdedNav = mobileNavLinks(candidates, map);
+  assert.equal(crowdedNav.length, 5);
+  assert.equal(crowdedNav[crowdedNav.length - 1].label, "지도");
+  assert.ok(!crowdedNav.some((link) => link.label === "더보기"));
 });
 
 test("#172-S16 마커 크기는 선택 여부와 별개로 인자로 정할 수 있다", () => {

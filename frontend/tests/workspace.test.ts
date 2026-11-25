@@ -53,6 +53,7 @@ const memory = (
   petId: string,
   overrides: Partial<DiaryEntryInput> = {},
 ): DiaryEntryInput => ({
+  title: "함께 걸은 날",
   petId,
   recordedDate: "2026-11-15",
   body: "함께 걸은 하루",

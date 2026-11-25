@@ -24,7 +24,7 @@
   background: var(--surface-subtle);
   color: var(--brand-primary);
 }
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .tabs {
     width: 100%;
   }

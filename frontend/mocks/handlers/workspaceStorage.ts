@@ -228,6 +228,7 @@ export function readWorkspaceSnapshot(value: unknown): Workspace {
     }
   }
   for (const d of s.diaries) {
+    if (d.title !== undefined && typeof d.title !== "string") throw Error("Invalid diary title");
     validateDate(d.recordedDate);
     if (!timestamp(d.createdAt) || !timestamp(d.updatedAt))
       throw Error("Invalid diary timestamp");
