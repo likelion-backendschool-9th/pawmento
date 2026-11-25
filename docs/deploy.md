@@ -97,7 +97,9 @@ AI 엽서(#103)는 생성기 `PAWMENTO_POSTCARD_GENERATOR`의 기본값이 `fake
 
 1. Cloudflare 대시보드에서 계정 ID를 확인하고, 권한을 **Workers AI**만 준 API 토큰을 만든다.
 2. 서버 `.env`에 `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_AI_TOKEN`을 넣고 `PAWMENTO_POSTCARD_GENERATOR=cloudflare`로 바꾼 뒤 backend를 다시 띄운다. 생성기가 `cloudflare`인데 두 값 중 하나라도 비어 있으면 백엔드가 시작하지 않는다.
-3. 모델은 `PAWMENTO_POSTCARD_CLOUDFLARE_MODEL`(기본 `@cf/black-forest-labs/flux-2-klein-9b`)로 바꾼다. 팀 전체 하루 상한 `PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL`은 무료 한도(하루 10,000 Neuron)를 쓰는 동안 3이다. 앱은 한국 시간 자정, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 앱의 이틀 치(최대 6장, 약 8,400 Neuron)가 걸칠 수 있다.
+3. 모델은 `PAWMENTO_POSTCARD_CLOUDFLARE_MODEL`(기본 `@cf/black-forest-labs/flux-2-klein-4b`)로 바꾼다. 팀 전체 하루 상한 `PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL`은 무료 한도(하루 10,000 Neuron)를 쓰는 동안 20이다. 앱은 한국 시간 자정, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 앱의 이틀 치(최대 40장)가 걸칠 수 있다. 4b는 장당 약 106 Neuron이라(대시보드 확인, 반영이 늦은 경우를 감안해 최대 약 210으로 잡음) 40장이어도 약 8,400 Neuron으로 무료 한도 안에 든다. 40장은 워커가 밀리지 않고 처리할 때의 추정치다. 앱은 요청을 받을 때 횟수를 세고 Cloudflare는 실제로 호출할 때 세므로, 워커가 멈췄다가 쌓인 요청을 한꺼번에 처리하면 Cloudflare 하루에 40장을 넘을 수 있다. 이때 넘친 호출은 아래처럼 실패하고 회원당 횟수가 돌아온다.
+   - 9b로 되돌릴 때는 장당 약 1,380 Neuron이라 `.env`에 모델 `@cf/black-forest-labs/flux-2-klein-9b`와 상한 `3`을 함께 넣는다. 모델만 바꾸면 상한 20이 남아 8장째부터 무료 한도를 넘는다.
+   - 기본값을 쓰려면 서버 `.env`에서 두 값을 모두 지운다. 지운 뒤 backend를 다시 띄우고 `docker compose exec backend env | grep PAWMENTO_POSTCARD`로 모델과 상한이 기대한 값인지 확인한다.
 
 생성기를 바꾸면 그 전에 요청해 대기 중이던 엽서는 동의받은 생성기와 달라 `FAILED`가 되고 회원당 횟수가 돌아온다. 무료 한도를 넘긴 호출은 Cloudflare가 `429`(오류 번호 `3036`)로 거절하고, 엽서는 실패로 끝난다.
 
