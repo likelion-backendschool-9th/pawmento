@@ -1,6 +1,7 @@
 package com.pawmento.map.domain;
 
 import java.util.Arrays;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -11,6 +12,9 @@ public final class PlaceAddress {
 
 	private static final char MASK = '*';
 
+	// 층·호 표시(`1층`, `지하1층`, `301호`, `2층 201호`). 건물 이름이 아니라서 붙이지 않는다(#239-S1)
+	private static final Pattern FLOOR_OR_UNIT = Pattern.compile(".*\\d.*(층|호)$");
+
 	private PlaceAddress() {
 	}
 
@@ -20,7 +24,7 @@ public final class PlaceAddress {
 	}
 
 	/**
-	 * 좌표로 찾은 도로명 주소 뒤에 원본 괄호 안의 건물 이름을 붙인다. 괄호 안을 쉼표로 나눠 `*`가 든 말은 빼고,
+	 * 좌표로 찾은 도로명 주소 뒤에 원본 괄호 안의 건물 이름을 붙인다. 괄호 안을 쉼표로 나눠 `*`가 든 말과 층·호 표시는 빼고,
 	 * 남는 말이 없으면 도로명 주소를 그대로 돌려준다. 예: `… 32-14` + `(성수동*가, 갤러리아 포레)` → `… 32-14 (갤러리아 포레)`
 	 */
 	public static String withBuildingName(String roadAddress, String originalAddress) {
@@ -40,7 +44,7 @@ public final class PlaceAddress {
 		}
 		return Arrays.stream(address.substring(open + 1, close).split(","))
 			.map(String::strip)
-			.filter(part -> !part.isEmpty() && part.indexOf(MASK) < 0)
+			.filter(part -> !part.isEmpty() && part.indexOf(MASK) < 0 && !FLOOR_OR_UNIT.matcher(part).matches())
 			.collect(Collectors.joining(", "));
 	}
 

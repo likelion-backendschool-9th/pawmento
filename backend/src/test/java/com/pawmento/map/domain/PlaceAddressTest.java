@@ -49,6 +49,24 @@ class PlaceAddressTest {
 	}
 
 	@Test
+	@DisplayName("#239-S1 마지막 괄호에 층·호만 있으면 건물 이름을 붙이지 않는다")
+	void doesNotAppendFloorOrUnit() {
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (1층)")).isEqualTo(ROAD);
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (지하1층)")).isEqualTo(ROAD);
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (성수동*가, 301호)")).isEqualTo(ROAD);
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (2층 201호)")).isEqualTo(ROAD);
+	}
+
+	@Test
+	@DisplayName("#239-S1 층·호와 건물 이름이 함께 있으면 건물 이름만 붙인다")
+	void appendsOnlyBuildingNameBesideFloor() {
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (갤러리아 포레, 1층)"))
+			.isEqualTo(ROAD + " (갤러리아 포레)");
+		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (서울숲 2호점)"))
+			.isEqualTo(ROAD + " (서울숲 2호점)");
+	}
+
+	@Test
 	@DisplayName("#239-S1 괄호가 여러 개이면 마지막 괄호의 건물 이름을 쓰고 공백은 다듬는다")
 	void usesLastParenthesesAndStripsSpaces() {
 		assertThat(PlaceAddress.withBuildingName(ROAD, "서울 성동구 서울숲*길 **-** (1층) (성수동*가 ,  갤러리아 포레 )"))

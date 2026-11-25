@@ -61,7 +61,8 @@ class NaverAddressAdapter implements LoadAddressPort {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toAddress);
 	}
 
-	// 도로명 주소와 건물번호가 있을 때만 받는다. 지번 주소로 돌아가지 않는다(#239-S9). NaverRoadAddressAdapter가 부른다
+	// 도로명과 건물번호가 모두 있을 때만 받는다. 지번 주소로 돌아가지 않고, 도로명이 빠진 번호만으로는 성공으로 치지 않는다(#239-S9).
+	// NaverRoadAddressAdapter가 부른다
 	Optional<String> loadRoadAddress(double latitude, double longitude) {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toRoadAddress);
 	}
@@ -97,6 +98,10 @@ class NaverAddressAdapter implements LoadAddressPort {
 		return BigDecimal.valueOf(value).toPlainString();
 	}
 
+	private static boolean hasText(String text) {
+		return text != null && !text.isBlank();
+	}
+
 	private static boolean isOk(ReverseGeocodeResponse response) {
 		return response.status() != null && response.status().code() == 0 && response.results() != null;
 	}
@@ -106,8 +111,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 			return Optional.empty();
 		}
 		return findResult(response, "roadaddr")
-			.filter(result -> result.land() != null && result.land().number1() != null
-					&& !result.land().number1().isBlank())
+			.filter(result -> result.land() != null && hasText(result.land().name()) && hasText(result.land().number1()))
 			.map(NaverAddressAdapter::compose)
 			.filter(address -> !address.isBlank());
 	}

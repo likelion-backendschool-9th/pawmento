@@ -218,6 +218,17 @@ class NaverAddressAdapterTest {
 		}
 		""";
 
+	// 도로명이 비어 있고 건물번호만 있는 응답
+	private static final String NUMBER_WITHOUT_ROAD_NAME_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "서울특별시"}, "area2": {"name": "성동구"},
+		      "area3": {"name": "성수동1가"}, "area4": {"name": ""}}, "land": {"name": "", "number1": "32", "number2": "14"}}
+		  ]
+		}
+		""";
+
 	// 이하는 장소 카드의 가려진 주소 보완(#239)이 쓰는 도로명 전용 조회다. 일기 위치(#19)의 지번 폴백은 위에서 그대로 확인한다
 
 	@Test
@@ -259,6 +270,16 @@ class NaverAddressAdapterTest {
 		Fixture f = fixture("test-id", "test-secret");
 		f.server().expect(method(HttpMethod.GET))
 			.andRespond(withSuccess(ROAD_WITHOUT_NUMBER_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 건물번호는 있지만 도로명이 비어 있으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupNeedsRoadName() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(NUMBER_WITHOUT_ROAD_NAME_JSON, MediaType.APPLICATION_JSON));
 
 		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
 	}
