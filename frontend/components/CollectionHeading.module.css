@@ -23,6 +23,9 @@
   color: var(--text-secondary);
 }
 .action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex-shrink: 0;
 }
 .action > a {
@@ -33,4 +36,14 @@
   font-weight: 550;
   gap: 6px;
   box-shadow: 0 3px 9px #1723190b;
+}
+
+.action:has(> a + a) > a {
+  padding-inline: 10px;
+  font-size: 11px;
+  gap: 5px;
+}
+.action:has(> a + a) > a > svg {
+  width: 15px;
+  height: 15px;
 }
