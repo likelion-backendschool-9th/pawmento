@@ -15,15 +15,15 @@ import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.pawmento.map.application.port.out.LoadAddressPort;
-import com.pawmento.map.application.port.out.LoadRoadAddressPort;
 
 /**
- * 네이버 Reverse Geocoding으로 좌표를 주소로 바꾼다. 일기 위치(#19)는 도로명이 없으면 지번으로 돌아가는 조회를,
- * 장소 카드(#239)는 도로명과 건물번호가 있을 때만 받아들이는 조회를 쓴다. 둘은 같은 호출과 설정을 쓴다.
+ * 네이버 Reverse Geocoding으로 좌표를 주소로 바꾼다. 일기 위치(#19)가 쓰는 이 포트는 도로명이 없으면 지번으로 돌아간다.
+ * 장소 카드(#239)가 쓰는 도로명 전용 조회는 {@link NaverRoadAddressAdapter}가 이 클래스의 호출을 빌려 쓴다.
+ * 포트마다 빈을 따로 두는 것은 테스트에서 한 포트를 가짜로 바꿔도 다른 포트가 함께 바뀌지 않게 하기 위해서다.
  * 키가 없거나 외부 호출이 실패하면 빈 값을 돌려준다. 내부 프로그래밍 오류는 전파한다.
  */
 @Component
-class NaverAddressAdapter implements LoadAddressPort, LoadRoadAddressPort {
+class NaverAddressAdapter implements LoadAddressPort {
 
 	private static final Logger log = LoggerFactory.getLogger(NaverAddressAdapter.class);
 
@@ -61,9 +61,8 @@ class NaverAddressAdapter implements LoadAddressPort, LoadRoadAddressPort {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toAddress);
 	}
 
-	// 도로명 주소와 건물번호가 있을 때만 받는다. 지번 주소로 돌아가지 않는다(#239-S9)
-	@Override
-	public Optional<String> loadRoadAddressByCoordinates(double latitude, double longitude) {
+	// 도로명 주소와 건물번호가 있을 때만 받는다. 지번 주소로 돌아가지 않는다(#239-S9). NaverRoadAddressAdapter가 부른다
+	Optional<String> loadRoadAddress(double latitude, double longitude) {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toRoadAddress);
 	}
 

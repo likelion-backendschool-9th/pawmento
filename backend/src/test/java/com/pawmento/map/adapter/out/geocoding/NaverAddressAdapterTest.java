@@ -229,7 +229,7 @@ class NaverAddressAdapterTest {
 			.andExpect(header("X-NCP-APIGW-API-KEY-ID", "test-id"))
 			.andRespond(withSuccess(ROAD_ADDRESS_JSON, MediaType.APPLICATION_JSON));
 
-		Optional<String> address = f.adapter().loadRoadAddressByCoordinates(37.4979, 127.0276);
+		Optional<String> address = new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.4979, 127.0276);
 
 		assertThat(address).contains("서울특별시 강남구 테헤란로 152");
 		f.server().verify();
@@ -241,7 +241,7 @@ class NaverAddressAdapterTest {
 		Fixture f = fixture("test-id", "test-secret");
 		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(LOT_ADDRESS_ONLY_JSON, MediaType.APPLICATION_JSON));
 
-		assertThat(f.adapter().loadRoadAddressByCoordinates(37.4979, 127.0276)).isEmpty();
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.4979, 127.0276)).isEmpty();
 	}
 
 	@Test
@@ -260,7 +260,7 @@ class NaverAddressAdapterTest {
 		f.server().expect(method(HttpMethod.GET))
 			.andRespond(withSuccess(ROAD_WITHOUT_NUMBER_JSON, MediaType.APPLICATION_JSON));
 
-		assertThat(f.adapter().loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
 	}
 
 	@Test
@@ -270,14 +270,14 @@ class NaverAddressAdapterTest {
 		noAddress.server().expect(method(HttpMethod.GET))
 			.andRespond(withSuccess("{\"status\":{\"code\":3,\"name\":\"no results\"},\"results\":[]}",
 					MediaType.APPLICATION_JSON));
-		assertThat(noAddress.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+		assertThat(new NaverRoadAddressAdapter(noAddress.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
 
 		Fixture serverError = fixture("test-id", "test-secret");
 		serverError.server().expect(method(HttpMethod.GET)).andRespond(withServerError());
-		assertThat(serverError.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+		assertThat(new NaverRoadAddressAdapter(serverError.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
 
 		Fixture noKey = fixture("", "");
-		assertThat(noKey.adapter().loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+		assertThat(new NaverRoadAddressAdapter(noKey.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
 		noKey.server().verify();
 	}
 
