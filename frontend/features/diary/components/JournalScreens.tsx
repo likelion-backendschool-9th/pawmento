@@ -13,7 +13,6 @@ import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
 import { LocationField } from "@/features/map/components/LocationField";
 import type { PickedLocation } from "@/features/map/types/PickedLocation";
-import { PhotoPicker } from "@/components/PhotoPicker";
 import { today } from "@/lib/date";
 import { formatDate } from "@/lib/date";
 import type { JournalItem } from "../types/JournalItem";
@@ -166,15 +165,6 @@ export function JournalForm({
             <h2>{questionText || "오늘의 질문을 준비하고 있어요…"}</h2>
           </header>
         )}
-        <section className={styles.editorPhoto}>
-          <PhotoPicker
-            value={photo}
-            onChange={(value) => {
-              setSaved(false);
-              setPhoto(value);
-            }}
-          />
-        </section>
         <section className={styles.editorFields}>
           <span className="badge">
             <Icon name={questionAnswer ? "book" : "edit"} size={14} />
@@ -261,6 +251,8 @@ export function JournalForm({
             </p>
           )}
           <MediaAttachments
+            photo={photo}
+            onPhotoChange={(value) => { setSaved(false); setPhoto(value); }}
             value={attachments}
             onChange={(value) => {
               setSaved(false);
