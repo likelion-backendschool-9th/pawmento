@@ -1,73 +1,3 @@
-.hero {
-  position: relative;
-  overflow: hidden;
-  padding: 55px 55px 45px;
-  min-height: 355px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 35px;
-  border: 1px solid var(--border-default);
-  border-radius: 120px 12px 50px 12px;
-  background:
-    linear-gradient(90deg, var(--hero-wash), var(--hero-tint)),
-    url("/images/watercolor-garden.png") center/cover;
-  box-shadow: 0 15px 45px #81706b0a;
-  margin-bottom: 30px;
-}
-.heroCopy {
-  min-width: 0;
-  overflow-wrap: anywhere;
-  max-width: 520px;
-}
-.heroCopy > span {
-  font:
-    10px Georgia,
-    serif;
-  letter-spacing: 4px;
-  color: var(--text-secondary);
-  display: block;
-  margin-bottom: 20px;
-}
-.heroCopy h1 {
-  font-family: Georgia, var(--font-sans);
-  font-size: 35px;
-  letter-spacing: -1px;
-  line-height: 1.6;
-  color: var(--text-primary);
-  margin: 0 0 14px;
-  font-weight: 500;
-}
-.heroCopy p {
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 2;
-  max-width: 360px;
-  margin: 0;
-}
-.portrait {
-  text-align: center;
-  padding-right: 65px;
-  flex-shrink: 0;
-}
-.portrait > div {
-  width: 142px;
-  height: 142px;
-  border: 7px solid #fffdf7;
-  border-radius: 50%;
-  overflow: hidden;
-  box-shadow: 0 8px 22px #7f76512b;
-  transform: rotate(4deg);
-}
-.portrait > small {
-  margin-top: 15px;
-  display: block;
-  font-size: 12px;
-  color: var(--text-secondary);
-  background: #fffdf3b8;
-  border-radius: 20px;
-  padding: 5px 10px;
-}
 .gallery {
   margin: 40px 0;
 }
@@ -145,17 +75,6 @@
 }
 
 @container app (max-width: 1050px) {
-  .hero {
-    padding: 40px;
-    min-height: 320px;
-    border-top-left-radius: 80px;
-  }
-  .portrait {
-    padding-right: 10px;
-  }
-  .heroCopy h1 {
-    font-size: 30px;
-  }
   .galleryGrid {
     gap: 20px;
   }
@@ -164,46 +83,6 @@
   }
 }
 @container app (max-width: 600px) {
-  .hero {
-    flex-direction: column;
-    min-height: 365px;
-    padding: 35px 23px;
-    align-items: flex-start;
-    gap: 10px;
-    border-radius: 65px 8px 30px 8px;
-    background-position: 65% center;
-  }
-  .heroCopy {
-    position: relative;
-    z-index: 1;
-  }
-  .heroCopy > span {
-    font-size: 8px;
-    letter-spacing: 2.5px;
-    margin: 7px 0 16px;
-  }
-  .heroCopy h1 {
-    font-size: 25px;
-    max-width: 240px;
-  }
-  .heroCopy p {
-    font-size: 12px;
-    max-width: 205px;
-  }
-  .portrait {
-    position: static;
-    align-self: flex-end;
-    padding: 0;
-  }
-  .portrait > div {
-    width: 95px;
-    height: 95px;
-    border-width: 5px;
-  }
-  .portrait > small {
-    font-size: 9px;
-    margin-top: 8px;
-  }
   .gallery {
     margin: 33px 0;
   }
@@ -256,6 +135,26 @@
   font-size: 12px;
 }
 
-.heroCopy h1[data-long-name="true"] { font-size: 20px; line-height: 1.5; letter-spacing: -.5px; }
-.heroCopy h1[data-long-name="true"] > span { display: block; overflow-wrap: anywhere; word-break: normal; }
-.heroCopy h1[data-long-name="true"] > span:last-child { margin-top: 5px; font-size: 13px; font-weight: 400; }
+.welcomeCard {
+  padding: 24px 22px 20px;
+  border: 1px solid var(--border-default);
+  border-radius: 28px;
+  margin-bottom: 28px;
+  background: linear-gradient(100deg, var(--hero-wash), var(--hero-tint)), url("/images/watercolor-garden.png") 70% center/cover;
+}
+.welcomeIdentity { display: flex; align-items: center; gap: 16px; }
+.welcomePortrait { width: 76px; height: 76px; flex-shrink: 0; overflow: hidden; border: 4px solid var(--surface-card); border-radius: 50%; box-shadow: 0 4px 16px #544d3c12; }
+.welcomePortrait img, .welcomePortrait svg { width: 100%; height: 100%; object-fit: cover; }
+.welcomeHeading { min-width: 0; flex: 1; }
+.welcomeName { margin: 0 0 5px; font-size: 16px; line-height: 1.6; font-weight: 500; color: var(--text-secondary); overflow-wrap: anywhere; word-break: normal; }
+.welcomeHeading h1 { margin: 0; font-size: 22px; line-height: 1.4; font-weight: 600; letter-spacing: -.7px; color: var(--text-primary); }
+.welcomeCopy { margin: 20px 0 0; font-size: 12px; line-height: 1.8; color: var(--text-secondary); overflow-wrap: anywhere; }
+.welcomeCount { display: flex; align-items: center; gap: 7px; margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--border-default); font-size: 11px; color: var(--text-secondary); }
+.welcomeCount strong { color: var(--brand-primary); font-weight: 600; }
+@container app (max-width: 359px) {
+  .welcomeCard { padding: 22px 18px 18px; }
+  .welcomeIdentity { gap: 12px; }
+  .welcomePortrait { width: 64px; height: 64px; }
+  .welcomeName { font-size: 15px; }
+  .welcomeHeading h1 { font-size: 20px; }
+}

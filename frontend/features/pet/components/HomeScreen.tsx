@@ -11,7 +11,6 @@ import { QuestionAnswer } from "@/components/QuestionAnswer";
 import type { Pet } from "../types/Pet";
 import { JournalCard } from "../../shell/components/WorkspaceUi";
 import { useCurrentQuestion } from "../../question/hooks/useCurrentQuestion";
-import { question } from "../../shell/utils/presentation";
 import { LifeEmpty, lifeStyles as s } from "@/features/shell/components/LifeUi";
 import g from "./HomeScreen.module.css";
 
@@ -43,9 +42,7 @@ function DailyHome({ pet }: { pet: Pet }) {
   );
   const displayQuestion =
     answer?.question ??
-    (prompt.text
-      ? question(pet.name, prompt.text)
-      : "오늘의 질문을 준비하고 있어요…");
+    (prompt.text || "오늘의 질문을 준비하고 있어요…");
   const photos = records.filter((record) => record.photoUrl);
   const onThisDay = records.filter(
     (record) =>
@@ -55,23 +52,20 @@ function DailyHome({ pet }: { pet: Pet }) {
   return (
     <>
       <div>
-        <section className={g.hero}>
-          <div className={g.heroCopy}>
-            <span>OUR DAYS, TOGETHER</span>
-            <h1 data-long-name={pet.name.length > 10}><span>{pet.name}</span><span>의 하루</span></h1>
-            <p>
-              함께한 날들이, 오래도록.
-              <br />
-              소중한 기억이 자라는 이곳에서
-              <br />
-              우리의 계절을 천천히 꺼내봐요.
-            </p>
-          </div>
-          <div className={g.portrait}>
-            <div>
+        <section className={g.welcomeCard}>
+          <div className={g.welcomeIdentity}>
+            <div className={g.welcomePortrait}>
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
             </div>
-            <small>함께 남긴 {records.length}개의 기억</small>
+            <div className={g.welcomeHeading}>
+              <p className={g.welcomeName}>{pet.name}</p>
+              <h1>함께하는 오늘</h1>
+            </div>
+          </div>
+          <p className={g.welcomeCopy}>함께한 작은 순간들이 소중한 기억이 돼요.</p>
+          <div className={g.welcomeCount}>
+            <Icon name="paw" size={15} />
+            <span>함께 남긴 <strong>{records.length}</strong>개의 기억</span>
           </div>
         </section>
         {photos.length > 0 && (

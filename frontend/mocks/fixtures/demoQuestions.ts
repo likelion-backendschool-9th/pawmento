@@ -102,7 +102,7 @@ export function demoQuestionInputs(
         registeredAt: `${recordedDate}T${author.hour}:00:00+09:00`,
         questionId,
         questionSnapshot: sample.question,
-        body: author.body.replaceAll("보리", pet.name),
+        body: author.body.replaceAll("보리", () => pet.name),
         photoUrl: author.photo,
         authorId: author.id,
         authorName: author.name,

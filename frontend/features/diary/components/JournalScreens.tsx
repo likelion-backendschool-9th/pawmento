@@ -21,7 +21,7 @@ import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
-import { question, messageOf } from "../../shell/utils/presentation";
+import { messageOf } from "../../shell/utils/presentation";
 
 export function JournalForm({
   pet,
@@ -49,7 +49,7 @@ export function JournalForm({
   const questionText =
     record?.question ??
     requestedPrompt?.questionSnapshot ??
-    (prompt.text ? question(pet.name, prompt.text) : "");
+    prompt.text;
   const [title, setTitle] = useState(
     record?.kind === "DIARY" ? (record.title ?? "") : "",
   );

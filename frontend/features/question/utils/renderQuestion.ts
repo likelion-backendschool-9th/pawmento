@@ -6,5 +6,5 @@ export function renderQuestion(name: string, template: string): string {
         ? "이"
         : "가"
       : "(이)가";
-  return template.replaceAll("{name}", name).replaceAll("{subject}", particle);
+  return template.replace(/\{name\}|\{subject\}/g, token => token === "{name}" ? name : particle);
 }
