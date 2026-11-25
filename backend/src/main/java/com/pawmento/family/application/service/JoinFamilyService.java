@@ -13,7 +13,9 @@ import com.pawmento.family.application.port.in.JoinFamilyCommand;
 import com.pawmento.family.application.port.out.ConsumePetInviteCodePort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.LoadPetInviteCodePort;
+import com.pawmento.family.application.port.out.LoadPetSummaryPort;
 import com.pawmento.family.application.port.out.LockPetOwnerPort;
+import com.pawmento.family.application.port.out.PetSummary;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.family.domain.PetInviteCode;
@@ -36,6 +38,8 @@ public class JoinFamilyService implements JoinFamilyUseCase {
     private final ConsumePetInviteCodePort consumePetInviteCodePort;
 
     private final SavePetFamilyMemberPort savePetFamilyMemberPort;
+
+    private final LoadPetSummaryPort loadPetSummaryPort;
 
     private final Clock clock;
 
@@ -66,7 +70,10 @@ public class JoinFamilyService implements JoinFamilyUseCase {
         }
 
         savePetFamilyMemberPort.save(PetFamilyMember.join(petId, command.memberId(), now));
-        return new JoinFamilyResult(petId);
+
+        PetSummary pet = loadPetSummaryPort.loadSummary(petId).orElseThrow(InviteCodeNotFoundException::new);
+        return new JoinFamilyResult(petId, pet.name(), pet.tag());
+
     }
 
 }

@@ -33,7 +33,6 @@
 - Given 회원 D가 로그인했고 유효한 코드가 있다
 - When  `POST /api/v1/families/members`에 `{"code": "K7Q2M9XA"}`
 - Then  200과 `{"petId": P, "name": "보리", "tag": "…"}`를 받고, D는 P의 `FAMILY`다
-    지금(#217)은 `{"petId": P}`만 준다. `name`·`tag`는 가족 목록(S6) PR에서 붙인다
 - Then  같은 코드를 다시 쓰면 404다 (한 번만 쓸 수 있음)
 
 #133-S4 쓸 수 없는 코드 [테스트]
