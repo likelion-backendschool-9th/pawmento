@@ -1,4 +1,4 @@
-import { PetForm } from "@/features/pet/components/PetScreens";
+import { PetRegistration } from "@/features/pet/components/PetRegistration";
 export default function Page() {
-  return <PetForm key="new" />;
+  return <PetRegistration />;
 }

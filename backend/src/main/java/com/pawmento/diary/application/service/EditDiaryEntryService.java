@@ -23,6 +23,7 @@ public class EditDiaryEntryService implements EditDiaryEntryUseCase {
             c.content(),
             c.recordedDate(),
             c.version(),
-            features));
+            features,
+            c.titleChange()));
   }
 }

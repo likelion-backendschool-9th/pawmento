@@ -42,4 +42,12 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	// 테스트 클래스를 JVM 여러 개에 나눠 돌린다. JVM마다 Postgres 컨테이너를 하나씩 띄우고 컨텍스트마다 새 DB를 쓰므로
+	// (TestcontainersConfiguration) 서로 데이터가 섞이지 않는다. JVM마다 Spring 컨텍스트 캐시와 컨테이너를 따로 들고 있어
+	// 메모리를 많이 쓰므로 기본은 2개로 두고, 여유가 있는 환경에서는 -PtestForks=N으로 바꾼다.
+	maxParallelForks = (project.findProperty('testForks') ?: 2) as int
+	// 파일은 같은 디스크를 쓰므로 미디어·엽서 경로(PAWMENTO_MEDIA_ROOT)도 JVM마다 나눈다. 미디어 정리는 자기 DB에 없는 파일을
+	// 고아로 보고 지우기 때문에, 같은 폴더를 쓰면 다른 JVM이 올린 파일을 지울 수 있다. ${org.gradle.test.worker}는 Gradle이
+	// 테스트 JVM마다 넣어 주는 번호이고 Spring이 값을 읽을 때 채운다. 경로를 직접 지정한 테스트는 그 값을 그대로 쓴다.
+	systemProperty 'PAWMENTO_MEDIA_ROOT', layout.buildDirectory.dir('test-files').get().asFile.path + '/worker-${org.gradle.test.worker}'
 }

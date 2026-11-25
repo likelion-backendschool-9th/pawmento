@@ -33,6 +33,10 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.jayway.jsonpath.JsonPath;
 import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.family.application.port.in.CheckPetAccessQuery;
+import com.pawmento.family.application.port.in.CheckPetAccessUseCase;
+import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
+import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.pet.application.port.out.HasPetRecordsPort;
 
@@ -55,6 +59,12 @@ class PetScenarioTest {
 
 	@Autowired
 	private StubHasPetRecordsPort hasPetRecordsPort;
+
+	@Autowired
+	private SavePetFamilyMemberPort saveFamily;
+
+	@Autowired
+	private CheckPetAccessUseCase checkPetAccess;
 
 	@TestConfiguration
 	static class PetTestConfig {
@@ -284,32 +294,26 @@ class PetScenarioTest {
 		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden())
 			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
 			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
-		mockMvc
-			.perform(patch("/api/v1/pets/{petId}", petId).cookie(other)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{"name":"훔친콩"}
-						"""))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
-			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
-		mockMvc
-			.perform(patch("/api/v1/pets/{petId}/mode", petId).cookie(other)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{"mode":"GARDEN"}
-						"""))
-			.andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
-			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
-		mockMvc.perform(delete("/api/v1/pets/{petId}", petId).cookie(other)).andExpect(status().isForbidden())
-			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
-			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
+		assertPetManagementForbidden(petId, other);
+		assertPetUnchanged(petId, owner);
+	}
 
-		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(owner))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.name").value("콩이"))
-			.andExpect(jsonPath("$.mode").value("ACTIVE"));
+	@Test
+	@DisplayName("#133-S9 가족 회원도 반려동물의 프로필 수정·모드 변경·삭제를 할 수 없다")
+	void familyMemberCannotManagePet() throws Exception {
+		Cookie owner = loginAsNewMember();
+		Long petId = createPetId(owner, """
+				{"name":"콩이","species":"DOG"}
+				""");
+		Cookie family = loginAsNewMember();
+		MvcResult member = mockMvc.perform(get("/api/v1/members/me").cookie(family))
+			.andExpect(status().isOk()).andReturn();
+		Long familyId = readLong(member, "$.id");
+		saveFamily.save(PetFamilyMember.join(petId, familyId, Instant.now()));
+		assertThat(checkPetAccess.check(new CheckPetAccessQuery(petId, familyId)).role()).isEqualTo("FAMILY");
+
+		assertPetManagementForbidden(petId, family);
+		assertPetUnchanged(petId, owner);
 	}
 
 	@Test
@@ -382,6 +386,37 @@ class PetScenarioTest {
 				.andExpect(jsonPath("$.code").value("NOT_FOUND"))
 				.andExpect(jsonPath("$.message").value("반려동물을 찾을 수 없습니다."));
 		}
+	}
+
+	private void assertPetManagementForbidden(Long petId, Cookie requester) throws Exception {
+		mockMvc
+			.perform(patch("/api/v1/pets/{petId}", petId).cookie(requester)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"name":"훔친콩"}
+						"""))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
+		mockMvc
+			.perform(patch("/api/v1/pets/{petId}/mode", petId).cookie(requester)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{"mode":"GARDEN"}
+						"""))
+			.andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
+		mockMvc.perform(delete("/api/v1/pets/{petId}", petId).cookie(requester)).andExpect(status().isForbidden())
+			.andExpect(jsonPath("$.code").value("FORBIDDEN"))
+			.andExpect(jsonPath("$.message").value("권한이 없습니다."));
+	}
+
+	private void assertPetUnchanged(Long petId, Cookie owner) throws Exception {
+		mockMvc.perform(get("/api/v1/pets/{petId}", petId).cookie(owner))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.name").value("콩이"))
+			.andExpect(jsonPath("$.mode").value("ACTIVE"));
 	}
 
 	private Cookie loginAsNewMember() throws Exception {

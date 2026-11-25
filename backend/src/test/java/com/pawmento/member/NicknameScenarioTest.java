@@ -32,7 +32,10 @@ import com.pawmento.global.security.AccessTokenCookie;
 import jakarta.servlet.http.Cookie;
 
 @Import({ TestcontainersConfiguration.class, NicknameScenarioTest.ClockConfig.class })
-@SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
+// Clock을 실제보다 앞선 시각으로 바꾸므로 미디어·엽서 정리 worker를 끈다. 켜 두면 캐시에 남은 이 컨텍스트가
+// 24시간 기준을 앞당겨 다른 테스트가 올린 파일을 고아로 보고 지울 수 있다.
+@SpringBootTest(properties = { "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
+		"pawmento.media.worker.enabled=false", "pawmento.postcard.worker.enabled=false" })
 @AutoConfigureMockMvc
 class NicknameScenarioTest {
 

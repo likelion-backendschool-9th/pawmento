@@ -146,6 +146,15 @@ final class MapQueryParameters {
 		return categories;
 	}
 
+	// 가져올 수 있는 종류의 이름 하나. 소문자, 없는 종류, 여러 개는 거절한다
+	String syncCategory(String name) {
+		String value = required(name);
+		if (!"HOSPITAL".equals(value) && !"GROOMING".equals(value) && !"SHELTER".equals(value)) {
+			throw InvalidMapRequestException.invalidSyncCategory(name);
+		}
+		return value;
+	}
+
 	private String required(String name) {
 		String value = values.get(name);
 		if (value == null) {

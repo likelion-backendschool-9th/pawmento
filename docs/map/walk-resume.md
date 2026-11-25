@@ -104,7 +104,7 @@
 2. 현재 산책 조회 API: `GET /maps/walks/current` 입력 포트·서비스·출력 포트·컨트롤러, 날짜별 조회와 같은 읽기 스냅샷과 `Walk.status()`의 상태 판정 (S1, S2, S3, S5, S11)
    - 변경 후보: `map` 도메인의 산책 조회 포트·서비스·저장소 어댑터·컨트롤러와 시나리오 테스트
 3. 화면 복원: 읽기 포트와 어댑터(서버, 연습), 화면을 열 때의 복원, 한도·조회 실패 안내, 화면이 `localStorage`를 읽거나 쓰는 것을 중단 (S1, S3, S4, S6, S7, S9, S11)
-   - 변경 후보: `walkPorts.ts`, `walkUseCases.ts`, `HttpWalkRepository.ts`·`DemoWalkRepository.ts`, `useWalkSession.ts`, `WalkScreen.tsx`, `composition.ts`
+   - 변경 후보: `features/map/types/Walk.ts`(포트 타입), `features/map/walkSession.ts`(예전 `walkUseCases.ts`), `features/map/api/walkApi.ts`(예전 `HttpWalkRepository.ts`)·`mocks/handlers/DemoWalkRepository.ts`, `features/map/source.ts`(서버·연습 분기), `features/map/hooks/useWalkSession.ts`, `features/map/components/WalkScreen.tsx`, `app/composition.ts` (고침 #182: 프론트 구조 개편으로 바뀐 경로)
    - **병합 조건: S10을 먼저 직접 확인한다.** 병합하면 화면에서 `LocalActiveWalkStore` 호출이 끊겨 기존 복원은 그때부터 동작하지 않으므로, 병합 전에 테스트 계정과 서버 반려동물로 산책 시작, 새로고침 뒤 복원, 이후 좌표 전송과 종료까지 확인하고 결과를 PR 본문에 적는다.
    - 서버 반려동물과 테스트 계정으로 확인할 수 있는 환경이 없으면 3단계를 시작하지 않고, 그동안 기존 `LocalActiveWalkStore` 복원이 그대로 동작한다. 반려동물 서버 연동이 끝나는 것을 기다린다.
    - 이 단계에서는 `LocalActiveWalkStore` 파일과 테스트를 지우지 않는다(5단계).

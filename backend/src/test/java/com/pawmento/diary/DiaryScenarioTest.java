@@ -36,6 +36,21 @@ class DiaryScenarioTest {
   @TestConfiguration
   static class Time {
     @Bean
+    org.springframework.beans.factory.InitializingBean diaryMemberFixtures(
+        jakarta.persistence.EntityManagerFactory entityManagerFactory, JdbcTemplate jdbc) {
+      return () -> {
+        for (long id : new long[] {9001, 9002})
+          jdbc.update(
+              "insert into member(id,email,nickname,tag,role,created_at)"
+                  + " values(?,?,?,?, 'USER', now()) on conflict(id) do nothing",
+              id,
+              "diary-fixture-" + id + "@test.example",
+              "일기 작성자",
+              Long.toString(id));
+      };
+    }
+
+    @Bean
     @Primary
     Clock diaryClock() {
       return Clock.fixed(Instant.parse("2026-11-17T15:00:00Z"), ZoneOffset.UTC);
@@ -65,7 +80,11 @@ class DiaryScenarioTest {
 
   long create(long pet) throws Exception {
     var result =
-        call(9001L, json(post(url(pet)), "{\"content\":\"산책\",\"recordedDate\":\"2026-11-17\"}"))
+        call(
+                9001L,
+                json(
+                    post(url(pet)),
+                    "{\"title\":\"테스트 일기\",\"content\":\"산책\",\"recordedDate\":\"2026-11-17\"}"))
             .andExpect(status().isCreated())
             .andReturn();
     return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.diaryId"))
@@ -81,7 +100,10 @@ class DiaryScenarioTest {
         .andExpect(jsonPath("$.createdBy").value(9001))
         .andExpect(jsonPath("$.version").value(0))
         .andExpect(jsonPath("$.createdAt").value("2026-11-17T15:00:00Z"));
-    call(9001, json(patch(url(pet, id)), "{\"content\":\"  공원  \",\"version\":0}"))
+    call(
+            9001,
+            json(
+                patch(url(pet, id)), "{\"title\":\"테스트 일기\",\"content\":\"  공원  \",\"version\":0}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content").value("공원"))
         .andExpect(jsonPath("$.recordedDate").value("2026-11-17"))
@@ -102,20 +124,20 @@ class DiaryScenarioTest {
     for (var request :
         List.of(
             get(url(pet, id)),
-            json(patch(url(pet, id)), "{\"content\":\"x\",\"version\":0}"),
+            json(patch(url(pet, id)), "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":0}"),
             delete(url(pet, id) + "&version=0")))
       call(9002, request).andExpect(status().isForbidden());
     for (var request :
         List.of(
             get(url(second, id)),
-            json(patch(url(second, id)), "{\"content\":\"x\",\"version\":0}"),
+            json(patch(url(second, id)), "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":0}"),
             delete(url(second, id) + "&version=0")))
       call(9001, request).andExpect(status().isNotFound());
     call(
             9001,
             json(
                 post(url(pet)),
-                "{\"content\":\"새"
+                "{\"title\":\"테스트 일기\",\"content\":\"새"
                     + " 일기\",\"recordedDate\":\"2026-11-18\",\"createdBy\":9002,\"createdAt\":\"2000-01-01T00:00:00Z\"}"))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.createdBy").value(9001))
@@ -127,7 +149,7 @@ class DiaryScenarioTest {
   void originalAuthor() throws Exception {
     long pet = pet(9001), id = create(pet);
     jdbc.update("update diary_entries set created_by=9002 where id=?", id);
-    call(9001, json(patch(url(pet, id)), "{\"content\":\"변경\",\"version\":0}"))
+    call(9001, json(patch(url(pet, id)), "{\"title\":\"테스트 일기\",\"content\":\"변경\",\"version\":0}"))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"));
     call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isForbidden());
@@ -143,10 +165,10 @@ class DiaryScenarioTest {
     for (String body :
         List.of(
             "{}",
-            "{\"content\":\"  \",\"recordedDate\":\"2026-11-17\"}",
-            "{\"content\":\"x\",\"recordedDate\":\"2026-11-19\"}",
-            "{\"content\":\"x\",\"recordedDate\":\"2026-02-30\"}",
-            "{\"content\":1,\"recordedDate\":\"2026-11-17\"}"))
+            "{\"title\":\"테스트 일기\",\"content\":\"  \",\"recordedDate\":\"2026-11-17\"}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"recordedDate\":\"2026-11-19\"}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"recordedDate\":\"2026-02-30\"}",
+            "{\"title\":\"테스트 일기\",\"content\":1,\"recordedDate\":\"2026-11-17\"}"))
       call(9001, json(post(url(pet)), body))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("VALIDATION"));
@@ -172,7 +194,9 @@ class DiaryScenarioTest {
     long pet = pet(9001), id = create(pet);
     call(9001, json(patch(url(pet, id)), "{\"recordedDate\":\"2026-11-16\",\"version\":0}"))
         .andExpect(status().isOk());
-    call(9001, json(patch(url(pet, id)), "{\"content\":\"stale\",\"version\":0}"))
+    call(
+            9001,
+            json(patch(url(pet, id)), "{\"title\":\"테스트 일기\",\"content\":\"stale\",\"version\":0}"))
         .andExpect(status().isConflict())
         .andExpect(jsonPath("$.code").value("CONFLICT"));
     call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isConflict());
@@ -189,12 +213,12 @@ class DiaryScenarioTest {
     for (String body :
         List.of(
             "{\"version\":0}",
-            "{\"content\":null,\"version\":0}",
+            "{\"title\":\"테스트 일기\",\"content\":null,\"version\":0}",
             "{\"recordedDate\":null,\"version\":0}",
-            "{\"content\":\"x\"}",
-            "{\"content\":\"x\",\"version\":-1}",
-            "{\"content\":\"x\",\"version\":0.5}",
-            "{\"content\":\"x\",\"version\":\"0\"}"))
+            "{\"title\":\"테스트 일기\",\"content\":\"x\"}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":-1}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":0.5}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":\"0\"}"))
       call(9001, json(patch(url(pet, id)), body))
           .andExpect(status().isBadRequest())
           .andExpect(jsonPath("$.code").value("VALIDATION"));
@@ -242,10 +266,16 @@ class DiaryScenarioTest {
               9001,
               json(
                   post(url(pet)),
-                  "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\"," + extra + "}"))
+                  "{\"title\":\"테스트 일기\",\"content\":\"x\",\"recordedDate\":\"2026-11-17\","
+                      + extra
+                      + "}"))
           .andExpect(status().isConflict())
           .andExpect(jsonPath("$.code").value("CONFLICT"));
-      call(9001, json(patch(url(pet, id)), "{\"content\":\"x\",\"version\":0," + extra + "}"))
+      call(
+              9001,
+              json(
+                  patch(url(pet, id)),
+                  "{\"title\":\"테스트 일기\",\"content\":\"x\",\"version\":0," + extra + "}"))
           .andExpect(status().isConflict())
           .andExpect(jsonPath("$.code").value("CONFLICT"));
     }
@@ -263,13 +293,16 @@ class DiaryScenarioTest {
               9001,
               json(
                   post(url(pet)),
-                  "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\"," + extra + "}"))
+                  "{\"title\":\"테스트 일기\",\"content\":\"x\",\"recordedDate\":\"2026-11-17\","
+                      + extra
+                      + "}"))
           .andExpect(status().isBadRequest());
     call(
             9001,
             json(
                 post(url(pet)),
-                "{\"content\":\"x\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[],\"location\":{\"mode\":\"NONE\"}}"))
+                "{\"title\":\"테스트"
+                    + " 일기\",\"content\":\"x\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[],\"location\":{\"mode\":\"NONE\"}}"))
         .andExpect(status().isCreated());
   }
 
@@ -289,11 +322,14 @@ class DiaryScenarioTest {
           List.of(
               json(
                   post(java.net.URI.create("/api/v1/diaries" + query)),
-                  "{\"content\":\"일기\",\"recordedDate\":\"2026-11-17\",\"petId\":" + pet + "}"),
+                  "{\"title\":\"테스트"
+                      + " 일기\",\"content\":\"일기\",\"recordedDate\":\"2026-11-17\",\"petId\":"
+                      + pet
+                      + "}"),
               get(java.net.URI.create("/api/v1/diaries/" + id + query)),
               json(
                   patch(java.net.URI.create("/api/v1/diaries/" + id + query)),
-                  "{\"content\":\"변경\",\"version\":0}"),
+                  "{\"title\":\"테스트 일기\",\"content\":\"변경\",\"version\":0}"),
               delete(
                   java.net.URI.create(
                       "/api/v1/diaries/"
@@ -315,11 +351,13 @@ class DiaryScenarioTest {
     String old = "/api/v1/pets/" + pet + "/diaries";
     for (var request :
         List.of(
-            json(post(old), "{\"content\":\"일기\",\"recordedDate\":\"2026-11-17\"}"),
+            json(
+                post(old),
+                "{\"title\":\"테스트 일기\",\"content\":\"일기\",\"recordedDate\":\"2026-11-17\"}"),
             get(old),
             get(old + "/calendar?month=2026-11"),
             get(old + "/" + id),
-            json(patch(old + "/" + id), "{\"content\":\"변경\",\"version\":0}"),
+            json(patch(old + "/" + id), "{\"title\":\"테스트 일기\",\"content\":\"변경\",\"version\":0}"),
             delete(old + "/" + id + "?version=0")))
       call(9001, request).andExpect(status().isNotFound());
   }

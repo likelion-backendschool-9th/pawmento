@@ -15,7 +15,6 @@ import com.pawmento.media.domain.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.postcard.application.port.in.*;
 import com.pawmento.postcard.application.port.out.*;
-import com.pawmento.postcard.domain.PostcardPolicy;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -122,7 +121,8 @@ abstract class PostcardScenarioSupport {
     clock.set(NOW);
     // 앞 테스트가 남긴 만드는 중 엽서를 이번 테스트의 작업이 집어 가지 않게 한다.
     jdbc.update(
-        "update postcards set status='FAILED', error_message='test reset' where status='PROCESSING'");
+        "update postcards set status='FAILED', error_message='test reset' where"
+            + " status='PROCESSING'");
     // 전체 하루 상한(100)은 테스트마다 따로 센다.
     jdbc.update("delete from postcard_daily_total");
     // 썸네일 파일 내용은 저장 키로 구분한다.
@@ -142,6 +142,14 @@ abstract class PostcardScenarioSupport {
   }
 
   long diary(long owner, long pet, String content, Long... attachments) {
+    // 실제 member 입력 포트에서 이름을 읽을 수 있도록 회원 fixture도 만든다.
+    jdbc.update(
+        "insert into member(id,email,nickname,tag,role,created_at)"
+            + " values(?,?,?,?, 'USER', now()) on conflict(id) do nothing",
+        owner,
+        "postcard-diary-" + owner + "@test.example",
+        "엽서 가족",
+        String.format("%04d", owner % 10000));
     return diaries
         .create(
             new CreateDiaryEntryCommand(
@@ -149,7 +157,9 @@ abstract class PostcardScenarioSupport {
                 pet,
                 content,
                 LocalDate.of(2026, 11, 20),
-                new DiaryWriteFeatures(attachments.length == 0 ? null : List.of(attachments), false)))
+                new DiaryWriteFeatures(
+                    attachments.length == 0 ? null : List.of(attachments), false),
+                "테스트 일기"))
         .diaryId();
   }
 
@@ -182,7 +192,8 @@ abstract class PostcardScenarioSupport {
   }
 
   String storageKey(long asset) {
-    return jdbc.queryForObject("select storage_key from media_assets where id=?", String.class, asset);
+    return jdbc.queryForObject(
+        "select storage_key from media_assets where id=?", String.class, asset);
   }
 
   ResultActions call(long member, MockHttpServletRequestBuilder req) throws Exception {
@@ -192,7 +203,9 @@ abstract class PostcardScenarioSupport {
   ResultActions request(long member, long pet, String body) throws Exception {
     return call(
         member,
-        post("/api/v1/postcards?petId=" + pet).contentType(MediaType.APPLICATION_JSON).content(body));
+        post("/api/v1/postcards?petId=" + pet)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(body));
   }
 
   static String diarySource(long diary) {
@@ -230,7 +243,8 @@ abstract class PostcardScenarioSupport {
 
   long total() {
     return jdbc
-        .queryForList("select count from postcard_daily_total where usage_date=?", Long.class, TODAY)
+        .queryForList(
+            "select count from postcard_daily_total where usage_date=?", Long.class, TODAY)
         .stream()
         .findFirst()
         .orElse(0L);

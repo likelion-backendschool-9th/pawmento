@@ -34,6 +34,10 @@ public class InvalidMapRequestException extends RuleViolationException {
 				name + "는 HOSPITAL, GROOMING, SHELTER 중에서 쉼표로 구분해 한 번씩만 입력해 주세요.");
 	}
 
+	public static InvalidMapRequestException invalidSyncCategory(String name) {
+		return new InvalidMapRequestException(name + "는 HOSPITAL, GROOMING, SHELTER 중 하나만 입력해 주세요.");
+	}
+
 	public static InvalidMapRequestException latitudeOutOfRange() {
 		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
 	}

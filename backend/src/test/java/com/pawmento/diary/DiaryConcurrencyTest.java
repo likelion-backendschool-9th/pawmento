@@ -70,7 +70,9 @@ class DiaryConcurrencyTest {
               post(path(pet))
                   .with(jwt().jwt(j -> j.subject("9001").claim("role", "USER")))
                   .contentType(MediaType.APPLICATION_JSON)
-                  .content("{\"content\":\"첫 일기\",\"recordedDate\":\"2026-11-17\"}"))
+                  .content(
+                      "{\"title\":\"테스트 일기\",\"content\":\"첫"
+                          + " 일기\",\"recordedDate\":\"2026-11-17\"}"))
           .andReturn()
           .getResponse()
           .getStatus();
@@ -146,7 +148,7 @@ class DiaryConcurrencyTest {
   }
 
   @Test
-  @DisplayName("#32-S22 pet DELETE가 먼저면 이전 소유자 조회가 통과한 첫 일기 INSERT도 404다")
+  @DisplayName("#32-S22 pet DELETE가 먼저면 pet 행 잠금을 기다린 첫 일기 생성은 404다")
   void deletionWins() throws Exception {
     long pet = pet();
     var deleted = new CountDownLatch(1);
@@ -166,7 +168,7 @@ class DiaryConcurrencyTest {
                         }));
         waitFor(deleted);
         var created = pool.submit(() -> createRequest(pet));
-        blockedOn("insert into diary_entries");
+        blockedOn("select id from pets where id = % for update");
         commit.countDown();
         assertThat(removed.get(10, TimeUnit.SECONDS)).isEqualTo(204);
         assertThat(created.get(10, TimeUnit.SECONDS)).isEqualTo(404);
@@ -198,7 +200,8 @@ class DiaryConcurrencyTest {
     long pet = pet();
     long id =
         create
-            .create(new CreateDiaryEntryCommand(9001L, pet, "원본", LocalDate.of(2026, 11, 17)))
+            .create(
+                new CreateDiaryEntryCommand(9001L, pet, "원본", LocalDate.of(2026, 11, 17), "테스트 일기"))
             .diaryId();
     var barrier = new CyclicBarrier(2);
     doAnswer(

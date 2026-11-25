@@ -78,6 +78,7 @@ public class DiaryEntryPersistenceAdapter
             e.getId(),
             e.getVersion(),
             e.getContent(),
+            e.getTitle().value(),
             e.getRecordedDate(),
             e.getUpdatedAt(),
             location == null ? null : location.mode(),
@@ -94,7 +95,9 @@ public class DiaryEntryPersistenceAdapter
         e.getCreatedAt(),
         e.getUpdatedAt(),
         e.getVersion() + 1,
-        e.getLocationIntent());
+        e.getLocationIntent(),
+        e.getAuthorName(),
+        e.getTitle());
   }
 
   public void delete(Long id, Long version) {

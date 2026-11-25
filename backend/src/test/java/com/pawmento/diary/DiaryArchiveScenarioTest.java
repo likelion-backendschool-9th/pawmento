@@ -58,8 +58,9 @@ class DiaryArchiveScenarioTest {
   long seed(long pet, long author, String date) {
     return jdbc.queryForObject(
         "insert into"
-            + " diary_entries(pet_id,created_by,content,recorded_date,created_at,updated_at,version)"
-            + " values(?,?,?,?,'2026-11-17T15:00:00Z','2026-11-17T15:00:00Z',0) returning id",
+            + " diary_entries(pet_id,created_by,content,recorded_date,created_at,updated_at,version,author_name_snapshot)"
+            + " values(?,?,?,?,'2026-11-17T15:00:00Z','2026-11-17T15:00:00Z',0,'기존 작성자') returning"
+            + " id",
         Long.class,
         pet,
         author,
@@ -160,7 +161,7 @@ class DiaryArchiveScenarioTest {
             patch("/api/v1/diaries/" + changed + "?petId=" + pet)
                 .with(jwt().jwt(j -> j.subject("9001")))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"recordedDate\":\"2024-03-10\",\"version\":0}"))
+                .content("{\"title\":\"날짜를 바꾼 일기\",\"recordedDate\":\"2024-03-10\",\"version\":0}"))
         .andExpect(status().isOk());
     read(calendar(pet, "2024-02")).andExpect(jsonPath("$.days[1].count").value(1));
     mvc.perform(

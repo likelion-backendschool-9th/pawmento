@@ -13,8 +13,9 @@ import type { Pet } from "../types/Pet";
 import type { PetInput } from "../types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
 import { PetSummary, EmptyState, PageHeading } from "../../shell/components/WorkspaceUi";
+import { PetProfileFields } from "./PetProfileFields";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
-import { speciesName, messageOf } from "../../shell/utils/presentation";
+import { messageOf } from "../../shell/utils/presentation";
 
 export function PetList() {
   const app = useApp();
@@ -120,9 +121,9 @@ export function PetForm({ pet }: { pet?: Pet }) {
   useUnsavedChanges(
     JSON.stringify(input) !== JSON.stringify(initial) && !saved,
   );
-  function change<K extends keyof PetInput>(key: K, value: PetInput[K]) {
+  function update(fields: Partial<PetInput>) {
     setSaved(false);
-    setInput((old) => ({ ...old, [key]: value }));
+    setInput((old) => ({ ...old, ...fields }));
   }
   async function save(event: React.FormEvent) {
     event.preventDefault();
@@ -158,71 +159,15 @@ export function PetForm({ pet }: { pet?: Pet }) {
         <section className={styles.editorPhoto}>
           <PhotoPicker
             value={input.photoUrl}
-            onChange={(value) => change("photoUrl", value)}
+            onChange={(photoUrl) => update({ photoUrl })}
           />
         </section>
         <section className={`${styles.editorFields} form-stack`}>
-          <label>
-            이름 <span className="required">필수</span>
-            <input
-              value={input.name}
-              onChange={(event) => change("name", event.target.value)}
-              placeholder="친구의 이름은 무엇인가요?"
-              maxLength={20}
-              required
-            />
-          </label>
-          <label>
-            어떤 친구인가요?
-            <select
-              value={input.species}
-              onChange={(event) =>
-                change("species", event.target.value as Pet["species"])
-              }
-            >
-              {Object.entries(speciesName).map(([value, label]) => (
-                <option value={value} key={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            품종 <span className="muted">선택</span>
-            <input
-              list="breed-options"
-              value={input.breed}
-              maxLength={50}
-              onChange={(event) => change("breed", event.target.value)}
-              placeholder="찾거나 직접 입력해 주세요"
-            />
-            <datalist id="breed-options">
-              {(input.species === "DOG"
-                ? [
-                    "웰시코기",
-                    "말티즈",
-                    "푸들",
-                    "포메라니안",
-                    "골든리트리버",
-                    "믹스",
-                  ]
-                : input.species === "CAT"
-                  ? ["코리안숏헤어", "러시안블루", "랙돌", "페르시안", "믹스"]
-                  : []
-              ).map((breed) => (
-                <option key={breed} value={breed} />
-              ))}
-            </datalist>
-          </label>
-          <label>
-            생일 <span className="muted">선택</span>
-            <input
-              type="date"
-              value={input.birthday}
-              max={today()}
-              onChange={(event) => change("birthday", event.target.value)}
-            />
-          </label>
+          <PetProfileFields
+            input={input}
+            change={(key, value) => update({ [key]: value })}
+            breedMaxLength={50}
+          />
           {error && (
             <p className="error" role="alert">
               {error}

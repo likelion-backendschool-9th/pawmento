@@ -26,6 +26,7 @@ class DiaryWritePolicyTest {
     var service =
         new CreateDiaryEntryTransaction(
             access,
+            mock(LoadDiaryAuthorNamePort.class),
             mock(DiaryAttachmentsPort.class),
             mock(DiaryMediaPort.class),
             mock(DiaryResults.class),
@@ -37,7 +38,7 @@ class DiaryWritePolicyTest {
               () ->
                   service.create(
                       new CreateDiaryEntryCommand(
-                          1L, 2L, "일기", LocalDate.of(2026, 11, 17), features)))
+                          1L, 2L, "일기", LocalDate.of(2026, 11, 17), features, "테스트 일기")))
           .isInstanceOf(DiaryFeatureUnavailableException.class);
     verifyNoInteractions(access, save);
   }

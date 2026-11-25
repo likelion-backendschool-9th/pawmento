@@ -18,7 +18,7 @@
 
 인증은 [member](../member/README.md)가 “누가 로그인했는가”만 알려 준다. “이 반려동물이 그 회원의 것인가”, “현재 모드는 무엇인가”는 pet 도메인이 확인한다. (#46)
 
-다른 도메인(question, diary, map 등)은 pet 패키지 내부나 JPA를 직접 쓰지 않고, pet의 **입력 포트**만 부른다. 가족 멤버십(OWNER/EDITOR/VIEWER) 포트는 가족 담당과 맞춰 후속으로 연다. 1차(#46)는 소유자(`ownerMemberId`) 기준이다.
+다른 도메인(question, diary, map 등)은 pet 패키지 내부나 JPA를 직접 쓰지 않고, pet의 **입력 포트**만 부른다. 가족 멤버십(OWNER/FAMILY) 포트는 가족 담당과 맞춰 후속으로 연다 (고침 #133: 역할은 OWNER·FAMILY 둘. [가족 계획](../family/membership.md)). 1차(#46)는 소유자(`ownerMemberId`) 기준이다.
 
 ### 모드
 

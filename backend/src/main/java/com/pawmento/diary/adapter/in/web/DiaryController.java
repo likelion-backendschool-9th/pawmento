@@ -52,12 +52,21 @@ public class DiaryController {
       HttpServletRequest http,
       @RequestBody CreateDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
+    DiaryRequestValues.rejectAuthor(
+        request.author(), request.authorNameSnapshot(), request.displayName());
     String content =
         request.content() == null ? "" : DiaryRequestValues.text(request.content(), true);
     var date = DiaryRequestValues.date(request.recordedDate(), true);
     var features = DiaryRequestValues.features(request.attachmentIds(), request.location());
     return DiaryEntryResponse.from(
-        create.create(new CreateDiaryEntryCommand(memberId, petId, content, date, features)));
+        create.create(
+            CreateDiaryEntryCommand.withTitle(
+                memberId,
+                petId,
+                content,
+                date,
+                features,
+                DiaryRequestValues.title(request.title()))));
   }
 
   @GetMapping("/{diaryId}")
@@ -76,6 +85,8 @@ public class DiaryController {
       @RequestBody EditDiaryEntryRequest request) {
     Long petId = DiaryQueryParameters.parse(http.getQueryString(), "petId").petId();
     DiaryRequestValues.id(diaryId);
+    DiaryRequestValues.rejectAuthor(
+        request.author(), request.authorNameSnapshot(), request.displayName());
     String content = DiaryRequestValues.text(request.content(), false);
     var date = DiaryRequestValues.date(request.recordedDate(), false);
     Long version = DiaryRequestValues.version(request.version());
@@ -83,7 +94,14 @@ public class DiaryController {
     return DiaryEntryResponse.from(
         edit.edit(
             new EditDiaryEntryCommand(
-                memberId, petId, diaryId, content, date, version, features)));
+                memberId,
+                petId,
+                diaryId,
+                content,
+                date,
+                version,
+                features,
+                DiaryRequestValues.titleChange(request.title()))));
   }
 
   @DeleteMapping("/{diaryId}")

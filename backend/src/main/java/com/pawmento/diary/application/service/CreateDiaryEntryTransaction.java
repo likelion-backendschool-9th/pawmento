@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class CreateDiaryEntryTransaction {
   private final CheckDiaryPetAccessPort access;
+  private final LoadDiaryAuthorNamePort authors;
   private final DiaryAttachmentsPort attachments;
   private final DiaryMediaPort media;
   private final DiaryResults results;
@@ -21,7 +22,7 @@ public class CreateDiaryEntryTransaction {
   @Transactional
   public GetDiaryEntryResult create(CreateDiaryEntryCommand c) {
     DiaryWritePolicy.requireSupported(c.features());
-    access.requireAccess(c.memberId(), c.petId());
+    access.requireLockedWriteAccess(c.memberId(), c.petId());
     var ids =
         c.features().attachmentIds() == null
             ? java.util.List.<Long>of()
@@ -33,7 +34,9 @@ public class CreateDiaryEntryTransaction {
             c.content(),
             c.recordedDate(),
             clock.instant(),
-            !ids.isEmpty());
+            !ids.isEmpty(),
+            authors.loadName(c.memberId()),
+            c.title());
     if (c.features().location().intent() != null)
       original.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var entry = save.save(original);

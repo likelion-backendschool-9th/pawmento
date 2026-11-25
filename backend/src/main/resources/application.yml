@@ -30,8 +30,15 @@ pawmento:
     daily-limit-per-member: ${PAWMENTO_POSTCARD_DAILY_LIMIT_PER_MEMBER:3}
     # 팀 전체 하루 상한. 키 유출이나 버그로 요청이 몰릴 때 비용을 막는다
     daily-limit-total: ${PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL:100}
-    # 그림 생성기. fake는 외부 AI 없이 바탕 그림을 만든다(로컬·테스트 기본값)
+    # 그림 생성기. fake는 외부 AI 없이 바탕 그림을 만든다(로컬·테스트 기본값).
+    # cloudflare는 Workers AI로 그린다. 계정 ID와 토큰이 없으면 시작하지 않는다
     generator: ${PAWMENTO_POSTCARD_GENERATOR:fake}
+    cloudflare:
+      # 저장소에 두지 않고 환경 변수로만 받는다. 토큰은 Workers AI 권한만 준다
+      account-id: ${CLOUDFLARE_ACCOUNT_ID:}
+      api-token: ${CLOUDFLARE_AI_TOKEN:}
+      # S7에서 flux-2-klein-4b와 비교해 정한다
+      model: "${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:@cf/black-forest-labs/flux-2-klein-9b}"
     # 완성 이미지(images/)와 요청 때 복사한 사진(sources/)
     image-root: ${PAWMENTO_MEDIA_ROOT:./.local/media}/postcards
   auth:
@@ -50,6 +57,15 @@ pawmento:
       # 공공데이터포털 일반 인증키(병원·미용 인허가 조회). 저장소에 두지 않고 환경 변수로만 받는다.
       # 비어 있으면 가져오기만 중단된다(저장된 장소는 그대로 둔다)
       service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+      sync:
+        # 병원·미용은 매일, 보호센터는 매주 자동 가져오기(인증키가 있을 때만 켜진다). 정부 서버는 한 번 받는 데 1~몇 분 걸리고 가끔 시간 초과가 나서,
+        # 실패하면 retry-delay 뒤에 max-retries번까지 다시 시도한다. cron은 한국 시간 새벽 4시 30분
+        enabled: true
+        cron: "0 30 4 * * *"
+        # 보호센터는 바뀌는 일이 드물어 매주 월요일 새벽 4시 50분
+        shelter-cron: "0 50 4 * * MON"
+        retry-delay: 30m
+        max-retries: 3
 
   oauth:
     google:

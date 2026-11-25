@@ -34,12 +34,24 @@ services:
       # 네이버 지도 키 (docs/map/record-location.md). 비어 있으면 주소 조회만 건너뛴다
       NAVER_MAP_CLIENT_ID: ${NAVER_MAP_CLIENT_ID:-}
       NAVER_MAP_CLIENT_SECRET: ${NAVER_MAP_CLIENT_SECRET:-}
+      # 공공데이터포털 인증키 (docs/map/animal-places.md). 병원·미용·보호센터 장소를 매일·매주 자동으로 가져온다.
+      # 비어 있으면 자동 가져오기만 꺼지고 앱은 정상으로 뜬다
+      PUBLIC_DATA_SERVICE_KEY: ${PUBLIC_DATA_SERVICE_KEY:-}
       # 구글 로그인 키 (docs/member/social-login.md). 비어 있으면 구글 로그인만 401로 막힌다
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       # 카카오 로그인 키. 비어 있으면 카카오 로그인만 401로 막힌다
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:-}
+      # AI 엽서 생성기 (docs/postcard/generate.md). fake는 외부 호출 없이 바탕 그림을 만든다.
+      # cloudflare로 바꾸면 CLOUDFLARE_ACCOUNT_ID와 CLOUDFLARE_AI_TOKEN이 필요하다. 없으면 백엔드가 시작하지 않는다
+      PAWMENTO_POSTCARD_GENERATOR: ${PAWMENTO_POSTCARD_GENERATOR:-fake}
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:-}
+      CLOUDFLARE_AI_TOKEN: ${CLOUDFLARE_AI_TOKEN:-}
+      PAWMENTO_POSTCARD_CLOUDFLARE_MODEL: ${PAWMENTO_POSTCARD_CLOUDFLARE_MODEL:-@cf/black-forest-labs/flux-2-klein-9b}
+      # 팀 전체 하루 상한. Cloudflare 무료 한도(하루 10,000 Neuron, 9b 기준 장당 약 1,400)를 쓰는 동안 3장으로 둔다.
+      # 앱은 한국 시간 자정, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 최대 6장이 걸친다
+      PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL: ${PAWMENTO_POSTCARD_DAILY_LIMIT_TOTAL:-3}
 
   frontend:
     image: ghcr.io/${GITHUB_OWNER:?GITHUB_OWNER를 .env에 설정하세요}/pawmento-frontend:${IMAGE_TAG:?IMAGE_TAG를 설정하세요}

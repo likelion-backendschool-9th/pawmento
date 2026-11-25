@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackage;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
@@ -34,6 +35,7 @@ import com.pawmento.map.application.port.in.ListPlacesUseCase;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
 import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 
 /**
  * 진짜 공공데이터포털로 병원·미용을 받아 진짜 PostgreSQL(Testcontainers)에 넣고, 다시 넣어도 변하지 않는지와 영역 조회가 되는지
@@ -58,8 +60,15 @@ class LocalDataLiveSyncTest {
 	@ComponentScan(basePackages = { "com.pawmento.map.application.service", "com.pawmento.map.adapter.out.persistence",
 			"com.pawmento.map.adapter.out.localdata" }, useDefaultFilters = false,
 			includeFilters = @ComponentScan.Filter(type = FilterType.REGEX,
-					pattern = "com\\.pawmento\\.map\\..*\\.(SyncLocalDataPlacesService|ListPlacesService|PlacePersistenceAdapter|LocalDataApiClient|LocalDataConfig)"))
+					pattern = "com\\.pawmento\\.map\\..*\\.(SyncLocalDataPlacesService|ListPlacesService|PlacePersistenceAdapter|LocalDataApiClient|ShelterApiClient|PlaceSyncLockAdapter|LocalDataConfig)"))
 	static class LiveConfig {
+
+		// 이 테스트는 관리자가 아니라 시스템 요청(자동 실행과 같음)으로 가져오므로 관리자 확인은 쓰지 않는다
+		@Bean
+		CheckPlaceSyncAdminPort placeSyncAdminPort() {
+			return memberId -> {
+			};
+		}
 
 	}
 
@@ -74,13 +83,13 @@ class LocalDataLiveSyncTest {
 
 	@Test
 	@Timeout(value = 180, unit = TimeUnit.MINUTES)
-	@DisplayName("진짜 서버: 병원·미용을 DB에 가져오고, 다시 가져와도 그대로이며, 영역 조회가 된다")
+	@DisplayName("#172-S8 #172-S9 진짜 서버: 병원·미용·보호센터를 DB에 가져오고, 다시 가져와도 그대로이며, 영역 조회가 된다")
 	void importAndQuery() throws IOException {
 		StringBuilder report = new StringBuilder("===== 진짜 서버 → 진짜 DB 가져오기 확인 =====\n");
 		List<String> problems = new ArrayList<>();
 		jdbc.update("delete from places");
 		try {
-			for (String category : List.of("HOSPITAL", "GROOMING")) {
+			for (String category : categories()) {
 				importCategory(category, report, problems);
 			}
 			queries(report, problems);
@@ -97,6 +106,15 @@ class LocalDataLiveSyncTest {
 				StandardOpenOption.APPEND);
 		System.out.println(report);
 		assertThat(problems).as("진짜 가져오기 확인에서 문제가 발견됨(build/live-sync-report.txt)").isEmpty();
+	}
+
+	// LIVE_SYNC_CATEGORIES=SHELTER처럼 쉼표로 적으면 그 종류만 가져온다(보호센터만 빠르게 확인할 때). 없으면 세 종류 모두 가져온다
+	private static List<String> categories() {
+		String chosen = System.getenv("LIVE_SYNC_CATEGORIES");
+		if (chosen == null || chosen.isBlank()) {
+			return List.of("HOSPITAL", "GROOMING", "SHELTER");
+		}
+		return java.util.Arrays.stream(chosen.split(",")).map(String::strip).filter(name -> !name.isEmpty()).toList();
 	}
 
 	private void importCategory(String category, StringBuilder report, List<String> problems) {
@@ -138,7 +156,8 @@ class LocalDataLiveSyncTest {
 		double[][] areas = { { 33, 124, 39, 132 }, { 37.42, 126.76, 37.70, 127.18 }, { 37.55, 126.97, 37.59, 127.03 } };
 		String[] names = { "전국", "서울", "서울 도심" };
 		for (int i = 0; i < areas.length; i++) {
-			for (Set<String> categories : List.of(Set.of("HOSPITAL"), Set.of("GROOMING"), Set.of("HOSPITAL", "GROOMING"))) {
+			for (Set<String> categories : List.of(Set.of("HOSPITAL"), Set.of("GROOMING"), Set.of("SHELTER"),
+					Set.of("HOSPITAL", "GROOMING", "SHELTER"))) {
 				long t = System.nanoTime();
 				ListPlacesResult result = list.list(new ListPlacesQuery(BigDecimal.valueOf(areas[i][0]),
 						BigDecimal.valueOf(areas[i][1]), BigDecimal.valueOf(areas[i][2]), BigDecimal.valueOf(areas[i][3]),
@@ -180,6 +199,16 @@ class LocalDataLiveSyncTest {
 		line(report, "형식이 이상한 전화", String.valueOf(badPhone));
 		line(report, "이름이 빈 행", String.valueOf(blankName));
 		line(report, "원본 갱신 시각이 없는 행", String.valueOf(nullUpdated));
+		int shelters = jdbc.queryForObject("select count(*) from places where category = 'SHELTER'", Integer.class);
+		int shelterHours = jdbc.queryForObject(
+				"select count(*) from places where category = 'SHELTER' and opening_hours is not null", Integer.class);
+		int shelter24h = jdbc.queryForObject(
+				"select count(*) from places where category = 'SHELTER' and open24h and open24h_basis = 'HOURS'",
+				Integer.class);
+		int shelterClosedDays = jdbc.queryForObject(
+				"select count(*) from places where category = 'SHELTER' and closed_days is not null", Integer.class);
+		line(report, "보호센터 저장 / 운영 시간 있음 / 24시간 / 휴무일 있음",
+				shelters + " / " + shelterHours + " / " + shelter24h + " / " + shelterClosedDays);
 		if (outside > 0) {
 			problems.add("한국 범위 밖 좌표가 DB에 " + outside + "개");
 		}

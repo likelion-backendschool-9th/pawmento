@@ -115,7 +115,8 @@ class AttachmentJpaSchemaScenarioTest {
                     pet,
                     "다이어리",
                     LocalDate.now(clock),
-                    new DiaryWriteFeatures(diaryIds, false)))
+                    new DiaryWriteFeatures(diaryIds, false),
+                    "테스트 일기"))
             .diaryId();
     long prompt =
         prompts

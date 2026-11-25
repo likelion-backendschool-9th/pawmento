@@ -65,6 +65,7 @@ class PlaceListScenarioTest {
 	@AfterEach
 	void deletePlaces() {
 		jdbcTemplate.update("delete from places where source_id like ?", prefix + "%");
+		jdbcTemplate.update("delete from place_sync_runs");
 	}
 
 	private record Guardian(long id, Cookie cookie) {
@@ -127,6 +128,57 @@ class PlaceListScenarioTest {
 
 		assertThat(body.get("places")).isEmpty();
 		assertThat(body.get("truncated").asBoolean()).isFalse();
+	}
+
+	@Test
+	@DisplayName("#172-S21 응답의 dataAsOf는 응답에 든 종류 중 가장 오래된 가져온 시각이고, 가져온 기록이 없는 종류가 섞이면 null이다")
+	void reportsWhenTheDataWasLastImported() throws Exception {
+		Guardian me = signUpAndLogin();
+		jdbcTemplate.update("delete from place_sync_runs");
+
+		// 가져온 기록이 하나도 없으면 null이다
+		assertThat(readBody(list(me, "").andExpect(status().isOk()).andReturn()).get("dataAsOf").isNull()).isTrue();
+
+		jdbcTemplate.update("insert into place_sync_runs (category, last_synced_at) values ('HOSPITAL', ?)",
+				Timestamp.from(Instant.parse("2026-11-21T13:00:00Z")));
+		jdbcTemplate.update("insert into place_sync_runs (category, last_synced_at) values ('GROOMING', ?)",
+				Timestamp.from(Instant.parse("2026-11-23T13:00:00Z")));
+		insertPlace("HOSPITAL", "h1", "병원", 37.5801, 127.0001, null, false, null, null, null);
+		insertPlace("GROOMING", "g1", "미용", 37.5802, 127.0002, null, false, null, null, null);
+
+		JsonNode hospitalOnly = readBody(list(me, "&categories=HOSPITAL").andExpect(status().isOk()).andReturn());
+		JsonNode groomingOnly = readBody(list(me, "&categories=GROOMING").andExpect(status().isOk()).andReturn());
+		JsonNode both = readBody(list(me, "&categories=HOSPITAL,GROOMING").andExpect(status().isOk()).andReturn());
+		JsonNode shelterOnly = readBody(list(me, "&categories=SHELTER").andExpect(status().isOk()).andReturn());
+
+		assertThat(Instant.parse(hospitalOnly.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-21T13:00:00Z"));
+		assertThat(Instant.parse(groomingOnly.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-23T13:00:00Z"));
+		// 둘 다 요청하면 더 오래된 시각이다
+		assertThat(Instant.parse(both.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-21T13:00:00Z"));
+		// 가져온 기록이 없는 보호센터만 요청하면 null이다
+		assertThat(shelterOnly.get("dataAsOf").isNull()).isTrue();
+	}
+
+	@Test
+	@DisplayName("#172-S21 배포 직후처럼 병원만 가져온 기록이 있고 이전 미용 장소가 응답에 들어오면 null이며, 미용이 영역 밖이면 병원의 시각이다")
+	void isNullWhenOlderDataWithoutASyncRecordIsIncluded() throws Exception {
+		Guardian me = signUpAndLogin();
+		jdbcTemplate.update("delete from place_sync_runs");
+		jdbcTemplate.update("insert into place_sync_runs (category, last_synced_at) values ('HOSPITAL', ?)",
+				Timestamp.from(Instant.parse("2026-11-24T13:00:00Z")));
+		insertPlace("HOSPITAL", "h1", "새로 가져온 병원", 37.5801, 127.0001, null, false, null, null, null);
+		// 기록이 없는 이전 미용 데이터: 영역 안
+		insertPlace("GROOMING", "g1", "이전 미용", 37.5802, 127.0002, null, false, null, null, null);
+
+		JsonNode both = readBody(list(me, "&categories=HOSPITAL,GROOMING").andExpect(status().isOk()).andReturn());
+		assertThat(both.get("places")).hasSize(2);
+		assertThat(both.get("dataAsOf").isNull()).isTrue();
+
+		// 같은 요청이라도 이전 미용 장소가 영역 밖이면 응답에 들어오지 않아 병원의 시각이다
+		jdbcTemplate.update("update places set latitude = 37.9, longitude = 127.5 where source_id = ?", prefix + "g1");
+		JsonNode hospitalOnly = readBody(list(me, "&categories=HOSPITAL,GROOMING").andExpect(status().isOk()).andReturn());
+		assertThat(hospitalOnly.get("places")).hasSize(1);
+		assertThat(Instant.parse(hospitalOnly.get("dataAsOf").asText())).isEqualTo(Instant.parse("2026-11-24T13:00:00Z"));
 	}
 
 	@Test

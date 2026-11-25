@@ -202,7 +202,6 @@ class FamilyInviteScenarioTest {
 				.andExpect(jsonPath("$.name").value("보리"))
 				.andExpect(jsonPath("$.tag").value(
 						jdbc.queryForObject("select tag from pets where id = ?", String.class, pet)));
-
 		assertThat(access.check(new CheckPetAccessQuery(pet, joiner)).role()).isEqualTo("FAMILY");
 		assertThat(codeRows(pet)).isZero();
 

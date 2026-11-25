@@ -96,6 +96,12 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
         <circle cx="12" cy="10" r="2.4" />
       </>
     ),
+    map: (
+      <>
+        <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z" />
+        <path d="M9 4v14m6-12v14" />
+      </>
+    ),
     route: (
       <>
         <circle cx="6" cy="18" r="2.2" />
@@ -113,6 +119,12 @@ export function Icon({ name, size = 20 }: { name: string; size?: number }) {
       <>
         <rect x="7" y="2.5" width="10" height="19" rx="2.4" />
         <path d="M11 18.5h2" />
+      </>
+    ),
+    copy: (
+      <>
+        <rect x="8.5" y="8.5" width="11" height="11" rx="2.5" />
+        <path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
       </>
     ),
     stop: <rect x="6" y="6" width="12" height="12" rx="3" />,

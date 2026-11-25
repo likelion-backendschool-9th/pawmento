@@ -97,7 +97,7 @@ class DiaryAttachmentScenarioTest {
   GetDiaryEntryResult create(long pet, String content, Long... ids) {
     return create.create(
         new CreateDiaryEntryCommand(
-            9001L, pet, content, LocalDate.of(2026, 11, 17), features(ids)));
+            9001L, pet, content, LocalDate.of(2026, 11, 17), features(ids), "테스트 일기"));
   }
 
   GetDiaryEntryResult change(long pet, long id, long version, String content, Long... ids) {
@@ -150,16 +150,20 @@ class DiaryAttachmentScenarioTest {
               9001,
               json(
                   post(path(p)),
-                  "{" + prefix + "\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[" + a + "]}"))
+                  "{\"title\":\"테스트 일기\","
+                      + prefix
+                      + "\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
+                      + a
+                      + "]}"))
           .andExpect(status().isCreated())
           .andExpect(jsonPath("$.content").value(""));
     }
     for (String body :
         List.of(
-            "{\"content\":null,\"attachmentIds\":[" + a + "]}",
+            "{\"title\":\"테스트 일기\",\"content\":null,\"attachmentIds\":[" + a + "]}",
             "{}",
-            "{\"content\":\"  \"}",
-            "{\"content\":\"x\",\"attachmentIds\":null}",
+            "{\"title\":\"테스트 일기\",\"content\":\"  \"}",
+            "{\"title\":\"테스트 일기\",\"content\":\"x\",\"attachmentIds\":null}",
             "{\"attachmentIds\":[" + a + "," + a + "]}",
             "{\"attachmentIds\":[0]}"))
       call(
@@ -556,7 +560,11 @@ class DiaryAttachmentScenarioTest {
         .andExpect(jsonPath("$.attachments[1].available").value(true));
     call(9001, get("/api/v1/diaries/" + first.diaryId() + "/attachments/" + bad + "?petId=" + p))
         .andExpect(status().isConflict());
-    call(9001, json(patch(path(p, first.diaryId())), "{\"content\":\"수정\",\"version\":0}"))
+    call(
+            9001,
+            json(
+                patch(path(p, first.diaryId())),
+                "{\"title\":\"테스트 일기\",\"content\":\"수정\",\"version\":0}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.attachments[0].available").value(false));
     // 조회·유지 수정이 참조 수를 임의 복구하지 않는다.
@@ -592,7 +600,11 @@ class DiaryAttachmentScenarioTest {
               9001,
               json(
                   post(path(p)),
-                  "{\"recordedDate\":\"2026-11-17\",\"attachmentIds\":[" + own + "," + id + "]}"))
+                  "{\"title\":\"테스트 일기\",\"recordedDate\":\"2026-11-17\",\"attachmentIds\":["
+                      + own
+                      + ","
+                      + id
+                      + "]}"))
           .andExpect(status().isNotFound())
           .andExpect(jsonPath("$.code").value("NOT_FOUND"))
           .andExpect(jsonPath("$.message").value("파일을 찾을 수 없어요."));

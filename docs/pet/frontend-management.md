@@ -30,6 +30,20 @@
 
 답변은 `Q번호 / 합의 내용 / 담당 / 수정 가능한 파일 / 회귀 확인 범위`로 남긴다. 답변 전에는 미합의로 유지한다. 상세 이후만이 아니라 **목록·등록도 공용 진입/세션·표시 방식이 걸리면 해당 합의 전 착수하지 않는다.** 합의 질문은 이 계획과 해당 계획 PR 본문에 같은 번호로 싣고, 공통 README·규칙 문서를 임의 수정하지 않는다.
 
+### 서버 목록에 적용한 합의
+
+- **Q1** — 인증·마이페이지 담당 `@lakesole`의 [답변](https://github.com/likelion-backendschool-9th/pawmento/issues/85#issuecomment-7014735021)에 따라 `useApp()`의 공개 `account`와 `sessionSource`를 사용한다. pet은 확인된 HTTP 세션에서만 목록을 요청하고, 출처나 계정이 바뀌면 이전 요청의 결과를 폐기한다. 목록 작업의 수정 범위는 `/pets` 진입, pet 관리 파일, `app/composition.ts`의 관리 전용 의존성 한 줄이다. `AppProvider`와 기존 마이페이지용 `listMine()`·`PetSummary`는 유지하며 기존 인증·마이페이지 검사와 #85-S3을 확인한다. (고침 #85: 공개 세션·연결 책임 합의 기록)
+- **Q5** — 반려동물 관리 담당이자 요청자인 `@D-Gyun103`이 [#208](https://github.com/likelion-backendschool-9th/pawmento/pull/208) 범위의 목록 표시를 승인했다. 서버 목록은 기존 카드와 버튼 위치를 유지하고, 이 단계에서 연결하지 않는 등록·프로필 편집·모드 변경·‘이 친구와 기록하기’를 비활성화하며 기록 수는 ‘—’로 표시한다. 대상은 pet 관리 목록 화면이고 공용 CSS·토큰은 유지한다. 데모 화면은 기존 동작을 유지하며, 데스크톱·모바일 표시는 #85-S12에서 확인한다. (고침 #85: 목록 단계의 사용자 디자인 승인 기록)
+
+### 서버 등록에 적용한 합의
+
+- **Q5** — 반려동물 관리 담당이자 요청자인 `@D-Gyun103`이 [#209](https://github.com/likelion-backendschool-9th/pawmento/pull/209) 범위에서 기존 등록 폼의 배치를 유지하고 서버 사진 선택을 비활성화하는 표시안을 승인했다. 사진 영역에 ‘사진 등록은 아직 연결되지 않았어요.’를 표시하며 서버 사진 연결은 #180에서 진행한다. 등록 결과를 확인하지 못했을 때는 #85-S5에 따라 입력을 유지하고 재제출을 잠근 상태에서 ‘목록 확인’을 안내한다. 대상은 서버 등록 화면이며 데모 등록은 기존 동작을 유지한다. (고침 #85: 등록 단계의 사용자 디자인 승인 기록)
+
+### 서버 상세에 적용한 합의
+
+- **Q1-D** — 인증·마이페이지 담당 `@lakesole`의 [답변](https://github.com/likelion-backendschool-9th/pawmento/issues/85#issuecomment-7014735021)에 따라 관리 상세를 기존 `/pets/[petId]` 하위 대신 `/pets/manage/[managedPetId]`로 분리한다. 기존 상세의 `layout.tsx`와 `PetBoundary`를 수정하지 않으므로 이 경로에 별도 인증 담당 승인은 필요하지 않다.
+- **Q5** — 반려동물 관리 담당이자 요청자인 `@D-Gyun103`이 [#211](https://github.com/likelion-backendschool-9th/pawmento/pull/211) 범위에서 목록 카드 우측 상단의 기존 아이콘 자리를 유지하고 ‘프로필 보기’ 링크로 연결하는 표시안을 승인했다. 기존 비활성 편집 아이콘은 조회용 검색 아이콘과 ‘프로필 보기’ 접근성 레이블을 사용한다. 상세는 기존 카드와 디자인 토큰으로 구성한 읽기 전용 화면에서 사진, 이름, 모드, 종·품종, 태그, 생일을 보여 준다. 상세 진입과 표시는 #85-S6·S12에서 확인한다. (고침 #85: 상세 단계의 사용자 디자인 승인 기록)
+
 ## 디자인 준수
 
 - [디자인 토큰 가이드](../Frontend/PawMento_Design_Tokens_Hexagonal.md)와 그 문서가 지정한 실제 CSS·컴포넌트를 디자인 기준으로 그대로 따른다. 색상·글꼴·간격·크기·모서리·그림자·아이콘·배치·반응형·모드별 표현을 임의로 바꾸거나 새 디자인을 제안 없이 적용하지 않는다.
@@ -145,7 +159,7 @@
 #85-S11 담당·데이터 경계 [테스트]
 - Given 마이페이지가 기존 pet 목록 포트/어댑터를 사용한다
 - When 관리페이지 전용 상세·등록·수정·모드 의존성을 추가한다
-- Then 기존 `PetListRepository`·`PetSummary`·마이페이지 호출 결과를 바꾸지 않는다
+- Then 기존 `features/pet/api/petApi.ts`의 `listMine()`·`PetSummary`·마이페이지 호출 결과를 바꾸지 않는다 (고침 #182: 구조 개편으로 바뀐 경로)
 - Then 서버 저장 실패가 localStorage 저장으로 대체되지 않고, 관리페이지가 `workspace.savePet`·`changeMode`·`selectPet`로 서버 작업을 흉내 내지 않는다
 - Q1~Q3 합의 전 공용 composition·provider·boundary·인증·마이페이지 파일은 변경하지 않는다. 허용된 최소 연결부는 해당 구현 PR의 대상 파일로 명시하고 다른 기능 변경과 분리한다.
 
@@ -190,13 +204,13 @@
 
 - 서버 `petId`는 화면/도메인에서 문자열로 취급하며 정밀도를 잃는 Number 변환을 추가하지 않는다. JSON 숫자 ID의 안전 범위를 넘는 지원이 필요하면 서버 표현부터 합의한다. tag/mode를 브라우저에서 만들어 대체하지 않는다.
 - 이름은 trim 후 1~20자, 품종 최대100자, 종은 DOG/CAT/OTHER다. 기존 데모의 품종50자 제한을 그대로 서버 규칙으로 간주하지 않는다. 생일은 Asia/Seoul 오늘·과거만 허용하며 날짜 문자열을 UTC 시각 변환으로 하루 이동시키지 않는다.
-- `createApiClient`의 같은 출처 쿠키·기존 경로 접두사를 재사용한다. Fetch/DTO/HTTP 상태 의존은 outbound 어댑터에서 처리하고 화면은 유스케이스·기술 독립 오류를 소비한다. 기존 `ApiError`/`ApplicationError` 계약을 먼저 확인하고, HTTP 상태를 해석하는 코드를 domain/application에 직접 옮기지 않는다. 새 공용 API 클라이언트나 인증 구현을 만들지 않는다.
+- `createApiClient`의 같은 출처 쿠키·기존 경로 접두사를 재사용한다. Fetch/DTO/HTTP 상태 의존은 `features/pet/api`에서 처리하고 화면은 기술 독립 오류를 소비한다. 기존 `ApiError`/`ApplicationError` 계약을 먼저 확인하고, HTTP 상태를 해석하는 코드를 `types`·`utils`에 옮기지 않는다. (고침 #182: 구조 개편으로 계층 이름 대신 기능 폴더 기준) 새 공용 API 클라이언트나 인증 구현을 만들지 않는다.
 
 
 ### 현재 코드와의 연결에서 확인할 점
 
-- `pets/domain/PetSummary.ts`는 현재 id·name만, `PetListRepository.listMine()`은 마이페이지용 목록 계약을 제공한다. 서버 관리용 tag/species/breed/birthday/mode를 얻기 위해 이 타입을 변경하거나 모든 소비자에 추가 필드를 강제하지 않는다. 관리용 모델·포트 추가와 최종 주입 위치를 Q1에서 합의한다.
-- `workspace/adapters/inbound/PetScreens.tsx`의 목록·등록/편집은 `app.state.pets`와 `workspace.selectPet/savePet`를 사용한다. `app.refresh()`는 서버 관리 목록의 재조회 수단으로 간주하지 않는다. 서버 저장과 서버 재조회는 전용 관리 흐름으로 연결한다.
+- `features/pet/types/PetSummary.ts`는 현재 id·name만, `features/pet/api/petApi.ts`의 `listMine()`은 마이페이지용 목록 계약을 제공한다. (고침 #182: 구조 개편으로 바뀐 경로) 서버 관리용 tag/species/breed/birthday/mode를 얻기 위해 이 타입을 변경하거나 모든 소비자에 추가 필드를 강제하지 않는다. 관리용 모델·포트 추가와 최종 주입 위치를 Q1에서 합의한다.
+- `features/pet/components/PetScreens.tsx`(예전 `workspace/adapters/inbound`)의 목록·등록/편집은 `app.state.pets`와 `workspace.selectPet/savePet`를 사용한다. `app.refresh()`는 서버 관리 목록의 재조회 수단으로 간주하지 않는다. 서버 저장과 서버 재조회는 전용 관리 흐름으로 연결한다.
 - `/pets/[petId]/layout.tsx`는 `PetBoundary`를 통하며 로컬 workspace에 없는 서버 petId는 먼저 차단된다. URL 숫자/문자열 변환만으로 해결되지 않는다. 기존 상세 진입과 모드 설정 경로에 서버 데이터를 주입하기 전에 관리 경로와 데모 기록 하위 화면의 경계를 합의한다.
 - 현재 서버 요청 DTO는 이름 원문 길이1~20자·품종 최대100자를 검사한다. 도메인의 strip 규칙만 보고 서버가 거부할 원문 길이를 프론트에서 성공으로 판정하지 않는다. name/species/breed/birthday 변경 필드만 PATCH에 보낼지 전체 값을 보낼지 구현 단위에서 명시하고, 생일 빈 문자열은 유효한 날짜처럼 전송하지 않는다.
 - 동시성409는 서버 요청 내부의 낙관적 잠금 보호다. PetResponse에는 version이 없고 관리 PATCH에도 기대 버전 입력이 없다. 오래 열린 편집 화면에서 보낸 값을 모두 감지하는 클라이언트 버전 충돌 방지 기능으로 확대 설명하지 않는다.
@@ -216,7 +230,7 @@
 | 순서 | 목적 | 후보 파일·경계 | 완료 기준 |
 | --- | --- | --- | --- |
 | 0 | 이 계획·Q1~Q5 검토 | 본인 계획문서 한 파일만. 공통 README·규칙·코드는 변경하지 않음 | 담당 합의·API 확인, 각 후속 이슈의 범위/번호 확정 |
-| 1 | 관리 목록 서버 조회 | `pets/domain` 관리 모델, 전용 조회 포트/HTTP 어댑터, `pets/adapters/inbound` 목록과 `/pets` 진입 | S1~S3·S11·목록 S12. Q1·Q2·목록 Q5 합의 후. 마이페이지용 기존 목록 타입/호출 유지. 혼합 쿠키/demo에서도 서버 요청 차단·늦은 응답 폐기 |
+| 1 | 관리 목록 서버 조회 | `features/pet/types` 관리 모델, `features/pet/api` 전용 조회 함수, `features/pet/components` 목록과 `/pets` 진입 (고침 #182: 구조 개편으로 바뀐 경로) | S1~S3·S11·목록 S12. Q1·Q2·목록 Q5 합의 후. 마이페이지용 기존 목록 타입/호출 유지. 혼합 쿠키/demo에서도 서버 요청 차단·늦은 응답 폐기 |
 | 2 | 등록 API 연동 | 관리 전용 등록 입력·유스케이스·HTTP 메서드·폼, `/pets/new` 진입 | S4·S5·등록 S12. 등록 진입 Q1·Q2 및 사진 표시 Q5 승인 후. 사진/삭제/로컬 저장 제외 |
 | 3 | 상세 API 조회 | 관리 전용 상세 포트/화면·라우팅 경계 | S6·S11·상세 S12. Q1 합의 후 직접 진입/새로고침 가능 |
 | 4 | 프로필 수정 | 상세 초기값·수정 포트/유스케이스/HTTP 메서드·편집 폼 | S7·S8·수정 S12. Q4 확인 및 편집/삭제 진입 표시 Q5 승인 후. 삭제 API 연동 없음 |
