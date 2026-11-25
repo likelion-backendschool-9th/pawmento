@@ -9,6 +9,7 @@
   min-height: var(--app-header-height);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--border-default);
@@ -19,14 +20,14 @@
   min-width: 44px;
   min-height: 44px;
   gap: 6px;
-  font-size: 18px;
+  font-size: 22px;
 }
 .header :global(.brand small) {
   display: none;
 }
 .header :global(.brand-logo) {
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
 }
 .header :global(.brand-words) { display: block; white-space: nowrap; }
 .moreButton {

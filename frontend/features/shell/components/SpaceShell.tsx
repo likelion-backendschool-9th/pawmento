@@ -1,7 +1,5 @@
 "use client";
 import Link from "next/link";
-import { useApp } from "@/app/AppProvider";
-import { PetSwitcher } from "./PetSwitcher";
 import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/Icon";
 import type { Pet } from "../../pet/types/Pet";
@@ -12,16 +10,11 @@ export function SpaceShell({
   children,
   pet,
   route,
-  onSelect,
-  switching,
 }: {
   children: React.ReactNode;
   pet?: Pet;
   route: string;
-  onSelect: (id: string) => Promise<void>;
-  switching: boolean;
 }) {
-  const app = useApp();
   const garden = pet?.mode === "GARDEN";
   const active = activeNavigation(route, pet?.id);
   const immersive = garden && active === "home";
@@ -36,8 +29,6 @@ export function SpaceShell({
       </a>
       <header className={s.header}>
         <Brand href="/home" />
-        <PetSwitcher pets={app.state.pets} selectedId={pet?.id ?? app.state.selectedPetId}
-          switching={switching} onSelect={onSelect} />
         <Link
           href="/more"
           className={s.moreButton}
