@@ -37,6 +37,8 @@
 
 팀은 이 출발점을 바탕으로 보호자의 기록 습관과 질문형 기록에 대한 반응을 알아보기 위한 첫 사용자 설문을 설계했습니다. [사용자 설문 설계](docs/research/user-survey.md), [질문 설계](docs/question/README.md), [지도 설계](docs/map/README.md)
 
+초기 기획의 단계별 목표와 MVP 완료 기준은 [로드맵](docs/roadmap.md)에 정리했습니다.
+
 ## 화면으로 보는 PawMento
 
 ### 웹 · 데스크톱
