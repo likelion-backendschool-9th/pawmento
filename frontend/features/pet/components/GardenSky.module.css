@@ -15,6 +15,47 @@
   object-fit: cover;
   object-position: center;
 }
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 0%, #000 48%, transparent 69%);
+}
+.nebula {
+  position: absolute;
+  inset: -8%;
+  background:
+    radial-gradient(ellipse at 45% 24%, #4ca5f75c, transparent 34%),
+    radial-gradient(ellipse at 72% 44%, #a769db45, transparent 30%),
+    radial-gradient(ellipse at 35% 58%, #28d7d83d, transparent 28%);
+  mix-blend-mode: screen;
+  animation: nebulaDrift 24s ease-in-out infinite alternate;
+}
+.starfield {
+  position: absolute;
+  inset: 0;
+  animation: starDrift 32s ease-in-out infinite alternate;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff8de;
+  box-shadow: 0 0 7px 2px #b7d8ff70;
+  animation: starTwinkle 6s ease-in-out infinite;
+}
+@keyframes nebulaDrift {
+  from { transform: translate(-2%, 1%) rotate(-2deg); opacity: 0.3; }
+  to { transform: translate(3%, -3%) rotate(3deg); opacity: 0.7; }
+}
+@keyframes starDrift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 0.9; transform: scale(1.15); }
+}
 .intro {
   position: absolute;
   z-index: 1;
@@ -231,9 +272,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .butterfly {
+  .butterfly, .nebula, .starfield, .star {
     animation: none;
   }
+  .nebula { opacity: 0.35; }
+  .star { opacity: 0.4; }
 }
 
 .guide {

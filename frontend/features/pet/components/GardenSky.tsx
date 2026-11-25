@@ -26,6 +26,11 @@ const lights = [
   { x: 48.8, y: 64.1 },
   { x: 28.2, y: 66.1 },
 ];
+const stars = [
+  [12, 8], [43, 5], [78, 12], [30, 20], [66, 23], [89, 30],
+  [17, 36], [48, 31], [74, 41], [36, 46], [57, 53], [84, 58],
+  [9, 56], [26, 60], [62, 16], [52, 39], [22, 13], [92, 49],
+];
 export function GardenSky({ pet }: { pet: Pet }) {
   const app = useApp();
   const memories = gardenMemories(
@@ -74,6 +79,25 @@ export function GardenSky({ pet }: { pet: Pet }) {
             loading="eager"
             className={s.art}
           />
+        </div>
+        <div className={s.atmosphere} aria-hidden="true">
+          <div className={s.nebula} />
+          <div className={s.starfield}>
+            {stars.map(([x, y], i) => (
+              <span
+                key={i}
+                className={s.star}
+                style={{
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  width: i % 3 === 0 ? 3 : 2,
+                  height: i % 3 === 0 ? 3 : 2,
+                  animationDelay: `${i * -0.7}s`,
+                  animationDuration: `${4 + i % 5}s`,
+                }}
+              />
+            ))}
+          </div>
         </div>
         <div className={s.intro}>
           <div className={s.petIdentity}>
