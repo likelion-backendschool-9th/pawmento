@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/date";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import styles from "../../shell/components/Workspace.module.css";
 import { speciesName } from "../../shell/utils/presentation";
+import { MyFamilyPets } from "../../family/components/MyFamilyPets";
 import type { ManagedPet } from "../types/ManagedPet";
 import {
   loadPetManagementList,
@@ -69,6 +70,9 @@ function ServerList({ session, listMine }: {
           <Icon name="plus" size={17} />
           반려동물 등록
         </Link>
+        <Link className="button secondary" href="/family/join">
+          초대 코드로 참여
+        </Link>
       </PageHeading>
       {state.status === "loading" && <ListLoading />}
       {state.status === "error" && (
@@ -93,6 +97,8 @@ function ServerList({ session, listMine }: {
         ) : (
           <EmptyServerList />
         ))}
+      {/* 가족 반려동물은 내 목록 조회의 성공 여부와 따로 불러온다 */}
+      <MyFamilyPets />
     </>
   );
 }
@@ -172,6 +178,13 @@ function ManagedPetCard({ pet }: { pet: ManagedPet }) {
         </div>
       </section>
       <div className={styles.petActions}>
+        <Link
+          className="button secondary full"
+          href={`/pets/manage/${encodeURIComponent(pet.id)}/family`}
+        >
+          <Icon name="user" size={16} />
+          가족
+        </Link>
         <button type="button" className="button secondary full" disabled>
           이 친구와 기록하기
           <Icon name="arrow" size={17} />

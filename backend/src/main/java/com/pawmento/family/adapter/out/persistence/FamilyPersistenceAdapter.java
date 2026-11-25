@@ -33,4 +33,10 @@ class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamily
                 .toList();
     }
 
+    @Override
+    public List<PetFamilyMember> loadByMemberId(Long memberId) {
+        return memberRepository.findByMemberIdOrderByJoinedAtAscIdAsc(memberId).stream()
+                .map(PetFamilyMemberJpaEntity::toDomain)
+                .toList();
+    }
 }

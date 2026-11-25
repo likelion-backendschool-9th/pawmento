@@ -1,5 +1,7 @@
 package com.pawmento.family.adapter.in.web;
 
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,6 +16,8 @@ import com.pawmento.family.application.port.in.JoinFamilyCommand;
 import com.pawmento.family.application.port.in.JoinFamilyUseCase;
 import com.pawmento.family.application.port.in.ListFamilyQuery;
 import com.pawmento.family.application.port.in.ListFamilyUseCase;
+import com.pawmento.family.application.port.in.ListMyFamilyPetsQuery;
+import com.pawmento.family.application.port.in.ListMyFamilyPetsUseCase;
 import com.pawmento.global.security.LoginMember;
 
 import jakarta.validation.Valid;
@@ -31,6 +35,8 @@ public class FamilyController {
 
     private final ListFamilyUseCase listFamilyUseCase;
 
+    private final ListMyFamilyPetsUseCase listMyFamilyPetsUseCase;
+
     @PostMapping("/invite-codes")
     @ResponseStatus(HttpStatus.CREATED)
     InviteCodeResponse issueInviteCode(@LoginMember Long memberId, @Valid @RequestBody IssueInviteCodeRequest request) {
@@ -46,5 +52,12 @@ public class FamilyController {
     @GetMapping
     FamilyResponse list(@LoginMember Long memberId, @Valid ListFamilyRequest request) {
         return FamilyResponse.from(listFamilyUseCase.list(new ListFamilyQuery(memberId, request.petId())));
+    }
+
+    @GetMapping("/pets")
+    List<MyFamilyPetResponse> myFamilyPets(@LoginMember Long memberId) {
+        return listMyFamilyPetsUseCase.list(new ListMyFamilyPetsQuery(memberId)).stream()
+                .map(MyFamilyPetResponse::from)
+                .toList();
     }
 }
