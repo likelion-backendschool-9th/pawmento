@@ -77,7 +77,14 @@ export function GardenSky({ pet }: { pet: Pet }) {
           />
         </div>
         <div className={s.intro}>
-          <h1>{pet.name}의 기억 정원</h1>
+          <div className={s.petIdentity}>
+            <span className={s.petPortrait}>
+              <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
+            </span>
+            <span><strong>{pet.name}</strong><span>{pet.breed}</span></span>
+          </div>
+          <h1 aria-label={`${pet.name}의 기억 정원`}>기억 정원</h1>
+          <p className={s.welcome}>함께한 순간은, 언제나 여기.</p>
           <button
             type="button"
             className={s.guideButton}
@@ -102,6 +109,13 @@ export function GardenSky({ pet }: { pet: Pet }) {
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
             />
           ))}
+        </div>
+        <div className={s.homeAction}>
+          <button type="button" onClick={reveal}>
+            <span className={s.actionSpark} aria-hidden="true">✧</span>
+            기억 한 조각 만나기
+            <span aria-hidden="true">↗</span>
+          </button>
         </div>
       </section>
       <dialog
