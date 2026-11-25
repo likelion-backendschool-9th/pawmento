@@ -39,6 +39,13 @@ export function createPetManagementApi(http: ApiClient) {
       }
     },
 
+    async edit(petId: string, changes: Partial<RegisterPetInput>): Promise<void> {
+      if (!/^[1-9]\d*$/.test(petId)) {
+        throw new ApplicationError("NOT_FOUND", "반려동물을 찾을 수 없어요.");
+      }
+      await http.patch<ManagedPetDto>(`/pets/${petId}`, changes);
+    },
+
     async listMine(): Promise<ManagedPet[]> {
       let pets: ManagedPetDto[];
       try {

@@ -9,7 +9,8 @@ import { formatDate } from "@/lib/date";
 import styles from "../../shell/components/Workspace.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { speciesName } from "../../shell/utils/presentation";
-import type { ManagedPet } from "../types/ManagedPet";
+import type { createPetManagementApi } from "../api/petManagementApi";
+import { PetManagementEditor } from "./PetManagementEditor";
 import {
   loadPetManagementDetail,
   petDetailScreen,
@@ -33,7 +34,7 @@ export function PetManagementDetail() {
         <ServerDetail
           key={JSON.stringify([session.accountId, petId])}
           session={session}
-          get={dependencies.petManagement.get}
+          api={dependencies.petManagement}
           href={href}
         />
       ) : (
@@ -54,12 +55,14 @@ function DetailLoginRequired({ href, message }: { href: string; message: string 
   );
 }
 
-function ServerDetail({ session, get, href }: {
+function ServerDetail({ session, api, href }: {
   session: PetDetailSession;
-  get: (petId: string) => Promise<ManagedPet>;
+  api: ReturnType<typeof createPetManagementApi>;
   href: string;
 }) {
   const [state, setState] = useState<PetDetailState>({ status: "loading" });
+  const [editing, setEditing] = useState(false);
+  const { get } = api;
   const [attempt, setAttempt] = useState(0);
   const { accountId, petId, ready, source } = session;
 
@@ -91,6 +94,21 @@ function ServerDetail({ session, get, href }: {
   }
 
   const { pet } = state;
+  if (editing) {
+    return (
+      <PetManagementEditor
+        pet={pet}
+        api={api}
+        href={href}
+        onCancel={() => setEditing(false)}
+        onSaved={() => {
+          setEditing(false);
+          setState({ status: "loading" });
+          setAttempt((previous) => previous + 1);
+        }}
+      />
+    );
+  }
   return (
     <div className={styles.detailWrap}>
       <PageHeading
@@ -109,6 +127,9 @@ function ServerDetail({ session, get, href }: {
           <div><strong>{pet.tag}</strong><span>태그</span></div>
           <div><strong>{pet.birthday ? formatDate(pet.birthday) : "—"}</strong><span>생일</span></div>
         </div>
+        <button type="button" className="button secondary" onClick={() => setEditing(true)}>
+          프로필 수정
+        </button>
       </section>
     </div>
   );
