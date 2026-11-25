@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
 import { createPostApi } from "../features/community/api/postApi.ts";
+import { selectCommunitySource } from "../features/community/source.ts";
+import type { Account } from "../features/member/types/account.ts";
 import { ApiError, createApiClient } from "../lib/http/apiClient.ts";
 
 type Call = { url: string; method?: string; body?: unknown };
@@ -153,4 +157,63 @@ test("#104-S5 409를 받으면 서버의 코드와 문구를 가진 ApiError가 
       error.code === "CONFLICT" &&
       error.message === message,
   );
+});
+
+function demoLife(seen: string[]) {
+  return {
+    async load() {
+      seen.push("demo.load");
+      return { posts: [{ id: "demo-1", title: "데모 글" }] };
+    },
+  };
+}
+
+const httpAccount: Account = { id: "3", email: "a@example.com", nickname: "다윗" };
+const demoAccount: Account = { ...httpAccount, id: "demo-member", demo: true };
+
+test("#104-S9 데모 계정이면 브라우저 데모 글을 쓰고 글 API를 부르지 않는다", async () => {
+  const seen: string[] = [];
+  const { api, calls } = server(() => assert.fail("데모 계정은 글 API를 부르지 않는다"));
+
+  const source = selectCommunitySource({ account: demoAccount, server: api, demo: demoLife(seen) });
+
+  assert.equal(source.kind, "demo");
+  if (source.kind !== "demo") return;
+  const state = await source.demo.load();
+  assert.deepEqual(state.posts.map((post) => post.id), ["demo-1"]);
+  assert.deepEqual(seen, ["demo.load"]);
+  assert.deepEqual(calls, []);
+});
+
+test("#104-S9 가입·로그인한 계정이면 글 API를 쓰고 데모 저장소를 부르지 않는다", async () => {
+  const seen: string[] = [];
+  const { api, calls } = server(() =>
+    Response.json({ posts: [summaryDto(9)], nextCursor: null }),
+  );
+
+  const source = selectCommunitySource({ account: httpAccount, server: api, demo: demoLife(seen) });
+
+  assert.equal(source.kind, "server");
+  if (source.kind !== "server") return;
+  const page = await source.posts.list({ category: "LIFE" });
+  assert.deepEqual(page.posts.map((post) => post.id), ["9"]);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(seen, []);
+});
+
+test("#104-S9 서버 글이 실패해도 데모 글로 대신하지 않고 오류를 올린다", async () => {
+  const seen: string[] = [];
+  const { api } = server(() => new Response(null, { status: 500 }));
+
+  const source = selectCommunitySource({ account: httpAccount, server: api, demo: demoLife(seen) });
+
+  assert.equal(source.kind, "server");
+  if (source.kind !== "server") return;
+  await assert.rejects(source.posts.list({ category: "LIFE" }), ApiError);
+  assert.deepEqual(seen, []);
+});
+
+test("#104-S9 의존성 조립은 같은 HTTP 클라이언트로 글 API를 만든다", () => {
+  const composition = readFileSync(resolve("app/composition.ts"), "utf8");
+  assert.match(composition, /posts:\s*createPostApi\(http\)/);
 });
