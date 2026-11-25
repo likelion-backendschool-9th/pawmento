@@ -1,5 +1,7 @@
 package com.pawmento.member.application.port.out;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import com.pawmento.member.domain.AuthProvider;
@@ -15,5 +17,8 @@ public interface LoadMemberPort {
 
 		// 소셜 회원을 제공자와 제공자 사용자 id로 찾는다
 	Optional<Member> loadByProvider(AuthProvider provider, String providerUserId);
+
+	// 여러 회원을 한 번의 쿼리로 읽는다. 없는 id는 결과에서 빠진다
+	List<Member> loadAllByIds(Collection<Long> ids);
 
 }

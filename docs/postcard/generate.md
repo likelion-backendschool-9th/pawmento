@@ -277,13 +277,13 @@
   - 포트는 이미지 바이트와 MIME 타입을 돌려주고, 엽서에 형식(`image_content_type`)을 저장한다. 생성기마다 PNG·JPEG가 다를 수 있다.
   - 실패(시간 초과, 차단, 빈 응답)는 어댑터가 공통 실패 예외로 바꾼다. 실패 전환과 환불 규칙은 생성기와 상관없다.
   - 엽서에 요청 때의 생성기 이름(`generator`)을 저장하고, 작업은 그 생성기로만 그린다. 생성기를 바꾼 순간 대기 중이던 엽서는 동의받은 곳과 다른 곳으로 보내지 않고 `FAILED`로 바꿔 회원당 횟수를 돌려준다. 서버에서 오픈 모델을 직접 돌리는 방식은 여러 팀이 같이 쓰는 개발 서버에 부담이 커서 쓰지 않고, 미리 그린 장면 그림을 고르는 방식은 매번 새 그림이 아니어서 쓰지 않는다.
-- 모델은 설정 `pawmento.postcard.cloudflare.model`로 둔다. 기본값은 `@cf/black-forest-labs/flux-2-klein-9b`다. 1MP 첫 이미지가 약 1,364 Neuron이라 무료 한도로 하루 7장 안팎이다. 더 가벼운 `flux-2-klein-4b`와 S7에서 비교해 확정하고, 바꿔도 코드는 고치지 않는다. `stable-diffusion-xl-base-1.0`은 2026-11-20에 종료 예정으로 표시돼 쓰지 않는다.
+- 모델은 설정 `pawmento.postcard.cloudflare.model`로 둔다. 기본값은 `@cf/black-forest-labs/flux-2-klein-4b`다. S7에서 `flux-2-klein-9b`와 같은 사진으로 비교했더니 4b가 사진 속 털색·체형을 더 가깝게 따랐고, 응답이 약 두 배 빨랐다. 사용량도 512×512 조각 단위로 매겨, 대시보드로 확인한 1K 한 장이 약 106 Neuron으로 9b(약 1,380)의 13분의 1 정도다. 다만 순백색 털은 크림색으로, 노을 장면에서는 주황빛으로 물들어 그대로 재현하지 못한다. 모델을 바꿔도 코드는 고치지 않는다. (고침 #103: S7 비교로 9b에서 4b로 확정) `stable-diffusion-xl-base-1.0`은 2026-11-20에 종료 예정으로 표시돼 쓰지 않는다.
 - 계정·토큰 발급은 이슈 담당자가 한다. 토큰은 Workers AI 권한만 준다.
 - 키 없이 무료로 쓰는 공개 이미지 API(Pollinations 등)는 보낸 내용의 보관·공개 정책이 분명하지 않아, 사용자의 일기 글과 사진을 보내지 않는다. Gemini로 바꿀 때도 유료 등급 키만 쓴다.
 - 일기 글, 첫 사진, 추가 설명, 반려동물 종·품종이 외부 서비스로 보내지므로 생성 요청마다 `consent: true`를 받는다. 동의는 웹 요청뿐 아니라 입력 포트(`RequestPostcardCommand`)로도 넘기고, 도메인이 횟수 차감과 저장 전에 확인한다. 웹이 아닌 경로로 불러도 동의 없이 만들지 않기 위해서다(PR #157 리뷰 반영). 안내 문구와 화면은 프론트엔드 이슈에서 만든다.
 - 도메인 이름은 `postcard`로 한다. 프론트 데모의 `Postcard` 타입과 같고, `card`는 UI 카드·결제 카드와 헷갈린다.
 - 엽서는 베타 기능으로 연다. 생성 품질과 실제 비용을 확인하는 기간이라 사용자에게 베타임과 하루 제한을 알린다. 베타 여부는 설정 `pawmento.postcard.beta`로 두고 `usage` 응답에 싣는다. 정식 전환 때 화면 문구와 제한을 함께 바꾼다.
-- 하루 제한은 베타 기간에 회원당 3장, 팀 전체 100장이다. Cloudflare 무료 한도를 쓰는 동안은 전체 상한을 설정으로 3장으로 낮춘다. 앱은 한국 시간 자정에, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 앱의 이틀 치가 걸치므로, 두 배(6장, 약 8,400 Neuron)가 무료 한도 안에 들도록 정했다. 날짜 기준을 맞추는 코드는 곧 Gemini로 옮길 예정이라 만들지 않는다. (고침 #103: PR #216 리뷰 반영, 5장에서 바꿈) 한도를 넘긴 호출은 실패로 끝나 회원당 횟수가 돌아온다. 회원당 제한은 프론트 데모(5장)보다 줄여 베타 기간 비용을 아낀다. 전체 상한은 키 유출이나 버그로 요청이 몰릴 때 비용을 막는다. 결제 예산 알림은 요청을 막지 않으므로 서버에서도 막는다. 두 값은 `application.yml` 설정으로 두어 결제 상황에 따라 코드 변경 없이 바꾼다.
+- 하루 제한은 베타 기간에 회원당 3장, 팀 전체 100장이다. Cloudflare 무료 한도를 쓰는 동안은 전체 상한을 설정으로 20장으로 낮춘다. 앱은 한국 시간 자정에, Cloudflare는 UTC 자정(한국 오전 9시)에 한도를 새로 세서 Cloudflare 하루에 앱의 이틀 치가 걸치므로, 두 배(40장)가 무료 한도 안에 들도록 정했다. 4b 장당 약 106 Neuron을 대시보드 반영 지연까지 감안해 약 210으로 잡으면 약 8,400 Neuron이다. 이는 워커가 밀리지 않고 처리할 때의 추정치로, 대기 요청이 쌓였다가 한꺼번에 처리되면 넘을 수 있고 넘친 호출은 실패해 횟수가 돌아온다. 9b였을 때는 같은 이유로 3장이었다. 날짜 기준을 맞추는 코드는 곧 Gemini로 옮길 예정이라 만들지 않는다. (고침 #103: PR #216 리뷰 반영으로 5장에서 3장, S7에서 4b로 정한 뒤 20장) 한도를 넘긴 호출은 실패로 끝나 회원당 횟수가 돌아온다. 회원당 제한은 프론트 데모(5장)보다 줄여 베타 기간 비용을 아낀다. 전체 상한은 키 유출이나 버그로 요청이 몰릴 때 비용을 막는다. 결제 예산 알림은 요청을 막지 않으므로 서버에서도 막는다. 두 값은 `application.yml` 설정으로 두어 결제 상황에 따라 코드 변경 없이 바꾼다.
 - 횟수는 엽서 행이 아니라 따로 둔 사용 횟수로 센다. 엽서를 지워도 횟수는 돌아오지 않는다. 동시 요청은 그날 횟수 행을 잠가 한 건씩 처리한다.
 - 실패한 엽서는 회원당 횟수를 돌려준다. 서버나 AI 서비스 탓인 실패로 사용자가 제한을 잃지 않게 한다. 전체 횟수는 돌려주지 않는다. AI 서비스를 실제로 불렀고, 시간 초과는 그쪽에서 이미 그림을 만들어 한도를 썼거나 과금됐을 수 있다.
 - 다시 시도 API는 이번에 만들지 않는다. 사용자 흐름(자동 재시도, 실패 안내)을 보고 후속 이슈에서 설계한다.
@@ -308,7 +308,7 @@
 - 생성은 비동기다. 작업은 media처럼 스케줄러가 선점한 엽서를 하나씩 처리하며, 서버는 한 대로 본다. 선점이 조건부 갱신이라 서버가 늘어도 같은 엽서를 두 번 부르지 않는다.
 - 외부 호출은 60초가 지나면 실패로 처리하고, 이번에는 자동 재시도를 하지 않는다.
 - 선점한 지 10분이 넘은 `PROCESSING` 엽서는 다음 작업 때 `FAILED`로 바꾸고 회원당 횟수를 돌려준다. 60초 제한보다 충분히 길어 진행 중인 호출을 만료시키지 않는다.
-- 이미지는 1K 가로(3:2, 1248×832) 그림으로 받아 PNG로 저장한다. 사용량이 해상도에 따라 달라서 크기를 고정한다.
+- 이미지는 1K 가로(3:2, 1248×832) 그림으로 받아 받은 형식 그대로 저장한다. Workers AI의 FLUX.2 klein은 JPEG로 준다. 사용량이 해상도에 따라 달라서 크기를 고정한다. (고침 #103: S7에서 응답이 JPEG임을 확인)
 - 사진은 원본 대신 media 썸네일(최대 512px JPEG, 1MiB 이하, EXIF 제거)을 보낸다. 원본은 최대 15MiB라 요청이 커지고 사용량도 는다. 털색·무늬를 알아보기에 부족하면 S7에서 크기를 다시 정한다.
 - 이미지와 복사 사진은 설정 `pawmento.postcard.image-root`(기본은 media 볼륨 아래 `postcards/`)에 저장한다. media 정리 작업은 `tmp/` 아래만 지워 겹치지 않는다.
 - 파일 정리 작업은 1시간마다 돌고, 만든 지 1시간이 지난 파일만 본다. 저장 직후 DB 반영을 기다리는 파일을 지우지 않기 위해서다.
@@ -323,7 +323,7 @@
 - 반려동물 삭제 차단은 pet의 `HasPetRecordsPort`를 `PetRecordsAdapter`가 구현한다(일기·질문 답변·엽서). 삭제 서비스는 이 포트로 확인한 뒤 지우고, 그사이 생긴 기록은 `PetPersistenceAdapter.deleteById`가 외래 키 이름(`fk_diary_entries_pet`, `fk_question_answer_pet`, `fk_postcard_pet`)과 SQLSTATE `23001`·`23503`으로 골라 409로 바꾼다. 다른 외래 키 위반은 그대로 던진다.
 - media 용도는 지금 `DIARY_ATTACHMENT`, `QUESTION_ANSWER_ATTACHMENT` 두 가지이며, AI 생성물은 별도 정책을 정한 뒤 확장한다고 적혀 있다([미디어](../media/README.md))
 - Gemini 이미지 모델은 장당 고정 가격이 아니라 출력 토큰으로 과금하고, 해상도가 클수록 비싸다. 1K 기준 `gemini-nano-banana-2.1` 약 $0.0336, `gemini-3.1-flash-image` 약 $0.067이다. 이미지 모델은 무료 등급에서 쓸 수 없다(2026-11 기준, [Gemini API 가격](https://ai.google.dev/gemini-api/docs/pricing))
-- Workers AI 무료 한도는 하루 10,000 Neuron이고 넘으면 1,000 Neuron당 $0.011이다. FLUX.2 klein 9B는 첫 1MP에 1,363.64 Neuron, 그 뒤 1MP마다 181.82 Neuron이다. 응답은 base64 `image` 필드다(2026-11 기준, [Workers AI 가격](https://developers.cloudflare.com/workers-ai/platform/pricing/), [데이터 사용](https://developers.cloudflare.com/workers-ai/platform/data-usage/), [flux-2-klein-9b](https://developers.cloudflare.com/workers-ai/models/flux-2-klein-9b/))
+- Workers AI 무료 한도는 하루 10,000 Neuron이고 넘으면 1,000 Neuron당 $0.011이다. FLUX.2 klein 4B는 512×512 조각마다 입력 5.37 Neuron, 출력 26.05 Neuron이다. 9B는 첫 1MP에 1,363.64 Neuron, 그 뒤 1MP마다 181.82 Neuron이다. 응답은 base64 `image` 필드다(2026-11 기준, [Workers AI 가격](https://developers.cloudflare.com/workers-ai/platform/pricing/), [데이터 사용](https://developers.cloudflare.com/workers-ai/platform/data-usage/), [flux-2-klein-4b](https://developers.cloudflare.com/workers-ai/models/flux-2-klein-4b/), [flux-2-klein-9b](https://developers.cloudflare.com/workers-ai/models/flux-2-klein-9b/))
 - 일기 첨부는 `GetDiaryEntryUseCase` 결과의 `attachments`(순서, `type`, `available`)로 알고, 파일은 `GetDiaryFileUseCase`(`thumbnail: true`)가 소유·첨부 관계를 확인한 뒤 돌려준다. media는 이미지 저장 때 메타데이터를 지우고 512px 썸네일을 만든다([일기 첨부](../diary/attachments.md), [미디어](../media/README.md))
 - 반려동물 등록은 `name`(필수), `species`(`DOG`·`CAT`·`OTHER`, 필수), `breed`(선택, 자유 입력), `birthday`(선택)를 받는다. 외모 정보와 프로필 사진은 없다
 - 산책(`Walk`)에는 시작·끝 시각과 경로 좌표만 있고, map 입력 포트는 시작·좌표 추가·끝·날짜별 목록뿐이다. 서버에 질문 답변 도메인은 아직 없다(#31 진행 중)

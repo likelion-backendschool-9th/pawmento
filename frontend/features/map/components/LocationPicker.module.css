@@ -154,6 +154,9 @@
 .canvas {
   position: absolute;
   inset: 0;
+  /* 네이버 지도가 칸의 배치 방식을 바꿔도 높이가 0이 되지 않게 크기를 직접 정한다 */
+  width: 100%;
+  height: 100%;
   touch-action: none;
 }
 .staticMap {

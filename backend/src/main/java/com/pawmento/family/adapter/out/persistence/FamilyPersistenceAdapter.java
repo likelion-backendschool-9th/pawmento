@@ -1,5 +1,7 @@
 package com.pawmento.family.adapter.out.persistence;
 
+import java.util.List;
+
 import org.springframework.stereotype.Repository;
 
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
@@ -22,6 +24,13 @@ class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamily
     @Override
     public PetFamilyMember save(PetFamilyMember member) {
         return memberRepository.saveAndFlush(PetFamilyMemberJpaEntity.from(member)).toDomain();
+    }
+
+    @Override
+    public List<PetFamilyMember> loadByPetId(Long petId) {
+        return memberRepository.findByPetIdOrderByJoinedAtAscIdAsc(petId).stream()
+                .map(PetFamilyMemberJpaEntity::toDomain)
+                .toList();
     }
 
 }
