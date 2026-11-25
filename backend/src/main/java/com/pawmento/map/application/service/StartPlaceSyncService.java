@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.in.GetPlaceSyncStatusQuery;
@@ -15,9 +15,9 @@ import com.pawmento.map.application.port.in.GetPlaceSyncStatusUseCase;
 import com.pawmento.map.application.port.in.PlaceSyncStatusResult;
 import com.pawmento.map.application.port.in.StartPlaceSyncCommand;
 import com.pawmento.map.application.port.in.StartPlaceSyncUseCase;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.PlaceSyncExecutorPort;
 import com.pawmento.map.application.port.out.PlaceSyncStatus;
@@ -42,7 +42,7 @@ class StartPlaceSyncService implements StartPlaceSyncUseCase, GetPlaceSyncStatus
 
 	private final PlaceSyncExecutorPort executorPort;
 
-	private final SyncLocalDataPlacesUseCase syncUseCase;
+	private final SyncPublicDataPlacesUseCase syncUseCase;
 
 	private final Clock clock;
 
@@ -78,7 +78,7 @@ class StartPlaceSyncService implements StartPlaceSyncUseCase, GetPlaceSyncStatus
 	private void run(PlaceCategory category, Instant startedAt) {
 		PlaceSyncStatus finished;
 		try {
-			SyncLocalDataPlacesResult result = syncUseCase.sync(new SyncLocalDataPlacesCommand(null, category.name()));
+			SyncPublicDataPlacesResult result = syncUseCase.sync(new SyncPublicDataPlacesCommand(null, category.name()));
 			finished = PlaceSyncStatus.succeeded(startedAt, clock.instant(), result);
 		}
 		catch (PlaceSyncAlreadyRunningException e) {
@@ -88,7 +88,7 @@ class StartPlaceSyncService implements StartPlaceSyncUseCase, GetPlaceSyncStatus
 			log.error("장소 수동 가져오기 중 잠금을 잃어 저장하지 않았습니다: {}", category, e);
 			finished = PlaceSyncStatus.failed(startedAt, clock.instant(), "LOCK_LOST");
 		}
-		catch (LocalDataSyncFailedException e) {
+		catch (PublicDataSyncFailedException e) {
 			log.error("장소 수동 가져오기 실패({}): {}", e.reason(), category, e);
 			finished = PlaceSyncStatus.failed(startedAt, clock.instant(), e.reason().name());
 		}

@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import java.time.Duration;
 
@@ -6,7 +6,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 /**
- * 공공데이터포털(행정안전부 인허가 데이터) 호출 설정 (application.yml의 pawmento.map.local-data).
+ * 공공데이터포털(행정안전부 인허가 데이터와 농림축산식품부 보호센터 데이터) 호출 설정 (application.yml의 pawmento.map.public-data).
+ * 두 데이터가 같은 인증키와 재시도 설정을 쓰므로 이 이름이 둘을 함께 가리킨다.
  * 정부 서버는 시간대에 따라 호출의 상당수가 시간 초과·504로 실패해서(2026-11-23 실측: 호출 4번 중 1번, 혼잡할 때는 절반 이상),
  * 페이지마다 여러 번 다시 시도하도록 값을 넉넉히 잡았다. 값은 실제로 돌려 보며 조정한다.
  *
@@ -21,8 +22,8 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
  * @param maxBackoff 다시 시도 전에 쉬는 시간의 최대값
  * @param pageInterval 페이지와 페이지 사이에 쉬는 시간. 하루 호출 한도(10,000건)와 서버 부담을 위해 둔다
  */
-@ConfigurationProperties("pawmento.map.local-data")
-public record LocalDataProperties(
+@ConfigurationProperties("pawmento.map.public-data")
+public record PublicDataProperties(
 		@DefaultValue("") String serviceKey,
 		@DefaultValue("https://apis.data.go.kr") String baseUrl,
 		@DefaultValue("100") int pageSize,
@@ -38,7 +39,7 @@ public record LocalDataProperties(
 
 	// 잘못된 값은 앱이 시작할 때 거절한다. 0이나 100을 넘는 pageSize는 페이지 수 계산을 어긋나게 해서 원인을 알기 어려운 실패(0으로 나누기,
 	// 매번 TOTAL_COUNT_MISMATCH)가 되고, maxAttempts=0은 한 번도 호출하지 않고 끝나기 때문이다
-	public LocalDataProperties {
+	public PublicDataProperties {
 		if (serviceKey == null) {
 			serviceKey = "";
 		}
@@ -67,7 +68,7 @@ public record LocalDataProperties(
 	}
 
 	private static IllegalArgumentException invalid(String name, String expected, Object actual) {
-		return new IllegalArgumentException("pawmento.map.local-data." + name + "은(는) " + expected + "이어야 합니다: " + actual);
+		return new IllegalArgumentException("pawmento.map.public-data." + name + "은(는) " + expected + "이어야 합니다: " + actual);
 	}
 
 	boolean hasServiceKey() {
