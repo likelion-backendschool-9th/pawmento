@@ -80,7 +80,6 @@ class JoinFamilyServiceTest {
 		assertThat(result).isEqualTo(new JoinFamilyResult(PET, "보리", "0001"));
 		ArgumentCaptor<PetFamilyMember> saved = ArgumentCaptor.forClass(PetFamilyMember.class);
 		InOrder order = inOrder(load, lock, families, consume, save, pets);
-
 		order.verify(load).loadByCodeHash(hash);
 		order.verify(lock).lockOwnerId(PET);
 		order.verify(families).existsByPetIdAndMemberId(PET, JOINER);
