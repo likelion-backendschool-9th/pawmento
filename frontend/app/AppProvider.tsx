@@ -106,7 +106,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       seeded.pets[0];
     if (demoPet) {
       try {
-        await dependencies.workspace.seedDemoDiaryTitles(current.id);
         await dependencies.workspace.seedDemoAnswers(
           current.id,
           demoQuestionInputs(

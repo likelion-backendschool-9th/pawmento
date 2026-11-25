@@ -73,7 +73,7 @@ test("#233-S4 데모 일기는 제목 필수·공백 정리·코드 포인트 10
   assert.equal(current().diaries[0].title, "🐾".repeat(100));
 });
 
-test("#233-S4 기존 무제목 사용자 일기는 보존하고 알려진 데모 샘플만 명시적 제목으로 보강한다", async () => {
+test("#233-S4 (고침 #233: 자동 보강 제거) 데모 재조회·질문 샘플 보강에도 기존 무제목 일기를 그대로 보존한다", async () => {
   const { uc, current, replace } = setup();
   const pet = await uc.savePet("demo", petInput);
   const sample = demoDiarySamples[0];
@@ -95,11 +95,16 @@ test("#233-S4 기존 무제목 사용자 일기는 보존하고 알려진 데모
     { ...original, id: "titled", title: "내가 수정한 제목" },
   ];
   replace(state);
-  await uc.seedDemoDiaryTitles("demo");
-  await uc.seedDemoDiaryTitles("demo");
-  assert.deepEqual(current().diaries[0], { ...original, title: sample.title });
-  assert.equal(current().diaries[1].title, undefined);
-  assert.equal(current().diaries[2].title, "내가 수정한 제목");
+  const before = structuredClone(state.diaries);
+  for (const day of ["2026-11-25", "2026-11-26"]) {
+    const loaded = await uc.load("demo");
+    await uc.seedDemoAnswers(
+      "demo",
+      demoQuestionInputs(pet, loaded.questionAnswers, day, loaded.questionPrompts),
+    );
+    assert.deepEqual((await uc.load("demo")).diaries, before);
+    assert.deepEqual(current().diaries, before);
+  }
   await assert.rejects(
     uc.diary.save(
       "demo",

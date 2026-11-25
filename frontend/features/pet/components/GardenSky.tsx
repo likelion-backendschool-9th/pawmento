@@ -70,8 +70,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             src="/images/puppy-retouched-v4.png"
             alt=""
             fill
-            unoptimized
-            sizes="480px"
+            sizes="(max-width: 480px) 100vw, 480px"
             loading="eager"
             className={s.art}
           />

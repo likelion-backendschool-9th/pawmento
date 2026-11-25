@@ -1,4 +1,3 @@
-import { demoDiarySamples } from "../fixtures/demoDiaries.ts";
 import type { PetInput } from "../../features/pet/types/Pet.ts";
 import type { Workspace } from "../../features/shell/types/workspace.ts";
 import { validateDate } from "../../lib/date.ts";
@@ -89,19 +88,6 @@ export function createWorkspaceUseCases(
   return {
     diary,
     questions,
-    seedDemoDiaryTitles: (accountId: string) =>
-      mutate(accountId, (state) => {
-        if (accountId !== "demo")
-          throw Error("데모 계정에서만 샘플을 추가할 수 있어요.");
-        for (const entry of state.diaries) {
-          if (entry.authorId !== "demo" || entry.title !== undefined) continue;
-          const sample = demoDiarySamples.find(
-            (sample) =>
-              sample.body === entry.body && sample.photoUrl === entry.photoUrl,
-          );
-          if (sample) entry.title = sample.title;
-        }
-      }),
     seedDemoAnswers: (
       accountId: string,
       inputs: import("../../features/question/types/QuestionAnswer.ts").DemoQuestionAnswerInput[],
