@@ -289,79 +289,45 @@ npm run dev
 <div align="center">
 <table align="center">
   <tr>
-    <td valign="top">
-      <table align="center">
-        <tr>
-          <td align="center" valign="top" width="144">
-          <a href="https://github.com/LuvZian"><img src="https://github.com/LuvZian.png?size=176" width="88" height="88" alt="김선아 GitHub 프로필 사진"></a><br>
-          <a href="https://github.com/LuvZian"><strong>김선아</strong></a><br>
-          <sub>@LuvZian · 👑 팀 리더</sub><br><br>
-          <strong>일기와 질문</strong><br>
-          <sub>다이어리·질문 조회<br>가족 기록 권한 검증</sub><br><br>
-          <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3ALuvZian">PR 보기 ↗</a>
-          </td>
-        </tr>
-      </table>
+    <td align="center" valign="top">
+      <a href="https://github.com/LuvZian"><img src="https://github.com/LuvZian.png?size=128" width="64" height="64" alt="김선아 GitHub 프로필 사진"></a><br>
+      <a href="https://github.com/LuvZian"><strong>김선아</strong></a><br>
+      <sub>@LuvZian<br>👑 팀 리더</sub><br><br>
+      <strong>일기와 질문</strong><br>
+      <sub>다이어리·질문 조회<br>가족 기록 권한 검증</sub><br><br>
+      <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3ALuvZian">PR 보기 ↗</a>
     </td>
-    <td width="8">&nbsp;</td>
-    <td valign="top">
-      <table align="center">
-        <tr>
-          <td align="center" valign="top" width="144">
-          <a href="https://github.com/jangabc3"><img src="https://github.com/jangabc3.png?size=176" width="88" height="88" alt="장준영 GitHub 프로필 사진"></a><br>
-          <a href="https://github.com/jangabc3"><strong>장준영</strong></a><br>
-          <sub>@jangabc3</sub><br><br>
-          <strong>정보 지도</strong><br>
-          <sub>장소 조회·화면 연동<br>공공데이터 수집</sub><br><br>
-          <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Ajangabc3">PR 보기 ↗</a>
-          </td>
-        </tr>
-      </table>
+    <td align="center" valign="top">
+      <a href="https://github.com/jangabc3"><img src="https://github.com/jangabc3.png?size=128" width="64" height="64" alt="장준영 GitHub 프로필 사진"></a><br>
+      <a href="https://github.com/jangabc3"><strong>장준영</strong></a><br>
+      <sub>@jangabc3</sub><br><br>
+      <strong>정보 지도</strong><br>
+      <sub>장소 조회·화면 연동<br>공공데이터 수집</sub><br><br>
+      <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Ajangabc3">PR 보기 ↗</a>
     </td>
-    <td width="8">&nbsp;</td>
-    <td valign="top">
-      <table align="center">
-        <tr>
-          <td align="center" valign="top" width="144">
-          <a href="https://github.com/lakesole"><img src="https://github.com/lakesole.png?size=176" width="88" height="88" alt="곽다윗 GitHub 프로필 사진"></a><br>
-          <a href="https://github.com/lakesole"><strong>곽다윗</strong></a><br>
-          <sub>@lakesole</sub><br><br>
-          <strong>회원과 가족</strong><br>
-          <sub>계정 태그·소셜 계정<br>가족 초대 코드 개발 중</sub><br><br>
-          <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Alakesole">PR 보기 ↗</a>
-          </td>
-        </tr>
-      </table>
+    <td align="center" valign="top">
+      <a href="https://github.com/lakesole"><img src="https://github.com/lakesole.png?size=128" width="64" height="64" alt="곽다윗 GitHub 프로필 사진"></a><br>
+      <a href="https://github.com/lakesole"><strong>곽다윗</strong></a><br>
+      <sub>@lakesole</sub><br><br>
+      <strong>회원과 가족</strong><br>
+      <sub>계정 태그·소셜 계정<br>가족 초대 코드 개발 중</sub><br><br>
+      <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Alakesole">PR 보기 ↗</a>
     </td>
-    <td width="8">&nbsp;</td>
-    <td valign="top">
-      <table align="center">
-        <tr>
-          <td align="center" valign="top" width="144">
-          <a href="https://github.com/D-Gyun103"><img src="https://github.com/D-Gyun103.png?size=176" width="88" height="88" alt="김도균 GitHub 프로필 사진"></a><br>
-          <a href="https://github.com/D-Gyun103"><strong>김도균</strong></a><br>
-          <sub>@D-Gyun103</sub><br><br>
-          <strong>반려동물 관리</strong><br>
-          <sub>등록·관리 화면 API<br>소유주 이전</sub><br><br>
-          <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3AD-Gyun103">PR 보기 ↗</a>
-          </td>
-        </tr>
-      </table>
+    <td align="center" valign="top">
+      <a href="https://github.com/D-Gyun103"><img src="https://github.com/D-Gyun103.png?size=128" width="64" height="64" alt="김도균 GitHub 프로필 사진"></a><br>
+      <a href="https://github.com/D-Gyun103"><strong>김도균</strong></a><br>
+      <sub>@D-Gyun103</sub><br><br>
+      <strong>반려동물 관리</strong><br>
+      <sub>등록·관리 화면 API<br>소유주 이전</sub><br><br>
+      <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3AD-Gyun103">PR 보기 ↗</a>
     </td>
-    <td width="8">&nbsp;</td>
-    <td valign="top">
-      <table align="center">
-        <tr>
-          <td align="center" valign="top" width="144">
-          <a href="https://github.com/isle-blu"><img src="https://github.com/isle-blu.png?size=176" width="88" height="88" alt="양덕관 GitHub 프로필 사진"></a><br>
-          <a href="https://github.com/isle-blu"><strong>양덕관</strong></a><br>
-          <sub>@isle-blu</sub><br><br>
-          <strong>엽서와 프론트엔드</strong><br>
-          <sub>AI 이미지 생성<br>기능별 폴더와 목업</sub><br><br>
-          <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Aisle-blu">PR 보기 ↗</a>
-          </td>
-        </tr>
-      </table>
+    <td align="center" valign="top">
+      <a href="https://github.com/isle-blu"><img src="https://github.com/isle-blu.png?size=128" width="64" height="64" alt="양덕관 GitHub 프로필 사진"></a><br>
+      <a href="https://github.com/isle-blu"><strong>양덕관</strong></a><br>
+      <sub>@isle-blu</sub><br><br>
+      <strong>엽서와 프론트엔드</strong><br>
+      <sub>AI 이미지 생성<br>기능별 폴더와 목업</sub><br><br>
+      <a href="https://github.com/likelion-backendschool-9th/pawmento/pulls?q=is%3Apr+author%3Aisle-blu">PR 보기 ↗</a>
     </td>
   </tr>
 </table>
