@@ -229,6 +229,27 @@ class NaverAddressAdapterTest {
 		}
 		""";
 
+	// 지역(region) 없이 도로명과 건물번호만 있는 응답. 그대로 쓰면 건물번호만 남는다
+	private static final String ROAD_WITHOUT_REGION_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "land": {"name": "서울숲2길", "number1": "32", "number2": "14"}}
+		  ]
+		}
+		""";
+
+	// 시·군·구가 없는 세종특별자치시의 도로명 주소
+	private static final String SEJONG_ROAD_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "세종특별자치시"}, "area2": {"name": ""},
+		      "area3": {"name": "어진동"}, "area4": {"name": ""}}, "land": {"name": "한누리대로", "number1": "2130", "number2": ""}}
+		  ]
+		}
+		""";
+
 	// 이하는 장소 카드의 가려진 주소 보완(#239)이 쓰는 도로명 전용 조회다. 일기 위치(#19)의 지번 폴백은 위에서 그대로 확인한다
 
 	@Test
@@ -282,6 +303,26 @@ class NaverAddressAdapterTest {
 			.andRespond(withSuccess(NUMBER_WITHOUT_ROAD_NAME_JSON, MediaType.APPLICATION_JSON));
 
 		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 지역 정보 없이 도로명과 건물번호만 있으면 불완전한 주소라 빈 값이다")
+	void roadOnlyLookupNeedsRegion() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(ROAD_WITHOUT_REGION_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 시·군·구가 없는 세종특별자치시의 도로명 주소는 그대로 받는다")
+	void roadOnlyLookupAcceptsSejongWithoutDistrict() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(SEJONG_ROAD_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(36.48, 127.28))
+			.contains("세종특별자치시 한누리대로 2130");
 	}
 
 	@Test

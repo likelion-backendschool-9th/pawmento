@@ -61,7 +61,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toAddress);
 	}
 
-	// 도로명과 건물번호가 모두 있을 때만 받는다. 지번 주소로 돌아가지 않고, 도로명이 빠진 번호만으로는 성공으로 치지 않는다(#239-S9).
+	// 시·도, 도로명, 건물번호가 모두 있을 때만 받는다. 지번 주소로 돌아가지 않고, 앞부분이 빠진 번호만으로는 성공으로 치지 않는다(#239-S9).
 	// NaverRoadAddressAdapter가 부른다
 	Optional<String> loadRoadAddress(double latitude, double longitude) {
 		return fetch(latitude, longitude).flatMap(NaverAddressAdapter::toRoadAddress);
@@ -98,6 +98,12 @@ class NaverAddressAdapter implements LoadAddressPort {
 		return BigDecimal.valueOf(value).toPlainString();
 	}
 
+	// 시·도, 도로명, 건물번호가 모두 있어야 찾아갈 수 있는 도로명 주소로 본다. 시·군·구는 세종특별자치시처럼 없을 수 있어 요구하지 않는다
+	private static boolean isCompleteRoadAddress(Result result) {
+		return result.region() != null && result.region().area1() != null && hasText(result.region().area1().name())
+				&& result.land() != null && hasText(result.land().name()) && hasText(result.land().number1());
+	}
+
 	private static boolean hasText(String text) {
 		return text != null && !text.isBlank();
 	}
@@ -111,7 +117,7 @@ class NaverAddressAdapter implements LoadAddressPort {
 			return Optional.empty();
 		}
 		return findResult(response, "roadaddr")
-			.filter(result -> result.land() != null && hasText(result.land().name()) && hasText(result.land().number1()))
+			.filter(NaverAddressAdapter::isCompleteRoadAddress)
 			.map(NaverAddressAdapter::compose)
 			.filter(address -> !address.isBlank());
 	}
