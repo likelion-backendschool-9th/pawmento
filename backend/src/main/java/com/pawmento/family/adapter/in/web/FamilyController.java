@@ -2,7 +2,6 @@ package com.pawmento.family.adapter.in.web;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,7 +44,7 @@ public class FamilyController {
     }
 
     @GetMapping
-    FamilyResponse list(@LoginMember Long memberId, @RequestParam Long petId) {
-        return FamilyResponse.from(listFamilyUseCase.list(new ListFamilyQuery(memberId, petId)));
+    FamilyResponse list(@LoginMember Long memberId, @Valid ListFamilyRequest request) {
+        return FamilyResponse.from(listFamilyUseCase.list(new ListFamilyQuery(memberId, request.petId())));
     }
 }

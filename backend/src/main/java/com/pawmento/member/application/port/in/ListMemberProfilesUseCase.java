@@ -4,6 +4,6 @@ import java.util.List;
 
 public interface ListMemberProfilesUseCase {
 
-    List<MemberProfileResult> list(ListMemberProfilesQuery query);
+	List<MemberProfileResult> list(ListMemberProfilesQuery query);
 
 }

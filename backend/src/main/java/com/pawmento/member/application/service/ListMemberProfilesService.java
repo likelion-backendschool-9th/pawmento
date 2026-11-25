@@ -16,17 +16,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class ListMemberProfilesService implements ListMemberProfilesUseCase {
 
-    private final LoadMemberPort loadMemberPort;
+	private final LoadMemberPort loadMemberPort;
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<MemberProfileResult> list(ListMemberProfilesQuery query) {
-        if (query.memberIds().isEmpty()) {
-            return List.of();
-        }
-        return loadMemberPort.loadAllByIds(query.memberIds()).stream()
-                .map(MemberProfileResult::from)
-                .toList();
-    }
+	@Override
+	@Transactional(readOnly = true)
+	public List<MemberProfileResult> list(ListMemberProfilesQuery query) {
+		if (query.memberIds().isEmpty()) {
+			return List.of();
+		}
+		return loadMemberPort.loadAllByIds(query.memberIds()).stream()
+				.map(MemberProfileResult::from)
+				.toList();
+	}
 
 }

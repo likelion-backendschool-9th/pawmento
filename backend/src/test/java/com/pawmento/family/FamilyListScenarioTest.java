@@ -97,7 +97,7 @@ class FamilyListScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133-S6 관계없는 회원은 403, 없는 반려동물은 404, petId가 없으면 400, 로그인하지 않으면 401이다")
+	@DisplayName("#133-S6 관계없는 회원은 403, 없는 반려동물은 404, petId가 없거나 1 미만이거나 숫자가 아니면 400 VALIDATION, 로그인하지 않으면 401이다")
 	void refusals() throws Exception {
 		MemberResult owner = member("다윗");
 		long pet = createPet.create(new CreatePetCommand(owner.id(), "하루", "DOG", null, null)).petId();
@@ -108,8 +108,16 @@ class FamilyListScenarioTest {
 		list(owner.id(), Long.MAX_VALUE)
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("NOT_FOUND"));
+		// petId 형식 오류는 조회 전에 공통 형식의 400 VALIDATION이다
 		mvc.perform(get("/api/v1/families").with(jwt().jwt(j -> j.subject("" + owner.id()))))
-				.andExpect(status().isBadRequest());
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION"));
+		for (String bad : new String[] { "0", "-1", "abc" }) {
+			mvc.perform(get("/api/v1/families").param("petId", bad)
+					.with(jwt().jwt(j -> j.subject("" + owner.id()))))
+					.andExpect(status().isBadRequest())
+					.andExpect(jsonPath("$.code").value("VALIDATION"));
+		}
 		mvc.perform(get("/api/v1/families").param("petId", "" + pet))
 				.andExpect(status().isUnauthorized());
 	}

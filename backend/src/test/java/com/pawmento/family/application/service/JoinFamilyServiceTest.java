@@ -92,6 +92,16 @@ class JoinFamilyServiceTest {
 	}
 
 	@Test
+	@DisplayName("#133-S3 잠근 반려동물의 요약을 읽지 못하면 코드 문제(404)가 아니라 서버 오류로 드러낸다")
+	void missingSummaryIsServerError() {
+		when(pets.loadSummary(PET)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(JOINER, CODE)))
+				.isInstanceOf(IllegalStateException.class)
+				.isNotInstanceOf(InviteCodeNotFoundException.class);
+	}
+
+	@Test
 	@DisplayName("#133-S3 소문자와 공백이 섞인 입력도 같은 코드로 찾는다")
 	void normalizesInput() {
 		service.join(new JoinFamilyCommand(JOINER, "  k7q2m9xa "));
