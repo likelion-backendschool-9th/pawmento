@@ -3,7 +3,7 @@ import s from "./TodayQuestion.module.css";
 
 export function QuestionHeading({ title, body, children }: {
   title: string;
-  body: string;
+  body: ReactNode;
   children?: ReactNode;
 }) {
   return (

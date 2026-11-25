@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -88,9 +89,9 @@ export function WalkScreen({ pet }: Props) {
                 ? "위치가 한동안 오지 않아 서버가 산책을 먼저 닫았어요"
                 : outcome?.complete === false
                   ? "걸은 길의 일부만 저장됐어요"
-                  : practice
-                    ? `${pet.name}와 함께 걸은 길을 연습으로 기록했어요`
-                    : `${pet.name}와 함께 걸은 길이 저장됐어요`}
+                  : <PetDescription name={pet.name} suffix="와 함께 걸은 길,">
+                    {practice ? "연습으로 기록했어요." : "소중히 저장했어요."}
+                  </PetDescription>}
             </h2>
             {(outcome?.status === "INTERRUPTED" || outcome?.complete === false) && (
               <p className={styles.warn} role="status">

@@ -13,7 +13,7 @@ export function LifeHeading({
   subject?: string;
   label: string;
   title: string;
-  body: string;
+  body: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (

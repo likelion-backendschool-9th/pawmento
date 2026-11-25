@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
@@ -40,7 +41,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
       <LifeHeading
         label="MEDIA ARCHIVE"
         title="다이어리"
-        body={`${pet.name}의 사진과 영상, 목소리를 한곳에서 만나보세요.`}
+        body={<PetDescription name={pet.name} suffix="의 소중한 기록,">사진과 목소리를 한곳에서 만나요.</PetDescription>}
       >
         {pet.accessRole !== "VIEWER" && (
           <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>

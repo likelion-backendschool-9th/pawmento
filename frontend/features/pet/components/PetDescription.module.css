@@ -1,0 +1,5 @@
+.description { display: block; min-width: 0; max-width: 100%; }
+.identity { display: flex; align-items: baseline; min-width: 0; }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.suffix { flex-shrink: 0; white-space: nowrap; }
+.copy { display: block; margin-top: 2px; word-break: keep-all; overflow-wrap: anywhere; text-wrap: pretty; }

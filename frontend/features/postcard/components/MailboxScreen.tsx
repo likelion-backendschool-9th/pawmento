@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
@@ -200,7 +201,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
           <section className={s.panel}>
             <h2>1. 어떤 기억이 찾아올까요?</h2>
             <p className={s.meta}>
-              {pet.name}의 일기와 기록 {records.length}개 중 한 장을 뽑아요.
+              <PetDescription name={pet.name} suffix="의 기억들 중,">일기와 기록 {records.length}개에서 한 장을 뽑아요.</PetDescription>
             </p>
             <button
               type="button"
@@ -401,8 +402,7 @@ function PostcardDetail({ pet, card }: { pet: Pet; card: Postcard }) {
               </span>
               <h2>이 기억이 한 장의 그림으로</h2>
               <p>
-                랜덤으로 뽑힌 기록 1개와 {pet.name}의 참고 사진을 연결한
-                데모입니다. 표시된 그림은 미리 준비한 코기 샘플이에요.
+                <PetDescription name={pet.name} suffix="의 사진과 기록으로,">엽서를 만드는 데모예요. 그림은 준비된 코기 샘플입니다.</PetDescription>
               </p>
               {current.demoArtwork.referencePhotoUrl && (
                 <div className={s.petReference}>

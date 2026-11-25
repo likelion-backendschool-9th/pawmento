@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import { MediaAttachments, MediaPlayer } from "@/components/MediaAttachments";
 import type { MediaAttachment } from "../../../types/MediaAttachment";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
@@ -364,7 +365,7 @@ export function JournalDetail({
           })}
           {record.authorName ? ` · ${record.authorName}` : ""}
         </p>
-        <p>{pet.name}와 함께한 소중한 하루</p>
+        <p><PetDescription name={pet.name} suffix="와 함께한">소중한 하루의 기록이에요.</PetDescription></p>
       </header>
       <article className={styles.detail}>
         {record.photoUrl && (

@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
@@ -103,7 +104,7 @@ export function MapScreen({
     <>
       <CollectionHeading
         title="추억 지도"
-        body={`${pet.name}와 함께 다녀온 곳을 지도에서 다시 만나 보세요.`}
+        body={<PetDescription name={pet.name} suffix="와 다녀온 곳,">지도에서 다시 만나요.</PetDescription>}
       >
         <Link className="button secondary" href={`/pets/${pet.id}/map/walk`}>
           <Icon name="paw" size={17} />
@@ -193,7 +194,7 @@ export function MapScreen({
             </span>
             <strong>이 지역에는 붙인 기억이 아직 없어요</strong>
             <p>
-              기록을 쓸 때 위치를 붙이면 {pet.name}와 함께한 곳이 하나씩 모여요.
+              <PetDescription name={pet.name} suffix="와 함께한 곳,">기록에 위치를 붙이면 여기에 모여요.</PetDescription>
             </p>
             <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
               기록 쓰러 가기

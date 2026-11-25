@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -45,7 +46,7 @@ export function ModeScreen({ pet }: { pet: Pet }) {
         label="PET MODE"
         title="공간 설정"
         subject={pet.name}
-        body={`${pet.name}의 모드만 변경해요. 다른 반려동물의 설정과 기록은 그대로 유지돼요.`}
+        body={<>이 아이의 모드만 변경해요.<br />다른 아이의 설정과 기록은 그대로 유지돼요.</>}
       />
       <div className={s.modeGrid}>
         {[
@@ -94,7 +95,7 @@ export function ModeScreen({ pet }: { pet: Pet }) {
               ? "기억의 정원으로 이동할까요?"
               : "함께하는 오늘로 돌아갈까요?"}
           </h2>
-          <p>{pet.name}의 모드만 변경합니다. 모든 기록은 그대로 유지돼요.</p>
+          <p><PetDescription name={pet.name} suffix="의 모드만 변경해요.">모든 기록은 그대로 유지돼요.</PetDescription></p>
           <div className={s.inlineActions}>
             <button
               className="button secondary"
