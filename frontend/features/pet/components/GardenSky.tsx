@@ -13,7 +13,7 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Normalized centers of the ten painted butterflies in puppy-retouched-v4.png.
+// Keep the ten memory targets at their original positions in the 2:3 scene.
 const lights = [
   { x: 29.8, y: 26.1 },
   { x: 61.1, y: 29.9 },
@@ -71,15 +71,11 @@ export function GardenSky({ pet }: { pet: Pet }) {
         aria-label={`${pet.name}의 기억이 빛나는 정원`}
       >
         <div className={s.scene} aria-hidden="true">
-          <Image
-            src="/images/puppy-retouched-v4.png"
-            alt=""
-            fill
-            sizes="(max-width: 480px) 100vw, 480px"
-            loading="eager"
-            className={s.art}
-          />
+          <GardenArtwork />
         </div>
+        <div className={s.skyFlow} aria-hidden="true"><GardenArtwork /></div>
+        <div className={s.floraLeft} aria-hidden="true"><GardenArtwork /></div>
+        <div className={s.floraRight} aria-hidden="true"><GardenArtwork /></div>
         <div className={s.atmosphere} aria-hidden="true">
           <div className={s.nebula} />
           <div className={s.starfield}>
@@ -131,7 +127,14 @@ export function GardenSky({ pet }: { pet: Pet }) {
               }}
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
-            />
+            >
+              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s` }}>
+                <span className={s.wings} style={{ width: 25 + i % 3 * 3, height: 25 + i % 3 * 3 }}>
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s` }} />
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s` }} />
+                </span>
+              </span>
+            </button>
           ))}
         </div>
         <div className={s.homeAction}>
@@ -274,5 +277,18 @@ export function GardenSky({ pet }: { pet: Pet }) {
         )}
       </dialog>
     </>
+  );
+}
+
+function GardenArtwork() {
+  return (
+    <Image
+      src="/images/garden-motion-base.png"
+      alt=""
+      fill
+      sizes="(max-width: 480px) 100vw, 480px"
+      loading="eager"
+      className={s.art}
+    />
   );
 }

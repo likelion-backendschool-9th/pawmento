@@ -30,3 +30,6 @@ puppy-retouched-v3.png: built-in imagegen retouch of puppy-retouched-v2.png for 
 puppy-retouched-v4.png: Built-in imagegen edit of puppy-retouched-v3.png; Milky Way extended to the top edge, preserving the corgi and ten butterfly positions.
 
 developer-lineup.png: Built-in imagegen transparent-background cutout/composition of the five user-provided developer animal mascots (Siamese cat, hedgehog, green snake, cockatiel, chinchilla).
+
+garden-motion-base.png: Built-in imagegen edit of puppy-retouched-v4.png removing baked-in butterflies for animated layers. Original retained.
+garden-butterfly.png: Built-in imagegen transparent watercolor butterfly sprite based on the golden butterflies in puppy-retouched-v4.png.
