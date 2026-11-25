@@ -13,18 +13,18 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Viewport-relative targets keep the scattered butterflies inside the touch area.
+// Spread targets through the sky between the introduction and the garden.
 const lights = [
-  { x: 14, y: 25, angle: -38, size: 29, beat: 2.1 },
-  { x: 72, y: 23, angle: 28, size: 24, beat: 2.7 },
-  { x: 46, y: 34, angle: -12, size: 31, beat: 1.8 },
-  { x: 88, y: 43, angle: 57, size: 23, beat: 2.4 },
-  { x: 23, y: 52, angle: -65, size: 26, beat: 2.2 },
-  { x: 54, y: 51, angle: 18, size: 29, beat: 1.9 },
-  { x: 13, y: 60, angle: -24, size: 22, beat: 2.8 },
-  { x: 80, y: 58, angle: 69, size: 28, beat: 2.5 },
-  { x: 40, y: 59, angle: -49, size: 24, beat: 2.3 },
-  { x: 29, y: 68, angle: 36, size: 25, beat: 2.6 },
+  { x: 14, y: 10, angle: -38, size: 29, beat: 2.1 },
+  { x: 72, y: 4, angle: 28, size: 24, beat: 2.7 },
+  { x: 46, y: 29, angle: -12, size: 31, beat: 1.8 },
+  { x: 88, y: 31, angle: 57, size: 23, beat: 2.4 },
+  { x: 23, y: 47, angle: -65, size: 26, beat: 2.2 },
+  { x: 54, y: 55, angle: 18, size: 29, beat: 1.9 },
+  { x: 13, y: 72, angle: -24, size: 22, beat: 2.8 },
+  { x: 80, y: 65, angle: 69, size: 28, beat: 2.5 },
+  { x: 50, y: 91, angle: -49, size: 24, beat: 2.3 },
+  { x: 29, y: 97, angle: 36, size: 25, beat: 2.6 },
 ];
 const stars = [
   [12, 8], [43, 5], [78, 12], [30, 20], [66, 23], [89, 30],
@@ -134,7 +134,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
               className={s.butterfly}
               style={{
                 left: `${point.x}%`,
-                top: `max(${point.y}%, calc(var(--intro-bottom, 0px) + 28px))`,
+                top: `${point.y}%`,
                 animationDelay: `${i * -0.8}s`,
               }}
               onClick={reveal}

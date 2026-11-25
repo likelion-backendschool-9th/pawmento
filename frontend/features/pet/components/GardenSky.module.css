@@ -176,6 +176,8 @@
   pointer-events: none;
   position: absolute;
   inset: 0;
+  top: calc(var(--intro-bottom, 70px) + 28px);
+  bottom: 30%;
 }
 .butterfly {
   pointer-events: auto;
