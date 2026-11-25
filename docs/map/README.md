@@ -13,6 +13,7 @@
 | [#172](https://github.com/likelion-backendschool-9th/pawmento/issues/172) | 정보 지도: 동물병원·동물미용·동물보호센터           | [animal-places.md](animal-places.md)     |
 | [#195](https://github.com/likelion-backendschool-9th/pawmento/issues/195) | 정보 지도 검색: 장소 이름·주소, 지역·지하철역       | [place-search.md](place-search.md)       |
 | [#226](https://github.com/likelion-backendschool-9th/pawmento/issues/226) | 정보 지도 내 위치 주변 보기와 가까운 순 목록        | [near-me.md](near-me.md)                 |
+| [#239](https://github.com/likelion-backendschool-9th/pawmento/issues/239) | 정보 지도 장소 카드의 가려진 주소 보완              | [place-address.md](place-address.md)     |
 
 ## 정한 것
 
