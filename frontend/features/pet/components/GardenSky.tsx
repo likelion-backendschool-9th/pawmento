@@ -13,7 +13,7 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Normalized centers of the ten painted butterflies in puppy-retouched-v4.png.
+// Keep the ten memory targets at their original positions in the 2:3 scene.
 const lights = [
   { x: 29.8, y: 26.1 },
   { x: 61.1, y: 29.9 },
@@ -25,6 +25,11 @@ const lights = [
   { x: 71.8, y: 58 },
   { x: 48.8, y: 64.1 },
   { x: 28.2, y: 66.1 },
+];
+const stars = [
+  [12, 8], [43, 5], [78, 12], [30, 20], [66, 23], [89, 30],
+  [17, 36], [48, 31], [74, 41], [36, 46], [57, 53], [84, 58],
+  [9, 56], [26, 60], [62, 16], [52, 39], [22, 13], [92, 49],
 ];
 export function GardenSky({ pet }: { pet: Pet }) {
   const app = useApp();
@@ -66,14 +71,28 @@ export function GardenSky({ pet }: { pet: Pet }) {
         aria-label={`${pet.name}의 기억이 빛나는 정원`}
       >
         <div className={s.scene} aria-hidden="true">
-          <Image
-            src="/images/puppy-retouched-v4.png"
-            alt=""
-            fill
-            sizes="(max-width: 480px) 100vw, 480px"
-            loading="eager"
-            className={s.art}
-          />
+          <GardenArtwork />
+        </div>
+        <div className={s.skyFlow} aria-hidden="true"><GardenArtwork /></div>
+        <div className={`${s.skyFlow} ${s.skyFlowSecond}`} aria-hidden="true"><GardenArtwork /></div>
+        <div className={s.atmosphere} aria-hidden="true">
+          <div className={s.nebula} />
+          <div className={s.starfield}>
+            {stars.map(([x, y], i) => (
+              <span
+                key={i}
+                className={s.star}
+                style={{
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  width: i % 3 === 0 ? 3 : 2,
+                  height: i % 3 === 0 ? 3 : 2,
+                  animationDelay: `${i * -0.7}s`,
+                  animationDuration: `${4 + i % 5}s`,
+                }}
+              />
+            ))}
+          </div>
         </div>
         <div className={s.intro}>
           <div className={s.petIdentity}>
@@ -107,7 +126,14 @@ export function GardenSky({ pet }: { pet: Pet }) {
               }}
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
-            />
+            >
+              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s` }}>
+                <span className={s.wings} style={{ width: 25 + i % 3 * 3, height: 25 + i % 3 * 3 }}>
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s` }} />
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s` }} />
+                </span>
+              </span>
+            </button>
           ))}
         </div>
         <div className={s.homeAction}>
@@ -250,5 +276,18 @@ export function GardenSky({ pet }: { pet: Pet }) {
         )}
       </dialog>
     </>
+  );
+}
+
+function GardenArtwork() {
+  return (
+    <Image
+      src="/images/garden-motion-base.png"
+      alt=""
+      fill
+      sizes="(max-width: 480px) 100vw, 480px"
+      loading="eager"
+      className={s.art}
+    />
   );
 }

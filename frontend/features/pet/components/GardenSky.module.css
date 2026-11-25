@@ -15,6 +15,68 @@
   object-fit: cover;
   object-position: center;
 }
+.skyFlow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.skyFlow {
+  mask-image: linear-gradient(#000 0%, #000 47%, transparent 68%);
+}
+.skyFlow .art {
+  animation: skyStream 24s linear infinite;
+}
+.skyFlowSecond .art {
+  animation-delay: -12s;
+}
+@keyframes skyStream {
+  0% { transform: scale(1.16) translate(-3%, 3%); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 1; }
+  100% { transform: scale(1.16) translate(3%, -3%); opacity: 0; }
+}
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mask-image: linear-gradient(#000 0%, #000 48%, transparent 69%);
+}
+.nebula {
+  position: absolute;
+  inset: -8%;
+  background:
+    radial-gradient(ellipse at 45% 24%, #4ca5f75c, transparent 34%),
+    radial-gradient(ellipse at 72% 44%, #a769db45, transparent 30%),
+    radial-gradient(ellipse at 35% 58%, #28d7d83d, transparent 28%);
+  mix-blend-mode: screen;
+  animation: nebulaDrift 12s ease-in-out infinite;
+}
+.starfield {
+  position: absolute;
+  inset: 0;
+  animation: starDrift 32s ease-in-out infinite alternate;
+}
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff8de;
+  box-shadow: 0 0 9px 2px #b7d8ffb3;
+  animation: starTwinkle 6s ease-in-out infinite;
+}
+@keyframes nebulaDrift {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+@keyframes starDrift {
+  from { transform: translateY(0); }
+  to { transform: translateY(-8px); }
+}
+@keyframes starTwinkle {
+  0%, 100% { opacity: 0.1; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
 .intro {
   position: absolute;
   z-index: 1;
@@ -138,6 +200,42 @@
   filter: drop-shadow(0 0 9px #ffc76a);
   animation: glimmer 4s ease-in-out infinite;
 }
+.butterflyFloat {
+  display: grid;
+  place-items: center;
+  animation: butterflyFloat 5s ease-in-out infinite alternate;
+}
+.wings {
+  position: relative;
+  display: block;
+  transform: rotate(-18deg);
+}
+.wingLeft, .wingRight {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: 50% 50%;
+  animation: wingLeft 1.8s ease-in-out infinite;
+}
+.wingLeft { clip-path: inset(0 49% 0 0); }
+.wingRight {
+  clip-path: inset(0 0 0 49%);
+  animation-name: wingRight;
+}
+@keyframes wingLeft {
+  0%, 100% { transform: perspective(70px) rotateY(0deg); }
+  50% { transform: perspective(70px) rotateY(58deg); }
+}
+@keyframes wingRight {
+  0%, 100% { transform: perspective(70px) rotateY(0deg); }
+  50% { transform: perspective(70px) rotateY(-58deg); }
+}
+@keyframes butterflyFloat {
+  from { transform: translate(-1px, 2px) rotate(-4deg); }
+  to { transform: translate(1px, -2px) rotate(4deg); }
+}
 .butterfly:focus-visible {
   outline: 2px solid #fff1b1;
   outline-offset: 4px;
@@ -231,9 +329,13 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .butterfly {
+  .butterfly, .nebula, .starfield, .star,
+  .skyFlow .art,
+  .butterflyFloat, .wingLeft, .wingRight {
     animation: none;
   }
+  .nebula { opacity: 0.35; }
+  .star { opacity: 0.4; }
 }
 
 .guide {

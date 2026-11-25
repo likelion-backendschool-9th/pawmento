@@ -35,7 +35,7 @@ export class DemoAuthRepository {
       id: "demo",
       email: "demo@pawmento.local",
       nickname: "보리네",
-      role: "ADMIN",
+      role: "USER",
       demo: true,
     };
     return this.account;
