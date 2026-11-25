@@ -103,6 +103,21 @@ final class MapQueryParameters {
 		return value;
 	}
 
+	// 있을 때만 읽는 위도. 보내지 않았으면 null이다. 보냈다면 latitude와 같은 규칙으로 검사한다
+	BigDecimal optionalLatitude(String name) {
+		return values.containsKey(name) ? latitude(name) : null;
+	}
+
+	// 있을 때만 읽는 경도
+	BigDecimal optionalLongitude(String name) {
+		return values.containsKey(name) ? longitude(name) : null;
+	}
+
+	// 검색어처럼 사용자가 입력한 글자. 없으면 거절하고, 비었거나 너무 짧고 긴지는 서비스가 정규화한 뒤에 검사한다
+	String text(String name) {
+		return required(name);
+	}
+
 	private BigDecimal decimal(String name) {
 		String value = required(name);
 		// 1e999처럼 double로 나타낼 수 없게 큰 지수는 숫자로 인정하지 않는다

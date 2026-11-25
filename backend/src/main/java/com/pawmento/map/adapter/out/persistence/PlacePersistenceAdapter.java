@@ -18,6 +18,7 @@ import com.pawmento.map.application.exception.PlacePersistenceUnavailableExcepti
 import com.pawmento.map.application.port.out.AppliedPlaces;
 import com.pawmento.map.application.port.out.LoadPlaceByIdPort;
 import com.pawmento.map.application.port.out.LoadPlaceDataAsOfPort;
+import com.pawmento.map.application.port.out.LoadPlacesByKeywordPort;
 import com.pawmento.map.application.port.out.LoadPlacesPort;
 import com.pawmento.map.application.port.out.StorePlacesPort;
 import com.pawmento.map.domain.MapArea;
@@ -29,7 +30,8 @@ import lombok.RequiredArgsConstructor;
 
 @Component
 @RequiredArgsConstructor
-class PlacePersistenceAdapter implements LoadPlacesPort, LoadPlaceByIdPort, StorePlacesPort, LoadPlaceDataAsOfPort {
+class PlacePersistenceAdapter
+		implements LoadPlacesPort, LoadPlacesByKeywordPort, LoadPlaceByIdPort, StorePlacesPort, LoadPlaceDataAsOfPort {
 
 	private final PlaceJpaRepository placeJpaRepository;
 
@@ -45,6 +47,22 @@ class PlacePersistenceAdapter implements LoadPlacesPort, LoadPlaceByIdPort, Stor
 		return MapPersistenceOperations.execute(() -> placeJpaRepository
 			.findInArea(categories, area.getMinLatitude(), area.getMinLongitude(), area.getMaxLatitude(),
 					area.getMaxLongitude())
+			.stream()
+			.map(PlaceJpaEntity::toDomain)
+			.toList(), PlacePersistenceUnavailableException::new);
+	}
+
+	/**
+	 * LIKE의 특수문자를 글자 그대로 찾는다(#195-S8). '!'를 escape 문자로 정하고 '!', '%', '_'를 그 앞에 붙인다.
+	 * 정규화한 검색어에는 '_'가 남지 않지만(comparableName이 지운다) '%'는 남아서, escape하지 않으면 '%%'가 모든 장소에 맞는다.
+	 */
+	@Override
+	public List<Place> loadByKeyword(String key, Set<PlaceCategory> categories) {
+		if (key == null || key.isEmpty() || categories == null || categories.isEmpty()) {
+			throw new IllegalArgumentException("검색어와 종류가 필요합니다.");
+		}
+		String pattern = "%" + key.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+		return MapPersistenceOperations.execute(() -> placeJpaRepository.searchByKey(categories, pattern)
 			.stream()
 			.map(PlaceJpaEntity::toDomain)
 			.toList(), PlacePersistenceUnavailableException::new);

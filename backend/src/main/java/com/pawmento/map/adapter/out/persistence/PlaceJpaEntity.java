@@ -69,6 +69,12 @@ class PlaceJpaEntity {
 	// 원본이 마지막으로 바뀐 시각(알 수 없으면 null)
 	private Instant sourceUpdatedAt;
 
+	// 검색용으로 정규화한 이름·주소(#195). 영역 조회의 겹침 제거와 같은 기준(PlaceSelection.comparableName)이다.
+	// 이 열을 더하기 전에 저장한 행은 비어 있고, 서버가 시작할 때 PlaceSearchKeyBackfill이 채운다
+	private String nameKey;
+
+	private String addressKey;
+
 	@Column(nullable = false, updatable = false)
 	private Instant createdAt;
 
@@ -108,8 +114,22 @@ class PlaceJpaEntity {
 			this.openingHours = draft.openingHours();
 			this.closedDays = draft.closedDays();
 			this.sourceUpdatedAt = draft.sourceUpdatedAt();
+			this.nameKey = draft.nameKey();
+			this.addressKey = draft.addressKey();
 		}
 		return changed;
+	}
+
+	// 검색용 열이 비어 있는 이전 행인지(#195-S19)
+	boolean lacksSearchKeys() {
+		return nameKey == null;
+	}
+
+	// 이름·주소에서 검색용 열을 채운다. 가져오기의 갱신 건수(apply)에는 세지 않는다. 장소의 내용이 바뀐 것이 아니다
+	void fillSearchKeys() {
+		Place place = toDomain();
+		this.nameKey = place.nameKey();
+		this.addressKey = place.addressKey();
 	}
 
 	String getSourceId() {

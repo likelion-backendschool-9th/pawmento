@@ -38,6 +38,10 @@ public class InvalidMapRequestException extends RuleViolationException {
 		return new InvalidMapRequestException(name + "는 HOSPITAL, GROOMING, SHELTER 중 하나만 입력해 주세요.");
 	}
 
+	public static InvalidMapRequestException centerNeedsBoth() {
+		return new InvalidMapRequestException("latitude와 longitude는 함께 보내 주세요.");
+	}
+
 	public static InvalidMapRequestException latitudeOutOfRange() {
 		return new InvalidMapRequestException(CoordinateRange.LATITUDE_MESSAGE);
 	}

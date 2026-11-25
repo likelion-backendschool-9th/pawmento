@@ -42,7 +42,8 @@ public final class PlaceSelection {
 		return new Selected(truncated ? List.copyOf(sorted.subList(0, limit)) : List.copyOf(sorted), truncated);
 	}
 
-	private static List<Place> withoutOverlappingGrooming(List<Place> places) {
+	// 영역 조회와 검색(PlaceSearch)이 같은 기준으로 겹침을 지운다(#172-S15, #195-S4)
+	static List<Place> withoutOverlappingGrooming(List<Place> places) {
 		Map<String, List<Place>> hospitalsByName = new HashMap<>();
 		for (Place place : places) {
 			if (place.category() == PlaceCategory.HOSPITAL) {
