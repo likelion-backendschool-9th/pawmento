@@ -13,12 +13,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
-import com.pawmento.map.application.exception.LocalDataSyncFailedException.Reason;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException.Reason;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 import com.pawmento.map.application.port.out.AppliedPlaces;
 import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
@@ -44,9 +44,9 @@ import lombok.RequiredArgsConstructor;
  */
 @Service
 @RequiredArgsConstructor
-class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
+class SyncPublicDataPlacesService implements SyncPublicDataPlacesUseCase {
 
-	private static final Logger log = LoggerFactory.getLogger(SyncLocalDataPlacesService.class);
+	private static final Logger log = LoggerFactory.getLogger(SyncPublicDataPlacesService.class);
 
 	private final LoadLocalDataPort loadLocalDataPort;
 
@@ -71,7 +71,7 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 	// 안에서 부르면 예외로 막는다
 	@Override
 	@Transactional(propagation = Propagation.NEVER)
-	public SyncLocalDataPlacesResult sync(SyncLocalDataPlacesCommand command) {
+	public SyncPublicDataPlacesResult sync(SyncPublicDataPlacesCommand command) {
 		PlaceCategory category = PlaceSyncCategories.toCategory(command.category());
 		if (command.requestedBy() != null) {
 			adminPort.requireAdmin(command.requestedBy());
@@ -83,16 +83,16 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 	}
 
 	// 병원·미용(인허가). 페이지를 끝까지 받고 관리번호로 합친 고유 수가 totalCount와 같을 때만 믿는다
-	private SyncLocalDataPlacesResult syncPermits(PlaceCategory category, PlaceSyncLockPort.SyncLock lock) {
+	private SyncPublicDataPlacesResult syncPermits(PlaceCategory category, PlaceSyncLockPort.SyncLock lock) {
 		LocalDataSnapshot snapshot = loadLocalDataPort.load(category);
 
 		// 수집하는 동안 원본이 바뀌었으면 어느 시점의 전체인지 알 수 없다
 		if (snapshot.totalCountAtStart() != snapshot.totalCountAtEnd()) {
-			throw LocalDataSyncFailedException.rejected(Reason.TOTAL_COUNT_CHANGED);
+			throw PublicDataSyncFailedException.rejected(Reason.TOTAL_COUNT_CHANGED);
 		}
 		// 필수 항목이 빠졌으면 원본 형식이 바뀐 것일 수 있다. 일부만 믿고 저장하지 않는다
 		if (snapshot.records().stream().anyMatch(record -> !record.isComplete())) {
-			throw LocalDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
+			throw PublicDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
 		}
 		// 정렬이 보장되지 않아 페이지가 겹치면 같은 행이 두 번 온다. 관리번호로 합친 고유 수가 totalCount와 같아야 빠진 행이 없다
 		Map<String, LocalDataRecord> unique = new LinkedHashMap<>();
@@ -100,7 +100,7 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 		// 세면 totalCount 검사는 통과하는데 저장소에 같은 관리번호가 두 번 넘어간다
 		snapshot.records().forEach(record -> unique.putIfAbsent(record.sourceId().strip(), record));
 		if (unique.size() != snapshot.totalCountAtStart()) {
-			throw LocalDataSyncFailedException.rejected(Reason.TOTAL_COUNT_MISMATCH);
+			throw PublicDataSyncFailedException.rejected(Reason.TOTAL_COUNT_MISMATCH);
 		}
 
 		Tally tally = new Tally();
@@ -111,29 +111,29 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 	}
 
 	// 보호센터. totalCount는 실제 행 수와 달라 믿지 않고, 한 번에 크게 요청해 받은 건수가 요청한 수보다 적을 때만 끝까지 받은 것으로 본다
-	private SyncLocalDataPlacesResult syncShelters(PlaceSyncLockPort.SyncLock lock) {
+	private SyncPublicDataPlacesResult syncShelters(PlaceSyncLockPort.SyncLock lock) {
 		ShelterSnapshot snapshot = loadShelterDataPort.load();
 		List<ShelterRecord> records = snapshot.records();
 
 		// 서비스 오류로 빈 응답이 올 수 있다. 센터가 모두 사라졌다고 보지 않는다
 		if (records.isEmpty()) {
-			throw LocalDataSyncFailedException.rejected(Reason.EMPTY_SNAPSHOT);
+			throw PublicDataSyncFailedException.rejected(Reason.EMPTY_SNAPSHOT);
 		}
 		// 요청한 만큼 꽉 차게 왔으면 뒤에 더 있을 수 있다
 		if (records.size() >= snapshot.requestedRows()) {
-			throw LocalDataSyncFailedException.rejected(Reason.POSSIBLY_TRUNCATED);
+			throw PublicDataSyncFailedException.rejected(Reason.POSSIBLY_TRUNCATED);
 		}
 		if (records.stream().anyMatch(record -> !record.isComplete())) {
 			// 무엇이 빠졌는지 건수만 남긴다(값은 남기지 않는다). 원본 형식이 바뀐 것인지 가려내는 데 쓴다
 			log.warn("보호센터 응답에 필수 항목이 빠진 행이 있습니다: 전체 {}, 등록번호 없음 {}, 이름 없음 {}", records.size(),
 					records.stream().filter(r -> r.careRegNo() == null || r.careRegNo().isBlank()).count(),
 					records.stream().filter(r -> r.name() == null || r.name().isBlank()).count());
-			throw LocalDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
+			throw PublicDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
 		}
 		Set<String> ids = new HashSet<>();
 		for (ShelterRecord record : records) {
 			if (!ids.add(record.careRegNo().strip())) {
-				throw LocalDataSyncFailedException.rejected(Reason.DUPLICATE_IDS);
+				throw PublicDataSyncFailedException.rejected(Reason.DUPLICATE_IDS);
 			}
 		}
 
@@ -145,22 +145,22 @@ class SyncLocalDataPlacesService implements SyncLocalDataPlacesUseCase {
 		// 같게 다시 시도하지 않는 이유(MISSING_FIELDS)로 실패시키고 지도를 비우지 않는다
 		if (tally.drafts.isEmpty()) {
 			log.warn("보호센터 응답의 모든 행에 위도·경도가 없습니다: 전체 {}", records.size());
-			throw LocalDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
+			throw PublicDataSyncFailedException.rejected(Reason.MISSING_FIELDS);
 		}
 		return apply(PlaceCategory.SHELTER, records.size(), tally, SHELTER_MIN_KEEP_PERCENT, lock);
 	}
 
 	// 거른 뒤 저장할 건수가 기존 건수의 minKeepPercent% 미만이면 불완전한 수집일 수 있어 지도를 비우지 않는다
-	private SyncLocalDataPlacesResult apply(PlaceCategory category, int read, Tally tally, int minKeepPercent,
+	private SyncPublicDataPlacesResult apply(PlaceCategory category, int read, Tally tally, int minKeepPercent,
 			PlaceSyncLockPort.SyncLock lock) {
 		int existing = storePlacesPort.countByCategory(category);
 		if (existing > 0 && (long) tally.drafts.size() * 100 < (long) existing * minKeepPercent) {
-			throw LocalDataSyncFailedException.rejected(Reason.TOO_FEW_PLACES);
+			throw PublicDataSyncFailedException.rejected(Reason.TOO_FEW_PLACES);
 		}
 		// 받는 몇 분 사이에 잠금 연결이 끊겼다면 다른 실행이 같이 도는 중일 수 있다. 저장 직전에 아직 쥐고 있는지 확인한다
 		lock.requireHeld();
 		AppliedPlaces applied = storePlacesPort.replace(category, tally.drafts);
-		return new SyncLocalDataPlacesResult(category.name(), read, tally.drafts.size(), tally.excluded(), tally.closed,
+		return new SyncPublicDataPlacesResult(category.name(), read, tally.drafts.size(), tally.excluded(), tally.closed,
 				tally.noCoordinates, tally.outOfRange, applied.inserted(), applied.updated(), applied.deleted());
 	}
 

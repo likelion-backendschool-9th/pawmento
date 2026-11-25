@@ -29,7 +29,7 @@ import com.pawmento.map.domain.PlaceCategory;
 // 시나리오는 docs/map/animal-places.md(#172-S22)에 있다. 가져오기를 한 종류에 하나씩만 돌리는 잠금(PostgreSQL 어드바이저리 락)을 진짜 DB로 확인한다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = { "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
-		"pawmento.media.worker.enabled=false", "pawmento.map.local-data.sync.enabled=false" })
+		"pawmento.media.worker.enabled=false", "pawmento.map.public-data.sync.enabled=false" })
 class PlaceSyncLockAdapterTest {
 
 	@Autowired

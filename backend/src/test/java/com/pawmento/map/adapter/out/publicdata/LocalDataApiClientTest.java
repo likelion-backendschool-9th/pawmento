@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -20,8 +20,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
-import com.pawmento.map.application.exception.LocalDataSyncFailedException.Reason;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException.Reason;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
 import com.pawmento.map.domain.LocalDataRecord;
 import com.pawmento.map.domain.PlaceCategory;
@@ -80,7 +80,7 @@ class LocalDataApiClientTest {
 	}
 
 	private LocalDataApiClient client(String key, int maxAttempts, Duration readTimeout) {
-		var properties = new LocalDataProperties(key, "http://127.0.0.1:" + server.getAddress().getPort(), 100,
+		var properties = new PublicDataProperties(key, "http://127.0.0.1:" + server.getAddress().getPort(), 100,
 				Duration.ofSeconds(2), readTimeout, maxAttempts, Duration.ofSeconds(1), Duration.ofSeconds(30),
 				Duration.ofMillis(500));
 		return new LocalDataApiClient(properties, sleeps::add);
@@ -237,7 +237,7 @@ class LocalDataApiClientTest {
 		handler = exchange -> Reply.json(504, "");
 
 		assertThatThrownBy(() -> client(KEY, 8, Duration.ofSeconds(5)).load(PlaceCategory.HOSPITAL))
-			.isInstanceOf(LocalDataSyncFailedException.class);
+			.isInstanceOf(PublicDataSyncFailedException.class);
 
 		assertThat(sleeps).containsExactly(Duration.ofSeconds(1), Duration.ofSeconds(2), Duration.ofSeconds(4),
 				Duration.ofSeconds(8), Duration.ofSeconds(16), Duration.ofSeconds(30), Duration.ofSeconds(30));
@@ -249,7 +249,7 @@ class LocalDataApiClientTest {
 		handler = exchange -> Reply.json(504, "");
 
 		assertThatThrownBy(() -> client().load(PlaceCategory.HOSPITAL)).isInstanceOfSatisfying(
-				LocalDataSyncFailedException.class, e -> {
+				PublicDataSyncFailedException.class, e -> {
 					assertThat(e.reason()).isEqualTo(Reason.FETCH_FAILED);
 					assertThat(requests).hasSize(4);
 					assertThat(everyMessage(e)).doesNotContain("TEST-KEY").doesNotContain("127.0.0.1").doesNotContain("serviceKey");
@@ -302,7 +302,7 @@ class LocalDataApiClientTest {
 			handler = exchange -> reply;
 
 			assertThatThrownBy(() -> client().load(PlaceCategory.HOSPITAL))
-				.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
+				.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
 						e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_REJECTED));
 
 			assertThat(requests).as("다시 시도하지 않는다: %s", reply).hasSize(1);
@@ -340,7 +340,7 @@ class LocalDataApiClientTest {
 		handler = exchange -> Reply.json(200, "{깨진 json");
 
 		assertThatThrownBy(() -> client().load(PlaceCategory.HOSPITAL)).isInstanceOfSatisfying(
-				LocalDataSyncFailedException.class, e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_FAILED));
+				PublicDataSyncFailedException.class, e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_FAILED));
 		assertThat(requests).hasSize(4);
 	}
 
@@ -348,7 +348,7 @@ class LocalDataApiClientTest {
 	@DisplayName("#172-S5 인증키가 없으면 호출하지 않고 FETCH_REJECTED로 중단한다")
 	void missingKeyStopsBeforeCalling() {
 		assertThatThrownBy(() -> client("", 4, Duration.ofSeconds(5)).load(PlaceCategory.HOSPITAL))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
 					e -> assertThat(e.reason()).isEqualTo(Reason.FETCH_REJECTED));
 		assertThat(requests).isEmpty();
 	}

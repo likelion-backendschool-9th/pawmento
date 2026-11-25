@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
 import com.pawmento.map.domain.LocalDataRecord;
@@ -23,17 +23,17 @@ import tools.jackson.databind.JsonNode;
 @Component
 class LocalDataApiClient implements LoadLocalDataPort {
 
-	private final LocalDataProperties properties;
+	private final PublicDataProperties properties;
 
 	private final PublicDataPageFetcher fetcher;
 
 	@Autowired
-	LocalDataApiClient(LocalDataProperties properties) {
+	LocalDataApiClient(PublicDataProperties properties) {
 		this(properties, PublicDataPageFetcher::sleep);
 	}
 
 	// 테스트에서 쉬는 시간을 기록만 하고 실제로 쉬지 않게 한다
-	LocalDataApiClient(LocalDataProperties properties, Consumer<Duration> sleeper) {
+	LocalDataApiClient(PublicDataProperties properties, Consumer<Duration> sleeper) {
 		this.properties = properties;
 		this.fetcher = new PublicDataPageFetcher(properties, sleeper);
 	}

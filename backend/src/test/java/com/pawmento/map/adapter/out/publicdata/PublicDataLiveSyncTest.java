@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,25 +32,25 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.map.application.port.in.ListPlacesQuery;
 import com.pawmento.map.application.port.in.ListPlacesResult;
 import com.pawmento.map.application.port.in.ListPlacesUseCase;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 
 /**
  * 진짜 공공데이터포털로 병원·미용을 받아 진짜 PostgreSQL(Testcontainers)에 넣고, 다시 넣어도 변하지 않는지와 영역 조회가 되는지
  * 확인한다. 환경 변수 PUBLIC_DATA_SERVICE_KEY가 있을 때만 돈다(없으면 건너뛰므로 CI에는 영향이 없다). Docker가 켜져 있어야 한다.
  * 결과는 build/live-sync-report.txt에 건수와 시간만 적는다(인증키·주소·전화는 적지 않는다).
- * 실행: set PUBLIC_DATA_SERVICE_KEY=키 → gradlew cleanTest test --tests "*LocalDataLiveSyncTest" -i
+ * 실행: set PUBLIC_DATA_SERVICE_KEY=키 → gradlew cleanTest test --tests "*PublicDataLiveSyncTest" -i
  * 이 테스트는 시작과 끝에 places 테이블을 비운다. 개발 DB가 아니라 테스트용 컨테이너 DB라서 안전하다.
  * 앱 전체가 아니라 지도 가져오기에 필요한 빈(받아오기·동기화·영역 조회·저장소)만 띄운다. 미디어 저장소(VolumeMediaUploadAdapter)는
  * 리눅스 전용이라 Windows에서는 앱 전체를 띄우는 테스트가 돌지 못하기 때문이다
  */
 @EnabledIfEnvironmentVariable(named = "PUBLIC_DATA_SERVICE_KEY", matches = ".+")
 @Import(TestcontainersConfiguration.class)
-@SpringBootTest(classes = LocalDataLiveSyncTest.LiveConfig.class,
-		properties = { "pawmento.map.local-data.base-url=${PUBLIC_DATA_BASE_URL:https://apis.data.go.kr}" })
-class LocalDataLiveSyncTest {
+@SpringBootTest(classes = PublicDataLiveSyncTest.LiveConfig.class,
+		properties = { "pawmento.map.public-data.base-url=${PUBLIC_DATA_BASE_URL:https://apis.data.go.kr}" })
+class PublicDataLiveSyncTest {
 
 	// 테스트 클래스 안의 설정이라 다른 테스트의 컴포넌트 스캔에는 잡히지 않는다(@TestConfiguration으로 두면 스프링 부트가 앱 전체
 	// 설정을 같이 넣어 버려서 일반 @Configuration으로 둔다). JPA 엔티티·저장소는 persistence 패키지에서 찾고, 빈은 필요한 것만 이름으로 골라 담는다
@@ -58,9 +58,9 @@ class LocalDataLiveSyncTest {
 	@EnableAutoConfiguration
 	@AutoConfigurationPackage(basePackages = "com.pawmento.map.adapter.out.persistence")
 	@ComponentScan(basePackages = { "com.pawmento.map.application.service", "com.pawmento.map.adapter.out.persistence",
-			"com.pawmento.map.adapter.out.localdata" }, useDefaultFilters = false,
+			"com.pawmento.map.adapter.out.publicdata" }, useDefaultFilters = false,
 			includeFilters = @ComponentScan.Filter(type = FilterType.REGEX,
-					pattern = "com\\.pawmento\\.map\\..*\\.(SyncLocalDataPlacesService|ListPlacesService|PlacePersistenceAdapter|LocalDataApiClient|ShelterApiClient|PlaceSyncLockAdapter|LocalDataConfig)"))
+					pattern = "com\\.pawmento\\.map\\..*\\.(SyncPublicDataPlacesService|ListPlacesService|PlacePersistenceAdapter|LocalDataApiClient|ShelterApiClient|PlaceSyncLockAdapter|PublicDataConfig)"))
 	static class LiveConfig {
 
 		// 이 테스트는 관리자가 아니라 시스템 요청(자동 실행과 같음)으로 가져오므로 관리자 확인은 쓰지 않는다
@@ -73,7 +73,7 @@ class LocalDataLiveSyncTest {
 	}
 
 	@Autowired
-	private SyncLocalDataPlacesUseCase sync;
+	private SyncPublicDataPlacesUseCase sync;
 
 	@Autowired
 	private ListPlacesUseCase list;
@@ -119,10 +119,10 @@ class LocalDataLiveSyncTest {
 
 	private void importCategory(String category, StringBuilder report, List<String> problems) {
 		long t0 = System.currentTimeMillis();
-		SyncLocalDataPlacesResult first = sync.sync(new SyncLocalDataPlacesCommand(category));
+		SyncPublicDataPlacesResult first = sync.sync(new SyncPublicDataPlacesCommand(category));
 		long firstSeconds = (System.currentTimeMillis() - t0) / 1000;
 		long t1 = System.currentTimeMillis();
-		SyncLocalDataPlacesResult again = sync.sync(new SyncLocalDataPlacesCommand(category));
+		SyncPublicDataPlacesResult again = sync.sync(new SyncPublicDataPlacesCommand(category));
 		long againSeconds = (System.currentTimeMillis() - t1) / 1000;
 		int stored = jdbc.queryForObject("select count(*) from places where category = ?", Integer.class, category);
 

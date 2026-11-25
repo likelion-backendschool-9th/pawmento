@@ -35,9 +35,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 
 import com.pawmento.TestcontainersConfiguration;
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesUseCase;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesUseCase;
 import com.pawmento.map.application.port.out.LoadLocalDataPort;
 import com.pawmento.map.application.port.out.LoadShelterDataPort;
 import com.pawmento.map.application.port.out.ShelterSnapshot;
@@ -56,7 +56,7 @@ import tools.jackson.databind.json.JsonMapper;
 // 정부 서버는 가짜 포트로 대신한다. 이 테스트가 만든 places 행은 끝나면 지운다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = { "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
-		"pawmento.media.worker.enabled=false", "pawmento.map.local-data.sync.enabled=false" })
+		"pawmento.media.worker.enabled=false", "pawmento.map.public-data.sync.enabled=false" })
 @AutoConfigureMockMvc
 class PlaceSyncAdminScenarioTest {
 
@@ -79,7 +79,7 @@ class PlaceSyncAdminScenarioTest {
 	private PlaceSyncLockPort locks;
 
 	@Autowired
-	private SyncLocalDataPlacesUseCase syncUseCase;
+	private SyncPublicDataPlacesUseCase syncUseCase;
 
 	@Autowired
 	private PlatformTransactionManager transactionManager;
@@ -295,7 +295,7 @@ class PlaceSyncAdminScenarioTest {
 				insert into places (category, source_id, name, latitude, longitude, open24h, created_at, updated_at)
 				values ('HOSPITAL', 'keep', '그대로 있어야 하는 병원', 37.5, 127.0, false, now(), now())
 				""");
-		when(loader.load(any())).thenThrow(LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과")));
+		when(loader.load(any())).thenThrow(PublicDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과")));
 
 		assertThat(asAdmin("?category=HOSPITAL").andReturn().getResponse().getStatus()).isEqualTo(202);
 		JsonNode status = awaitFinished("HOSPITAL");
@@ -352,7 +352,7 @@ class PlaceSyncAdminScenarioTest {
 	@DisplayName("#172-S22 바깥 트랜잭션 안에서는 가져오기를 부를 수 없고, 받기도 잠금도 시작하지 않는다")
 	void cannotRunInsideAnOuterTransaction() {
 		assertThatThrownBy(() -> new TransactionTemplate(transactionManager)
-			.executeWithoutResult(status -> syncUseCase.sync(new SyncLocalDataPlacesCommand("HOSPITAL"))))
+			.executeWithoutResult(status -> syncUseCase.sync(new SyncPublicDataPlacesCommand("HOSPITAL"))))
 			.isInstanceOf(IllegalTransactionStateException.class);
 
 		verify(loader, never()).load(any());

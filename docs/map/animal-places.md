@@ -215,7 +215,7 @@
    - 테스트는 장소를 직접 넣어 두고 조회만 확인한다. 가져오기는 아직 없다.
    - #167의 현재 산책 조회도 `MapController`를 고치므로, 병합 순서에 맞춰 rebase한다.
 3. 좌표 변환과 인허가 API 가져오기(병원·미용) — S1, S2, S3, S4, S5, S6, S7(병원), S20, S22
-   - 파일: `map/domain/KoreaTmConverter.java`, `PhoneNumber.java`, `map/application/service/SyncLocalDataPlacesService.java`, `map/adapter/out/localdata/LocalDataApiClient.java`, 관리자 수동 실행 `map/adapter/in/web/AdminPlaceController.java`(`@RequestMapping("/admin/places")`, `POST /sync`, 서비스·저장소는 이 도메인 것을 쓴다), 하루 1회 실행 설정
+   - 파일: `map/domain/KoreaTmConverter.java`, `PhoneNumber.java`, `map/application/service/SyncPublicDataPlacesService.java`, `map/adapter/out/publicdata/LocalDataApiClient.java`, 관리자 수동 실행 `map/adapter/in/web/AdminPlaceController.java`(`@RequestMapping("/admin/places")`, `POST /sync`, 서비스·저장소는 이 도메인 것을 쓴다), 하루 1회 실행 설정
    - 확인: `./gradlew test --tests '*PlaceSync*' --tests '*KoreaTm*'`, 그리고 실제 API로 한 번 가져와 읽은·저장·제외 건수와 네이버 주소 검색 표본 비교를 PR 본문에 적는다([명령])
 4. 보호센터 가져오기와 주기 실행 — S7(센터), S8, S9, S22(`category=SHELTER`)
    - 파일: `map/adapter/out/shelterapi/ShelterApiAdapter.java`, `map/application/service/ImportShelterService.java`

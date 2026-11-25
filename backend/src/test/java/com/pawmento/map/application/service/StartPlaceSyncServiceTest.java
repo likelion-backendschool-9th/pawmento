@@ -15,13 +15,13 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.in.GetPlaceSyncStatusQuery;
 import com.pawmento.map.application.port.in.StartPlaceSyncCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
 import com.pawmento.map.application.port.out.PlaceSyncStatus;
 import com.pawmento.map.application.port.out.PlaceSyncStatusPort;
 import com.pawmento.map.domain.PlaceCategory;
@@ -50,7 +50,7 @@ class StartPlaceSyncServiceTest {
 		if (failure != null) {
 			throw failure;
 		}
-		return new SyncLocalDataPlacesResult(command.category(), 10, 8, 2, 1, 1, 0, 8, 0, 0);
+		return new SyncPublicDataPlacesResult(command.category(), 10, 8, 2, 1, 1, 0, 8, 0, 0);
 	}, CLOCK);
 
 	private static class MemoryStatus implements PlaceSyncStatusPort {
@@ -123,7 +123,7 @@ class StartPlaceSyncServiceTest {
 	@DisplayName("#172-S22 실행이 실패하면 이유가 있는 FAILED로 남고 진행 중으로 굳지 않는다")
 	void failuresAreRecordedWithAReason() {
 		for (var entry : Map.of(
-				"FETCH_FAILED", LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과")),
+				"FETCH_FAILED", PublicDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과")),
 				"LOCK_LOST", new PlaceSyncLockLostException(new RuntimeException("끊김")),
 				"ALREADY_RUNNING", new PlaceSyncAlreadyRunningException(),
 				"UNEXPECTED", new IllegalStateException("버그")).entrySet()) {

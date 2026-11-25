@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import java.net.URI;
 import java.net.URLEncoder;
@@ -19,7 +19,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -28,7 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
  * 공공데이터포털(data.go.kr) 조회 API의 한 페이지를 받아 행(JSON)으로 돌려준다. 병원·미용(인허가)과 보호센터가 같은 응답 모양
  * (response.header, response.body.items.item)을 써서 호출·다시 시도·응답 해석을 함께 쓴다. (#172-S5, S9, S20)
  * 정부 서버가 자주 시간 초과·504를 내서 페이지마다 간격을 늘려 가며 여러 번 다시 시도하고, 그래도 안 되면
- * LocalDataSyncFailedException(FETCH_FAILED)을 던진다. 인증키는 요청 주소에 들어가므로 예외의 메시지와 원인에 요청 주소나
+ * PublicDataSyncFailedException(FETCH_FAILED)을 던진다. 인증키는 요청 주소에 들어가므로 예외의 메시지와 원인에 요청 주소나
  * 원래 예외를 넣지 않고 로그에도 남기지 않는다.
  */
 final class PublicDataPageFetcher {
@@ -37,13 +37,13 @@ final class PublicDataPageFetcher {
 
 	private static final JsonMapper JSON = JsonMapper.builder().build();
 
-	private final LocalDataProperties properties;
+	private final PublicDataProperties properties;
 
 	private final Consumer<Duration> sleeper;
 
 	private final RestClient restClient;
 
-	PublicDataPageFetcher(LocalDataProperties properties, Consumer<Duration> sleeper) {
+	PublicDataPageFetcher(PublicDataProperties properties, Consumer<Duration> sleeper) {
 		this.properties = properties;
 		this.sleeper = sleeper;
 		HttpClient httpClient = HttpClient.newBuilder().connectTimeout(properties.connectTimeout()).build();
@@ -60,7 +60,7 @@ final class PublicDataPageFetcher {
 	void requireServiceKey() {
 		if (!properties.hasServiceKey()) {
 			log.warn("공공데이터 인증키(PUBLIC_DATA_SERVICE_KEY)가 설정되지 않아 가져오기를 중단합니다.");
-			throw LocalDataSyncFailedException.fetchRejected(new CallFailure("인증키가 설정되지 않음"));
+			throw PublicDataSyncFailedException.fetchRejected(new CallFailure("인증키가 설정되지 않음"));
 		}
 	}
 
@@ -71,7 +71,7 @@ final class PublicDataPageFetcher {
 		}
 		catch (InterruptedException e) {
 			Thread.currentThread().interrupt();
-			throw LocalDataSyncFailedException.fetchFailed(new CallFailure("가져오기가 중단됨", true));
+			throw PublicDataSyncFailedException.fetchFailed(new CallFailure("가져오기가 중단됨", true));
 		}
 	}
 
@@ -104,8 +104,8 @@ final class PublicDataPageFetcher {
 			}
 		}
 		// 다시 시도해도 같은 결과인 거부(키·권한·한도·잘못된 요청)는 일시 실패와 구분해서 자동 재시도 대상에서 뺀다
-		throw last != null && last.permanent ? LocalDataSyncFailedException.fetchRejected(last)
-				: LocalDataSyncFailedException.fetchFailed(last);
+		throw last != null && last.permanent ? PublicDataSyncFailedException.fetchRejected(last)
+				: PublicDataSyncFailedException.fetchFailed(last);
 	}
 
 	// 요청을 보낸다. 원래 예외는 주소(인증키)가 들어 있을 수 있어 버리고, 종류만 담은 CallFailure로 바꾼다

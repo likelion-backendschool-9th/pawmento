@@ -1,4 +1,4 @@
-package com.pawmento.map.adapter.out.localdata;
+package com.pawmento.map.adapter.out.publicdata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.port.out.ShelterSnapshot;
 import com.pawmento.map.domain.ShelterRecord;
 import com.sun.net.httpserver.HttpExchange;
@@ -56,7 +56,7 @@ class ShelterApiClientTest {
 	}
 
 	private ShelterApiClient client(String key) {
-		var properties = new LocalDataProperties(key, "http://127.0.0.1:" + server.getAddress().getPort(), 100,
+		var properties = new PublicDataProperties(key, "http://127.0.0.1:" + server.getAddress().getPort(), 100,
 				Duration.ofSeconds(2), Duration.ofSeconds(5), 3, Duration.ofSeconds(1), Duration.ofSeconds(30),
 				Duration.ofMillis(500));
 		return new ShelterApiClient(properties, sleeps::add);
@@ -130,7 +130,7 @@ class ShelterApiClientTest {
 	@Test
 	@DisplayName("#172-S9 인증키가 없으면 호출하지 않고 중단한다")
 	void noKeyDoesNotCall() {
-		assertThatThrownBy(() -> client("").load()).isInstanceOf(LocalDataSyncFailedException.class);
+		assertThatThrownBy(() -> client("").load()).isInstanceOf(PublicDataSyncFailedException.class);
 
 		assertThat(requests).isEmpty();
 	}
@@ -140,7 +140,7 @@ class ShelterApiClientTest {
 	void permanentPortalErrorStopsImmediately() {
 		handler = exchange -> "<OpenAPI_ServiceResponse><cmmMsgHeader><returnReasonCode>30</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>";
 
-		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(LocalDataSyncFailedException.class)
+		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(PublicDataSyncFailedException.class)
 			.satisfies(e -> assertThat(String.valueOf(e.getMessage()) + e.getCause()).doesNotContain("TEST-KEY"));
 
 		assertThat(requests).hasSize(1);
@@ -151,15 +151,15 @@ class ShelterApiClientTest {
 	@DisplayName("#172-S9 포털의 일시 오류(서비스 시간 초과 05)와 읽을 수 없는 본문은 정한 횟수만큼 쉬는 시간을 두 배씩 늘려 다시 시도하고, 끝내 안 되면 FETCH_FAILED로 중단한다")
 	void retriesTransientErrorsThenFails() {
 		handler = exchange -> "<OpenAPI_ServiceResponse><cmmMsgHeader><returnReasonCode>05</returnReasonCode></cmmMsgHeader></OpenAPI_ServiceResponse>";
-		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(LocalDataSyncFailedException.class);
+		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(PublicDataSyncFailedException.class);
 		assertThat(requests).hasSize(3);
 
 		requests.clear();
 		sleeps.clear();
 		handler = exchange -> "not json";
-		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(LocalDataSyncFailedException.class)
-			.satisfies(e -> assertThat(((LocalDataSyncFailedException) e).reason())
-				.isEqualTo(LocalDataSyncFailedException.Reason.FETCH_FAILED));
+		assertThatThrownBy(() -> client(KEY).load()).isInstanceOf(PublicDataSyncFailedException.class)
+			.satisfies(e -> assertThat(((PublicDataSyncFailedException) e).reason())
+				.isEqualTo(PublicDataSyncFailedException.Reason.FETCH_FAILED));
 		assertThat(requests).hasSize(3);
 		assertThat(sleeps).containsExactly(Duration.ofSeconds(1), Duration.ofSeconds(2));
 	}

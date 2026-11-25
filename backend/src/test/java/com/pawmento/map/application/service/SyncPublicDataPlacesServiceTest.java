@@ -10,12 +10,12 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import com.pawmento.map.application.exception.LocalDataSyncFailedException;
+import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesCommand;
-import com.pawmento.map.application.port.in.SyncLocalDataPlacesResult;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
+import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
 import com.pawmento.map.application.port.out.AppliedPlaces;
 import com.pawmento.map.application.port.out.CheckPlaceSyncAdminPort;
 import com.pawmento.map.application.port.out.LocalDataSnapshot;
@@ -28,7 +28,7 @@ import com.pawmento.map.domain.ShelterRecord;
 
 // 시나리오는 docs/map/animal-places.md(#172-S1, S4, S5, S20)에 있다. 가져오기의 판단(신뢰할 수 있는 전체 스냅샷인가, 무엇을 몇 건 반영하는가)을
 // 가짜 포트로 확인한다. 실제 저장과 한 트랜잭션 반영은 PlaceSyncPersistenceTest가 확인한다
-class SyncLocalDataPlacesServiceTest {
+class SyncPublicDataPlacesServiceTest {
 
 	// 대학로동물병원의 좌표
 	private static final String X = "199947.178659";
@@ -67,16 +67,16 @@ class SyncLocalDataPlacesServiceTest {
 
 	}
 
-	private static SyncLocalDataPlacesService service(LocalDataSnapshot snapshot, FakeStore store) {
+	private static SyncPublicDataPlacesService service(LocalDataSnapshot snapshot, FakeStore store) {
 		return newService(category -> snapshot, new StorePlacesPortStub(store), new FakeLocks(), new FakeAdmin());
 	}
 
-	private static SyncLocalDataPlacesResult sync(SyncLocalDataPlacesService service) {
-		return service.sync(new SyncLocalDataPlacesCommand("HOSPITAL"));
+	private static SyncPublicDataPlacesResult sync(SyncPublicDataPlacesService service) {
+		return service.sync(new SyncPublicDataPlacesCommand("HOSPITAL"));
 	}
 
 	// 병원·미용만 확인하는 시험은 보호센터 포트를 쓰지 않는다. 쓰면 바로 실패한다
-	private static SyncLocalDataPlacesService newService(com.pawmento.map.application.port.out.LoadLocalDataPort loader,
+	private static SyncPublicDataPlacesService newService(com.pawmento.map.application.port.out.LoadLocalDataPort loader,
 			com.pawmento.map.application.port.out.StorePlacesPort store, PlaceSyncLockPort locks,
 			CheckPlaceSyncAdminPort admin) {
 		return newService(loader, () -> {
@@ -84,11 +84,11 @@ class SyncLocalDataPlacesServiceTest {
 		}, store, locks, admin);
 	}
 
-	private static SyncLocalDataPlacesService newService(com.pawmento.map.application.port.out.LoadLocalDataPort loader,
+	private static SyncPublicDataPlacesService newService(com.pawmento.map.application.port.out.LoadLocalDataPort loader,
 			com.pawmento.map.application.port.out.LoadShelterDataPort shelters,
 			com.pawmento.map.application.port.out.StorePlacesPort store, PlaceSyncLockPort locks,
 			CheckPlaceSyncAdminPort admin) {
-		return new SyncLocalDataPlacesService(loader, shelters, store, locks, admin);
+		return new SyncPublicDataPlacesService(loader, shelters, store, locks, admin);
 	}
 
 	private static ShelterRecord shelter(String id) {
@@ -96,7 +96,7 @@ class SyncLocalDataPlacesServiceTest {
 				"토요일+일요일", "2026-01-02");
 	}
 
-	private static SyncLocalDataPlacesService shelterService(List<ShelterRecord> rows, FakeStore store) {
+	private static SyncPublicDataPlacesService shelterService(List<ShelterRecord> rows, FakeStore store) {
 		return newService(category -> {
 			throw new AssertionError("병원·미용을 부르면 안 되는 시험입니다");
 		}, () -> new ShelterSnapshot(500, rows), new StorePlacesPortStub(store), new FakeLocks(), new FakeAdmin());
@@ -109,7 +109,7 @@ class SyncLocalDataPlacesServiceTest {
 		var rows = List.of(shelter("a"), shelter("b"),
 				new ShelterRecord("c", "좌표 없는 센터", "주소", null, "", "", "09:00", "18:00", null, null));
 
-		var result = shelterService(rows, store).sync(new SyncLocalDataPlacesCommand("SHELTER"));
+		var result = shelterService(rows, store).sync(new SyncPublicDataPlacesCommand("SHELTER"));
 
 		assertThat(result.category()).isEqualTo("SHELTER");
 		assertThat(result.read()).isEqualTo(3);
@@ -126,7 +126,7 @@ class SyncLocalDataPlacesServiceTest {
 	void shelterIsCompleteWhenFewerRowsThanRequested() {
 		var store = new FakeStore();
 
-		var result = shelterService(List.of(shelter("a")), store).sync(new SyncLocalDataPlacesCommand("SHELTER"));
+		var result = shelterService(List.of(shelter("a")), store).sync(new SyncPublicDataPlacesCommand("SHELTER"));
 
 		assertThat(result.saved()).isEqualTo(1);
 	}
@@ -137,9 +137,9 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 		store.existing = 339;
 
-		assertThatThrownBy(() -> shelterService(List.of(), store).sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.EMPTY_SNAPSHOT));
+		assertThatThrownBy(() -> shelterService(List.of(), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.EMPTY_SNAPSHOT));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -152,9 +152,9 @@ class SyncLocalDataPlacesServiceTest {
 			rows.add(shelter("id-" + i));
 		}
 
-		assertThatThrownBy(() -> shelterService(rows, store).sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.POSSIBLY_TRUNCATED));
+		assertThatThrownBy(() -> shelterService(rows, store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.POSSIBLY_TRUNCATED));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -164,14 +164,14 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 
 		assertThatThrownBy(() -> shelterService(List.of(shelter("a"), shelter("a")), store)
-			.sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.DUPLICATE_IDS));
+			.sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.DUPLICATE_IDS));
 		var noName = new ShelterRecord("x", null, "주소", null, "37.5", "127.0", null, null, null, null);
 		assertThatThrownBy(() -> shelterService(List.of(shelter("a"), noName), store)
-			.sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.MISSING_FIELDS));
+			.sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.MISSING_FIELDS));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -182,17 +182,17 @@ class SyncLocalDataPlacesServiceTest {
 		var noCoordinates = new ShelterRecord("x", "좌표 항목 없는 센터", "주소", null, null, null, null, null, null, null);
 
 		var result = shelterService(List.of(shelter("a"), noCoordinates), store)
-			.sync(new SyncLocalDataPlacesCommand("SHELTER"));
+			.sync(new SyncPublicDataPlacesCommand("SHELTER"));
 
 		assertThat(result.read()).isEqualTo(2);
 		assertThat(result.saved()).isEqualTo(1);
 		assertThat(result.noCoordinates()).isEqualTo(1);
 
 		assertThatThrownBy(() -> shelterService(List.of(noCoordinates), new FakeStore())
-			.sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
+			.sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
 					e -> {
-						assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.MISSING_FIELDS);
+						assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.MISSING_FIELDS);
 						assertThat(e.retryable()).isFalse();
 					});
 	}
@@ -204,9 +204,9 @@ class SyncLocalDataPlacesServiceTest {
 		store.existing = 339;
 
 		assertThatThrownBy(() -> shelterService(List.of(shelter("a"), shelter("b")), store)
-			.sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+			.sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -224,9 +224,9 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 		store.existing = 336;
 
-		assertThatThrownBy(() -> shelterService(shelters(200), store).sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+		assertThatThrownBy(() -> shelterService(shelters(200), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -236,11 +236,11 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 		store.existing = 336;
 
-		assertThat(shelterService(shelters(303), store).sync(new SyncLocalDataPlacesCommand("SHELTER")).saved())
+		assertThat(shelterService(shelters(303), store).sync(new SyncPublicDataPlacesCommand("SHELTER")).saved())
 			.isEqualTo(303);
-		assertThatThrownBy(() -> shelterService(shelters(302), store).sync(new SyncLocalDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+		assertThatThrownBy(() -> shelterService(shelters(302), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).hasSize(1);
 	}
 
@@ -267,7 +267,7 @@ class SyncLocalDataPlacesServiceTest {
 			return new ShelterSnapshot(500, List.of(shelter("a")));
 		}, new StorePlacesPortStub(store), locks, new FakeAdmin());
 
-		service.sync(new SyncLocalDataPlacesCommand("SHELTER"));
+		service.sync(new SyncPublicDataPlacesCommand("SHELTER"));
 
 		assertThat(locks.events).containsExactly("acquire SHELTER", "load SHELTER", "release SHELTER");
 	}
@@ -314,8 +314,8 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(4, 4, actives(3)), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -325,8 +325,8 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(3, 4, actives(3)), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOTAL_COUNT_CHANGED));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOTAL_COUNT_CHANGED));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -338,8 +338,8 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(3, 3, rows), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.MISSING_FIELDS));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.MISSING_FIELDS));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -350,8 +350,8 @@ class SyncLocalDataPlacesServiceTest {
 		store.existing = 10;
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(4, 4, actives(4)), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).isEmpty();
 
 		assertThat(sync(service(new LocalDataSnapshot(5, 5, actives(5)), store)).saved()).isEqualTo(5);
@@ -372,8 +372,8 @@ class SyncLocalDataPlacesServiceTest {
 		store.existing = 10;
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(4, 4, closed), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOO_FEW_PLACES));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 	}
 
 	@Test
@@ -381,11 +381,11 @@ class SyncLocalDataPlacesServiceTest {
 	void fetchFailureStopsEverything() {
 		var store = new FakeStore();
 		var failing = newService(category -> {
-			throw LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
+			throw PublicDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
 		}, new StorePlacesPortStub(store), new FakeLocks(), new FakeAdmin());
 
-		assertThatThrownBy(() -> sync(failing)).isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-				e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.FETCH_FAILED));
+		assertThatThrownBy(() -> sync(failing)).isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+				e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.FETCH_FAILED));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -408,8 +408,8 @@ class SyncLocalDataPlacesServiceTest {
 
 		// 하나로 합치면 고유 수가 1이라 totalCount 2와 다르다. 둘로 세어 통과하면 저장소에 같은 관리번호가 두 번 간다
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(2, 2, List.of(active("a"), active("a "))), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
 		assertThat(store.calls).isEmpty();
 
 		var result = sync(service(new LocalDataSnapshot(1, 1, List.of(active("a"), active("a "))), store));
@@ -425,8 +425,8 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 
 		assertThatThrownBy(() -> sync(service(new LocalDataSnapshot(4, 4, rows), store)))
-			.isInstanceOfSatisfying(LocalDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(LocalDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOTAL_COUNT_MISMATCH));
 		assertThat(store.calls).isEmpty();
 	}
 
@@ -436,12 +436,12 @@ class SyncLocalDataPlacesServiceTest {
 		var store = new FakeStore();
 		var service = service(new LocalDataSnapshot(1, 1, actives(1)), store);
 
-		assertThat(service.sync(new SyncLocalDataPlacesCommand("GROOMING")).category()).isEqualTo("GROOMING");
-		assertThatThrownBy(() -> service.sync(new SyncLocalDataPlacesCommand("hospital")))
+		assertThat(service.sync(new SyncPublicDataPlacesCommand("GROOMING")).category()).isEqualTo("GROOMING");
+		assertThatThrownBy(() -> service.sync(new SyncPublicDataPlacesCommand("hospital")))
 			.isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> service.sync(new SyncLocalDataPlacesCommand("CAFE")))
+		assertThatThrownBy(() -> service.sync(new SyncPublicDataPlacesCommand("CAFE")))
 			.isInstanceOf(IllegalArgumentException.class);
-		assertThatThrownBy(() -> service.sync(new SyncLocalDataPlacesCommand(null)))
+		assertThatThrownBy(() -> service.sync(new SyncPublicDataPlacesCommand(null)))
 			.isInstanceOf(IllegalArgumentException.class);
 	}
 
@@ -481,7 +481,7 @@ class SyncLocalDataPlacesServiceTest {
 			}
 		}, locks, new FakeAdmin());
 
-		service.sync(new SyncLocalDataPlacesCommand("GROOMING"));
+		service.sync(new SyncPublicDataPlacesCommand("GROOMING"));
 
 		assertThat(events).containsExactly("acquire GROOMING", "load GROOMING", "replace GROOMING", "release GROOMING");
 	}
@@ -491,10 +491,10 @@ class SyncLocalDataPlacesServiceTest {
 	void releasesTheLockWhenTheRunFails() {
 		var locks = new FakeLocks();
 		var service = newService(category -> {
-			throw LocalDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
+			throw PublicDataSyncFailedException.fetchFailed(new RuntimeException("시간 초과"));
 		}, new StorePlacesPortStub(new FakeStore()), locks, new FakeAdmin());
 
-		assertThatThrownBy(() -> sync(service)).isInstanceOf(LocalDataSyncFailedException.class);
+		assertThatThrownBy(() -> sync(service)).isInstanceOf(PublicDataSyncFailedException.class);
 
 		assertThat(locks.events).containsExactly("acquire HOSPITAL", "release HOSPITAL");
 	}
@@ -511,16 +511,16 @@ class SyncLocalDataPlacesServiceTest {
 			return new LocalDataSnapshot(1, 1, actives(1));
 		}, new StorePlacesPortStub(store), locks, admin);
 
-		service.sync(new SyncLocalDataPlacesCommand("HOSPITAL"));
+		service.sync(new SyncPublicDataPlacesCommand("HOSPITAL"));
 		assertThat(admin.checked).isEmpty();
 
-		service.sync(new SyncLocalDataPlacesCommand(7L, "HOSPITAL"));
+		service.sync(new SyncPublicDataPlacesCommand(7L, "HOSPITAL"));
 		assertThat(admin.checked).containsExactly(7L);
 
 		admin.allow = false;
 		loaded[0] = false;
 		locks.events.clear();
-		assertThatThrownBy(() -> service.sync(new SyncLocalDataPlacesCommand(8L, "HOSPITAL")))
+		assertThatThrownBy(() -> service.sync(new SyncPublicDataPlacesCommand(8L, "HOSPITAL")))
 			.isInstanceOf(PlaceSyncAdminDeniedException.class);
 		assertThat(loaded[0]).isFalse();
 		assertThat(locks.events).isEmpty();
@@ -532,7 +532,7 @@ class SyncLocalDataPlacesServiceTest {
 		var locks = new FakeLocks();
 		locks.lost = true;
 		var store = new FakeStore();
-		var service = new SyncLocalDataPlacesService(category -> new LocalDataSnapshot(1, 1, actives(1)),
+		var service = new SyncPublicDataPlacesService(category -> new LocalDataSnapshot(1, 1, actives(1)),
 				() -> null, new StorePlacesPortStub(store), locks, new FakeAdmin());
 
 		assertThatThrownBy(() -> sync(service)).isInstanceOf(PlaceSyncLockLostException.class);

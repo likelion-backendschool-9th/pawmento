@@ -7,7 +7,7 @@ import com.pawmento.global.exception.StorageUnavailableException;
  * 다시 시도하면 성공할 수 있어서 일시 장애(503)로 응답한다. 인증키와 요청 주소가 새지 않도록 메시지는 고정 문구만 쓰고,
  * 왜 중단했는지는 {@link #reason()}으로 알린다(로그와 테스트용).
  */
-public class LocalDataSyncFailedException extends StorageUnavailableException {
+public class PublicDataSyncFailedException extends StorageUnavailableException {
 
 	public enum Reason {
 
@@ -44,23 +44,23 @@ public class LocalDataSyncFailedException extends StorageUnavailableException {
 
 	private final Reason reason;
 
-	private LocalDataSyncFailedException(Reason reason, Throwable cause) {
+	private PublicDataSyncFailedException(Reason reason, Throwable cause) {
 		super(MESSAGE, cause);
 		this.reason = reason;
 	}
 
-	public static LocalDataSyncFailedException rejected(Reason reason) {
-		return new LocalDataSyncFailedException(reason, null);
+	public static PublicDataSyncFailedException rejected(Reason reason) {
+		return new PublicDataSyncFailedException(reason, null);
 	}
 
 	// 호출 실패의 원인은 보존하되, 원인 메시지에 요청 주소(인증키 포함)가 들어 있지 않게 어댑터가 정리해서 넘긴다
-	public static LocalDataSyncFailedException fetchFailed(Throwable cause) {
-		return new LocalDataSyncFailedException(Reason.FETCH_FAILED, cause);
+	public static PublicDataSyncFailedException fetchFailed(Throwable cause) {
+		return new PublicDataSyncFailedException(Reason.FETCH_FAILED, cause);
 	}
 
 	// 포털이 요청 자체를 거부한 경우다. 호출 실패와 달리 다시 시도해도 같아서 FETCH_REJECTED로 구분한다
-	public static LocalDataSyncFailedException fetchRejected(Throwable cause) {
-		return new LocalDataSyncFailedException(Reason.FETCH_REJECTED, cause);
+	public static PublicDataSyncFailedException fetchRejected(Throwable cause) {
+		return new PublicDataSyncFailedException(Reason.FETCH_REJECTED, cause);
 	}
 
 	public Reason reason() {
