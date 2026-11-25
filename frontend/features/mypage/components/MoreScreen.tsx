@@ -23,9 +23,9 @@ export function MoreScreen() {
     ...(pet?.mode === "GARDEN"
       ? [
           {
-            href: `/pets/${pet.id}/garden/mailbox`,
-            label: "기억의 우체통",
-            icon: "mail",
+            href: "/places",
+            label: "정보 지도",
+            icon: "map",
           },
         ]
       : []),

@@ -64,7 +64,7 @@ export function SpaceShell({
         {children}
       </main>
       <nav className={s.bottomNav} aria-label="주요 메뉴">
-        {appNavigation(pet?.id).map((link) => (
+        {appNavigation(pet?.id, pet?.mode).map((link) => (
           <Link
             key={link.key}
             href={link.href}

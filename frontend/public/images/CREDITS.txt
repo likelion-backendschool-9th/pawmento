@@ -24,3 +24,5 @@ puppy.png: original night-sky garden background.
 4abce15e-8aa3-43d2-97ca-0b3435fecf61.png: original shared animal-and-book brand logo.
 
 puppy-retouched-v2.png: built-in imagegen retouch of the user-supplied puppy.png for #233; six dispersed luminous butterflies and a calmer upper sky. The original is preserved.
+
+puppy-retouched-v3.png: built-in imagegen retouch of puppy-retouched-v2.png for #233; smaller corgi and ten luminous butterflies. Prior originals are preserved.

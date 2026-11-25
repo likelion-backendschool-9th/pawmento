@@ -153,7 +153,7 @@ export function PageHeading({
   body,
   children,
 }: {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   body: string;
   children?: React.ReactNode;
@@ -161,7 +161,7 @@ export function PageHeading({
   return (
     <div className={styles.pageHeading}>
       <div>
-        <p className="eyebrow">{eyebrow}</p>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
         <h1>{title}</h1>
         <p>{body}</p>
       </div>

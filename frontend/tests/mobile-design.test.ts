@@ -69,10 +69,22 @@ test("#233-S2 일기·달력·미디어와 질문 답변·회차는 서로 다�
   assert.equal(activeNavigation("/pets/bori/diary-other", "bori"), null);
   assert.equal(activeNavigation("/pets/coco/diary", "bori"), null);
 });
-test("#233-S2 하단 5개 항목은 정보 지도로 끝나고 전체 메뉴·우체통 삽입으로 밀리지 않는다", () => {
+test("#233-S2 (고침 #233: 모드별 마지막 메뉴) 일상 정보 지도·가든 우체통을 표시한다", () => {
   assert.deepEqual(
     appNavigation("bori").map((x) => x.label),
     ["홈", "다이어리", "오늘의 질문", "커뮤니티", "정보 지도"],
+  );
+  const garden = appNavigation("bori", "GARDEN");
+  assert.equal(garden.length, 5);
+  assert.equal(garden.at(-1)?.key, "mailbox");
+  assert.equal(garden.at(-1)?.href, "/pets/bori/garden/mailbox");
+  assert.equal(
+    activeNavigation("/pets/bori/garden/mailbox/new", "bori"),
+    "mailbox",
+  );
+  assert.equal(
+    activeNavigation("/pets/bori/garden/postcards/new", "bori"),
+    "mailbox",
   );
   assert.equal(appNavigation()[1].href, "/pets");
   assert.equal(activeNavigation("/places"), "places");

@@ -11,15 +11,20 @@ import { formatDate } from "@/lib/date";
 import type { Pet } from "../types/Pet";
 import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
+import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Normalized centers of the six painted butterflies in puppy-retouched-v2.png.
+// Normalized centers of the ten painted butterflies in puppy-retouched-v3.png.
 const lights = [
-  { x: 32.2, y: 29.6 },
-  { x: 68.9, y: 36.4 },
-  { x: 46.5, y: 43.7 },
-  { x: 24.9, y: 51.7 },
-  { x: 72, y: 55.6 },
-  { x: 42.5, y: 57.5 },
+  { x: 29.8, y: 26.1 },
+  { x: 61.1, y: 29.9 },
+  { x: 44.3, y: 35.9 },
+  { x: 73, y: 40 },
+  { x: 26.2, y: 45.3 },
+  { x: 55.5, y: 48 },
+  { x: 38.3, y: 55.5 },
+  { x: 71.8, y: 58 },
+  { x: 48.8, y: 64.1 },
+  { x: 28.2, y: 66.1 },
 ];
 export function GardenSky({ pet }: { pet: Pet }) {
   const app = useApp();
@@ -33,12 +38,21 @@ export function GardenSky({ pet }: { pet: Pet }) {
   const [selected, setSelected] = useState<string | null>(null);
   const previous = useRef<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
+  const guide = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (gardenGuide.shouldShow() && !guide.current?.open)
+      guide.current?.showModal();
+  }, []);
   const memory = memories.find((item) => item.key === selected);
   useEffect(() => {
     const node = dialog.current;
     if (open && node && !node.open) node.showModal();
     if (!open && node?.open) node.close();
   }, [open]);
+  function closeGuide() {
+    gardenGuide.finish();
+    guide.current?.close();
+  }
   function reveal() {
     const next = anotherMemory(memories, previous.current);
     previous.current = next?.key ?? null;
@@ -53,7 +67,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
       >
         <div className={s.scene} aria-hidden="true">
           <Image
-            src="/images/puppy-retouched-v2.png"
+            src="/images/puppy-retouched-v3.png"
             alt=""
             fill
             unoptimized
@@ -63,9 +77,15 @@ export function GardenSky({ pet }: { pet: Pet }) {
           />
         </div>
         <div className={s.intro}>
-          <span>GARDEN OF MEMORIES</span>
-          <h1>{pet.name}의 작은 우주</h1>
-          <p>나비를 눌러 기억 한 조각을 만나보세요.</p>
+          <h1>{pet.name}의 기억 정원</h1>
+          <button
+            type="button"
+            className={s.guideButton}
+            aria-label="정원 이용 안내 다시 보기"
+            onClick={() => guide.current?.showModal()}
+          >
+            <Icon name="question" size={18} />
+          </button>
         </div>
         <div className={s.butterflies}>
           {lights.map((point, i) => (
@@ -87,15 +107,64 @@ export function GardenSky({ pet }: { pet: Pet }) {
         </div>
       </section>
       <dialog
+        ref={guide}
+        className={`${s.memoryDialog} ${s.guide}`}
+        aria-labelledby="garden-guide-title"
+        onClose={() => gardenGuide.finish()}
+        onCancel={() => gardenGuide.finish()}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) closeGuide();
+        }}
+      >
+        <button
+          type="button"
+          className={`icon-button ${s.guideClose}`}
+          aria-label="정원 안내 닫기"
+          onClick={closeGuide}
+        >
+          <Icon name="close" />
+        </button>
+        <span className={s.guideSymbol} aria-hidden="true">
+          <svg viewBox="0 0 40 40">
+            <path
+              d="M20 22C8 0 1 9 7 22c2 5 7 6 11 3-9 15 0 14 3 3 6 13 12 7 4-4 15 5 17-11 8-9-4 1-8 4-13 7Z"
+              fill="currentColor"
+            />
+          </svg>
+        </span>
+        <h2 id="garden-guide-title">기억 정원을 만나보세요</h2>
+        <p>
+          빛나는 나비마다
+          <br />
+          함께 남긴 기억이 머물러 있어요.
+        </p>
+        <div className={s.guideSteps}>
+          <p>
+            <Icon name="question" size={18} />
+            <span>나비를 누르면 일기나 질문의 답변이 열려요.</span>
+          </p>
+          <p>
+            <Icon name="book" size={18} />
+            <span>다른 기억을 만나거나 원문을 펼쳐 보세요.</span>
+          </p>
+        </div>
+        <button
+          type="button"
+          className="button primary full"
+          onClick={closeGuide}
+        >
+          정원 둘러보기
+        </button>
+      </dialog>
+      <dialog
         ref={dialog}
-        className={s.sheet}
+        className={s.memoryDialog}
         onClose={() => setOpen(false)}
         onClick={(e) => {
           if (e.target === e.currentTarget) setOpen(false);
         }}
         aria-labelledby="garden-memory-title"
       >
-        <div className={s.grip} />
         <div className={s.sheetTop}>
           <span>나비가 데려온 기억</span>
           <button

@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import { useRouter } from "next/navigation";
@@ -64,49 +63,9 @@ export function AccountScreen() {
   return (
     <>
       <PageHeading
-        eyebrow="MY LITTLE SPACE"
-        title="나의 작은 공간"
-        body="함께 기록하는 당신의 이야기."
+        title="내 정보 관리"
+        body="닉네임과 계정 정보를 확인하고 관리해요."
       />
-      <section className="profile-destinations" aria-label="내 공간 관리">
-        <Link href="/pets">
-          <Icon name="paw" size={20} />
-          반려동물 관리
-          <Icon name="chevron" size={16} />
-        </Link>
-        {app.state.selectedPetId && (
-          <Link href={`/pets/${app.state.selectedPetId}/family`}>
-            <Icon name="users" size={20} />
-            함께 기록하는 가족
-            <Icon name="chevron" size={16} />
-          </Link>
-        )}
-        {app.state.pets.find((p) => p.id === app.state.selectedPetId)?.mode ===
-          "GARDEN" && (
-          <Link href={`/pets/${app.state.selectedPetId}/garden/mailbox`}>
-            <Icon name="mail" size={20} />
-            기억의 우체통
-            <Icon name="chevron" size={16} />
-          </Link>
-        )}
-        <Link href="/me/activity">
-          <Icon name="heart" size={20} />
-          나의 활동
-          <Icon name="chevron" size={16} />
-        </Link>
-        <Link href="/settings">
-          <Icon name="settings" size={20} />
-          설정 · 앱 설치
-          <Icon name="chevron" size={16} />
-        </Link>
-        {account.role === "ADMIN" && (
-          <Link href="/admin/reports">
-            <Icon name="shield" size={20} />
-            운영 관리
-            <Icon name="chevron" size={16} />
-          </Link>
-        )}
-      </section>
       <div className={styles.accountGrid}>
         <section className={styles.accountCard}>
           <span className={styles.largeAvatar}>

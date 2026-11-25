@@ -1,7 +1,7 @@
 .sky {
   position: relative;
   margin: 0 -18px;
-  height: calc(100svh - 158px - env(safe-area-inset-bottom));
+  height: calc(100dvh - var(--app-header-height) - var(--app-nav-height));
   min-height: 480px;
   overflow: hidden;
   background: #030530;
@@ -17,39 +17,38 @@
 }
 .intro {
   position: absolute;
-  top: 22px;
+  top: 24px;
   left: 20px;
   right: 20px;
-  text-align: center;
-  pointer-events: none;
-  padding: 14px 12px;
-  border: 1px solid #ffffff24;
-  border-radius: 20px;
-  background: linear-gradient(160deg, #071035e6, #142253ad);
-  backdrop-filter: blur(8px);
   color: #fff9ea;
-  text-shadow: 0 1px 6px #03052c;
-}
-.intro span {
-  font-size: 9px;
-  letter-spacing: 3px;
-  color: #eee9ff;
+  text-align: center;
+  text-shadow: 0 2px 14px #03052c;
 }
 .intro h1 {
-  font-size: 26px;
+  font-size: 25px;
   font-weight: 500;
-  letter-spacing: -0.8px;
-  margin: 10px 0 7px;
+  letter-spacing: 0.5px;
+  margin: 0;
 }
-.intro p {
-  font-size: 12px;
-  color: #fff6e7;
+.guideButton {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #ffffff35;
+  border-radius: 50%;
+  background: #09113299;
+  color: #fff1cd;
 }
 .butterflies {
+  pointer-events: none;
   position: absolute;
   width: max(
     100%,
-    calc((100svh - 158px - env(safe-area-inset-bottom)) * 2 / 3)
+    calc((100dvh - var(--app-header-height) - var(--app-nav-height)) * 2 / 3)
   );
   aspect-ratio: 2/3;
   top: 50%;
@@ -57,6 +56,7 @@
   transform: translate(-50%, -50%);
 }
 .butterfly {
+  pointer-events: auto;
   position: absolute;
   width: 48px;
   height: 48px;
@@ -72,46 +72,50 @@
   animation: glimmer 4s ease-in-out infinite;
 }
 .butterflyHalo {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: radial-gradient(#fff0bf0d, transparent 72%);
-  box-shadow: 0 0 22px 6px #ffd48a12;
+  border: 1px solid #ffe5ae85;
+  background: radial-gradient(#fff0bf20, transparent 72%);
+  box-shadow:
+    0 0 18px 5px #ffd48a30,
+    inset 0 0 10px #ffeac31a;
+  transition:
+    transform 0.2s,
+    background 0.2s;
 }
-.butterfly:hover {
-  background: #ffc77345;
+.butterfly:hover .butterflyHalo,
+.butterfly:focus-visible .butterflyHalo {
+  transform: scale(1.15);
+  background: #ffeab52b;
+  border-color: #fff1c3;
+}
+.butterfly:active .butterflyHalo {
+  transform: scale(0.9);
 }
 .butterfly:focus-visible {
   outline: 2px solid #fff1b1;
   outline-offset: 4px;
 }
-.sheet {
+.memoryDialog {
   position: fixed;
-  inset: auto 0 0;
-  width: min(100%, 480px);
-  max-width: 480px;
-  max-height: 86svh;
-  margin: 0 auto;
-  padding: 14px 24px calc(24px + env(safe-area-inset-bottom));
+  inset: 0;
+  width: calc(min(100vw, 480px) - 36px);
+  max-width: 444px;
+  max-height: 80dvh;
+  margin: auto;
+  padding: 22px;
   border: 1px solid #e0dbea;
-  border-bottom: 0;
-  border-radius: 28px 28px 0 0;
+  border-radius: 26px;
   background: #fcf9f5;
   color: #494255;
-  box-shadow: 0 -16px 80px #02021d40;
+  box-shadow: 0 20px 80px #02021d40;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.sheet::backdrop {
-  background: #03041d8c;
-  backdrop-filter: blur(5px);
-}
-.grip {
-  width: 36px;
-  height: 4px;
-  border-radius: 9px;
-  background: #dad1df;
-  margin: 0 auto 10px;
+.memoryDialog::backdrop {
+  background: #03041d9c;
+  backdrop-filter: blur(6px);
 }
 .sheetTop {
   display: flex;
@@ -130,7 +134,7 @@
   font-size: 10px;
   margin: 14px 0 12px;
 }
-.sheet h2 {
+.memoryDialog h2 {
   font-size: 22px;
   letter-spacing: -0.7px;
   font-weight: 600;
@@ -185,4 +189,51 @@
   .butterfly {
     animation: none;
   }
+}
+
+.guide {
+  text-align: center;
+  padding: 32px 24px 24px;
+}
+.guideClose {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+.guideSymbol {
+  display: grid;
+  place-items: center;
+  margin: 0 auto 20px;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #f3e9d9;
+  color: #b68e55;
+}
+.guideSymbol svg {
+  width: 40px;
+  height: 40px;
+}
+.guide > p {
+  font-size: 14px;
+  line-height: 1.9;
+  color: #84748d;
+}
+.guideSteps {
+  text-align: left;
+  margin: 22px 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: #f0ecf4;
+}
+.guideSteps p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0 0 12px;
+}
+.guideSteps p:last-child {
+  margin: 0;
 }
