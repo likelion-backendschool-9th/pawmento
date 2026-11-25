@@ -75,8 +75,6 @@ export function GardenSky({ pet }: { pet: Pet }) {
         </div>
         <div className={s.skyFlow} aria-hidden="true"><GardenArtwork /></div>
         <div className={`${s.skyFlow} ${s.skyFlowSecond}`} aria-hidden="true"><GardenArtwork /></div>
-        <div className={s.floraLeft} aria-hidden="true"><GardenArtwork /></div>
-        <div className={s.floraRight} aria-hidden="true"><GardenArtwork /></div>
         <div className={s.atmosphere} aria-hidden="true">
           <div className={s.nebula} />
           <div className={s.starfield}>

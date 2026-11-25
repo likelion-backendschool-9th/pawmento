@@ -15,7 +15,7 @@
   object-fit: cover;
   object-position: center;
 }
-.skyFlow, .floraLeft, .floraRight {
+.skyFlow {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -30,30 +30,11 @@
 .skyFlowSecond .art {
   animation-delay: -12s;
 }
-.floraLeft {
-  mask-image: radial-gradient(ellipse 36% 43% at 0% 100%, #000 65%, transparent 100%);
-}
-.floraRight {
-  mask-image: radial-gradient(ellipse 30% 43% at 100% 100%, #000 65%, transparent 100%);
-}
-.floraLeft .art, .floraRight .art {
-  transform-origin: 0% 100%;
-  animation: gardenWind 4.5s ease-in-out infinite alternate;
-}
-.floraRight .art {
-  transform-origin: 100% 100%;
-  animation-delay: -2.1s;
-  animation-duration: 5.8s;
-}
 @keyframes skyStream {
   0% { transform: scale(1.16) translate(-3%, 3%); opacity: 0; }
   25% { opacity: 1; }
   75% { opacity: 1; }
   100% { transform: scale(1.16) translate(3%, -3%); opacity: 0; }
-}
-@keyframes gardenWind {
-  from { transform: rotate(-1.8deg) skewX(-2.2deg); }
-  to { transform: rotate(2.3deg) skewX(2.8deg); }
 }
 .atmosphere {
   position: absolute;
@@ -349,7 +330,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .butterfly, .nebula, .starfield, .star,
-  .skyFlow .art, .floraLeft .art, .floraRight .art,
+  .skyFlow .art,
   .butterflyFloat, .wingLeft, .wingRight {
     animation: none;
   }
