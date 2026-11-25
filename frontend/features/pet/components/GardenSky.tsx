@@ -13,7 +13,7 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Normalized centers of the ten painted butterflies in puppy-retouched-v3.png.
+// Normalized centers of the ten painted butterflies in puppy-retouched-v4.png.
 const lights = [
   { x: 29.8, y: 26.1 },
   { x: 61.1, y: 29.9 },
@@ -67,7 +67,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
       >
         <div className={s.scene} aria-hidden="true">
           <Image
-            src="/images/puppy-retouched-v3.png"
+            src="/images/puppy-retouched-v4.png"
             alt=""
             fill
             unoptimized
@@ -81,9 +81,11 @@ export function GardenSky({ pet }: { pet: Pet }) {
             <span className={s.petPortrait}>
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
             </span>
-            <h1>{pet.name}의 기억 정원</h1>
+            <div>
+              <h1>{pet.name}의 기억 정원</h1>
+              <p className={s.welcome}>함께한 순간은, 언제나 여기.</p>
+            </div>
           </div>
-          <p className={s.welcome}>함께한 순간은, 언제나 여기.</p>
           <button
             type="button"
             className={s.guideButton}
