@@ -19,7 +19,7 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 | 상황 | DB를 띄우는 것 | 접속 정보 |
 | --- | --- | --- |
 | 로컬 실행 `bootRun` | Spring Boot Docker Compose 지원이 `backend/compose.yaml`을 실행 | 실행 중인 컨테이너에서 자동 연결 |
-| 테스트·CI | Testcontainers (`TestcontainersConfiguration`) | `@ServiceConnection`이 자동 연결 |
+| 테스트·CI | Testcontainers (`TestcontainersConfiguration`). 테스트 JVM마다 컨테이너 하나, Spring 컨텍스트마다 새 DB | `JdbcConnectionDetails` 빈이 컨텍스트의 DB로 자동 연결 |
 | 개발 서버 | 루트 `compose.yaml` + `compose.prod.yaml`의 `db` 서비스 | 환경 변수 `SPRING_DATASOURCE_*` |
 
 고른 이유:
@@ -34,7 +34,8 @@ Spring Initializr가 PostgreSQL, Docker Compose, Testcontainers를 골랐을 때
 - 로컬 DB 포트는 비어 있는 포트로 자동 지정된다. PC에 PostgreSQL이 이미 있어도 충돌하지 않는다. DB 도구로 접속할 때는 `backend/`에서 `docker compose port postgres 5432`로 확인한다.
 - 앱을 꺼도 로컬 DB는 켜 둔다(`spring.docker.compose.lifecycle-management: start-only`).
 - Compose 자동 실행은 테스트에서 동작하지 않는다(Spring Boot 기본값 `spring.docker.compose.skip.in-tests=true`). 그래서 테스트는 Testcontainers가 맡는다.
-- Compose 자동 실행과 `@ServiceConnection`이 만든 접속 정보는 `spring.datasource.url` 설정보다 우선한다. 직접 지정한 DB를 쓰려면 자동 실행을 끈다(`spring.docker.compose.enabled=false`).
+- 테스트는 컨테이너를 JVM마다 하나만 띄우고, 컨텍스트마다 그 안에 새 DB를 만든다. 컨텍스트마다 컨테이너를 띄우면 기동이 테스트 클래스 수만큼 반복되고, DB 하나를 같이 쓰면 앱 시작 때 도는 스키마 스크립트와 백필 검사가 다른 테스트의 데이터를 보기 때문이다(#219).
+- Compose 자동 실행과 테스트의 `JdbcConnectionDetails` 빈이 만든 접속 정보는 `spring.datasource.url` 설정보다 우선한다. 직접 지정한 DB를 쓰려면 자동 실행을 끈다(`spring.docker.compose.enabled=false`).
 
 ## 개발 서버 (#10)
 
