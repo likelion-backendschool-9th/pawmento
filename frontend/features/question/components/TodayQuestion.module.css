@@ -20,7 +20,8 @@
 .media summary::-webkit-details-marker { display: none; }
 .media summary::after { content: "+"; margin-left: auto; font-size: 18px; }
 .media[open] summary::after { content: "−"; }
-.mediaContent { display: grid; gap: 18px; padding: 0 0 18px; }
+.mediaContent { display: grid; gap: 12px; padding: 0 0 12px; }
+.mediaContent > :global(.attachments) { margin-top: 0; padding-top: 0; border-top: 0; }
 .save { border-radius: 14px; }
 .note { font-size: 10px; line-height: 1.8; color: var(--text-secondary); text-align: center; margin: 14px 16px 0; }
 .card > .note { margin-bottom: 22px; }
