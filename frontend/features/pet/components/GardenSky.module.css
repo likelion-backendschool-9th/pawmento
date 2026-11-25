@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Garden Handwriting";
+  src: url("/fonts/NanumPenScript-Regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 .sky {
   position: relative;
   margin: 0 -18px;
@@ -25,10 +33,15 @@
   text-shadow: 0 2px 14px #03052c;
 }
 .intro h1 {
-  font-size: 25px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
+  font-family: "Garden Handwriting", cursive;
+  font-size: 34px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.8px;
+  text-wrap: balance;
+  padding: 0 36px;
   margin: 0;
+  text-shadow: 0 2px 12px #03052c, 0 0 24px #ffdba429;
 }
 .guideButton {
   position: absolute;
