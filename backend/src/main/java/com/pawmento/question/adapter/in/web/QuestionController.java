@@ -51,7 +51,7 @@ public class QuestionController {
 
   @GetMapping("/prompts/{promptId}")
   QuestionPromptResponse prompt(
-      @LoginMember Long member, @PathVariable Long promptId, HttpServletRequest request) {
+      @LoginMember Long member, @PathVariable String promptId, HttpServletRequest request) {
     return QuestionPromptResponse.from(
         promptDetails.get(
             new QuestionAnswerQuery(request.getQueryString(), "petId", "page", "size")

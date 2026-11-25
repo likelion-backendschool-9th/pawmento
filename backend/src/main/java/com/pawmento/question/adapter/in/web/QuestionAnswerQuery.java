@@ -66,11 +66,11 @@ final class QuestionAnswerQuery {
         integer("size", 20, 1, 100));
   }
 
-  GetQuestionPromptQuery prompt(Long member, Long promptId) {
+  GetQuestionPromptQuery prompt(Long member, String promptId) {
     return new GetQuestionPromptQuery(
         member,
         petId(),
-        promptId,
+        decimal(promptId, 1),
         integer("page", 0, 0, Integer.MAX_VALUE),
         integer("size", 20, 1, 100));
   }
@@ -85,6 +85,10 @@ final class QuestionAnswerQuery {
   private Long number(String key, boolean required, long min) {
     String value = values.get(key);
     if (value == null && !required) return null;
+    return decimal(value, min);
+  }
+
+  private static Long decimal(String value, long min) {
     if (value == null || !value.matches("[0-9]+")) throw new InvalidQuestionRequestException();
     try {
       long n = Long.parseLong(value);

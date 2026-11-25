@@ -328,7 +328,9 @@ class QuestionPromptHistoryScenarioTest {
       read(owner, suffix).andExpect(status().isBadRequest());
       read(owner, "/" + prompt + suffix).andExpect(status().isBadRequest());
     }
-    read(owner, "/0?petId=" + pet).andExpect(status().isBadRequest());
+    for (String id :
+        List.of("0", "0x10", "+1", "-1", "1 2", " 1", "1 ", "1.0", "9223372036854775808"))
+      read(owner, "/" + id + "?petId=" + pet).andExpect(status().isBadRequest());
     read(owner, item(prompt) + "&mode=bad&mode=%ZZ&unknown=%ZZ").andExpect(status().isOk());
     read(owner, "?petId=" + pet + "&unknown=%ZZ&unknown=again").andExpect(status().isOk());
     read(owner, "/current?petId=" + pet)
@@ -515,16 +517,42 @@ class QuestionPromptHistoryScenarioTest {
   void batchedSql() throws Exception {
     for (int i = 0; i < 4; i++) {
       long p = prompt();
-      answer(owner, p);
-      answer(writer, p);
+      create.create(
+          new CreateQuestionAnswerCommand(owner, pet, p, "사진 답변", List.of(asset(owner, false))));
+      create.create(
+          new CreateQuestionAnswerCommand(writer, pet, p, "음성 답변", List.of(asset(writer, true))));
     }
     long small = statements(() -> lists.list(query(owner, null, 0, 1)));
     long large = statements(() -> lists.list(query(owner, null, 0, 4)));
     assertThat(large).isEqualTo(small);
     assertThat(large).isLessThanOrEqualTo(10);
     long first = lists.list(query(owner, null, 0, 1)).items().getFirst().promptId();
-    long detailSmall = statements(() -> details.get(detail(owner, first, 0, 1)));
-    long detailLarge = statements(() -> details.get(detail(owner, first, 0, 2)));
+    clearInvocations(media);
+    long detailSmall =
+        statements(
+            () -> {
+              var result = details.get(detail(owner, first, 0, 1));
+              assertThat(result.answers().items())
+                  .hasSize(1)
+                  .allSatisfy(a -> assertThat(a.attachments()).hasSize(1));
+            });
+    verify(media, times(1)).metadata(eq(pet), anyList());
+    clearInvocations(media);
+    long detailLarge =
+        statements(
+            () -> {
+              var result = details.get(detail(owner, first, 0, 2));
+              assertThat(result.answers().items())
+                  .hasSize(2)
+                  .allSatisfy(a -> assertThat(a.attachments()).hasSize(1));
+              assertThat(
+                      result.answers().items().stream()
+                          .flatMap(a -> a.attachments().stream())
+                          .map(QuestionAnswerResult.Attachment::type)
+                          .toList())
+                  .containsExactlyInAnyOrder("IMAGE", "AUDIO");
+            });
+    verify(media, times(1)).metadata(eq(pet), anyList());
     assertThat(detailLarge).isEqualTo(detailSmall);
     assertThat(detailLarge).isLessThanOrEqualTo(10);
     read(owner, "?petId=" + pet)
