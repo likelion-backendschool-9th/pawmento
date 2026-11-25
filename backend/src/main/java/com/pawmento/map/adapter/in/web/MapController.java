@@ -15,6 +15,7 @@ import com.pawmento.map.application.port.in.AddWalkPointsUseCase;
 import com.pawmento.map.application.port.in.EndWalkCommand;
 import com.pawmento.map.application.port.in.EndWalkUseCase;
 import com.pawmento.map.application.port.in.GetCurrentWalkQuery;
+import com.pawmento.map.application.port.in.ResolvePlaceAddressUseCase;
 import com.pawmento.map.application.port.in.GetCurrentWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
@@ -37,6 +38,7 @@ class MapController {
 
 	private final ListMapPinsUseCase listMapPinsUseCase;
 	private final ListPlacesUseCase listPlacesUseCase;
+	private final ResolvePlaceAddressUseCase resolvePlaceAddressUseCase;
 	private final StartWalkUseCase startWalkUseCase;
 	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
@@ -63,6 +65,12 @@ class MapController {
 		return PlacesResponse.from(listPlacesUseCase.list(new ListPlacesQuery(query.latitude("minLatitude"),
 				query.longitude("minLongitude"), query.latitude("maxLatitude"), query.longitude("maxLongitude"),
 				query.placeCategories("categories"))));
+	}
+
+	// 주소가 가려진 장소의 주소를 좌표로 찾는다(#239). 장소 id만 받고 서버가 좌표를 읽는다. 찾지 못하면 address가 null이다
+	@GetMapping("/places/{placeId}/address")
+	PlaceAddressResponse resolvePlaceAddress(@LoginMember Long memberId, @PathVariable Long placeId) {
+		return PlaceAddressResponse.from(resolvePlaceAddressUseCase.resolve(placeId));
 	}
 
 	@GetMapping("/walks")

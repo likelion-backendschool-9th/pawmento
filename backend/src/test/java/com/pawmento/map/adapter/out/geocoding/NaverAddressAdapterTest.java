@@ -208,4 +208,139 @@ class NaverAddressAdapterTest {
 		}
 	}
 
+	private static final String ROAD_WITHOUT_NUMBER_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "서울특별시"}, "area2": {"name": "성동구"},
+		      "area3": {"name": "성수동1가"}, "area4": {"name": ""}}, "land": {"name": "서울숲2길", "number1": "", "number2": ""}}
+		  ]
+		}
+		""";
+
+	// 도로명이 비어 있고 건물번호만 있는 응답
+	private static final String NUMBER_WITHOUT_ROAD_NAME_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "서울특별시"}, "area2": {"name": "성동구"},
+		      "area3": {"name": "성수동1가"}, "area4": {"name": ""}}, "land": {"name": "", "number1": "32", "number2": "14"}}
+		  ]
+		}
+		""";
+
+	// 지역(region) 없이 도로명과 건물번호만 있는 응답. 그대로 쓰면 건물번호만 남는다
+	private static final String ROAD_WITHOUT_REGION_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "land": {"name": "서울숲2길", "number1": "32", "number2": "14"}}
+		  ]
+		}
+		""";
+
+	// 시·군·구가 없는 세종특별자치시의 도로명 주소
+	private static final String SEJONG_ROAD_JSON = """
+		{
+		  "status": {"code": 0, "name": "ok", "message": "done"},
+		  "results": [
+		    {"name": "roadaddr", "region": {"area1": {"name": "세종특별자치시"}, "area2": {"name": ""},
+		      "area3": {"name": "어진동"}, "area4": {"name": ""}}, "land": {"name": "한누리대로", "number1": "2130", "number2": ""}}
+		  ]
+		}
+		""";
+
+	// 이하는 장소 카드의 가려진 주소 보완(#239)이 쓰는 도로명 전용 조회다. 일기 위치(#19)의 지번 폴백은 위에서 그대로 확인한다
+
+	@Test
+	@DisplayName("#239-S1 도로명 전용 조회는 도로명과 건물번호를 받는다")
+	void loadsRoadAddressOnly() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andExpect(queryParam("coords", "127.0276,37.4979"))
+			.andExpect(header("X-NCP-APIGW-API-KEY-ID", "test-id"))
+			.andRespond(withSuccess(ROAD_ADDRESS_JSON, MediaType.APPLICATION_JSON));
+
+		Optional<String> address = new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.4979, 127.0276);
+
+		assertThat(address).contains("서울특별시 강남구 테헤란로 152");
+		f.server().verify();
+	}
+
+	@Test
+	@DisplayName("#239-S9 도로명 주소 없이 지번만 있으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupDoesNotFallBackToLotAddress() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(LOT_ADDRESS_ONLY_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.4979, 127.0276)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 같은 응답에서 일기 위치의 조회(#19)는 여전히 지번을 받는다")
+	void lotLookupForDiaryLocationIsUnchanged() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(LOT_ADDRESS_ONLY_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(f.adapter().loadByCoordinates(37.4979, 127.0276)).contains("서울특별시 강남구 역삼동 737-3");
+	}
+
+	@Test
+	@DisplayName("#239-S9 도로명은 있지만 건물번호가 없으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupNeedsBuildingNumber() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(ROAD_WITHOUT_NUMBER_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 건물번호는 있지만 도로명이 비어 있으면 도로명 전용 조회는 빈 값이다")
+	void roadOnlyLookupNeedsRoadName() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(NUMBER_WITHOUT_ROAD_NAME_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 지역 정보 없이 도로명과 건물번호만 있으면 불완전한 주소라 빈 값이다")
+	void roadOnlyLookupNeedsRegion() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess(ROAD_WITHOUT_REGION_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(37.5445, 127.0374)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#239-S9 시·군·구가 없는 세종특별자치시의 도로명 주소는 그대로 받는다")
+	void roadOnlyLookupAcceptsSejongWithoutDistrict() {
+		Fixture f = fixture("test-id", "test-secret");
+		f.server().expect(method(HttpMethod.GET)).andRespond(withSuccess(SEJONG_ROAD_JSON, MediaType.APPLICATION_JSON));
+
+		assertThat(new NaverRoadAddressAdapter(f.adapter()).loadRoadAddressByCoordinates(36.48, 127.28))
+			.contains("세종특별자치시 한누리대로 2130");
+	}
+
+	@Test
+	@DisplayName("#239-S3 도로명 전용 조회도 주소가 없는 좌표, 서버 오류, 키 없음이면 빈 값이다")
+	void roadOnlyLookupIsEmptyOnFailures() {
+		Fixture noAddress = fixture("test-id", "test-secret");
+		noAddress.server().expect(method(HttpMethod.GET))
+			.andRespond(withSuccess("{\"status\":{\"code\":3,\"name\":\"no results\"},\"results\":[]}",
+					MediaType.APPLICATION_JSON));
+		assertThat(new NaverRoadAddressAdapter(noAddress.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+
+		Fixture serverError = fixture("test-id", "test-secret");
+		serverError.server().expect(method(HttpMethod.GET)).andRespond(withServerError());
+		assertThat(new NaverRoadAddressAdapter(serverError.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+
+		Fixture noKey = fixture("", "");
+		assertThat(new NaverRoadAddressAdapter(noKey.adapter()).loadRoadAddressByCoordinates(37.0, 127.0)).isEmpty();
+		noKey.server().verify();
+	}
+
 }
