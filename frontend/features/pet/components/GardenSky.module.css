@@ -175,14 +175,9 @@
 .butterflies {
   pointer-events: none;
   position: absolute;
-  width: max(
-    100%,
-    calc((100dvh - var(--app-header-height) - var(--app-nav-height)) * 2 / 3)
-  );
-  aspect-ratio: 2/3;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  inset: 0;
+  top: calc(var(--intro-bottom, 70px) + 28px);
+  bottom: 30%;
 }
 .butterfly {
   pointer-events: auto;
@@ -208,7 +203,6 @@
 .wings {
   position: relative;
   display: block;
-  transform: rotate(-18deg);
 }
 .wingLeft, .wingRight {
   position: absolute;

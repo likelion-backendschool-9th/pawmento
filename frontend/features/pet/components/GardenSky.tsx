@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
@@ -13,18 +13,18 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Keep the ten memory targets at their original positions in the 2:3 scene.
+// Spread targets through the sky between the introduction and the garden.
 const lights = [
-  { x: 29.8, y: 26.1 },
-  { x: 61.1, y: 29.9 },
-  { x: 44.3, y: 35.9 },
-  { x: 73, y: 40 },
-  { x: 26.2, y: 45.3 },
-  { x: 55.5, y: 48 },
-  { x: 38.3, y: 55.5 },
-  { x: 71.8, y: 58 },
-  { x: 48.8, y: 64.1 },
-  { x: 28.2, y: 66.1 },
+  { x: 14, y: 10, angle: -38, size: 29, beat: 2.1 },
+  { x: 72, y: 4, angle: 28, size: 24, beat: 2.7 },
+  { x: 46, y: 29, angle: -12, size: 31, beat: 1.8 },
+  { x: 88, y: 31, angle: 57, size: 23, beat: 2.4 },
+  { x: 23, y: 47, angle: -65, size: 26, beat: 2.2 },
+  { x: 54, y: 55, angle: 18, size: 29, beat: 1.9 },
+  { x: 13, y: 72, angle: -24, size: 22, beat: 2.8 },
+  { x: 80, y: 65, angle: 69, size: 28, beat: 2.5 },
+  { x: 50, y: 91, angle: -49, size: 24, beat: 2.3 },
+  { x: 29, y: 97, angle: 36, size: 25, beat: 2.6 },
 ];
 const stars = [
   [12, 8], [43, 5], [78, 12], [30, 20], [66, 23], [89, 30],
@@ -44,6 +44,19 @@ export function GardenSky({ pet }: { pet: Pet }) {
   const previous = useRef<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const guide = useRef<HTMLDialogElement>(null);
+  const intro = useRef<HTMLDivElement>(null);
+  const butterflies = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const node = intro.current;
+    if (!node) return;
+    const placeButterflies = () => butterflies.current?.style.setProperty(
+      "--intro-bottom", `${node.offsetTop + node.offsetHeight}px`,
+    );
+    placeButterflies();
+    const observer = new ResizeObserver(placeButterflies);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     if (gardenGuide.shouldShow() && !guide.current?.open)
       guide.current?.showModal();
@@ -94,7 +107,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             ))}
           </div>
         </div>
-        <div className={s.intro}>
+        <div className={s.intro} ref={intro}>
           <div className={s.petIdentity}>
             <span className={s.petPortrait}>
               <Photo src={pet.photoUrl} alt={`${pet.name}의 프로필 사진`} />
@@ -113,7 +126,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
             <Icon name="question" size={18} />
           </button>
         </div>
-        <div className={s.butterflies}>
+        <div className={s.butterflies} ref={butterflies}>
           {lights.map((point, i) => (
             <button
               key={i}
@@ -127,10 +140,10 @@ export function GardenSky({ pet }: { pet: Pet }) {
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
             >
-              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s` }}>
-                <span className={s.wings} style={{ width: 25 + i % 3 * 3, height: 25 + i % 3 * 3 }}>
-                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s` }} />
-                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s` }} />
+              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s`, animationDuration: `${4 + i % 4}s` }}>
+                <span className={s.wings} style={{ width: point.size, height: point.size, transform: `rotate(${point.angle}deg)` }}>
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s`, animationDuration: `${point.beat}s` }} />
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s`, animationDuration: `${point.beat}s` }} />
                 </span>
               </span>
             </button>

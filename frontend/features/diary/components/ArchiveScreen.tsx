@@ -2,6 +2,7 @@
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
+import { CollectionHeading } from "@/components/CollectionHeading";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +16,7 @@ import { validateDate } from "@/lib/date";
 import type { JournalItem } from "../types/JournalItem";
 import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
-import { JournalCard, EmptyState, PageHeading } from "../../shell/components/WorkspaceUi";
+import { JournalCard, EmptyState } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 
 export function Calendar({
@@ -194,16 +195,15 @@ export function ArchiveScreen({
   ]);
   return (
     <>
-      <PageHeading
-        eyebrow="자유롭게 남기는 일상의 이야기"
+      <CollectionHeading
         title={calendar ? "다이어리 달력" : "다이어리"}
-        body={`${pet.name}와 함께한 일기와 사진을 모았어요. 질문에 남긴 답변은 오늘의 질문에서 볼 수 있어요.`}
+        body={`${pet.name}와 함께한 하루를 한 편씩 모았어요.`}
       >
         <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />
           기록 남기기
         </Link>
-      </PageHeading>
+      </CollectionHeading>
       {invalidDate && (
         <p className="error" role="alert">
           날짜 주소가 올바르지 않아 오늘의 기록을 보여드려요.

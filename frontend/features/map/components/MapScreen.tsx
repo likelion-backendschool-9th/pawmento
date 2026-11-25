@@ -5,7 +5,7 @@ import { useApp } from "@/app/AppProvider";
 import { isDemoAccount } from "@/features/member/types/account";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { Icon } from "@/components/Icon";
-import { PageHeading } from "@/features/shell/components/WorkspaceUi";
+import { CollectionHeading } from "@/components/CollectionHeading";
 import type { MapBounds } from "@/features/map/types/MapBounds";
 import type { MapPinList } from "@/features/map/types/MapPin";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
@@ -101,8 +101,7 @@ export function MapScreen({
 
   return (
     <>
-      <PageHeading
-        eyebrow="OUR MEMORY MAP"
+      <CollectionHeading
         title="추억 지도"
         body={`${pet.name}와 함께 다녀온 곳을 지도에서 다시 만나 보세요.`}
       >
@@ -114,7 +113,7 @@ export function MapScreen({
           <Icon name="plus" size={17} />
           기록 남기기
         </Link>
-      </PageHeading>
+      </CollectionHeading>
       <ArchiveNavigation petId={pet.id} active="map" />
       <div className={styles.switch} role="group" aria-label="지도 보기">
         <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
