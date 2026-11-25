@@ -33,3 +33,13 @@
 .account > svg {
   margin-left: auto;
 }
+
+.developers {
+  margin: 32px 0 16px;
+}
+.developerLineup {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
