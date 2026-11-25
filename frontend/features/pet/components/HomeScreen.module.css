@@ -182,7 +182,7 @@
   color: var(--brand-primary);
   white-space: nowrap;
 }
-@media (max-width: 1050px) {
+@container app (max-width: 1050px) {
   .hero {
     padding: 40px;
     min-height: 320px;
@@ -201,7 +201,7 @@
     height: 155px;
   }
 }
-@media (max-width: 600px) {
+@container app (max-width: 600px) {
   .hero {
     flex-direction: column;
     min-height: 365px;
@@ -304,3 +304,5 @@
   max-width: 100%;
   white-space: normal;
 }
+
+.gardenStories { margin:0 -18px; padding:32px 18px; background:var(--surface-page); }

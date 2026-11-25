@@ -214,7 +214,7 @@
   color: #6f7d62;
   margin-left: auto;
 }
-@media (max-width: 1279px) {
+@container app (max-width: 1279px) {
   .header,
   .hero,
   .footer {
@@ -235,7 +235,7 @@
     height: 185px !important;
   }
 }
-@media (max-width: 1023px) {
+@container app (max-width: 1023px) {
   .hero {
     gap: 30px;
   }
@@ -267,7 +267,7 @@
     font-size: 9px;
   }
 }
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .header,
   .hero,
   .footer {
@@ -399,7 +399,7 @@
     font-size: 8px;
   }
 }
-@media (max-width: 374px) {
+@container app (max-width: 374px) {
   .copy h1 {
     font-size: 32px;
   }

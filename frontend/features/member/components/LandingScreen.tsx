@@ -33,14 +33,7 @@ export function LandingScreen() {
     <div className={styles.page}>
       <header className={styles.header}>
         <Brand />
-        <nav>
-          <a href="#features">함께할 수 있는 것들</a>
-          <Link href="/sign-in">로그인</Link>
-          <Link className="button primary" href="/sign-up">
-            기록 시작하기
-            <Icon name="arrow" size={15} />
-          </Link>
-        </nav>
+        <Link className="text-link" href="/sign-in">로그인</Link>
       </header>
       <main>
         <section className={styles.hero}>

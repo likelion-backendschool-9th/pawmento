@@ -1,0 +1,193 @@
+.sky {
+  position: relative;
+  margin: 0 -18px;
+  height: calc(100svh - 82px - env(safe-area-inset-bottom));
+  min-height: 550px;
+  overflow: hidden;
+  background: #030530;
+  color: #fff4d5;
+}
+.scene {
+  position: absolute;
+  inset: 0;
+}
+.art {
+  object-fit: cover;
+  object-position: center;
+}
+.intro {
+  position: absolute;
+  top: 98px;
+  left: 20px;
+  right: 20px;
+  text-align: center;
+  pointer-events: none;
+  text-shadow: 0 2px 20px #03052c;
+}
+.intro span {
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: #d2cef0;
+}
+.intro h1 {
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+  margin: 10px 0 7px;
+}
+.intro p {
+  font-size: 12px;
+  color: #d6d7ee;
+}
+.butterflies {
+  position: absolute;
+  width: max(100%, calc((100svh - 82px - env(safe-area-inset-bottom)) * 2 / 3));
+  aspect-ratio: 2/3;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.butterfly {
+  position: absolute;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(#ffc77330, transparent 70%);
+  color: #fff1b1;
+  filter: drop-shadow(0 0 9px #ffc76a);
+  animation: glimmer 4s ease-in-out infinite;
+}
+.butterfly svg {
+  width: 27px;
+  height: 27px;
+}
+.butterfly:hover {
+  background: #ffc77345;
+}
+.butterfly:focus-visible {
+  outline: 2px solid #fff1b1;
+  outline-offset: 4px;
+}
+.explore {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 9px #020326;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.explore svg {
+  transform: rotate(90deg);
+}
+.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: min(100%, 480px);
+  max-width: 480px;
+  max-height: 86svh;
+  margin: 0 auto;
+  padding: 14px 24px calc(24px + env(safe-area-inset-bottom));
+  border: 1px solid #e0dbea;
+  border-bottom: 0;
+  border-radius: 28px 28px 0 0;
+  background: #fcf9f5;
+  color: #494255;
+  box-shadow: 0 -16px 80px #02021d40;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sheet::backdrop {
+  background: #03041d8c;
+  backdrop-filter: blur(5px);
+}
+.grip {
+  width: 36px;
+  height: 4px;
+  border-radius: 9px;
+  background: #dad1df;
+  margin: 0 auto 10px;
+}
+.sheetTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #93889c;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.kind {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 14px;
+  background: #ece7f2;
+  color: #82718f;
+  font-size: 10px;
+  margin: 14px 0 12px;
+}
+.sheet h2 {
+  font-size: 22px;
+  letter-spacing: -0.7px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.date {
+  font-size: 11px;
+  color: #978da0;
+}
+.photo {
+  aspect-ratio: 4/3;
+  overflow: hidden;
+  border-radius: 18px;
+  margin: 20px 0;
+}
+.photo img,
+.photo svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.body {
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 15px;
+}
+.actions > * {
+  flex: 1;
+  font-size: 12px;
+}
+.empty {
+  text-align: center;
+  padding: 28px 0;
+}
+.empty p {
+  font-size: 13px;
+  color: #93889c;
+}
+@keyframes glimmer {
+  50% {
+    filter: drop-shadow(0 0 16px #ffc76a);
+    opacity: 0.75;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .butterfly {
+    animation: none;
+  }
+}

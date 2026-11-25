@@ -1,389 +1,126 @@
-.garden {
-  min-height: 100dvh;
-  background:
-    linear-gradient(
-      var(--space-wash),
-      var(--space-tint) 60%,
-      var(--space-wash)
-    ),
-    url("/images/watercolor-garden.png") center top/100% auto fixed;
+.space {
+  min-height: 100svh;
+  background: var(--surface-page);
+  padding-bottom: calc(82px + env(safe-area-inset-bottom));
 }
 .header {
-  background: #fffdf5e8;
-  border-bottom: 1px solid #e4ddcf;
-  backdrop-filter: blur(14px);
-}
-.masthead {
   min-height: 76px;
-  max-width: 1380px;
-  margin: auto;
-  padding: 6px 40px;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
-  gap: 25px;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--surface-card);
+}
+.header :global(.brand) {
+  margin-right: auto;
+  gap: 6px;
+  font-size: 17px;
+}
+.header :global(.brand small) {
+  display: none;
+}
+.header :global(.brand-logo) {
+  width: 40px;
+  height: 40px;
 }
 .identity {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
   margin: 0;
   min-width: 0;
-  max-width: 300px;
-  flex-direction: row;
-  padding: 3px 10px;
-  border-radius: 20px;
-  background: #eeeadf80;
-  color: #7c756b;
-  font-size: 12px;
-  white-space: nowrap;
+  max-width: 145px;
 }
 .identity select {
-  min-width: 0;
-  min-height: 36px;
-  font-size: 12px;
+  width: 100%;
+  min-height: 44px;
   border: 0;
-  padding: 5px 22px 5px 0;
-  background: transparent;
-  color: inherit;
+  border-radius: 20px;
+  padding: 8px 22px 8px 10px;
+  background: var(--surface-subtle);
+  color: var(--text-primary);
+  font-size: 12px;
   text-overflow: ellipsis;
 }
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: #877c88;
-}
-.menuButton {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  border: 1px solid #e0d8ce;
-  border-radius: 24px;
-  background: #fffcf7;
-  padding: 10px 16px;
-  color: #7e7486;
-  font-size: 12px;
-  min-height: 43px;
-}
-.navigation {
-  max-width: 1000px;
-  margin: auto;
-  padding: 0 25px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 25px;
-}
-.navigation a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 9px 18px;
-  color: #8a7f86;
-  font-size: 13px;
-  border-radius: 30px;
-  min-height: 40px;
-}
-.navigation a[aria-current="page"] {
-  background: #e6e9d9;
-  color: #687650;
-}
-.navigation a:hover {
-  background: #f0ece7;
+.profile {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: 50%;
 }
 .main {
-  max-width: 1360px;
-  margin: auto;
-  padding: 38px 45px 55px;
-  min-height: calc(100dvh - 300px);
-  animation: arrive 0.4s ease-out;
+  padding: 24px 18px;
+  min-height: calc(100svh - 158px);
 }
-.footer {
-  padding: 32px 25px 40px;
-  text-align: center;
+.bottomNav {
+  position: fixed;
+  z-index: 40;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 480px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 10px 4px max(10px, env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface-card) 95%, transparent);
+  border-top: 1px solid var(--border-default);
+  backdrop-filter: blur(16px);
+}
+.bottomNav a {
+  min-height: 50px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 9px;
-  border-top: 1px solid #e3dbd1;
-  background: #fffaf169;
-  color: #969284;
-}
-.footer > span {
-  font-size: 13px;
-  letter-spacing: 1px;
-  color: #8b8479;
-}
-.footer small {
+  justify-content: center;
+  gap: 5px;
   font-size: 10px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  border-radius: 14px;
 }
-.mobileNav {
-  display: none;
+.bottomNav a[aria-current="page"] {
+  color: var(--brand-primary);
+  background: var(--surface-subtle);
+  font-weight: 700;
 }
-.menuDialog {
-  width: min(860px, calc(100vw - 32px));
-  max-height: 85dvh;
-  overflow: auto;
-  border: 1px solid #dfd5e1;
-  border-radius: 22px;
-  background: #fffcf7;
-  box-shadow: 0 25px 90px #55465933;
-  padding: 28px 32px;
-  color: #73647f;
+.space[data-immersive="true"] {
+  background: #07113b;
 }
-.menuDialog::backdrop {
-  background: #53475d55;
-  backdrop-filter: blur(5px);
+.space[data-immersive="true"] .header {
+  position: absolute;
+  width: 100%;
+  max-width: 480px;
+  z-index: 10;
+  color: #fff4db;
+  border: 0;
+  background: linear-gradient(#04072bcc, transparent);
 }
-.menuHeading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
+.space[data-immersive="true"] .identity select {
+  background: #ffffff20;
+  color: #fff4db;
 }
-.menuHeading span {
-  font:
-    10px Georgia,
-    serif;
-  letter-spacing: 3px;
-  color: #a096a4;
+.space[data-immersive="true"] .identity option {
+  color: #252440;
 }
-.menuHeading h2 {
-  margin: 6px 0 0;
-  font-size: 21px;
-  font-weight: 500;
+.space[data-immersive="true"] .profile {
+  border-color: #ffffff35;
 }
-.petChoice {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 18px;
-  font-size: 11px;
-  color: #8d8198;
-  margin: 24px 0 0;
-  padding-bottom: 18px;
-  border-bottom: 1px solid #e6deea;
+.space[data-immersive="true"] .main {
+  padding-top: 0;
 }
-.petChoice select {
-  max-width: 260px;
-  min-height: 39px;
+.space[data-immersive="true"] .bottomNav {
+  background: #101634ed;
+  border-color: #ffffff20;
 }
-.allNavigation {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+.space[data-immersive="true"] .bottomNav a {
+  color: #c9c9e5;
 }
-@keyframes arrive {
-  from {
-    opacity: 0.4;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (max-width: 1050px) {
-  .identity {
-    margin-right: 0;
-  }
-  .navigation {
-    gap: 6px;
-  }
-  .navigation a {
-    padding: 9px 13px;
-  }
-  .main {
-    padding: 30px 28px 45px;
-  }
-  .masthead {
-    padding: 12px 28px;
-  }
-}
-@media (max-width: 767px) {
-  .masthead {
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 75px;
-    padding: 6px 14px;
-    gap: 8px;
-  }
-  .masthead :global(.brand) {
-    font-size: clamp(20px, 6vw, 25px);
-  }
-  .masthead :global(.brand-logo) {
-    width: 53px;
-    height: 58px;
-  }
-  .masthead :global(.brand small) {
-    display: none;
-  }
-  .identity {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    max-width: none;
-    width: 100%;
-  }
-  .headerActions {
-    gap: 2px;
-  }
-  .menuButton {
-    border: 0;
-    padding: 8px;
-    min-height: 40px;
-    background: none;
-  }
-  .menuButton span {
-    display: none;
-  }
-  .navigation {
-    padding: 0 10px 12px;
-    gap: 0;
-    justify-content: space-around;
-  }
-  .navigation a {
-    font-size: 10px;
-    padding: 7px 9px;
-    gap: 5px;
-    min-height: 34px;
-  }
-  .navigation a svg {
-    width: 15px;
-    height: 15px;
-  }
-  .navigation a:nth-child(n + 4) {
-    display: none;
-  }
-  .main {
-    padding: 26px 17px 35px;
-  }
-  .footer {
-    padding-bottom: 105px;
-  }
-  .mobileNav {
-    position: fixed;
-    inset: auto 0 0;
-    z-index: 45;
-    display: flex;
-    justify-content: space-around;
-    border-top: 1px solid #e2d9ce;
-    background: #fffcf4ed;
-    backdrop-filter: blur(12px);
-    padding: 8px 4px max(9px, env(safe-area-inset-bottom));
-  }
-  .mobileNav > a,
-  .mobileNav > button {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    min-width: 55px;
-    min-height: 46px;
-    color: #9a8c99;
-    font-size: 9px;
-    background: none;
-    border: 0;
-    padding: 3px;
-  }
-  .mobileNav > a[aria-current="page"] {
-    color: #78865d;
-    font-weight: 600;
-  }
-  .mobileNav > a[aria-current="page"] svg {
-    background: #edf0e2;
-    box-sizing: content-box;
-    padding: 6px 13px;
-    border-radius: 20px;
-    margin-top: -6px;
-  }
-  .menuDialog {
-    padding: 24px 18px;
-  }
-  .allNavigation {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  .petChoice {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  .petChoice select {
-    max-width: none;
-  }
+.space[data-immersive="true"] .bottomNav a[aria-current="page"] {
+  background: #ffffff13;
+  color: #ffe9b3;
 }
 
-/* The same open layout, with a fresh morning palette for daily records. */
-.daily .header {
-  background: #fcfdf5ed;
-  border-color: #dfe7d3;
-}
-.daily .identity,
-.daily .headerActions,
-.daily .menuButton,
-.daily .navigation a {
-  color: #63794d;
-}
-.daily .menuButton {
-  background: #f8fbf1;
-  border-color: #dce5ce;
-}
-.daily .navigation a[aria-current="page"] {
-  background: #dfeccf;
-  color: #496731;
-}
-.daily .navigation a:hover {
-  background: #edf3e2;
-}
-.daily .footer {
-  border-color: #dfe7d3;
-  background: #f5f8ecb3;
-  color: #768464;
-}
-.daily .footer > span {
-  color: #63794d;
-}
-.daily .menuDialog {
-  background: #fcfdf7;
-  border-color: #dce5ce;
-  color: #536b40;
-}
-.daily .petChoice {
-  color: #63794d;
-  border-color: #dfe7d3;
-}
-.daily .mobileNav {
-  background: #fbfdf5ed;
-  border-color: #dce5ce;
-}
-.daily .mobileNav > a,
-.daily .mobileNav > button {
-  color: #63794d;
-}
-.daily .mobileNav > a[aria-current="page"] {
-  color: #496731;
-}
-.daily .mobileNav > a[aria-current="page"] svg {
-  background: #dfeccf;
-}
-
-/* 정보 지도(/places)는 휴대폰에서 지도가 화면을 채운다. 반려동물 선택 줄과 위쪽 메뉴 줄, 바닥글을 접어 지도에 자리를 준다.
-   남은 머리글(로고·설정·전체 메뉴)과 하단 메뉴의 높이를 지도 화면이 쓰도록 값으로 알려 준다. */
-@media (max-width: 767px) {
-  .immersive {
-    --shell-top: 76px;
-    /* 하단 메뉴의 높이와 같은 식이다: 위 여백 8 + 내용 53 + 아래 여백 max(9, 안전 영역). 안전 영역이 있는 기기에서 틈이 생기지 않는다 */
-    --shell-bottom: calc(62px + max(9px, env(safe-area-inset-bottom, 0px)));
-  }
-  .immersive .identity,
-  .immersive .navigation,
-  .immersive .footer {
-    display: none;
-  }
-  .immersive .main {
-    padding: 0;
-    min-height: 0;
-  }
+.space[data-immersive="true"] .header :global(.brand) {
+  color: #fff0cf;
 }

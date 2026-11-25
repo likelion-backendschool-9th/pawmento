@@ -63,7 +63,7 @@
 .compact > div:first-child dd {
   -webkit-line-clamp: 2;
 }
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .pair dd {
     font-size: 15px;
   }

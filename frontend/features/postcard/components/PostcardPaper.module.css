@@ -287,12 +287,12 @@
     opacity: 1;
   }
 }
-@media (min-width: 1500px) {
+@container app (min-width: 1500px) {
   .frontArt {
     min-height: 350px;
   }
 }
-@media (max-width: 600px) {
+@container app (max-width: 600px) {
   .toolbar {
     align-items: flex-start;
   }
@@ -374,7 +374,7 @@
 .postcode {
   white-space: nowrap;
 }
-@media (max-width: 600px) {
+@container app (max-width: 600px) {
   .toolbar small {
     max-width: 135px;
   }

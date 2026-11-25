@@ -1,22 +1,12 @@
 import Link from "next/link";
 import Image from "next/image";
-export function Brand({
-  href = "/",
-  garden = false,
-}: {
-  href?: string;
-  garden?: boolean;
-}) {
+export function Brand({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="brand" aria-label="PawMento 처음으로">
       <span className="brand-logo">
         <Image
-          src={
-            garden
-              ? "/images/8df6278d43d07b9e.png"
-              : "/images/04e9e24933b3e4bb.png"
-          }
-          alt={garden ? "PawMento 정원 로고" : "PawMento 코기 로고"}
+          src="/images/4abce15e-8aa3-43d2-97ca-0b3435fecf61.png"
+          alt="PawMento · 함께한 기억을 담는 책"
           width={110}
           height={74}
           unoptimized

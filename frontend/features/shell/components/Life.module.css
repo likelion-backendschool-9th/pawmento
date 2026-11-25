@@ -926,7 +926,7 @@
 .standalone .button {
   border-radius: 8px;
 }
-@media (max-width: 1279px) {
+@container app (max-width: 1279px) {
   .threeGrid,
   .mediaGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -970,7 +970,7 @@
     font-size: 27px;
   }
 }
-@media (max-width: 1023px) {
+@container app (max-width: 1023px) {
   .twoGrid {
     grid-template-columns: 1fr;
   }
@@ -1025,7 +1025,7 @@
     font-size: 12px;
   }
 }
-@media (max-width: 767px) {
+@container app (max-width: 767px) {
   .heading {
     display: block;
     margin-bottom: 22px;
@@ -1433,7 +1433,7 @@
     font-size: 18px;
   }
 }
-@media (max-width: 374px) {
+@container app (max-width: 374px) {
   .heading h1 {
     font-size: 23px;
   }
@@ -1509,7 +1509,7 @@
   border: 6px solid #fffdf6;
   transform: rotate(2deg);
 }
-@media (max-width: 600px) {
+@container app (max-width: 600px) {
   :global([data-mode="GARDEN"]) .gardenWelcome {
     min-height: 250px;
     padding: 30px 22px;

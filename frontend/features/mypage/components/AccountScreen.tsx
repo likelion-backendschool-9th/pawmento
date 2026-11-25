@@ -1,7 +1,7 @@
 "use client";
+import Link from "next/link";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
@@ -68,6 +68,45 @@ export function AccountScreen() {
         title="나의 작은 공간"
         body="함께 기록하는 당신의 이야기."
       />
+      <section className="profile-destinations" aria-label="내 공간 관리">
+        <Link href="/pets">
+          <Icon name="paw" size={20} />
+          반려동물 관리
+          <Icon name="chevron" size={16} />
+        </Link>
+        {app.state.selectedPetId && (
+          <Link href={`/pets/${app.state.selectedPetId}/family`}>
+            <Icon name="users" size={20} />
+            함께 기록하는 가족
+            <Icon name="chevron" size={16} />
+          </Link>
+        )}
+        {app.state.pets.find((p) => p.id === app.state.selectedPetId)?.mode ===
+          "GARDEN" && (
+          <Link href={`/pets/${app.state.selectedPetId}/garden/mailbox`}>
+            <Icon name="mail" size={20} />
+            기억의 우체통
+            <Icon name="chevron" size={16} />
+          </Link>
+        )}
+        <Link href="/me/activity">
+          <Icon name="heart" size={20} />
+          나의 활동
+          <Icon name="chevron" size={16} />
+        </Link>
+        <Link href="/settings">
+          <Icon name="settings" size={20} />
+          설정 · 앱 설치
+          <Icon name="chevron" size={16} />
+        </Link>
+        {account.role === "ADMIN" && (
+          <Link href="/admin/reports">
+            <Icon name="shield" size={20} />
+            운영 관리
+            <Icon name="chevron" size={16} />
+          </Link>
+        )}
+      </section>
       <div className={styles.accountGrid}>
         <section className={styles.accountCard}>
           <span className={styles.largeAvatar}>
@@ -145,9 +184,6 @@ export function AccountScreen() {
         </section>
         <section className={styles.accountInfo}>
           <h2>차곡차곡 쌓인 우리의 시간</h2>
-          <Link href="/me/activity" className="text-link">
-            내 글 · 댓글 · 북마크 보기
-          </Link>
           <div className={styles.accountStats}>
             <div>
               <strong>{friendCount}</strong>
@@ -160,10 +196,6 @@ export function AccountScreen() {
               </div>
             )}
           </div>
-          <Link className="button secondary full" href="/pets">
-            반려동물 관리
-            <Icon name="arrow" size={17} />
-          </Link>
           {demo && (
             <div className="demo-banner">
               <Icon name="leaf" />

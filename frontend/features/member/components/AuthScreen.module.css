@@ -59,7 +59,7 @@
   font-size: 14px;
   margin-top: 24px;
 }
-@media (max-width: 800px) {
+@container app (max-width: 800px) {
   .auth {
     grid-template-columns: 1fr;
   }
@@ -128,7 +128,7 @@
 .switch {
   font-size: 13px;
 }
-@media (max-width: 800px) {
+@container app (max-width: 800px) {
   .formPanel {
     padding: 24px 20px;
   }
