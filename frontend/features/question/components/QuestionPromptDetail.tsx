@@ -7,6 +7,7 @@ import { Photo } from "@/components/Photo";
 import { MediaPlayer } from "@/components/MediaAttachments";
 import { registrationDate } from "@/lib/date";
 import type { Pet } from "../../pet/types/Pet";
+import { questionNumber } from "../utils/questionNumber";
 import { myAnswer } from "../utils/myAnswer";
 import s from "./QuestionHistory.module.css";
 
@@ -32,10 +33,11 @@ export function QuestionPromptDetail({
   const mine = myAnswer(answers, app.account?.id);
   return (
     <>
-      <Link className="text-link" href={`/pets/${pet.id}/questions`}>
-        ← 오늘의 질문
+      <Link className="text-link" href={`/pets/${pet.id}/questions/history`}>
+        ← 이전 질문
       </Link>
       <header className={s.questionHeading}>
+        <span className={s.number}>#{questionNumber(pet.id, prompt.id, app.state.questionPrompts)}</span>{" "}
         <span className={s.badge}>
           {prompt.mode === "GARDEN"
             ? "기억을 나누는 질문"
