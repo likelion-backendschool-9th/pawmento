@@ -22,3 +22,5 @@ All interface labels, navigation and forms are rendered as working HTML.
 User-supplied artwork for #233, reused without pixel edits:
 puppy.png: original night-sky garden background.
 4abce15e-8aa3-43d2-97ca-0b3435fecf61.png: original shared animal-and-book brand logo.
+
+puppy-retouched-v2.png: built-in imagegen retouch of the user-supplied puppy.png for #233; six dispersed luminous butterflies and a calmer upper sky. The original is preserved.

@@ -19,6 +19,13 @@ import { GardenSky } from "./GardenSky";
 
 export function HomeScreen({ pet }: { pet: Pet }) {
   const app = useApp();
+  if (pet.mode === "GARDEN")
+    return <GardenSky key={`${app.account?.id}:${pet.id}`} pet={pet} />;
+  return <DailyHome pet={pet} />;
+}
+
+function DailyHome({ pet }: { pet: Pet }) {
+  const app = useApp();
   const [randomIndex, setRandomIndex] = useState(0);
   const date = today();
   const prompt = useCurrentQuestion(pet.id);
@@ -39,7 +46,6 @@ export function HomeScreen({ pet }: { pet: Pet }) {
     (prompt.text
       ? question(pet.name, prompt.text)
       : "오늘의 질문을 준비하고 있어요…");
-  const garden = pet.mode === "GARDEN";
   const photos = records.filter((record) => record.photoUrl);
   const onThisDay = records.filter(
     (record) =>
@@ -48,8 +54,7 @@ export function HomeScreen({ pet }: { pet: Pet }) {
   );
   return (
     <>
-      {garden && <GardenSky key={`${app.account?.id}:${pet.id}`} pet={pet} />}
-      <div id="garden-stories" className={garden ? g.gardenStories : undefined}>
+      <div>
         <section className={g.hero}>
           <div className={g.heroCopy}>
             <span>OUR DAYS, TOGETHER</span>
@@ -102,20 +107,6 @@ export function HomeScreen({ pet }: { pet: Pet }) {
                 </Link>
               ))}
             </div>
-          </section>
-        )}
-        {garden && (
-          <section className={g.invitation}>
-            <div>
-              <Icon name="mail" size={32} />
-              <section>
-                <h2>어느 날의 기억이, 한 장의 엽서로.</h2>
-                <p>우연히 펼친 기록 속 우리 아이를 수채화 엽서로 만나보세요.</p>
-              </section>
-            </div>
-            <Link href={`/pets/${pet.id}/garden/mailbox`}>
-              기억의 우체통 열기 <Icon name="arrow" size={15} />
-            </Link>
           </section>
         )}
         {onThisDay.length > 0 && (

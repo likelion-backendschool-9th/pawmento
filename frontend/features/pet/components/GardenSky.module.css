@@ -1,8 +1,8 @@
 .sky {
   position: relative;
   margin: 0 -18px;
-  height: calc(100svh - 82px - env(safe-area-inset-bottom));
-  min-height: 550px;
+  height: calc(100svh - 158px - env(safe-area-inset-bottom));
+  min-height: 480px;
   overflow: hidden;
   background: #030530;
   color: #fff4d5;
@@ -17,17 +17,23 @@
 }
 .intro {
   position: absolute;
-  top: 98px;
+  top: 22px;
   left: 20px;
   right: 20px;
   text-align: center;
   pointer-events: none;
-  text-shadow: 0 2px 20px #03052c;
+  padding: 14px 12px;
+  border: 1px solid #ffffff24;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #071035e6, #142253ad);
+  backdrop-filter: blur(8px);
+  color: #fff9ea;
+  text-shadow: 0 1px 6px #03052c;
 }
 .intro span {
   font-size: 9px;
   letter-spacing: 3px;
-  color: #d2cef0;
+  color: #eee9ff;
 }
 .intro h1 {
   font-size: 26px;
@@ -37,11 +43,14 @@
 }
 .intro p {
   font-size: 12px;
-  color: #d6d7ee;
+  color: #fff6e7;
 }
 .butterflies {
   position: absolute;
-  width: max(100%, calc((100svh - 82px - env(safe-area-inset-bottom)) * 2 / 3));
+  width: max(
+    100%,
+    calc((100svh - 158px - env(safe-area-inset-bottom)) * 2 / 3)
+  );
   aspect-ratio: 2/3;
   top: 50%;
   left: 50%;
@@ -51,20 +60,23 @@
   position: absolute;
   width: 48px;
   height: 48px;
-  padding: 12px;
+  padding: 6px;
   transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
-  background: radial-gradient(#ffc77330, transparent 70%);
+  background: transparent;
   color: #fff1b1;
   filter: drop-shadow(0 0 9px #ffc76a);
   animation: glimmer 4s ease-in-out infinite;
 }
-.butterfly svg {
-  width: 27px;
-  height: 27px;
+.butterflyHalo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(#fff0bf0d, transparent 72%);
+  box-shadow: 0 0 22px 6px #ffd48a12;
 }
 .butterfly:hover {
   background: #ffc77345;
@@ -72,23 +84,6 @@
 .butterfly:focus-visible {
   outline: 2px solid #fff1b1;
   outline-offset: 4px;
-}
-.explore {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 18px;
-  text-align: center;
-  font-size: 11px;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 9px #020326;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-.explore svg {
-  transform: rotate(90deg);
 }
 .sheet {
   position: fixed;

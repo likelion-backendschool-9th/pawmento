@@ -12,11 +12,14 @@ import type { Pet } from "../types/Pet";
 import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 
+// Normalized centers of the six painted butterflies in puppy-retouched-v2.png.
 const lights = [
-  { x: 68.5, y: 37.6 },
-  { x: 37, y: 45 },
-  { x: 24, y: 61.4 },
-  { x: 76.5, y: 63.6 },
+  { x: 32.2, y: 29.6 },
+  { x: 68.9, y: 36.4 },
+  { x: 46.5, y: 43.7 },
+  { x: 24.9, y: 51.7 },
+  { x: 72, y: 55.6 },
+  { x: 42.5, y: 57.5 },
 ];
 export function GardenSky({ pet }: { pet: Pet }) {
   const app = useApp();
@@ -50,7 +53,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
       >
         <div className={s.scene} aria-hidden="true">
           <Image
-            src="/images/puppy.png"
+            src="/images/puppy-retouched-v2.png"
             alt=""
             fill
             unoptimized
@@ -62,7 +65,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
         <div className={s.intro}>
           <span>GARDEN OF MEMORIES</span>
           <h1>{pet.name}의 작은 우주</h1>
-          <p>빛나는 나비에, 우리의 기억이 머물러요.</p>
+          <p>나비를 눌러 기억 한 조각을 만나보세요.</p>
         </div>
         <div className={s.butterflies}>
           {lights.map((point, i) => (
@@ -78,19 +81,10 @@ export function GardenSky({ pet }: { pet: Pet }) {
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
             >
-              <svg viewBox="0 0 40 40" aria-hidden="true">
-                <path
-                  d="M20 22C8 0 1 9 7 22c2 5 7 6 11 3-9 15 0 14 3 3 6 13 12 7 4-4 15 5 17-11 8-9-4 1-8 4-13 7Z"
-                  fill="currentColor"
-                />
-              </svg>
+              <span className={s.butterflyHalo} aria-hidden="true" />
             </button>
           ))}
         </div>
-        <a className={s.explore} href="#garden-stories">
-          <span>나비를 눌러 기억을 만나보세요</span>
-          <Icon name="chevron" size={16} />
-        </a>
       </section>
       <dialog
         ref={dialog}

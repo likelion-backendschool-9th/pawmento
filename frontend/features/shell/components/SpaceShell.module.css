@@ -87,27 +87,9 @@
 .space[data-immersive="true"] {
   background: #07113b;
 }
-.space[data-immersive="true"] .header {
-  position: absolute;
-  width: 100%;
-  max-width: 480px;
-  z-index: 10;
-  color: #fff4db;
-  border: 0;
-  background: linear-gradient(#04072bcc, transparent);
-}
-.space[data-immersive="true"] .identity select {
-  background: #ffffff20;
-  color: #fff4db;
-}
-.space[data-immersive="true"] .identity option {
-  color: #252440;
-}
-.space[data-immersive="true"] .moreButton {
-  border-color: #ffffff35;
-}
 .space[data-immersive="true"] .main {
-  padding-top: 0;
+  padding: 0 18px;
+  min-height: 0;
 }
 .space[data-immersive="true"] .bottomNav {
   background: #101634ed;
@@ -119,10 +101,6 @@
 .space[data-immersive="true"] .bottomNav a[aria-current="page"] {
   background: #ffffff13;
   color: #ffe9b3;
-}
-
-.space[data-immersive="true"] .header :global(.brand) {
-  color: #fff0cf;
 }
 
 .moreButton {
