@@ -40,4 +40,6 @@ export type PlaceQuery = {
 
 export interface PlaceRepository {
   list(bounds: MapBounds, query?: PlaceQuery): Promise<PlaceList>;
+  // 주소가 가려진 장소의 주소를 좌표로 찾는다(#239). 찾지 못했거나 서버를 부르지 않는 예시 데이터이면 null이다.
+  resolveAddress(placeId: string): Promise<string | null>;
 }
