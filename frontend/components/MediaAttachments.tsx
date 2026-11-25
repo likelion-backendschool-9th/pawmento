@@ -5,6 +5,7 @@ import type { MediaAttachment } from "@/types/MediaAttachment";
 import { Icon } from "./Icon";
 import { Photo } from "./Photo";
 import s from "./MediaAttachments.module.css";
+import { PhotoAttachmentCarousel, type PhotoSlide } from "./PhotoAttachmentCarousel";
 export function MediaPlayer({ file }: { file: MediaAttachment }) {
   return (
     <div className="media-player">
@@ -155,6 +156,14 @@ export function MediaAttachments({
       );
     }
   }
+  const photos: PhotoSlide[] = [
+    ...(photo ? [{ id: "primary", src: photo, label: "대표 사진", remove: () => onPhotoChange?.("") }] : []),
+    ...value.filter(file => file.type === "PHOTO").map(file => ({
+      id: `attachment-${file.id}`, src: file.url, label: file.name,
+      remove: () => onChange(value.filter(item => item.id !== file.id)),
+    })),
+  ];
+  const otherMedia = value.filter(file => file.type !== "PHOTO");
   return (
     <section className="attachments">
       <div className="attachments-actions">
@@ -188,13 +197,9 @@ export function MediaAttachments({
           {error}
         </p>
       )}
-      {(photo || value.length > 0) && <div className={`attachments-list ${s.previews}`}>
-        {photo && <div>
-          <Photo src={photo} alt="선택한 대표 사진" className={s.thumbnail} />
-          <button type="button" className="text-link danger" disabled={recording}
-            onClick={() => onPhotoChange?.("")}>사진 삭제</button>
-        </div>}
-        {value.map((file) => (
+      {photos.length > 0 && <PhotoAttachmentCarousel photos={photos} disabled={recording} />}
+      {otherMedia.length > 0 && <div className={`attachments-list ${s.previews}`}>
+        {otherMedia.map((file) => (
           <div key={file.id}>
             <MediaPlayer file={file} />
             <button

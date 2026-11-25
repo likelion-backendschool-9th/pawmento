@@ -1,4 +1,3 @@
 .previews { grid-template-columns: minmax(0, 1fr); }
 .previews > div { min-width: 0; }
-.previews .thumbnail, .previews :global(.media-player > .photo) { display: block; width: 112px; height: 88px; border-radius: 12px; margin-bottom: 8px; }
 .previews :global(.media-player) { margin: 0 0 8px; }
