@@ -42,7 +42,8 @@ test("#120-S2 이메일로 로그인하면 출처는 http다", async () => {
 
 test("#120-S3 데모를 시작하면 출처는 demo다", async () => {
   const auth = repository();
-  await auth.startDemo();
+  const account = await auth.startDemo();
+  assert.equal(account.role, "USER");
   assert.equal(auth.sessionSource(), "demo");
 });
 
