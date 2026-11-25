@@ -62,6 +62,14 @@
 - Then  200과 `{"owner": {"memberId": 1, "nickname": "다윗", "tag": "0427"}, "members": [{"memberId": 2, "nickname": "수민", "tag": "1093", "joinedAt": "…"}]}`
 - Then  관계없는 회원은 403이다
 
+
+#133-S23 내가 가족인 반려동물 목록 [테스트]
+- Given 회원 D가 P1·P2의 가족이고(P1에 먼저 들어감), D가 소유주인 반려동물 P3이 있다
+- When  `GET /api/v1/families/pets`
+- Then  200과 `[{"petId": P1, "name", "tag", "joinedAt"}, {"petId": P2, …}]`를 받는다. 들어간 순서(같으면 id 순)이고 P3은 없다(소유주인 반려동물은 `GET /pets`)
+- Then  반려동물 요약을 찾지 못한 줄은 빠진다
+- Then  로그인하지 않으면 401이다
+
 ## 4. 기록 권한 (#133-R4)
 가족은 다이어리·질문 답변을 보고 쓰며, 본인 글만 수정·삭제한다. 소유주는 다른 사람의 글을 삭제할 수 있지만 수정은 못 한다.
 
@@ -172,11 +180,27 @@
 - Given 실제 PostgreSQL에서 삭제가 반려동물 행을 잠근 순간 barrier로 멈추고 회원 D가 K로 가입한다
 - Then  삭제는 204, 가입은 잠금을 기다린 뒤 404이고 멤버십이 생기지 않는다
 
+## 8. 가족 화면 (#133-R8)
+서버 세션으로 로그인한 회원은 반려동물 관리 화면에서 가족을 보고 초대 코드를 만들며, 받은 코드로 가족이 된다. 데모 모드의 `/pets/{petId}/family`는 바꾸지 않는다.
+
+#133-S24 가족 화면 [직접, API 매핑은 테스트: frontend/tests/family-api.test.ts]
+- Given 소유주 A나 가족 B가 서버 세션으로 로그인했다
+- When  `/pets/manage/{P}/family`를 연다
+- Then  소유주와 가족을 가입 순서로 보고, [초대 코드 만들기]를 누르면 코드와 만료 시각을 이 화면에서 한 번만 본다(서버에는 해시만 있다)
+- Then  로그인하지 않았거나 데모 세션이면 로그인 안내를 본다. 403·404는 다시 시도 없이 안내만 본다
+- Then  계정이 바뀌면 앞 계정의 목록·초대 코드가 남지 않는다
+
+#133-S25 코드로 참여 [직접, API 매핑은 테스트: frontend/tests/family-api.test.ts]
+- Given 회원 D가 서버 세션으로 로그인했다
+- When  `/family/join`에서 코드를 입력한다
+- Then  성공하면 "{이름}의 가족이 됐어요"와 가족 화면 링크를 보고, `/pets` 아래 "가족으로 함께하는 친구"에 P가 보인다
+- Then  쓸 수 없는 코드면 서버 문구를 보고, 로그인이 풀렸으면 로그인 안내를 본다
+
 ## 범위 밖
 - 회원 탈퇴: 별도 이슈. 팀 합의(PR #136 리뷰)는 정한 것에 적었다. 지금 pet은 기록이 있으면 삭제를 409로 막아서, 30일 뒤 영구 삭제는 diary·question·media·map의 데이터를 함께 지우는 흐름이 필요하다
 - 커뮤니티 글의 가족 권한
 - 나간 가족이 쓴 글을 지울지(우선 남긴다, 추후 결정)
-- 가족 화면, 삭제 확인 팝업: 프론트엔드
+- 가족 내보내기·나가기·소유주 이전 화면, 삭제 확인 팝업, 데모 모드 가족 화면의 서버 전환: 프론트엔드(해당 백엔드 단계 뒤)
 - 데이터 내보내기(백업 파일)
 
 ## 작업 순서
@@ -186,13 +210,15 @@
      - `GetPetOwnerUseCase`·`GetPetOwnerQuery(petId)`·`GetPetOwnerResult(ownerMemberId)`. 반환은 `Optional<GetPetOwnerResult>`, 요청자 검사와 잠금은 없다(읽기용)
      - `LockPetOwnerUseCase`·`LockPetOwnerQuery(petId)`. 반려동물 행을 `FOR UPDATE`로 읽어 소유주를 돌려준다. 호출자의 트랜잭션 안에서만 부른다(`Propagation.MANDATORY`)
    - 다른 도메인은 아직 바꾸지 않는다(동작 변화 없음)
-2. 초대 코드와 가족 되기·목록 — S2~S6, S19
+2. 초대 코드와 가족 되기·목록·가족 화면 — S2~S6, S19, S23~S25
    - 파일: `family/adapter/in/web/FamilyController`(`@RequestMapping("/families")`), `PetInviteCode`(`pet_invite_codes`, 코드 해시와 발급자 저장), 초대·가입·목록 유스케이스
    - 발급: 한 트랜잭션에서 반려동물 행 잠금 → 요청자가 소유주나 가족인지 확인(아니면 403) → 코드 저장
    - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 시각을 읽어 코드가 있고 만료 전인지 다시 확인(아니면 404) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(`code_hash`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
    - 목록: 소유주 id → 가족 줄(가입 순, 같으면 id 순) → 요청자가 소유주나 가족인지 확인(아니면 403) → 회원 프로필을 한 번에 조회. 잠그지 않는다
    - member: 새 입력 포트 `ListMemberProfilesUseCase`·`ListMemberProfilesQuery(memberIds)` → `List<MemberProfileResult(memberId, nickname, tag)>`. 다른 회원에게 보여도 되는 값만 주고(이메일·역할 제외), 없는 회원은 예외 없이 빠진다
    - pet: 새 입력 포트 `GetPetSummaryUseCase`·`GetPetSummaryQuery(petId)` → `Optional<PetSummaryResult(petId, name, tag)>`. 요청자 검사가 없다. 부르는 도메인이 권한을 먼저 확인한 뒤에만 부른다. pet 담당과 합의(#236)
+   - 내가 가족인 반려동물(S23): 요청자의 가족 줄을 `member_id`로 조회(들어간 순, 같으면 id 순) → 한 마리씩 `GetPetSummaryUseCase`. `GetPetSummaryUseCase`의 "권한을 먼저 확인한 뒤에만 부른다" 계약은 요청자 본인의 가족 줄이 채운다. 그 줄에서 나온 petId만 쓰기 때문이다. 한 회원이 가족인 반려동물은 적어 한 마리씩 읽는다. `pet_family_members.member_id` 인덱스는 스키마 파일을 둘 때 함께 둔다
+   - 가족 화면(S24·S25): 같은 단계에서 한다. 새 파일은 `features/family/api/familyApi.ts`, `features/family/types/serverFamily.ts`, `features/family/components/ServerFamilyScreen.tsx`·`JoinFamilyScreen.tsx`·`MyFamilyPets.tsx`, 경로 `app/(app)/pets/manage/[managedPetId]/family/page.tsx`·`app/(app)/family/join/page.tsx`다. 공용 파일 `app/composition.ts`에는 `family` 의존성 한 줄만 더한다. pet 관리 목록 `features/pet/components/PetManagementList.tsx`에 가족 버튼·참여 버튼·"가족으로 함께하는 친구" 섹션을 더하며, 시각 변경은 pet 담당 확인을 받는다(#242)
 3. 나가기·내보내기 — S10, S11, S18
    - 한 트랜잭션에서 반려동물 행 잠금 → 권한 확인 → 멤버십 삭제 → 그 회원이 발급한 P의 코드 삭제
 4. 다른 도메인 접근 교체 — S7~S9, S12 (도메인별 PR, 담당과 순서 합의)

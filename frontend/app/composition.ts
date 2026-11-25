@@ -16,6 +16,7 @@ import { createMemberSession } from "../features/member/session.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { createPetApi } from "../features/pet/api/petApi.ts";
 import { createPetManagementApi } from "../features/pet/api/petManagementApi.ts";
+import { createFamilyApi } from "../features/family/api/familyApi.ts";
 import { createMapPinApi } from "../features/map/api/mapPinApi.ts";
 import { createPlaceApi } from "../features/map/api/placeApi.ts";
 import { selectPlaceRepository } from "../features/map/placeSource.ts";
@@ -69,6 +70,7 @@ export function createDependencies() {
     auth: createMemberSession(http, new DemoAuthRepository()),
     pets: createPetApi(http),
     petManagement: createPetManagementApi(http),
+    family: createFamilyApi(http),
     walk: createWalkSession(mapSource.walk, new LocalActiveWalkStore()),
     walkHistory: mapSource.walkHistory,
     map: mapSource.map,

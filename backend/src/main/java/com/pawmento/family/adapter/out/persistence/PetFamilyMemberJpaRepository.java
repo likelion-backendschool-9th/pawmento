@@ -10,4 +10,6 @@ interface  PetFamilyMemberJpaRepository extends JpaRepository<PetFamilyMemberJpa
 
     List<PetFamilyMemberJpaEntity> findByPetIdOrderByJoinedAtAscIdAsc(Long petId);
 
+    List<PetFamilyMemberJpaEntity> findByMemberIdOrderByJoinedAtAscIdAsc(Long memberId);
+
 }

@@ -11,4 +11,7 @@ public interface LoadPetFamilyMemberPort {
 
     // 그 반려동물의 가족 전부. 먼저 가족이 된 순서(같으면 id 순)
     List<PetFamilyMember> loadByPetId(Long petId);
+
+    // 그 회원이 가족으로 들어간 줄 전부. 먼저 들어간 순서(같으면 id 순)
+    List<PetFamilyMember> loadByMemberId(Long memberId);
 }
