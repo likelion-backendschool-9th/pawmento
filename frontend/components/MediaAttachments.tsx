@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { MediaAttachment } from "@/types/MediaAttachment";
 import { Icon } from "./Icon";
 import { Photo } from "./Photo";
+import s from "./MediaAttachments.module.css";
 export function MediaPlayer({ file }: { file: MediaAttachment }) {
   return (
     <div className="media-player">
@@ -31,9 +32,13 @@ export function MediaPlayer({ file }: { file: MediaAttachment }) {
 export function MediaAttachments({
   value,
   onChange,
+  photo,
+  onPhotoChange,
 }: {
   value: MediaAttachment[];
   onChange: (value: MediaAttachment[]) => void;
+  photo?: string;
+  onPhotoChange?: (value: string) => void;
 }) {
   const id = useId();
   const photoInput = useRef<HTMLInputElement>(null);
@@ -64,24 +69,37 @@ export function MediaAttachments({
     if (!files) return;
     setError("");
     try {
-      if (value.length + files.length > 5)
+      if (value.length + files.length - (onPhotoChange && !photo && files.length ? 1 : 0) > 5)
         throw Error("기록 하나에 추가 첨부는 5개까지 가능해요.");
       const added: MediaAttachment[] = [];
-      for (const file of Array.from(files)) {
+      let nextPhoto: string | undefined;
+      for (const [index, file] of Array.from(files).entries()) {
+        const primary = Boolean(onPhotoChange && !photo && index === 0);
         if (!/^image\/(jpeg|png|webp)$/.test(file.type))
           throw Error("JPG, PNG, WebP 사진을 선택해 주세요.");
+        if (primary && file.size > 1024 * 1024)
+          throw Error("첫 사진은 1MB 이하로 선택해 주세요.");
         if (file.size > 2 * 1024 * 1024)
           throw Error(
             "브라우저 데모에서는 첨부 파일 한 개가 2MB 이하여야 해요.",
           );
+        const url = await read(file);
+        await new Promise<void>((resolve, reject) => {
+          const image = new window.Image();
+          image.onload = () => resolve();
+          image.onerror = () => reject(Error("손상된 사진이에요. 다른 사진을 선택해 주세요."));
+          image.src = url;
+        });
+        if (primary) { nextPhoto = url; continue; }
         added.push({
           id: createId(),
           name: file.name,
           mimeType: file.type,
           type: "PHOTO",
-          url: await read(file),
+          url,
         });
       }
+      if (nextPhoto !== undefined) onPhotoChange?.(nextPhoto);
       onChange([...value, ...added]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "첨부하지 못했어요.");
@@ -156,21 +174,26 @@ export function MediaAttachments({
           }
         >
           <Icon name="mic" size={16} />
-          {recording ? "녹음 끝내기" : "목소리 녹음"}
+          {recording ? "녹음 끝내기" : "목소리 추가"}
         </button>
       </div>
       {recording && (
         <p role="status">녹음 중이에요. 최대 30초 뒤 자동으로 마칩니다.</p>
       )}
       <small>
-        추가 첨부 최대 5개 · 개별 2MB · 미디어는 자동 재생되지 않아요.
+        {onPhotoChange ? "첫 사진 1MB · 추가 첨부 5개, 개별 2MB" : "첨부 최대 5개 · 개별 2MB"}
       </small>
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
-      {value.length > 0 && <div className="attachments-list">
+      {(photo || value.length > 0) && <div className={`attachments-list ${s.previews}`}>
+        {photo && <div>
+          <Photo src={photo} alt="선택한 대표 사진" className={s.thumbnail} />
+          <button type="button" className="text-link danger" disabled={recording}
+            onClick={() => onPhotoChange?.("")}>사진 삭제</button>
+        </div>}
         {value.map((file) => (
           <div key={file.id}>
             <MediaPlayer file={file} />
