@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
-import { ApiError } from "@/lib/http/apiClient";
 import { ApplicationError } from "@/lib/application/ApplicationError";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import styles from "../../shell/components/Workspace.module.css";
@@ -41,19 +40,18 @@ export function PetManagementEditor({ pet, api, href, onCancel, onSaved }: {
   }, []);
 
   function showError(cause: unknown) {
-    const status = cause instanceof ApiError ? cause.status : undefined;
     const code = cause instanceof ApplicationError ? cause.code : undefined;
-    const unauthorized = status === 401 || code === "UNAUTHORIZED";
-    const forbidden = status === 403 || code === "FORBIDDEN";
-    const missing = status === 404 || code === "NOT_FOUND";
+    const unauthorized = code === "UNAUTHORIZED";
+    const forbidden = code === "FORBIDDEN";
+    const missing = code === "NOT_FOUND";
     setLoginRequired(unauthorized);
     setBlocked(unauthorized || forbidden || missing);
-    if (status === 409) setConflict(true);
+    if (code === "CONFLICT") setConflict(true);
     setError(
       unauthorized ? "프로필을 수정하려면 로그인해 주세요." :
       forbidden ? "이 반려동물의 프로필을 수정할 권한이 없어요." :
       missing ? "반려동물을 찾을 수 없어요." :
-      status === 409 ? "저장 중 충돌이 발생했어요. 최신 프로필을 확인해 주세요." :
+      code === "CONFLICT" ? "저장 중 충돌이 발생했어요. 최신 프로필을 확인해 주세요." :
       messageOf(cause),
     );
   }

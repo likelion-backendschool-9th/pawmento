@@ -3,7 +3,7 @@ import test from "node:test";
 import { createPetManagementApi } from "../features/pet/api/petManagementApi.ts";
 import { profileChanges } from "../features/pet/utils/petManagementEdit.ts";
 import type { RegisterPetInput } from "../features/pet/types/ManagedPet.ts";
-import type { ApiClient } from "../lib/http/apiClient.ts";
+import { createApiClient, type ApiClient } from "../lib/http/apiClient.ts";
 
 const original: RegisterPetInput = {
   name: "콩이",
@@ -32,4 +32,22 @@ test("#85-S7 편집하지 않은 생일은 생략하고 기존 생일 지우기�
     () => profileChanges(original, { ...original, birthday: "" }),
     /기존 생일을 유지하거나/,
   );
+});
+
+test("#85-S8 수정 API는 HTTP 실패를 화면이 해석할 수 있는 앱 오류로 변환한다", async () => {
+  for (const [status, code] of [
+    [401, "UNAUTHORIZED"],
+    [403, "FORBIDDEN"],
+    [404, "NOT_FOUND"],
+    [409, "CONFLICT"],
+  ] as const) {
+    const http = createApiClient({
+      fetch: async () => Response.json({ code: "SERVER_CODE", message: "실패" }, { status }),
+    });
+    await assert.rejects(createPetManagementApi(http).edit("15", { name: "콩콩" }), {
+      name: "ApplicationError",
+      code,
+      message: "실패",
+    });
+  }
 });
