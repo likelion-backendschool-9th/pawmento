@@ -236,13 +236,22 @@
 }
 
 .questionActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
-  margin-top: 20px;
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-default);
 }
 .questionActions > a {
   max-width: 100%;
   white-space: normal;
+}
+.questionActions > :global(.button) {
+  min-height: 46px;
+  border-radius: 14px;
+  font-size: 13px;
+}
+.questionActions > :global(.text-link) {
+  justify-self: center;
+  font-size: 12px;
 }

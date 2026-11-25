@@ -1,4 +1,5 @@
 "use client";
+import { CollectionHeading } from "@/components/CollectionHeading";
 import { questionHistory } from "@/features/question/utils/questionHistory";
 import { registrationDate } from "@/lib/date";
 
@@ -10,7 +11,6 @@ import { myAnswer } from "../utils/myAnswer";
 import q from "./QuestionHistory.module.css";
 import type { Pet } from "@/features/pet/types/Pet";
 import {
-  LifeHeading,
   LifeEmpty,
   lifeStyles as s,
 } from "@/features/shell/components/LifeUi";
@@ -25,20 +25,20 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
   );
   return (
     <>
-      <LifeHeading
-        label="QUESTION JOURNAL"
+      <CollectionHeading
         title="오늘의 질문"
-        body="오늘의 질문에 답하고, 지난 질문과 답변을 다시 읽어보세요. 다이어리와 별도로 보관해요."
+        body="함께한 순간을 떠올리고, 가족의 답변을 만나보세요."
       >
         {pet.accessRole !== "VIEWER" && (
           <Link
             className="button primary"
             href={`/pets/${pet.id}/questions/answers/new`}
           >
-            현재 질문 답하기
+            <Icon name="edit" size={15} />
+            질문 답하기
           </Link>
         )}
-      </LifeHeading>
+      </CollectionHeading>
       {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
         <div className="demo-banner">
           <Icon name="question" size={18} />

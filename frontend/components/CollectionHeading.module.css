@@ -1,0 +1,36 @@
+.heading {
+  margin: 5px 0 22px;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.titleRow h1 {
+  margin: 0;
+  min-width: 0;
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: -1px;
+  color: var(--text-primary);
+}
+.heading > p {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-secondary);
+}
+.action {
+  flex-shrink: 0;
+}
+.action > a {
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 550;
+  gap: 6px;
+  box-shadow: 0 3px 9px #1723190b;
+}

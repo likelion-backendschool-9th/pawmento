@@ -13,18 +13,18 @@ import { anotherMemory, gardenMemories } from "../utils/gardenMemories";
 import s from "./GardenSky.module.css";
 import { gardenGuide } from "../hooks/gardenGuidePreference";
 
-// Keep the ten memory targets at their original positions in the 2:3 scene.
+// Viewport-relative targets keep the scattered butterflies inside the touch area.
 const lights = [
-  { x: 29.8, y: 26.1 },
-  { x: 61.1, y: 29.9 },
-  { x: 44.3, y: 35.9 },
-  { x: 73, y: 40 },
-  { x: 26.2, y: 45.3 },
-  { x: 55.5, y: 48 },
-  { x: 38.3, y: 55.5 },
-  { x: 71.8, y: 58 },
-  { x: 48.8, y: 64.1 },
-  { x: 28.2, y: 66.1 },
+  { x: 18, y: 25, angle: -38, size: 29, beat: 2.1 },
+  { x: 70, y: 23, angle: 28, size: 24, beat: 2.7 },
+  { x: 46, y: 34, angle: -12, size: 31, beat: 1.8 },
+  { x: 85, y: 39, angle: 57, size: 23, beat: 2.4 },
+  { x: 23, y: 46, angle: -65, size: 26, beat: 2.2 },
+  { x: 62, y: 49, angle: 18, size: 29, beat: 1.9 },
+  { x: 13, y: 60, angle: -24, size: 22, beat: 2.8 },
+  { x: 80, y: 58, angle: 69, size: 28, beat: 2.5 },
+  { x: 40, y: 59, angle: -49, size: 24, beat: 2.3 },
+  { x: 29, y: 68, angle: 36, size: 25, beat: 2.6 },
 ];
 const stars = [
   [12, 8], [43, 5], [78, 12], [30, 20], [66, 23], [89, 30],
@@ -127,10 +127,10 @@ export function GardenSky({ pet }: { pet: Pet }) {
               onClick={reveal}
               aria-label={`${i + 1}번째 나비, 기억 한 조각 열기`}
             >
-              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s` }}>
-                <span className={s.wings} style={{ width: 25 + i % 3 * 3, height: 25 + i % 3 * 3 }}>
-                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s` }} />
-                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s` }} />
+              <span className={s.butterflyFloat} aria-hidden="true" style={{ animationDelay: `${i * -0.6}s`, animationDuration: `${4 + i % 4}s` }}>
+                <span className={s.wings} style={{ width: point.size, height: point.size, transform: `rotate(${point.angle}deg)` }}>
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingLeft} style={{ animationDelay: `${i * -0.3}s`, animationDuration: `${point.beat}s` }} />
+                  <Image src="/images/garden-butterfly.png" alt="" width={40} height={40} className={s.wingRight} style={{ animationDelay: `${i * -0.3}s`, animationDuration: `${point.beat}s` }} />
                 </span>
               </span>
             </button>
