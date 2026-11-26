@@ -79,7 +79,8 @@ export function AuthScreen({
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (signUp && (!preview || !verification.isVerified(email))) {
+    // 이메일 인증은 체험(preview=1) 화면에만 있다. 서버에는 아직 인증 API가 없어 일반 가입은 기존 가입 API로 바로 보낸다.
+    if (signUp && preview && !verification.isVerified(email)) {
       setError("이메일 인증을 먼저 완료해 주세요.");
       return;
     }
@@ -134,9 +135,8 @@ export function AuthScreen({
                 <input id={emailId} ref={emailRef} name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="이메일 주소를 입력해 주세요" required value={email} onChange={(event) => {
                   revision.current += 1; verification.reset(); setEmail(event.target.value); setChallenge(null); setCode(""); setVerified(false); setVerificationError(""); setError("");
                 }} />
-                {signUp && <button type="button" className={styles.codeButton} disabled={!preview || !email.trim() || verificationBusy || verifiedForPreview || resendRemaining > 0} onClick={() => void sendCode()}>{verifiedForPreview ? "인증 완료" : verificationBusy ? "확인 중…" : preview && challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
+                {signUp && preview && <button type="button" className={styles.codeButton} disabled={!email.trim() || verificationBusy || verifiedForPreview || resendRemaining > 0} onClick={() => void sendCode()}>{verifiedForPreview ? "인증 완료" : verificationBusy ? "확인 중…" : preview && challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
               </div>
-              {signUp && !preview && <p className={styles.emailHelp}>이메일 인증 연결을 준비 중이에요.</p>}
               {signUp && preview && challenge && !verified && <div className={styles.verificationField}>
                 <label htmlFor={codeId}>인증 코드<span className={styles.codeTime} role="timer" aria-label="인증 코드 남은 시간">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span></label>
                 <div className={styles.emailRow}><input id={codeId} aria-label="인증 코드" aria-describedby={hintId} value={code} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "").slice(0, 6)); setVerificationError(""); }} placeholder="6자리 숫자를 입력해 주세요" inputMode="numeric" autoComplete="one-time-code" maxLength={6} /><button type="button" className={styles.codeButton} disabled={code.length !== 6 || verificationBusy || remaining === 0} onClick={() => void verifyCode()}>확인</button></div>
@@ -148,9 +148,10 @@ export function AuthScreen({
             </div>
             <PasswordField name="password" label="비밀번호" signUp={signUp} />
             {signUp && <PasswordField name="confirmation" label="비밀번호 확인" signUp />}
-            {!signUp && <Link className={styles.forgot} href="/reset-password">비밀번호를 잊으셨나요?</Link>}
+            {/* 비밀번호 변경은 이 탭의 데모 계정만 지원해 체험 화면에서만 보여 준다. 실제 계정 복구는 아직 없다. */}
+            {!signUp && preview && <Link className={styles.forgot} href="/reset-password">데모 비밀번호 변경</Link>}
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <button className={styles.primary} type="submit" disabled={busy || verificationBusy || (signUp && !verifiedForPreview)}>{busy ? "잠시만 기다려 주세요…" : signUp ? "가입하고 계속하기" : "로그인"}<Icon name="arrow" size={18} /></button>
+            <button className={styles.primary} type="submit" disabled={busy || verificationBusy || (signUp && preview && !verifiedForPreview)}>{busy ? "잠시만 기다려 주세요…" : signUp ? "가입하고 계속하기" : "로그인"}<Icon name="arrow" size={18} /></button>
           </fieldset>
         </form>
         <p className={styles.switch}>{signUp ? "이미 함께하고 있나요?" : "아직 계정이 없나요?"}<Link href={signUp ? `/sign-in?returnTo=${encodeURIComponent(destination)}${previewQuery}` : `/sign-up?returnTo=${encodeURIComponent(destination)}${previewQuery}`}>{signUp ? "로그인" : "회원가입"}</Link></p>
