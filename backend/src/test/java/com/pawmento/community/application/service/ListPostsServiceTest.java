@@ -12,7 +12,6 @@ import static org.mockito.Mockito.when;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.LongStream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,13 +19,13 @@ import org.junit.jupiter.api.Test;
 import com.pawmento.community.application.exception.InactivePostCategoryException;
 import com.pawmento.community.application.exception.InvalidPostCategoryException;
 import com.pawmento.community.application.port.in.ListPostsQuery;
-import com.pawmento.community.application.port.in.PostPageResult;
-import com.pawmento.community.application.port.in.PostSummaryResult;
 import com.pawmento.community.application.port.out.LoadPostCategoryPort;
 import com.pawmento.community.application.port.out.LoadPostPort;
 import com.pawmento.community.domain.Post;
 import com.pawmento.community.domain.PostCategory;
 
+// 20개씩 읽기와 nextCursor는 PostScenarioTest.listWithCursor가 확인한다.
+// 여기에는 시나리오에 없는, 이모지가 섞인 본문의 100자 미리보기와 숨긴 카테고리의 409만 남긴다
 class ListPostsServiceTest {
 
 	private static final PostCategory LIFE = PostCategory.restore(1L, "LIFE", "반려 생활", 1, true);
@@ -38,38 +37,6 @@ class ListPostsServiceTest {
 	private final ListPostsService service = new ListPostsService(categories, posts);
 
 	// id가 from부터 1씩 줄어드는 글 count개 (최신순)
-	private static List<Post> postsDescending(long from, int count) {
-		return LongStream.iterate(from, id -> id - 1)
-			.limit(count)
-			.mapToObj(id -> Post.restore(id, 7L, LIFE, "글 " + id, "본문 " + id, NOW, NOW, false, 0L))
-			.toList();
-	}
-
-	@Test
-	@DisplayName("#21-S4 하나 더 읽어 다음 페이지가 있으면 마지막 글 id를 nextCursor로 준다")
-	void firstPageHasNextCursor() {
-		when(categories.findByCode("LIFE")).thenReturn(Optional.of(LIFE));
-		when(posts.findPage(1L, null, 21)).thenReturn(postsDescending(25, 21));
-
-		PostPageResult page = service.list(new ListPostsQuery("LIFE", 20, null));
-
-		assertThat(page.posts()).hasSize(20);
-		assertThat(page.posts().get(0).postId()).isEqualTo(25L);
-		assertThat(page.nextCursor()).isEqualTo(6L);
-	}
-
-	@Test
-	@DisplayName("#21-S4 마지막 페이지는 nextCursor가 null이다")
-	void lastPageHasNoCursor() {
-		when(categories.findByCode("LIFE")).thenReturn(Optional.of(LIFE));
-		when(posts.findPage(1L, 6L, 21)).thenReturn(postsDescending(5, 5));
-
-		PostPageResult page = service.list(new ListPostsQuery("LIFE", 20, 6L));
-
-		assertThat(page.posts()).extracting(PostSummaryResult::postId).containsExactly(5L, 4L, 3L, 2L, 1L);
-		assertThat(page.nextCursor()).isNull();
-	}
-
 	@Test
 	@DisplayName("#21-S4 목록은 본문 앞 100자만 준다")
 	void previewIsFirstHundredCharacters() {
