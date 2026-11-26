@@ -1,0 +1,3 @@
+.previews { grid-template-columns: minmax(0, 1fr); }
+.previews > div { min-width: 0; }
+.previews :global(.media-player) { margin: 0 0 8px; }
