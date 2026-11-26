@@ -14,23 +14,27 @@ export function PolaroidDiaryList({ records, currentAuthor }: {
         const title = record.title || "제목 없는 일기";
         const author = record.authorName?.trim() ||
           (record.authorId && record.authorId === currentAuthor?.id ? currentAuthor.nickname : "작성자 미상");
+        // Same-titled diaries must stay distinguishable in a screen reader's link list.
+        const labelId = `polaroid-diary-${record.id}`;
         const photo = record.photoUrl || record.attachments?.find(file => file.type === "PHOTO")?.url;
         return (
           <li key={record.id} className={s.item}>
             {index % 2 === 0 && <svg className={s.rope} viewBox="0 0 400 48" preserveAspectRatio="none" aria-hidden="true">
               <path d="M0 5 Q200 43 400 5" fill="none" vectorEffect="non-scaling-stroke" />
             </svg>}
-            <Link href={`/pets/${record.petId}/diary/${record.id}`} className={s.link} aria-label={`${title} 일기 열기`}>
+            <Link href={`/pets/${record.petId}/diary/${record.id}`} className={s.link}
+              aria-labelledby={`${labelId}-title ${labelId}-date ${labelId}-author ${labelId}-action`}>
+              <span id={`${labelId}-action`} hidden>일기 열기</span>
               <figure className={s.polaroid}>
                 <span className={s.peg} aria-hidden="true" />
                 {photo ? <Photo src={photo} alt={`${title} 사진`} className={s.photo} /> : (
                   <span className={s.note} aria-hidden="true"><Icon name={record.type === "VOICE" ? "mic" : "edit"} size={28} /></span>
                 )}
                 <figcaption className={s.caption}>
-                  <h3 title={title}>{title}</h3>
+                  <h3 id={`${labelId}-title`} title={title}>{title}</h3>
                   <div className={s.meta}>
-                    <time dateTime={record.recordedDate}>{record.recordedDate.replaceAll("-", ".")}</time>
-                    <span className={s.author} title={author}>{author}</span>
+                    <time id={`${labelId}-date`} dateTime={record.recordedDate}>{record.recordedDate.replaceAll("-", ".")}</time>
+                    <span id={`${labelId}-author`} className={s.author} title={author}>{author}</span>
                   </div>
                 </figcaption>
               </figure>
