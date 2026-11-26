@@ -44,7 +44,7 @@
 | --- | --- | --- |
 | `PetTest.recordsBlockDeletion`의 #46-S10: 기록이 있으면 도메인에서 삭제 거절·이름 보존 | `DeletePetServiceTest.recordsBlockDeletion`의 #46-S10: 가짜 기록 포트가 true이면 `PetHasRecordsException`·삭제 포트 미호출·원본 보존. false이면 삭제 호출 | 기존 `PetScenarioTest.deletePet`의 HTTP 409·원본 보존 및 정상 204·재조회 404를 유지한다. 실제 diary/question 기록 DB 연결은 검증하지 않는다. |
 
-기록 유무를 조회한 결과에 따른 삭제 거절은 애플리케이션에서 판단한다. 기존 #46-S10 번호를 유지하며 테스트 설명에 `(고침 #72: 기록 조회에 따른 삭제 거절을 애플리케이션에서 판단)`을 표시한다.
+기록 유무를 조회한 결과에 따른 삭제 거절은 애플리케이션에서 판단한다. 기존 #46-S10 번호를 유지하며 테스트 설명에 `(고침 #72: 기록 조회에 따른 삭제 거절을 애플리케이션에서 판단)`을 표시한다. (고침 #264: `DeletePetServiceTest`를 지우고 `PetScenarioTest.deletePet`과 실제 일기·질문 답변·엽서를 넣는 `PetProfilePhotoScenarioTest`의 #130-S9가 대신한다. 아래 "question, pet" 표를 본다)
 
 ## 커뮤니티 글 목록 조건 (#21)
 
@@ -158,7 +158,7 @@ HTTP+DB 시나리오 테스트가 이미 확인하는 동작을 mock 서비스·
 | --- | --- | --- |
 | `ListFamilyServiceTest` 6개(#133-S6 소유주·가족 조회, 403, 404, 가족 없음, 회원 정보 없음) | `FamilyListScenarioTest`의 `ownerAndFamilySeeList`, `ownerOnly`, `refusals`, `familyWithoutMemberRow` | 403일 때 회원 정보 포트를, 404일 때 가족 목록 포트를 부르지 않는다는 호출 생략. 소유주의 회원 정보가 없는 경우(시나리오는 가족 쪽만 만든다) |
 | `CheckPetAccessServiceTest` 4개(#133-S1 OWNER·FAMILY·NONE·없는 반려동물) | `FamilyAccessScenarioTest.decidesRoleFromPetOwnerAndFamilyTable`(`role()`), 기록 가능 여부는 `PetFamilyMemberTest.onlyOwnerAndFamilyCanRecord` | 결과의 `isOwner()` 값. 소유주이거나 반려동물이 없으면 가족 테이블을 조회하지 않는다는 호출 생략 |
-| `IssueInviteCodeServiceTest` 4개(#133-S2 소유주·가족 발급, 403, 404, 해시만 저장) | `FamilyInviteScenarioTest.issueInviteCode`(이번에 발급자와 해시가 응답 코드의 HMAC과 같은지 확인을 더함), `issueDeletesExpiredCodesOfSamePet`(이번에 403·404 발급은 만료 코드를 정리하지 않는지 확인을 더함) | 잠금 → 만료 코드 정리 → 저장의 호출 순서. 정리와 저장이 같은 시각을 쓰는지 |
+| `IssueInviteCodeServiceTest` 4개(#133-S2 소유주·가족 발급, 403, 404, 해시만 저장) | `FamilyInviteScenarioTest.issueInviteCode`(이번에 발급자와 해시가 응답 코드의 HMAC과 같은지 확인을 더함), `issueDeletesExpiredCodesOfSamePet`(이번에 403·404 발급은 만료 코드를 정리하지 않는지 확인을 더함) | 잠금 → 만료 코드 정리 → 저장의 호출 순서와 정리·저장이 같은 시각을 쓰는지. 403·404에서 정리 포트를 부르지 않는다는 호출 생략(시나리오는 거절 뒤 코드 행 수가 그대로인지만 본다. 정리를 부른 뒤 롤백돼도 통과한다) |
 | `JoinFamilyServiceTest` 7개(#133-S3 정상 가입·입력 정리, #133-S4 없는·만료된 코드, 잠금 대기 중 만료, 소유주·가족의 409) | `FamilyInviteScenarioTest`의 `joinWithCode`, `unusableCodes`, `alreadyInDoesNotConsumeCode`, `codeExpiresWhileWaitingForLock` | 코드 조회 → 잠금 → 가족 확인 → 소비 → 저장의 호출 순서. 없는 코드면 잠그지 않고, 만료된 코드면 소비하지 않는다는 호출 생략 |
 | `ListMyFamilyPetsServiceTest` 2개(#133-S23 가입 순서, 빈 목록) | `FamilyListScenarioTest.myFamilyPets` | 두 번째 반려동물의 태그·가입 시각 값(시나리오는 첫 줄의 형식만 본다) |
 
@@ -202,6 +202,43 @@ HTTP+DB 시나리오 테스트가 이미 확인하는 동작을 mock 서비스·
 
 | 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
 | --- | --- | --- |
-| `DiaryLocationPersistenceAdapterTest` 7개: 영역 안만, 경계선 포함, 다른 반려동물 제외(#19-S5), 다른 회원 제외(#19-S7), limit개를 오래된 순으로(#19-S6), 255자를 넘는 저장 행은 저장 데이터 오류(#19-S5), 지운 위치의 핀이 사라짐(#19-S4) | `MapPinScenarioTest`의 #19-S5·S6·S7(500개 순서와 잘림, 잘못 저장된 행의 500과 내부 정보 비노출), `DiaryLocationScenarioTest.flow`(삭제 뒤 위치 행 0개) | 저장소에 500이 아닌 limit을 넘기는 경우(운영 코드는 500만 쓴다). 손상된 행을 `read(id)`로 읽으면 원래 장소 이름이 보존되고 `loadInArea`가 `StoredLocationInvalidException`을 던지는 것. 삭제 직후 영역 조회를 다시 해서 핀이 없는지(흐름 테스트는 DB 행 수를 본다) |
+| `DiaryLocationPersistenceAdapterTest` 7개: 영역 안만, 경계선 포함, 다른 반려동물 제외(#19-S5), 다른 회원 제외(#19-S7), limit개를 오래된 순으로(#19-S6), 255자를 넘는 저장 행은 저장 데이터 오류(#19-S5), 지운 위치의 핀이 사라짐(#19-S4) | `MapPinScenarioTest`의 #19-S5·S6·S7(500개 순서와 잘림, 잘못 저장된 행의 500과 내부 정보 비노출), `DiaryLocationScenarioTest.flow`(삭제 뒤 위치 행 0개) | 서비스가 잘림 판단용으로 넘기는 501이 아닌 임의 limit(지운 테스트의 3·10)으로 저장소를 조회하는 경우. 손상된 행을 `read(id)`로 읽으면 원래 장소 이름이 보존되고 `loadInArea`가 `StoredLocationInvalidException`을 던지는 것. 삭제 직후 영역 조회를 다시 해서 핀이 없는지(흐름 테스트는 DB 행 수를 본다) |
 
 남긴 저장소 테스트는 저장·재저장·유일 제약·출처 기본값·인덱스·JPA 컨텍스트 공유처럼 저장소만 지키는 규칙이다. `DiaryLocationTest`의 좌표 경계는 이미 파라미터 테스트라 그대로 둔다.
+
+### diary
+
+`DiaryQueryParametersTest.ignoresUnknownParameters` 1개만 지웠다. 이 테스트에만 있던 빈 값(`utm=`)과 중복 키(`utm=1&utm=2`)를 `DiaryArchiveScenarioTest.ignoresUnknownQueryEncoding`의 입력 목록에 더해 목록·달력 양쪽에서 확인한다. 나머지는 지우지 않았다. 하위 계층 테스트는 이관(backfill)·스키마 재적용, 목록 스냅샷 격리, 예외 변환, 웹을 거치지 않는 쓰기 정책처럼 시나리오가 확인하지 않는 내용이다. `DiaryLocationIntentPersistenceTest.persistAndPreserve`는 `DiaryLocationScenarioTest.flow`와 흐름이 같지만, 오래된 버전 저장의 충돌, 13자리 좌표의 정확한 왕복, NONE 뒤 좌표 열이 모두 null인지를 더 확인해서 남긴다.
+
+### member
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `ChangeMemberNicknameServiceTest` 4개(#137-S4 새 태그, #137-S5 같은 닉네임은 태그 유지, #137-S7 태그 충돌 시 다시 읽어 재시도, #137-S11 세 번 충돌하면 포기) | `AccountTagScenarioTest`의 `nicknameChangeRedrawsTag`, `nicknameChangeRetriesOnTagConflict`, `givesUpAfterThreeConflictsAndKeepsMember`(실제 DB의 태그 제약으로 충돌을 만들고 닉네임·태그·변경 시각 보존까지 본다) | 같은 닉네임이면 태그 생성기와 저장을 부르지 않는다는 호출 생략(결과 태그가 그대로이고 한도를 쓰지 않는 것은 시나리오가 본다). 태그 생성기에 이전 태그를 제외값으로 넘기는 인자(시나리오는 새 태그가 이전과 다른지만 본다. 생성기의 제외 규칙은 `MemberTagGeneratorTest.neverReturnsPreviousTag`). 충돌 뒤 회원을 다시 읽고 시도마다 트랜잭션을 새로 연다는 호출 횟수 |
+| `SocialLoginMemberServiceTest` 3개(#40-S1 첫 로그인 가입, #40-S3 재로그인, #40-S5 같은 이메일 409) | `SocialLoginScenarioTest`의 `firstGoogleLogin`(비밀번호 없음·USER·쿠키·소셜 계정 연결), `returningGoogleLogin`(같은 회원 id), `sameEmailAsLocalIsConflict`(이번에 대소문자만 다른 이메일로 바꿔 정규화를 확인하고, 거절된 구글 계정이 DB에 연결되지 않는지 확인을 더함) | 재로그인 때 `saveSocial`을 부르지 않는다는 호출 생략(시나리오는 같은 회원 id만 본다). 같은 이메일로 막힐 때 `saveSocial`·토큰 발급기를 부르지 않는다는 호출 생략(쿠키가 없고 소셜 계정이 없는 결과는 시나리오가 본다) |
+
+남긴 서비스 테스트: 한도 예외가 태그 생성 전에 난다는 것(`limitPropagatesBeforeTag`. 시나리오에서는 한도와 태그 소진이 둘 다 409라 구분되지 않는다), 잘못된 닉네임과 저장소 장애의 전파, 이름 보정(`nicknameIsAdjusted`), 이메일이 바뀐 같은 계정, 이메일 없음, 빈 제공자 이름과 제공자 미호출(`unsupportedProviderIsRejected`), 동시 가입 경합, 소셜 가입의 태그 충돌 재시도.
+
+### community
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `CreatePostServiceTest` 3개(#21-S1 저장과 id, #21-S2 잘못된 제목, #21-S3 없는 카테고리 400·숨긴 카테고리 409) | `PostScenarioTest`의 `createPost`(상세의 카테고리 이름·작성자), `createPostWithInvalidTitle`, `createPostWithInvalidCategory`(글 개수 0) | 웹을 거치지 않고 서비스에 공백 제목·null 카테고리를 직접 넘길 때의 예외 종류와 저장 미호출(HTTP의 공백 제목은 요청 DTO가 먼저 거절하고, 카테고리 시나리오는 없는 코드와 숨긴 코드만 보낸다) |
+| `DeletePostServiceTest` 3개(#21-S9 작성자 삭제·다시 지우면 404, #21-S10 남의 글) | `PostScenarioTest`의 `deletePost`(204, 상세 404, 목록 제외, `deleted_at`, 다시 지우면 404), `otherMemberCannotEditOrDelete` | 남의 글 삭제에서 저장 포트를 부르지 않는다는 호출 생략(시나리오는 403과 글이 남는 결과를 본다) |
+| `EditPostServiceTest` 3개(#21-S8 작성자 수정, #21-S10 남의 글, 작성자 확인이 카테고리 확인보다 먼저) | `PostScenarioTest`의 `editPost`(고친 값·늦어진 `updatedAt`·목록 카테고리), `otherMemberCannotEditOrDelete`(없는·숨긴 카테고리를 보내도 403) | 남의 글 수정에서 갱신 포트를 부르지 않고 카테고리를 조회하지 않는다는 호출 생략(시나리오는 403과 글 보존만 본다). 수정 응답 자체의 카테고리 이름·본문·`updatedAt` 값(시나리오는 응답의 카테고리 코드·제목만 보고 나머지는 상세 GET에서 본다) |
+| `ListPostsServiceTest` 2개(#21-S4 다음 페이지 커서, 마지막 페이지 null) | `PostScenarioTest.listWithCursor`(25개를 20개·5개로 나눠 받음) | `nextCursor`가 직전 페이지 마지막 글의 id와 정확히 같은지(시나리오는 숫자인지와 다음 페이지의 건수·양끝 제목을 본다). 21개를 읽는 조회 크기는 남은 `previewIsFirstHundredCharacters`가 `findPage(1L, null, 21)`로 계속 확인한다 |
+
+남긴 서비스 테스트: 없는 글이나 지운 글을 고치는 경우(`missingPost`), 이모지가 섞인 본문의 100자 미리보기(`previewIsFirstHundredCharacters`), 목록에서 숨긴 카테고리의 409(`invalidCategory`. 시나리오의 #21-S6은 없는 카테고리의 400만 본다). 신고(#92) 쪽은 웹 계층 테스트만 있고 겹치는 시나리오 테스트가 없어 그대로 둔다.
+
+### media, postcard
+
+지운 테스트 없음. 하위 계층 테스트는 FFmpeg 프로세스의 시간·출력 제한, 디스크·DB 장애 주입, 심볼릭 링크 경로, 커밋 결과가 불확실할 때의 파일 보존, 외부 이미지 생성기 응답 처리, 스키마 업데이트처럼 HTTP 시나리오로 만들 수 없는 경로다. 시나리오 번호가 같아서 겹쳐 보였을 뿐 확인하는 내용은 다르다.
+
+### question, pet
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `QuestionAdminAccessAdapterTest.currentRole`(#31-S22 현재 ADMIN만 허용, 일반 회원·없는 회원 거부) | `QuestionAdminCreateScenarioTest`의 #31-S22/S24(일반 회원·권한 회수·없는 회원 403을 실제 DB 역할로 확인) | 없음 |
+| `DeletePetServiceTest` 2개(#46-S10 기록이 있으면 삭제 미호출·원본 보존, #72-S4 기록이 없으면 삭제) | `PetScenarioTest.deletePet`(409와 문구, 원본 재조회, 204와 404), 실제 일기·질문 답변·엽서가 있을 때는 `PetProfilePhotoScenarioTest`의 #130-S9 | 기록이 있으면 삭제 포트를 부르지 않는다는 호출 생략(원본이 남는 것은 시나리오가 본다). 기록이 없을 때 삭제 포트를 지정한 id로 한 번만 부르는 호출 횟수. 위 #72 절에도 대체 위치를 적었다 |
+
+남긴 테스트: 회원 조회 장애를 권한 거부로 숨기지 않는 것(`preserveFailure`), pet 예외 전파와 소유권 예외 계약(#72-S1·S2·S8), 질문의 잠금 스냅샷과 장애 분류, 도메인 불변식, 아키텍처 경계.
