@@ -23,11 +23,15 @@ function BirthdayDialog({ value, onClose, onConfirm }: { value: string; onClose:
   const { year, month: monthNumber, first, days } = calendarMonth(month);
   const maxYear = Number(max.slice(0, 4));
   const minYear = Math.min(year, maxYear - 150);
-  const [choosingYear, setChoosingYear] = useState(false);
+  const [picker, setPicker] = useState<"year" | "month" | null>(null);
+  const choosingYear = picker === "year";
   const years = useRef<HTMLDivElement>(null);
   const selectedYear = useRef<HTMLButtonElement>(null);
   const yearToggle = useRef<HTMLButtonElement>(null);
   const yearListId = useId();
+  const monthListId = useId();
+  const monthToggle = useRef<HTMLButtonElement>(null);
+  const selectedMonth = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const gesture = useRef<{ x: number; y: number } | null>(null);
   const ignoreClick = useRef(false);
@@ -44,28 +48,36 @@ function BirthdayDialog({ value, onClose, onConfirm }: { value: string; onClose:
     list.scrollTop = button.offsetTop - list.offsetTop - (list.clientHeight - button.offsetHeight) / 2;
     button.focus({ preventScroll: true });
   }, [choosingYear]);
-  function closeYears() { setChoosingYear(false); requestAnimationFrame(() => yearToggle.current?.focus()); }
+  useEffect(() => { if (picker === "month") selectedMonth.current?.focus({ preventScroll: true }); }, [picker]);
+  function closePicker() {
+    const trigger = picker === "month" ? monthToggle : yearToggle;
+    setPicker(null); requestAnimationFrame(() => trigger.current?.focus());
+  }
+  function pickerKey(event: React.KeyboardEvent<HTMLButtonElement>, columns: number) {
+    const buttons = Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") ?? []);
+    const index = buttons.indexOf(event.currentTarget);
+    const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -columns, ArrowDown: columns }[event.key];
+    if (delta) { event.preventDefault(); buttons[Math.max(0, Math.min(buttons.length - 1, index + delta))]?.focus(); }
+    else if (event.key === "Home" || event.key === "End") { event.preventDefault(); buttons[event.key === "Home" ? 0 : buttons.length - 1]?.focus(); }
+    else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closePicker(); }
+  }
   function move(delta: number) { setMonth((current) => { const next = shiftCalendarMonth(current, delta); return next > max.slice(0, 7) ? max.slice(0, 7) : next; }); }
-  return createPortal(<dialog ref={dialog} className={s.dialog} aria-label="생일 선택" onCancel={(event) => { event.preventDefault(); if (choosingYear) closeYears(); else onClose(); }} onClick={(event) => {
+  return createPortal(<dialog ref={dialog} className={s.dialog} aria-label="생일 선택" onCancel={(event) => { event.preventDefault(); if (picker) closePicker(); else onClose(); }} onClick={(event) => {
     if (event.target !== event.currentTarget) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();
   }}>
-    <header className={s.header}><h2>{choosingYear ? "태어난 연도를 골라주세요" : "언제 태어났나요?"}</h2></header>
+    <header className={s.header}><h2>{choosingYear ? "태어난 연도를 골라주세요" : picker === "month" ? "태어난 달을 골라주세요" : "언제 태어났나요?"}</h2></header>
     <div className={s.month}>
-      <button type="button" className={s.arrow} aria-label="이전 달" disabled={choosingYear || month === "0001-01"} onClick={() => move(-1)}><span className={s.previous}><Icon name="chevron" size={20} /></span></button>
-      <div className={s.monthLabel}><button ref={yearToggle} type="button" className={s.yearToggle} aria-label="태어난 연도 선택" aria-haspopup="listbox" aria-expanded={choosingYear} aria-controls={yearListId} onClick={() => setChoosingYear(!choosingYear)}>{year}년<Icon name="chevron" size={15} /></button><span aria-live="polite">{monthNumber}월</span></div>
-      <button type="button" className={s.arrow} aria-label="다음 달" disabled={choosingYear || month >= max.slice(0, 7)} onClick={() => move(1)}><Icon name="chevron" size={20} /></button>
+      <div className={s.monthLabel}>
+        <button ref={yearToggle} type="button" className={s.periodToggle} aria-label="태어난 연도 선택" aria-haspopup="listbox" aria-expanded={choosingYear} aria-controls={yearListId} onClick={() => setPicker(choosingYear ? null : "year")}>{year}년<Icon name="chevron" size={13} /></button>
+        <button ref={monthToggle} type="button" className={s.periodToggle} aria-label="태어난 월 선택" aria-haspopup="listbox" aria-expanded={picker === "month"} aria-controls={monthListId} onClick={() => setPicker(picker === "month" ? null : "month")}>{monthNumber}월<Icon name="chevron" size={13} /></button>
+      </div>
     </div>
     {choosingYear ? <div ref={years} id={yearListId} className={s.years} role="listbox" aria-label="태어난 연도">
-      {Array.from({ length: maxYear - Math.max(1, minYear) + 1 }, (_, index) => { const option = maxYear - index; return <button ref={option === year ? selectedYear : undefined} key={option} type="button" role="option" aria-selected={option === year} tabIndex={option === year ? 0 : -1} onKeyDown={(event) => {
-        const buttons = Array.from(years.current?.querySelectorAll<HTMLButtonElement>("button") ?? []);
-        const index = buttons.indexOf(event.currentTarget);
-        const delta = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[event.key];
-        if (delta) { event.preventDefault(); buttons[Math.max(0, Math.min(buttons.length - 1, index + delta))]?.focus(); }
-        else if (event.key === "Home" || event.key === "End") { event.preventDefault(); buttons[event.key === "Home" ? 0 : buttons.length - 1]?.focus(); }
-        else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); closeYears(); }
-      }} onClick={() => { const next = `${String(option).padStart(4, "0")}-${String(monthNumber).padStart(2, "0")}`; setMonth(next > max.slice(0, 7) ? max.slice(0, 7) : next); closeYears(); }}>{option}<span>년</span></button>; })}
+      {Array.from({ length: maxYear - Math.max(1, minYear) + 1 }, (_, index) => { const option = maxYear - index; return <button ref={option === year ? selectedYear : undefined} key={option} type="button" role="option" aria-selected={option === year} tabIndex={option === year ? 0 : -1} onKeyDown={(event) => pickerKey(event, 3)} onClick={() => { const next = `${String(option).padStart(4, "0")}-${String(monthNumber).padStart(2, "0")}`; setMonth(next > max.slice(0, 7) ? max.slice(0, 7) : next); closePicker(); }}>{option}<span>년</span></button>; })}
+    </div> : picker === "month" ? <div id={monthListId} className={s.months} role="listbox" aria-label="태어난 월">
+      {Array.from({ length: 12 }, (_, index) => { const option = index + 1; return <button key={option} ref={option === monthNumber ? selectedMonth : undefined} type="button" role="option" aria-selected={option === monthNumber} disabled={year === maxYear && option > Number(max.slice(5, 7))} tabIndex={option === monthNumber ? 0 : -1} onKeyDown={(event) => pickerKey(event, 4)} onClick={() => { setMonth(`${String(year).padStart(4, "0")}-${String(option).padStart(2, "0")}`); closePicker(); }}>{option}월</button>; })}
     </div> : <div className={s.swipe} onPointerDown={(event) => { if (event.isPrimary && event.button === 0) { gesture.current = { x: event.clientX, y: event.clientY }; ignoreClick.current = false; } }} onPointerMove={(event) => { const start = gesture.current; if (start && Math.abs(event.clientX - start.x) > 12 && Math.abs(event.clientX - start.x) > Math.abs(event.clientY - start.y) * 1.25) event.currentTarget.setPointerCapture(event.pointerId); }} onPointerUp={(event) => { const start = gesture.current; gesture.current = null; if (!start) return; const direction = swipeMonthDirection(event.clientX - start.x, event.clientY - start.y); if (direction) { ignoreClick.current = true; requestAnimationFrame(() => { ignoreClick.current = false; }); move(direction); } }} onPointerCancel={() => { gesture.current = null; }} onClickCapture={(event) => { if (ignoreClick.current) { event.preventDefault(); event.stopPropagation(); ignoreClick.current = false; } }}>
       <div className={s.week} aria-hidden="true">{["일", "월", "화", "수", "목", "금", "토"].map((day) => <span key={day}>{day}</span>)}</div>
       <div className={s.days} role="group" aria-label={`${year}년 ${monthNumber}월 날짜`}>
@@ -73,6 +85,6 @@ function BirthdayDialog({ value, onClose, onConfirm }: { value: string; onClose:
         {Array.from({ length: days }, (_, index) => { const day = `${month}-${String(index + 1).padStart(2, "0")}`; return <button key={day} type="button" disabled={day > max} aria-label={day} aria-pressed={selected === day} onClick={() => setSelected(day)}>{index + 1}</button>; })}
       </div>
     </div>}
-    {!choosingYear && <button type="button" className={s.confirm} disabled={!selected} onClick={() => onConfirm(selected)}>이 날짜로 선택</button>}
+    {!picker && <button type="button" className={s.confirm} disabled={!selected} onClick={() => onConfirm(selected)}>이 날짜로 선택</button>}
   </dialog>, document.body);
 }

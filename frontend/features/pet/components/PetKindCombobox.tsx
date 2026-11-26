@@ -6,9 +6,9 @@ import { searchCompanionKinds } from "../utils/companionSearch";
 import s from "./PetKindCombobox.module.css";
 
 type Kind = (typeof COMPANION_KINDS)[number];
-export function PetKindCombobox({ value, onChange, onPendingChange }: { value: Kind["id"]; onChange: (value: Kind) => void; onPendingChange: (pending: boolean) => void }) {
-  const current = COMPANION_KINDS.find((kind) => kind.id === value)!;
-  const [query, setQuery] = useState(current.label as string);
+export function PetKindCombobox({ value, onChange, onPendingChange }: { value: Kind["id"] | null; onChange: (value: Kind) => void; onPendingChange: (pending: boolean) => void }) {
+  const current = COMPANION_KINDS.find((kind) => kind.id === value);
+  const [query, setQuery] = useState<string>(current?.label ?? "");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [edited, setEdited] = useState(false);
@@ -30,7 +30,7 @@ export function PetKindCombobox({ value, onChange, onPendingChange }: { value: K
   return <div className={s.field} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <label htmlFor={id}>어떤 친구인가요?</label>
     <div className={s.control}>
-      <input ref={input} id={id} role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={open && results[active] ? `${listId}-${results[active].id}` : undefined} value={query} placeholder="강아지, 고양이, 토끼…" autoComplete="off" required onClick={() => setOpen(true)} onFocus={() => { setOpen(true); setActive(0); }} onChange={(event) => { const next = event.target.value; setQuery(next); setEdited(true); setOpen(true); setActive(0); onPendingChange(next !== current.label); }} onKeyDown={(event) => {
+      <input ref={input} id={id} role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-activedescendant={open && results[active] ? `${listId}-${results[active].id}` : undefined} value={query} placeholder="강아지, 고양이, 토끼…" autoComplete="off" required onClick={() => setOpen(true)} onFocus={() => { setOpen(true); setActive(0); }} onChange={(event) => { const next = event.target.value; setQuery(next); setEdited(true); setOpen(true); setActive(0); onPendingChange(!current || next !== current.label); }} onKeyDown={(event) => {
         if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); setOpen(true); const delta = event.key === "ArrowDown" ? 1 : -1; setActive((index) => open ? Math.max(0, Math.min(results.length - 1, index + delta)) : 0); }
         else if (event.key === "Enter" && open && results[active]) { event.preventDefault(); choose(results[active]); }
         else if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); setOpen(false); }

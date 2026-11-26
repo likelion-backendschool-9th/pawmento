@@ -27,8 +27,8 @@ export function OnboardingScreen({ step }: { step: OnboardingStep }) {
 function OnboardingBody({ step }: { step: OnboardingStep }) {
   const app = useApp();
   const router = useRouter();
-  const [input, setInput] = useState<PetInput>({ name: "", species: "DOG", breed: "", birthday: "", photoUrl: "" });
-  const [kind, setKind] = useState<(typeof COMPANION_KINDS)[number]["id"]>("DOG");
+  const [input, setInput] = useState<Omit<PetInput, "species"> & { species: PetInput["species"] | null }>({ name: "", species: null, breed: "", birthday: "", photoUrl: "" });
+  const [kind, setKind] = useState<(typeof COMPANION_KINDS)[number]["id"] | null>(null);
   const [kindPending, setKindPending] = useState(false);
   const [birthdayUnknown, setBirthdayUnknown] = useState(false);
   const [code, setCode] = useState("");
@@ -40,7 +40,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [memberPets] = useState(app.state.pets.length);
   const invitation = app.dependencies.onboardingPreview.invitation;
-  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.birthday || input.photoUrl || kind !== "DOG" || kindPending || birthdayUnknown));
+  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.birthday || input.photoUrl || kind !== null || kindPending || birthdayUnknown));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -48,9 +48,9 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
     pending.current = true; setBusy(true); setError("");
     try {
       if (step === "register") {
-        if (kindPending) throw Error("동물 종류를 목록에서 선택해 주세요.");
+        if (!kind || !input.species || kindPending) throw Error("동물 종류를 목록에서 선택해 주세요.");
         if (input.birthday && input.birthday > today()) throw Error("생일은 오늘 또는 이전 날짜로 선택해 주세요.");
-        await app.dependencies.workspace.savePet(app.account.id, input);
+        await app.dependencies.workspace.savePet(app.account.id, { ...input, species: input.species });
       } else await app.dependencies.onboardingPreview.join(app.account, code);
       if (!mounted.current) return;
       setSaved(true);
