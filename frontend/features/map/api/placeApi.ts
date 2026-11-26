@@ -6,10 +6,14 @@ import {
   type Open24hBasis,
   type PlaceCategory,
   type PlaceList,
+  type PlaceHit,
   type PlaceQuery,
   type PlaceRepository,
+  type PlaceSearchQuery,
+  type PlaceSearchResult,
 } from "../types/Place.ts";
 import { clampBounds, isValidBounds } from "../utils/mapBounds.ts";
+import { checkSearchText, SEARCH_TEXT_MESSAGES } from "../utils/placeSearchText.ts";
 
 type PlaceAddressDto = { address: string | null };
 
@@ -29,6 +33,14 @@ type PlacesDto = {
   }[];
   truncated: boolean;
   // 서버가 아직 주지 않는 배포와도 맞도록 없을 수 있는 값으로 읽는다
+  dataAsOf?: string | null;
+};
+
+type PlaceDto = PlacesDto["places"][number];
+
+type PlaceSearchDto = {
+  places: (PlaceDto & { distanceMeters?: number | null })[];
+  truncated: boolean;
   dataAsOf?: string | null;
 };
 
@@ -76,6 +88,37 @@ export function checkedPlaceCategories(
   return unique;
 }
 
+const toPlace = (place: PlaceDto) => ({
+  id: String(place.id),
+  category: place.category as PlaceCategory,
+  name: place.name,
+  address: place.address,
+  phone: place.phone,
+  latitude: place.latitude,
+  longitude: place.longitude,
+  open24h: place.open24h,
+  open24hBasis: isBasis(place.open24hBasis) ? place.open24hBasis : null,
+  openingHours: place.openingHours,
+  closedDays: place.closedDays,
+});
+
+// 지도 중심은 위도·경도가 모두 범위 안의 유한한 수일 때만 보낸다. 틀리면 서버가 400을 주므로 미리 거절한다.
+export function checkedSearchCenter(
+  center: PlaceSearchQuery["center"],
+): { latitude: number; longitude: number } | undefined {
+  if (center === undefined) return undefined;
+  const { latitude, longitude } = center;
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    Math.abs(latitude) > 90 ||
+    Math.abs(longitude) > 180
+  ) {
+    throw new ApplicationError("VALIDATION", "지도 중심을 확인해 주세요.");
+  }
+  return { latitude, longitude };
+}
+
 // 서버의 장소 id는 양의 정수다. 예시 장소처럼 그렇지 않은 id는 서버에 묻지 않는다.
 const isServerPlaceId = (id: string) => /^[1-9][0-9]*$/.test(id);
 
@@ -111,19 +154,44 @@ export function createPlaceApi(http: ApiClient): PlaceRepository {
       if (categories !== undefined) params.push(`categories=${categories.join(",")}`);
       const result = await http.get<PlacesDto>(`/maps/places?${params.join("&")}`);
       return {
-        places: result.places.map((place) => ({
-          id: String(place.id),
-          category: place.category as PlaceCategory,
-          name: place.name,
-          address: place.address,
-          phone: place.phone,
-          latitude: place.latitude,
-          longitude: place.longitude,
-          open24h: place.open24h,
-          open24hBasis: isBasis(place.open24hBasis) ? place.open24hBasis : null,
-          openingHours: place.openingHours,
-          closedDays: place.closedDays,
-        })),
+        places: result.places.map(toPlace),
+        truncated: result.truncated,
+        dataAsOf: typeof result.dataAsOf === "string" ? result.dataAsOf : null,
+        sample: false,
+      };
+    },
+
+    async search(query: PlaceSearchQuery): Promise<PlaceSearchResult> {
+      // 검색어는 서버에 묻기 전에 같은 기준으로 확인한다(너무 짧거나 길거나 쓸 수 없는 글자). 이유에 검색어를 담지 않는다.
+      const checked = checkSearchText(query.q);
+      if (!checked.ok) {
+        throw new ApplicationError("VALIDATION", SEARCH_TEXT_MESSAGES[checked.problem]);
+      }
+      const categories =
+        query.categories === undefined
+          ? undefined
+          : checkedPlaceCategories(query.categories);
+      const center = checkedSearchCenter(query.center);
+      // 고른 종류가 없으면 찾을 것이 없다. 서버는 빈 categories를 400으로 거절하므로 묻지 않고 빈 결과를 준다.
+      if (categories !== undefined && categories.length === 0) {
+        return { places: [], truncated: false, dataAsOf: null, sample: false };
+      }
+      const params = [`q=${encodeURIComponent(checked.text)}`];
+      if (categories !== undefined) params.push(`categories=${categories.join(",")}`);
+      if (center !== undefined) {
+        params.push(`latitude=${decimal(center.latitude)}`, `longitude=${decimal(center.longitude)}`);
+      }
+      const result = await http.get<PlaceSearchDto>(`/maps/places/search?${params.join("&")}`);
+      return {
+        places: result.places.map(
+          (place): PlaceHit => ({
+            ...toPlace(place),
+            distanceMeters:
+              typeof place.distanceMeters === "number" && Number.isFinite(place.distanceMeters)
+                ? Math.round(place.distanceMeters)
+                : null,
+          }),
+        ),
         truncated: result.truncated,
         dataAsOf: typeof result.dataAsOf === "string" ? result.dataAsOf : null,
         sample: false,
