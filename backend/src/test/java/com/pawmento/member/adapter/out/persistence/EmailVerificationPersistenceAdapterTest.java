@@ -160,18 +160,32 @@ class EmailVerificationPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#279-S4 다른 요청이 다시 받기로 바꾼 뒤라면, 번호 해시가 같아도 앞 발송의 지우기는 새 발송을 지우지 않는다")
+	@DisplayName("#279-S4 다른 요청이 다시 받기로 바꾼 뒤라면, 앞 발송의 지우기는 새 발송을 지우지 않는다")
 	void deleteDoesNotRemoveNewerSend() {
 		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
 		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
-		// 6자리가 다시 같은 번호로 뽑힌 경우처럼, 해시는 같고 발송만 다르다
-		EmailVerification second = sent("hash-1", now);
+		EmailVerification second = sent("hash-2", now);
 		assertThat(adapter.resend(second, SENT_AT)).isTrue();
 
 		assertThat(adapter.delete(first.getId(), first.getSendId())).isFalse();
 		EmailVerification remaining = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
 		assertThat(remaining.getSendId()).isEqualTo(second.getSendId());
-		assertThat(remaining.getSentAt()).isEqualTo(now);
+		assertThat(remaining.getCodeHash()).isEqualTo("hash-2");
+	}
+
+	@Test
+	@DisplayName("#279-S3 갱신하는 순간 저장된 번호와 같은 번호로는 다시 받기를 하지 않고, 기존 발송이 그대로 남는다")
+	void resendRejectsSameStoredCode() {
+		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+
+		// 60초는 지났지만 새 번호의 해시가 저장된 해시와 같다 (서비스가 읽은 뒤 다른 요청이 같은 번호로 바꾼 경우)
+		assertThat(adapter.resend(sent("hash-1", now), SENT_AT)).isFalse();
+
+		EmailVerification kept = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(kept.getSendId()).isEqualTo(first.getSendId());
+		assertThat(kept.getSentAt()).isEqualTo(SENT_AT);
+		assertThat(kept.getCodeExpiresAt()).isEqualTo(first.getCodeExpiresAt());
 	}
 
 	@Test

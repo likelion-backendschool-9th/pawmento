@@ -18,7 +18,8 @@ interface EmailVerificationJpaRepository extends JpaRepository<EmailVerification
 			update EmailVerificationJpaEntity v
 			set v.codeHash = :codeHash, v.sendId = :sendId, v.failedAttempts = 0,
 				v.codeExpiresAt = :codeExpiresAt, v.sentAt = :sentAt
-			where v.email = :email and v.purpose = :purpose and v.sentAt <= :lastSentAtOrBefore
+            where v.email = :email and v.purpose = :purpose and v.sentAt <= :lastSentAtOrBefore
+				and v.codeHash <> :codeHash
 			""")
 	int resend(@Param("email") String email, @Param("purpose") VerificationPurpose purpose,
 			@Param("codeHash") String codeHash, @Param("sendId") String sendId,
