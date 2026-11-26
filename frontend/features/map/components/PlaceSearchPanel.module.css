@@ -1,0 +1,341 @@
+/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 휴대폰에서는 화면 전체, PC에서는 가운데 카드로 연다. */
+.dialog {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+.dialog[open] {
+  display: flex;
+}
+.dialog::backdrop {
+  background: #25332266;
+  backdrop-filter: blur(5px);
+}
+@media (min-width: 768px) {
+  .dialog {
+    width: min(560px, 92vw);
+    height: min(720px, 86dvh);
+    margin: auto;
+    border-radius: 24px;
+    box-shadow: 0 24px 64px rgb(37 51 34 / 0.28);
+    overflow: hidden;
+  }
+}
+
+/* 위쪽 입력 줄 */
+.bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px 10px 6px;
+  border-bottom: 1px solid var(--border-default);
+}
+.back {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.back svg {
+  transform: rotate(180deg);
+}
+.field {
+  display: flex;
+  /* 공통 label 스타일(globals.css)은 세로로 쌓으므로 가로로 되돌린다 */
+  flex-direction: row;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  padding: 0 6px 0 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--text-secondary);
+}
+.field:focus-within {
+  border-color: var(--brand-primary);
+}
+/* 공통 입력 칸 스타일(globals.css의 input:not([type="file"]))보다 우선하도록 .dialog를 앞에 붙인다 */
+.dialog .field input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  /* 16px 미만이면 iPhone이 입력할 때 화면을 확대한다 */
+  font-size: 16px;
+  outline: none;
+  appearance: none;
+}
+.dialog .field input::-webkit-search-cancel-button,
+.dialog .field input::-webkit-search-decoration {
+  appearance: none;
+  display: none;
+}
+.dialog .field input::placeholder {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+.clear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.back:focus-visible,
+.clear:focus-visible,
+.link:focus-visible,
+.recentItem:focus-visible,
+.remove:focus-visible,
+.suggest button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* 본문: 최근 검색어, 안내, 결과 */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 0 calc(16px + env(safe-area-inset-bottom));
+}
+
+.recent header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px 4px;
+}
+.recent h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+.link {
+  min-height: 36px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.recent ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.recent li {
+  display: flex;
+  align-items: center;
+}
+.recentItem {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 8px 0 18px;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 15px;
+  text-align: left;
+  cursor: pointer;
+}
+.recentItem svg {
+  flex: none;
+  color: var(--text-muted);
+}
+.recentItem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 줄 전체(✕ 포함)에 한 번에 칠한다. 올림(hover)은 마우스가 있는 기기에서만 쓴다(휴대폰에서는 한 번 누르면 올림 상태가 남는다).
+   손가락은 누르는 동안(:active)만 살짝 칠한다 */
+.recent li:active {
+  background: var(--surface-subtle);
+}
+@media (hover: hover) and (pointer: fine) {
+  .recent li:hover {
+    background: var(--surface-subtle);
+  }
+  .back:hover {
+    background: var(--surface-subtle);
+  }
+  .clear:hover {
+    background: var(--border-default);
+  }
+  .suggest button:hover {
+    background: var(--surface-subtle);
+  }
+}
+.remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.guide {
+  margin: 0;
+  padding: 36px 24px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+/* 결과 목록 */
+.results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.stale {
+  opacity: 0.55;
+}
+.result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-default);
+}
+.kindIcon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+}
+.text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.meta {
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.result mark {
+  padding: 0;
+  border-radius: 3px;
+  background: var(--mode-subtle, #e8f0dc);
+  color: var(--brand-primary);
+  font-weight: 750;
+}
+.badge24 {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--mode-subtle, #e8f0dc);
+  color: var(--mode-ink, var(--brand-primary));
+  font-size: 11.5px;
+  font-weight: 650;
+}
+.distance {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.more {
+  margin: 0;
+  padding: 16px 18px 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* 결과 없음, 오류 */
+.message {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 36px 24px;
+  text-align: center;
+}
+.message strong {
+  font-size: 16px;
+}
+.message p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+.suggest {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.suggest button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
