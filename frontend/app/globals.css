@@ -778,21 +778,6 @@ textarea {
   margin-top: 12px;
   padding-top: 12px;
 }
-.attachments-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 13px;
-}
-.attachments-heading > strong {
-  font-size: 13px;
-  color: var(--text-secondary);
-  font-weight: 550;
-}
-.attachments-heading > span {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
 .attachments-actions {
   display: flex;
   gap: 10px;
