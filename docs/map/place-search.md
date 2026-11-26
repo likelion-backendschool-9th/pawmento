@@ -163,10 +163,14 @@
    - 검색 열: `places`에 `name_key`·`address_key` 열을 더한다(`ddl-auto: update`가 만든다, `PlaceJpaEntity`). 열은 가져오기에서 장소를 저장할 때 `PlacePersistenceAdapter.replace`가 도메인의 정규화 메서드(`Place`가 `PlaceSelection.comparableName`을 공개로 감싼 `nameKey()`·`addressKey()`)로 채운다. 이미 저장된 행은 서버가 시작할 때 비어 있는 행만 채운다. 시작 시 채우기는 diary의 `DiarySchemaConfiguration`이 `DiaryLocationBackfill.run(jdbc)`를 부르는 방식처럼 영속성 어댑터의 정적 도우미(`map/adapter/out/persistence/PlaceSearchKeyBackfill.java`)를 시작할 때 한 번 부르게 하고, 여러 번 실행해도 같도록 `name_key is null`인 행만 고친다. 확인: `./gradlew test --tests '*PlaceSearchKey*'`(S19)
    - 확인: `./gradlew test --tests '*PlaceSearch*'`
    - 포트 `port.in`에는 도메인 타입을 쓰지 않는다. 컨트롤러는 `port.in`에만 의존한다.
-3. 검색 화면과 최근 검색어 — S9, S10, S11, S12, S13, S14
+3. 검색 화면과 최근 검색어 — S9, S10, S11, S12, S13, S14. 한 번에 올리기엔 커서 **PR 셋으로 나눈다**(3-a → 3-b → 3-c).
    - 시작 조건: 위 2번 PR이 머지된 뒤. [정보 지도 화면](animal-places.md)의 `features/map` 구조(`components`·`hooks`·`api`·`types`)를 따르고 목업은 `mocks`에만 둔다.
-   - 파일: `frontend/features/map/api/searchPlaces.ts`, `types`, `hooks/usePlaceSearch.ts`, `utils/recentSearches.ts`, `components/PlaceSearchPanel.tsx`와 `PlacesScreen.tsx` 연결, `tests/map-place-search.test.ts`
-   - 확인: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, 실제 앱 화면과 캡처([직접])
+   - **3-a 검색 로직** — 화면 없이 로직과 테스트만. S10(입력이 멈춘 뒤 250ms 검색·이전 응답 버림·두 글자 미만은 검색 안 함)과 S13(실패하면 오류를 알리고 다시 시도)의 흐름, S14(최근 검색어의 저장·중복·10개·계정별·깨진 값 무시)의 로직
+     - 파일: `features/map/api/placeApi.ts`의 `search`, `types/Place.ts`(`PlaceSearchQuery`·`PlaceSearchResult`), `utils/placeSearchText.ts`, `utils/placeSearchController.ts`, `utils/recentSearches.ts`, `hooks/usePlaceSearch.ts`, `hooks/useRecentSearches.ts`, 예시 저장소 `mocks/handlers/DemoPlaceRepository.ts`, `tests/map-place-search.test.ts`
+   - **3-b 검색 화면** — S9(검색창 열기), S10·S12·S13·S14의 화면(결과 목록·글자 강조·결과 없음·오류와 다시 시도·최근 검색어 목록)
+     - 파일: `components/PlaceSearchPanel.tsx`와 `PlacesScreen.tsx` 연결
+   - **3-c 결과 선택과 이동** — S11(결과를 누르면 지도가 그 장소로 옮겨 가고 마커 선택·카드 열림, ✕로 풀기)
+   - 확인: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`. 화면이 바뀌는 3-b·3-c는 실제 앱 화면과 캡처([직접])
 4. 지역·지하철역 검색 — S15, S16, S17, S18
    - 시작 조건: 위 3번까지 머지, 데이터 출처 결정
    - 파일: 출처에 따라 정한다. 응답에 `areas`를 더하고 `PlaceSearchPanel`에 묶음을 더한다.
