@@ -130,10 +130,6 @@ export function AuthScreen({
   }
   return (
     <main id="main" className={styles.auth}>
-      <header className={styles.top}>
-        <Link className={styles.back} href="/" aria-label="처음으로 돌아가기"><span aria-hidden="true">←</span></Link>
-        <span>{signUp ? "새로운 시작" : "다시 만나는 우리의 기록"}</span>
-      </header>
       <div className={styles.brand}><Brand /></div>
       <section className={styles.formContent}>
         <header className={styles.heading}>

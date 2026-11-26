@@ -1,7 +1,5 @@
-.auth { width:100%; max-width:480px; min-height:100dvh; margin:0 auto; padding:env(safe-area-inset-top) 24px max(24px,env(safe-area-inset-bottom)); background:radial-gradient(ellipse at 0 0,#edf2e2,transparent 48%),var(--surface-page); font-family:var(--font-sans); }
-.top { display:flex; align-items:center; gap:12px; min-height:64px; color:var(--text-secondary); font-size:12px; }
-.back { display:grid; place-items:center; width:40px; height:40px; border:1px solid var(--mode-border); border-radius:50%; background:var(--surface-card); color:var(--brand-primary); font-size:22px; text-decoration:none; }
-.brand { display:flex; justify-content:center; margin:18px 0 28px; }
+.auth { width:100%; max-width:480px; min-height:100dvh; margin:0 auto; padding:calc(28px + env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom)); background:radial-gradient(ellipse at 0 0,#edf2e2,transparent 48%),var(--surface-page); font-family:var(--font-sans); }
+.brand { display:flex; justify-content:center; margin:0 0 28px; }
 .brand :global(.brand) { font-size:28px; }
 .brand :global(.brand-logo) { width:64px; height:64px; }
 .brand :global(.brand-words small) { display:block; font-size:10px; margin-top:6px; font-weight:400; }
@@ -33,7 +31,7 @@
 .error { margin:0; padding:12px; border-radius:12px; background:var(--color-apricot-100); color:var(--text-danger); font-size:12px; line-height:1.7; }
 .footer { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:26px; color:var(--text-secondary); font-size:11px; }
 .auth button:focus-visible,.auth a:focus-visible,.auth input:focus-visible,.auth summary:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
-@media(max-width:359px) { .auth { padding-inline:16px; } .formContent { padding:22px 17px; } .heading h1 { font-size:21px; } .brand { margin-block:10px 22px; } }
+@media(max-width:359px) { .auth { padding-inline:16px; } .formContent { padding:22px 17px; } .heading h1 { font-size:21px; } .brand { margin-block:0 22px; } }
 .previewNotice { padding:10px 12px; margin:0 0 20px; border-radius:12px; background:var(--mode-subtle); color:var(--text-secondary); font-size:11px; line-height:1.7; }
 .previewEntry { display:block; text-align:center; padding:15px 8px 0; font-size:11px; color:var(--brand-primary); text-underline-offset:3px; }
 .passwordField { display:grid; gap:8px; }
