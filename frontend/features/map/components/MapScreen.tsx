@@ -112,9 +112,7 @@ export function MapScreen({
       <CollectionHeading
         title="추억 지도"
         body="함께 걸은 길과 추억을 담아요."
-      >
-        {view === "pins" && <RecordActionLink compact href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>}
-      </CollectionHeading>
+      />
       <ArchiveNavigation petId={pet.id} active="map" />
       <div className={styles.switch} role="group" aria-label="지도 보기">
         <button type="button" aria-pressed={view === "outing"} onClick={() => setView("outing")}>
