@@ -1,6 +1,7 @@
 package com.pawmento.map.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
@@ -225,19 +226,31 @@ class WalkTest {
 		assertThat(walk.getLastActivityAt()).isEqualTo(START);
 	}
 
-	@ParameterizedTest(name = "쌓인 {0} + 새로 {1} -> {2}")
-	@CsvSource({ "4950, 50, OK", "4900, 100, OK", "4950, 51, LIMIT", "0, -1, INVALID" })
-	@DisplayName("#73-S14 새로 쌓인 좌표가 누적 5,000개를 넘기면 거절하고, 딱 5,000개까지는 받는다. 새로 쌓인 개수가 음수면 잘못된 호출이다")
-	void totalLimit(int stored, int added, String expected) {
+	@ParameterizedTest(name = "쌓인 {0} + 새로 {1}")
+	@CsvSource({ "4950, 50", "4900, 100" })
+	@DisplayName("#73-S14 새로 쌓인 좌표를 더해 누적 5,000개까지는 받는다")
+	void totalUpToLimitIsAccepted(int stored, int added) {
 		Walk walk = startedAt(START);
 
-		switch (expected) {
-			case "OK" -> walk.requireCapacity(stored, added);
-			case "LIMIT" -> assertThatThrownBy(() -> walk.requireCapacity(stored, added))
-				.isInstanceOf(WalkPointLimitExceededException.class);
-			default -> assertThatThrownBy(() -> walk.requireCapacity(stored, added))
-				.isInstanceOf(IllegalArgumentException.class);
-		}
+		assertThatCode(() -> walk.requireCapacity(stored, added)).doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("#73-S14 새로 쌓인 좌표가 누적 5,000개를 넘기면 거절한다")
+	void totalOverLimitIsRejected() {
+		Walk walk = startedAt(START);
+
+		assertThatThrownBy(() -> walk.requireCapacity(4950, 51))
+			.isInstanceOf(WalkPointLimitExceededException.class);
+	}
+
+	@Test
+	@DisplayName("#73-S14 새로 쌓인 개수가 음수이면 잘못된 호출이다")
+	void negativeNewCount() {
+		Walk walk = startedAt(START);
+
+		assertThatThrownBy(() -> walk.requireCapacity(0, -1))
+			.isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test
