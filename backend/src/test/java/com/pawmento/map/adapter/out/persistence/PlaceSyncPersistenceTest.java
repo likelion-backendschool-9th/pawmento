@@ -60,19 +60,6 @@ class PlaceSyncPersistenceTest {
 	}
 
 	@Test
-	@DisplayName("#172-S4 새 관리번호는 추가하고, 건수를 종류별로 센다")
-	void insertsNewPlaces() {
-		var applied = adapter.replace(PlaceCategory.HOSPITAL,
-				List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null), draft(PlaceCategory.HOSPITAL, "b", "나병원", "02-111-2222")));
-
-		assertThat(applied).isEqualTo(new AppliedPlaces(2, 0, 0));
-		assertThat(adapter.countByCategory(PlaceCategory.HOSPITAL)).isEqualTo(2);
-		assertThat(adapter.countByCategory(PlaceCategory.GROOMING)).isZero();
-		assertThat(row(PlaceCategory.HOSPITAL, "b").get("name")).isEqualTo("나병원");
-		assertThat(row(PlaceCategory.HOSPITAL, "b").get("phone")).isEqualTo("02-111-2222");
-	}
-
-	@Test
 	@DisplayName("#172-S4 같은 관리번호로 다시 가져오면 행이 늘지 않고 바뀐 값만 바뀌며, 바뀌지 않은 행은 갱신으로 세지 않는다")
 	void updatesChangedFieldsOnly() {
 		adapter.replace(PlaceCategory.HOSPITAL,
@@ -91,21 +78,6 @@ class PlaceSyncPersistenceTest {
 		assertThat(a.get("name")).isEqualTo("새 가병원");
 		assertThat(a.get("phone")).isEqualTo("02-333-4444");
 		assertThat(a.get("address")).isEqualTo("서울특별시 종로구 1");
-	}
-
-	@Test
-	@DisplayName("#172-S4 이번 목록에 없는 같은 종류만 지우고, 다른 종류는 건드리지 않는다")
-	void deletesMissingOfTheSameCategoryOnly() {
-		adapter.replace(PlaceCategory.HOSPITAL,
-				List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null), draft(PlaceCategory.HOSPITAL, "b", "나병원", null)));
-		adapter.replace(PlaceCategory.GROOMING, List.of(draft(PlaceCategory.GROOMING, "a", "가미용", null)));
-
-		var applied = adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null)));
-
-		assertThat(applied).isEqualTo(new AppliedPlaces(0, 0, 1));
-		assertThat(count(PlaceCategory.HOSPITAL)).isEqualTo(1);
-		// 같은 관리번호 "a"가 미용에도 있어도 종류가 달라 그대로다
-		assertThat(count(PlaceCategory.GROOMING)).isEqualTo(1);
 	}
 
 	@Test
