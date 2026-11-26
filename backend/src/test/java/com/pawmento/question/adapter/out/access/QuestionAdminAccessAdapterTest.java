@@ -3,9 +3,7 @@ package com.pawmento.question.adapter.out.access;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.pawmento.member.application.exception.MemberNotFoundException;
 import com.pawmento.member.application.port.in.*;
-import com.pawmento.question.application.exception.QuestionAdminDeniedException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

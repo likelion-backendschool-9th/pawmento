@@ -16,7 +16,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.pawmento.map.application.exception.PublicDataSyncFailedException;
-import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.in.GetPlaceSyncStatusQuery;
@@ -34,19 +33,11 @@ class StartPlaceSyncServiceTest {
 
 	private final List<Runnable> queued = new ArrayList<>();
 
-	private final List<Long> checked = new ArrayList<>();
-
-	private boolean admin = true;
-
 	private RuntimeException failure;
 
 	private final MemoryStatus statuses = new MemoryStatus();
 
 	private final StartPlaceSyncService service = new StartPlaceSyncService(memberId -> {
-		checked.add(memberId);
-		if (!admin) {
-			throw new PlaceSyncAdminDeniedException();
-		}
 	}, statuses, queued::add, command -> {
 		if (failure != null) {
 			throw failure;

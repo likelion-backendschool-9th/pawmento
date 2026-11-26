@@ -36,7 +36,6 @@ class ListPostsServiceTest {
 	private final LoadPostPort posts = mock(LoadPostPort.class);
 	private final ListPostsService service = new ListPostsService(categories, posts);
 
-	// id가 from부터 1씩 줄어드는 글 count개 (최신순)
 	@Test
 	@DisplayName("#21-S4 목록은 본문 앞 100자만 준다")
 	void previewIsFirstHundredCharacters() {
