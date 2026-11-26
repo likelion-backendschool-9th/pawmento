@@ -17,6 +17,11 @@ export type NaverMarker = {
   setMap(map: NaverMap | null): void;
   setPosition(position: NaverLatLng): void;
 };
+export type NaverCircle = {
+  setMap(map: NaverMap | null): void;
+  setCenter(center: NaverLatLng): void;
+  setRadius(radius: number): void;
+};
 export type NaverPolyline = {
   setMap(map: NaverMap | null): void;
   setPath(path: NaverLatLng[]): void;
@@ -28,6 +33,7 @@ export type NaverMapsApi = {
   Marker: new (options: Record<string, unknown>) => NaverMarker;
   LatLngBounds: new (southWest: NaverLatLng, northEast: NaverLatLng) => NaverLatLngBounds;
   Polyline: new (options: Record<string, unknown>) => NaverPolyline;
+  Circle: new (options: Record<string, unknown>) => NaverCircle;
   Event: {
     addListener(
       target: object,

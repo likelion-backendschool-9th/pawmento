@@ -23,6 +23,10 @@ import { PlaceAddressResolver } from "../utils/placeAddress";
 import type { PlaceFocus } from "../utils/placeCanvas";
 import { keepSelectedId, searchSelectionAfterTap, withPinned } from "../utils/placeSearchSelection";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
+import { useMyLocation } from "../hooks/useMyLocation";
+import { DEFAULT_NEARBY_RADIUS } from "../utils/nearby";
+import { LocationNotice } from "./LocationNotice";
+import { MyLocationButton } from "./MyLocationButton";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
 import { PlaceSearchPanel } from "./PlaceSearchPanel";
@@ -68,6 +72,13 @@ export function PlacesScreen() {
   const pinnedId = useRef<string | null>(null);
   useEffect(() => {
     pinnedId.current = pinned?.id ?? null;
+  });
+  // 내 위치를 읽으면 지도를 그 위치로 옮기고(500m 반경이 보이게) 이전 선택과 검색어를 푼다(#226-S2)
+  const my = useMyLocation((fix) => {
+    setPinned(null);
+    setSearchText("");
+    setSelectedId(null);
+    setFocus({ point: fix.point, token: Date.now(), fitRadiusMeters: DEFAULT_NEARBY_RADIUS });
   });
   function openSearch() {
     setSearchCenter(
@@ -200,6 +211,7 @@ export function PlacesScreen() {
     onBoundsChange,
     coveredBottom,
     focus,
+    me: my.state.fix,
   };
   const nothingChosen = categories.length === 0;
 
@@ -277,6 +289,22 @@ export function PlacesScreen() {
           })}
         </div>
 
+        {/* 카드가 열려 있으면 카드가 지도 아래를 덮으므로 버튼은 숨긴다 */}
+        {!selected && (
+          <MyLocationButton
+            reading={my.state.status === "reading"}
+            located={my.state.fix !== null}
+            supported={my.supported}
+            onPress={() => void my.press()}
+          />
+        )}
+        <LocationNotice
+          status={my.state.status}
+          onContinue={() => void my.continueIntro()}
+          onDismiss={my.dismiss}
+          onRetry={() => void my.press()}
+        />
+
         {result?.truncated && !error && (
           <p className={`${mapStyles.notice} ${styles.noticeLow}`} role="status">
             장소가 많아서 일부만 보여요. 지도를 확대해 보세요.
@@ -306,7 +334,7 @@ export function PlacesScreen() {
 
         {/* 검색으로 고른 장소가 지도에 그려져 있으면(조회 결과는 비어도) "장소가 없어요"를 보이지 않는다 */}
         {!nothingChosen && result && !error && canvasPlaces.length === 0 && !loading && (
-          <div className={mapStyles.message}>
+          <div className={`${mapStyles.message} ${my.state.fix ? styles.messageLow : ""}`}>
             <span className={mapStyles.emptyArt} aria-hidden="true">
               <span className={mapStyles.emptyCircle}>
                 <Icon name="map" size={34} />

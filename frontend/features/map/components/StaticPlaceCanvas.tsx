@@ -3,7 +3,10 @@ import { useEffect, useRef, useState } from "react";
 import type { MapBounds } from "@/features/map/types/MapBounds";
 import { toViewportRatio } from "@/features/map/utils/mapBounds";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
-import { markerShiftToVisible, type PlaceCanvasProps } from "../utils/placeCanvas";
+import {
+  markerShiftToVisible,
+  type PlaceCanvasProps,
+} from "../utils/placeCanvas";
 import { StaticMapBackdrop } from "./StaticMapBackdrop";
 import mapStyles from "./MapScreen.module.css";
 import styles from "./PlacesScreen.module.css";
@@ -28,10 +31,13 @@ export function StaticPlaceCanvas({
   onBoundsChange,
   coveredBottom,
   focus,
+  me,
 }: PlaceCanvasProps) {
   // 보이는 중심. 이동 요청(검색 결과를 눌렀을 때, #195-S11)이 오면 그 지점으로 바꾼다. 렌더링 중에 바꿔야 그린 뒤의 효과들이 새 영역을 쓴다
   const [view, setView] = useState(focus?.point ?? center);
-  const [seenToken, setSeenToken] = useState<number | null>(focus?.token ?? null);
+  const [seenToken, setSeenToken] = useState<number | null>(
+    focus?.token ?? null,
+  );
   if (focus && focus.token !== seenToken) {
     setSeenToken(focus.token);
     setView(focus.point);
@@ -74,6 +80,7 @@ export function StaticPlaceCanvas({
     >
       <div ref={shifter} className={styles.shifter}>
         <StaticMapBackdrop />
+        {me && <StaticMe mark={me} bounds={bounds} />}
         {places.map((place) => {
           const { x, y } = toViewportRatio(bounds, place);
           const selected = place.id === selectedId;
@@ -101,5 +108,37 @@ export function StaticPlaceCanvas({
         })}
       </div>
     </div>
+  );
+}
+
+// 내 위치의 점과 정확도 원(#226-S2). 원의 지름은 영역의 가로 길이(미터)에 대한 정확도의 두 배의 비율이다.
+function StaticMe({
+  mark,
+  bounds,
+}: {
+  mark: NonNullable<PlaceCanvasProps["me"]>;
+  bounds: MapBounds;
+}) {
+  const { x, y } = toViewportRatio(bounds, mark.point);
+  const widthMeters =
+    (bounds.maxLongitude - bounds.minLongitude) *
+    111_320 *
+    Math.cos((mark.point.latitude * Math.PI) / 180);
+  const ring = Math.min(Math.max((mark.accuracy * 2) / widthMeters, 0.04), 1);
+  const at = { left: `${x * 100}%`, top: `${y * 100}%` };
+  return (
+    <>
+      <span
+        className={styles.meRing}
+        style={{ ...at, width: `${ring * 100}%` }}
+        aria-hidden="true"
+      />
+      <span
+        className={styles.meDot}
+        style={at}
+        role="img"
+        aria-label="내 위치"
+      />
+    </>
   );
 }

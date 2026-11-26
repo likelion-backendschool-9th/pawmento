@@ -296,6 +296,8 @@
   z-index: 3;
   left: 12px;
   bottom: 44px;
+  /* 오른쪽 아래의 "내 위치" 버튼(48px)과 겹치지 않게 한다 */
+  max-width: calc(100% - 84px);
   margin: 0;
   padding: 5px 11px;
   border: 1px solid var(--mode-border);
@@ -356,4 +358,61 @@
   .page [data-places-stage] {
     height: clamp(480px, calc(100dvh - 350px), 720px);
   }
+}
+
+/* 예시 지도의 내 위치(#226-S2): 진한 초록 점(흰 테두리)과 퍼지는 빛, 정확도 원. 장소 핀(파랑·주황·보라)과 구분되고 초록 지도 바탕 위에서도 보인다.
+   마커 아래에 깔리고 눌리지 않는다. 색은 --focus-ring(진한 숲색)과 같다. */
+.meDot,
+.meRing {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.meDot {
+  z-index: 0;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--focus-ring, #385e46);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.32);
+}
+.meDot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--focus-ring, #385e46);
+  opacity: 0;
+  animation: meHalo 2.2s ease-out infinite;
+}
+@keyframes meHalo {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.meRing {
+  z-index: 0;
+  aspect-ratio: 1;
+  border: 1px solid rgb(56 94 70 / 0.4);
+  border-radius: 50%;
+  background: rgb(56 94 70 / 0.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .meDot::after {
+    animation: none;
+  }
+}
+
+/* 내 위치를 보이는 동안 "장소가 없어요" 안내는 가운데보다 아래에 두어 내 위치 점을 가리지 않는다(#226-S2) */
+.page .messageLow {
+  top: 68%;
 }
