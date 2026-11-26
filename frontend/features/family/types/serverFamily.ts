@@ -1,6 +1,6 @@
 // 서버 가족 API의 화면용 타입. 데모 목업의 family.ts(EDITOR·VIEWER)와 섞지 않는다
 export type FamilyPerson = {
-  memberId: string;
+  memberId: string | null;
   nickname: string | null;
   tag: string | null;
 };

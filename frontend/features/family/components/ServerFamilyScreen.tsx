@@ -157,6 +157,7 @@ function FamilyBody({ petId }: { petId: string }) {
   const isOwner = family.owner.memberId === account?.id;
 
     function actionFor(member: FamilyMemberRow) {
+    if (!member.memberId) return null;
     const isMe = member.memberId === account?.id;
     if (!isOwner && !isMe) return null;
     return (
@@ -189,9 +190,9 @@ function FamilyBody({ petId }: { petId: string }) {
             <span className="badge">{1 + family.members.length}명</span>
           </div>
           <PersonRow person={family.owner} note="기록과 가족을 관리해요." badge="소유주" />
-          {family.members.map((member) => (
+           {family.members.map((member, index) => (
             <PersonRow
-              key={member.memberId}
+              key={member.memberId ?? `unknown-${index}`}
               person={member}
               note={`${dateTime(member.joinedAt)}부터 함께`}
               badge="가족"
@@ -230,8 +231,12 @@ function FamilyBody({ petId }: { petId: string }) {
           {issueError && <p className="error" role="alert">{issueError}</p>}
         </section>
       </div>
-            <dialog ref={dialog} className="dialog" onClose={() => setConfirm(null)}>
-        {confirm?.kind === "remove" && (
+            <dialog ref={dialog} className="dialog" onClose={() => setConfirm(null)}
+                onCancel={(event) =>  {// 요청을 보낸 뒤에는 응답을 받을 때까지 닫지 않는다. 보내기 전에는 Esc로 닫아도 아무 일도 없다
+                    if (busy) event.preventDefault();
+                }}
+            >
+                {confirm?.kind === "remove" && (
           <>
             <h2>{confirm.member.nickname ?? "이 회원"}님을 가족에서 내보낼까요?</h2>
             <p>
@@ -267,7 +272,7 @@ function FamilyBody({ petId }: { petId: string }) {
             className="button destructive"
             disabled={busy}
             onClick={() => {
-              if (confirm?.kind === "remove") void removeMember(confirm.member.memberId);
+              if (confirm?.kind === "remove" && confirm.member.memberId) void removeMember(confirm.member.memberId);
               if (confirm?.kind === "leave") void leave();
             }}
           >

@@ -8,12 +8,19 @@ import type {
   JoinedPet,
 } from "../types/serverFamily.ts";
 
-type PersonDto = { memberId: number; nickname: string | null; tag: string | null };
+type PersonDto = { memberId: number | string; nickname: string | null; tag: string | null };
 type FamilyDto = { owner: PersonDto; members: (PersonDto & { joinedAt: string })[] };
 type PetDto = { petId: number; name: string; tag: string };
 
+// 서버의 Long id를 화면용 문자열로 바꾼다.
+// 2^53 이상인 숫자는 JSON을 읽는 순간 다른 값으로 바뀌었을 수 있어 쓰지 않는다(null)
+function toId(value: number | string): string | null {
+  if (typeof value === "string") return /^[1-9]\d*$/.test(value) ? value : null;
+  return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+}
+
 const toPerson = (dto: PersonDto): FamilyPerson => ({
-  memberId: String(dto.memberId),
+  memberId: toId(dto.memberId),
   nickname: dto.nickname,
   tag: dto.tag,
 });
@@ -63,12 +70,12 @@ export function createFamilyApi(http: ApiClient) {
       if (!/^[1-9]\d*$/.test(memberId)) {
         throw new ApplicationError("NOT_FOUND", "가족을 찾을 수 없어요.");
       }
-      await http.deleteEmpty(`/families/members/${memberId}?petId=${petId}`);
+      await http.delete(`/families/members/${memberId}?petId=${petId}`);
     },
 
     async leave(petId: string): Promise<void> {
       requirePetId(petId);
-      await http.deleteEmpty(`/families/members/me?petId=${petId}`);
+      await http.delete(`/families/members/me?petId=${petId}`);
     },
   };
 }
