@@ -20,7 +20,8 @@ import { WalkWidget } from "./WalkWidget";
 import { NaverWalkCanvas } from "./NaverWalkCanvas";
 import { StaticWalkCanvas } from "./StaticWalkCanvas";
 import { isServerPetId } from "../utils/walk";
-import { seoulDate, walkHistoryPath } from "../utils/walkRecord";
+import { elapsedSeconds } from "../utils/walk";
+import { WalkResultDialog } from "./WalkResultDialog";
 import { WalkHistory } from "./WalkHistory";
 import styles from "./MapScreen.module.css";
 
@@ -60,6 +61,7 @@ export function MapScreen({
   const request = useRef(0);
   // 산책 세션은 탭을 바꿔도 유지하고, 각 탭의 표시 내용만 나눈다.
   const [view, setView] = useState<"outing" | "pins" | "walks">(initialView);
+  const [dismissedWalkId, setDismissedWalkId] = useState<string | null>(null);
   const walksSwitch = useRef<HTMLButtonElement>(null);
   const sheet = useRef<HTMLElement>(null);
   const openWalks = () => {
@@ -127,6 +129,15 @@ export function MapScreen({
         body="함께 걸은 길과 추억을 담아요."
       />
       <ArchiveNavigation petId={pet.id} active="map" />
+      {session.phase === "ended" && session.walk && session.outcome && dismissedWalkId !== session.walk.walkId && <WalkResultDialog
+        key={session.walk.walkId}
+        points={session.points}
+        seconds={session.outcome.endedAt ? elapsedSeconds(session.walk.startedAt, Date.parse(session.outcome.endedAt)) : session.seconds}
+        outcome={session.outcome}
+        clientId={clientId}
+        mode={pet.mode}
+        onClose={() => setDismissedWalkId(session.walk!.walkId)}
+      />}
       <div className={styles.switch} role="group" aria-label="지도 보기">
         <button type="button" aria-pressed={view === "outing"} onClick={() => setView("outing")}>
           <Icon name="paw" size={16} />산책가기
@@ -142,12 +153,6 @@ export function MapScreen({
         <div className={styles.outing}>
           {/* 산책 시작·끝내기가 첫 화면에 보이도록 위젯을 지도보다 먼저 둔다 */}
           <WalkWidget session={session} />
-          {/* 끝난 산책은 시작한 날(한국 시각)의 산책기록으로 연다. 자정을 넘겨 끝나도 시작한 날이다(#73-S16). */}
-          {session.phase === "ended" && session.walk && (
-            <Link className={styles.textButton} href={walkHistoryPath(pet.id, seoulDate(session.walk.startedAt))}>
-              산책기록 보기 →
-            </Link>
-          )}
           <div className={styles.stage} data-mode={pet.mode}>
             {clientId && !naverFailed ? (
               <NaverWalkCanvas {...walkCanvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
