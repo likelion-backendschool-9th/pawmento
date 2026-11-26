@@ -191,7 +191,7 @@ class ReportScenarioTest {
 		Member b = loginAsNewMember();
 		Long postId = writePost(b, "산책 후기", "본문");
 
-		for (String body : new String[] {"{}", """
+		for (String body : new String[] {"null", "{}", """
 				{"reasonType":"spam"}""", """
 				{"reasonType":"UNKNOWN"}""", """
 				{"reasonType":"OTHER","reasonDetail":"\\uFEFF "}""", """
