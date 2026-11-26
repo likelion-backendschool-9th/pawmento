@@ -64,6 +64,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   return <main id="main" className={s.screen} data-step={step}>
     <div className={s.brand}><Brand /></div>
     <section className={s.content}>
+      {step === "join" && <div className={s.envelope} aria-hidden="true"><Icon name="mail" size={52} /><span><Icon name="paw" size={22} /></span></div>}
       <header className={s.heading}>
         <h1>{step === "choose" ? "어떻게 시작할까요?" : step === "join" ? "함께할 초대가 도착했어요" : "우리 아이를 소개해 주세요"}</h1>
         <p>{step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "이름과 사진으로 첫 기억을 시작해요."}</p>
@@ -87,7 +88,6 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
               {!birthdayUnknown && <BirthdayDateField value={input.birthday} onChange={(birthday) => { setSaved(false); setInput((old) => ({ ...old, birthday })); }} />}
             </div>
           </> : <>
-            <div className={s.envelope} aria-hidden="true"><Icon name="mail" size={52} /><span><Icon name="paw" size={22} /></span></div>
             <label>초대 코드<input className={s.code} value={code} onChange={(event) => { setCode(event.target.value.toUpperCase()); setError(""); }} placeholder="8자리 코드를 입력해 주세요" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={8} required /></label>
             <div className={s.demoCode}><span>체험용 코드</span><button type="button" onClick={() => { setCode(invitation.code); setError(""); }}>{invitation.code}<small>입력하기</small></button></div>
           </>}

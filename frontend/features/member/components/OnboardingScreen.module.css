@@ -27,7 +27,7 @@
 .primary:disabled { opacity:.6; }
 .notice { flex:none; margin:20px 12px 0; text-align:center; color:var(--text-muted); font-size:11px; line-height:1.8; }
 .continue { grid-column:1/-1; padding:14px; text-align:center; font-size:12px; color:var(--brand-primary); text-underline-offset:4px; }
-.envelope { position:relative; display:grid; place-items:center; width:132px; height:110px; margin:0 auto 12px; border-radius:32px; background:var(--mode-subtle); color:var(--brand-primary); transform:rotate(-5deg); }
+.envelope { position:relative; display:grid; flex:none; place-items:center; width:156px; height:120px; margin:0 auto 28px; border:1px solid var(--mode-border); border-radius:28px; background:linear-gradient(145deg,var(--surface-card),#f4eadb); color:var(--brand-primary); box-shadow:0 10px 28px #7b775018; transform:rotate(-5deg); }
 .envelope > span { display:grid; place-items:center; position:absolute; bottom:18px; right:27px; width:36px; height:36px; border-radius:50%; background:var(--surface-card); color:#ab8254; border:1px solid var(--mode-border); }
 .form .code { text-align:center; letter-spacing:3px; font-size:20px; font-weight:600; }
 .form .code::placeholder { font-size:12px; font-weight:400; letter-spacing:0; }
@@ -53,3 +53,10 @@
 @media(min-height:900px) { .form fieldset { gap:22px; } }
 
 .choiceIcon > svg { box-sizing:content-box; width:25px; height:25px; padding:10px; border:1px solid var(--mode-border); border-radius:23px; background:var(--mode-card); box-shadow:0 5px 20px #3543210a; }
+
+.screen[data-step="join"] .content { justify-content:center; padding-block:20px; }
+.screen[data-step="join"] .heading { margin-bottom:24px; }
+.screen[data-step="join"] .form { flex:none; padding:24px 20px; box-shadow:0 8px 30px #35432106; }
+.screen[data-step="join"] .form fieldset { flex:none; justify-content:flex-start; gap:18px; }
+.screen[data-step="join"] .form .primary { margin-top:6px; }
+@media(max-height:700px) { .screen[data-step="join"] .content { padding-block:8px; } .envelope { width:128px; height:98px; margin-bottom:20px; } }
