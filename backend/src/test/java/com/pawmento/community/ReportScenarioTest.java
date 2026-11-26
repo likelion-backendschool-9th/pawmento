@@ -112,6 +112,29 @@ class ReportScenarioTest {
 	}
 
 	@Test
+	@DisplayName("#112-S4 기각된 신고는 글 버전이 그대로면 409이고, 글을 고친 뒤에는 새 신고로 접수된다")
+	void reportAgainAfterDismissed() throws Exception {
+		Member a = loginAsNewMember();
+		Member b = loginAsNewMember();
+		Long postId = writePost(b, "산책 후기", "공원 한 바퀴");
+		Long first = reportId(a, postId, "SPAM");
+		// 기각 기능은 #92 처리 단계에서 만든다. 여기서는 DB에서 상태만 바꾼다
+		jdbcTemplate.update("UPDATE post_reports SET status = 'DISMISSED' WHERE id = ?", first);
+
+		expectDuplicate(report(a, postId, """
+				{"reasonType":"SPAM"}"""));
+
+		editPost(b, postId, "수정한 글", "고친 본문");
+		Long second = reportId(a, postId, "ABUSE");
+
+		assertThat(second).isGreaterThan(first);
+		assertThat(reportRow(second)).containsEntry("status", "PENDING")
+			.containsEntry("snapshot_title", "수정한 글")
+			.containsEntry("snapshot_post_version", postVersion(postId));
+		assertThat(reportCount(postId, a.id())).isEqualTo(2);
+	}
+
+	@Test
 	@DisplayName("#112-S6 작성자가 자기 글을 신고하면 403이고 신고가 생기지 않는다")
 	void ownPost() throws Exception {
 		Member b = loginAsNewMember();

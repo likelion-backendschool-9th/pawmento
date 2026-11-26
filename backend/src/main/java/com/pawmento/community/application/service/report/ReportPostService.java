@@ -31,9 +31,12 @@ public class ReportPostService implements ReportPostUseCase {
 		// 없는 글과 지운 글은 공개 상세와 같이 404다
 		Post post = loadPostPort.findById(command.postId()).orElseThrow(PostNotFoundException::new);
 		Report report = Report.receive(post, command.memberId(), command.reasonType(), command.reasonDetail());
-		if (loadLatestReportPort.findLatest(post.getId(), command.memberId()).isPresent()) {
-			throw new DuplicateReportException();
-		}
+		// 재신고 판정은 그 회원의 가장 최근 신고만 본다(#112-S4)
+		loadLatestReportPort.findLatest(post.getId(), command.memberId())
+			.filter(previous -> !previous.allowsNewReportOn(post.getVersion()))
+			.ifPresent(previous -> {
+				throw new DuplicateReportException();
+			});
 		// 확인과 저장 사이에 같은 요청이 끼어들면 저장소가 PENDING 부분 고유 인덱스로 막는다(#112-S5)
 		return saveReportPort.save(report);
 	}
