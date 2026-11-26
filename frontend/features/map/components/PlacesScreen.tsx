@@ -6,6 +6,7 @@ import { PageHeading } from "@/features/shell/components/WorkspaceUi";
 import type { MapBounds, MapPoint } from "@/features/map/types/MapBounds";
 import {
   PLACE_CATEGORIES,
+  type Place,
   type PlaceCategory,
   type PlaceList,
 } from "@/features/map/types/Place";
@@ -19,6 +20,8 @@ import {
   sourceLine,
 } from "../utils/placeCard";
 import { PlaceAddressResolver } from "../utils/placeAddress";
+import type { PlaceFocus } from "../utils/placeCanvas";
+import { keepSelectedId, searchSelectionAfterTap, withPinned } from "../utils/placeSearchSelection";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
@@ -56,6 +59,16 @@ export function PlacesScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchCenter, setSearchCenter] = useState<MapPoint | null>(null);
   const searchBar = useRef<HTMLButtonElement>(null);
+  // 검색 결과로 고른 장소와 그때의 검색어(#195-S11). 고른 장소는 영역 조회 결과에 없어도(영역 밖, 종류 칩이 꺼짐) 지도에 그리고 카드를 연다.
+  // 선택을 풀거나(카드 닫기, 지도의 빈 곳, 다른 장소, ✕) 하면 함께 지운다.
+  const [pinned, setPinned] = useState<Place | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const [focus, setFocus] = useState<PlaceFocus | null>(null);
+  // 새 영역을 조회한 응답이 늦게 와도 검색으로 고른 장소의 선택은 풀지 않는다
+  const pinnedId = useRef<string | null>(null);
+  useEffect(() => {
+    pinnedId.current = pinned?.id ?? null;
+  });
   function openSearch() {
     setSearchCenter(
       bounds
@@ -71,6 +84,32 @@ export function PlacesScreen() {
     setSearchOpen(false);
     setTimeout(() => searchBar.current?.focus(), 0);
   }
+  // 결과를 누르면 검색 화면을 닫고, 그 장소로 지도를 옮기고, 마커를 고르고 카드를 연다. 검색창에는 검색어가 남는다(#195-S11)
+  function chooseResult(place: Place, text: string) {
+    setSearchOpen(false);
+    setPinned(place);
+    setSearchText(text);
+    setSelectedId(place.id);
+    setFocus({ point: { latitude: place.latitude, longitude: place.longitude }, token: Date.now() });
+  }
+  // 지도의 마커·빈 곳을 눌러 선택이 바뀌면, 검색으로 고른 장소가 아닌 한 검색어를 지운다.
+  // 아직 실행되지 않은 이동 요청(지도 SDK가 늦게 뜬 경우)도 함께 지워, 풀어 버린 장소로 지도가 가지 않게 한다
+  function selectOnMap(id: string | null) {
+    if (searchSelectionAfterTap(id, pinned?.id ?? null) === "clear") {
+      setPinned(null);
+      setSearchText("");
+      setFocus(null);
+    }
+    setSelectedId(id);
+  }
+  // 검색창의 ✕: 선택과 검색어를 함께 푼다. 종류 칩과 지도는 그대로다
+  function clearSearch() {
+    setPinned(null);
+    setSearchText("");
+    setFocus(null);
+    setSelectedId(null);
+    setTimeout(() => searchBar.current?.focus(), 0);
+  }
 
   useEffect(() => {
     if (!bounds) return;
@@ -84,7 +123,11 @@ export function PlacesScreen() {
           if (current !== request.current) return; // 더 최근 요청이 있으면 버린다
           setResult(list);
           setSelectedId((id) =>
-            list.places.some((place) => place.id === id) ? id : null,
+            keepSelectedId(
+              list.places.map((place) => place.id),
+              id,
+              pinnedId.current,
+            ),
           );
         })
         .catch((cause) => {
@@ -107,7 +150,9 @@ export function PlacesScreen() {
     [],
   );
   const places = result?.places ?? [];
-  const selected = places.find((place) => place.id === selectedId) ?? null;
+  // 지도에는 조회 결과에 검색으로 고른 장소를 더해 그린다
+  const canvasPlaces = withPinned(places, pinned);
+  const selected = canvasPlaces.find((place) => place.id === selectedId) ?? null;
   const copy = copyResult?.id === selectedId ? copyResult.status : "idle";
   useEffect(() => {
     if (copyResult === null) return;
@@ -149,11 +194,12 @@ export function PlacesScreen() {
   const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
   const canvasProps = {
     center: DEFAULT_MAP_CENTER,
-    places,
+    places: canvasPlaces,
     selectedId,
-    onSelect: setSelectedId,
+    onSelect: selectOnMap,
     onBoundsChange,
     coveredBottom,
+    focus,
   };
   const nothingChosen = categories.length === 0;
 
@@ -182,16 +228,30 @@ export function PlacesScreen() {
           <StaticPlaceCanvas {...canvasProps} />
         )}
 
-        <button
-          ref={searchBar}
-          type="button"
-          className={styles.searchBar}
-          aria-haspopup="dialog"
-          onClick={openSearch}
-        >
-          <Icon name="search" size={18} />
-          <span>병원·미용·보호센터 이름이나 주소 검색</span>
-        </button>
+        <div className={styles.searchBar}>
+          <button
+            ref={searchBar}
+            type="button"
+            className={styles.searchOpen}
+            aria-haspopup="dialog"
+            onClick={openSearch}
+          >
+            <Icon name="search" size={18} />
+            <span className={searchText ? styles.searchValue : undefined}>
+              {searchText || "병원·미용·보호센터 이름이나 주소 검색"}
+            </span>
+          </button>
+          {searchText && (
+            <button
+              type="button"
+              className={styles.searchClear}
+              aria-label="검색 지우기"
+              onClick={clearSearch}
+            >
+              <Icon name="close" size={16} />
+            </button>
+          )}
+        </div>
 
         <div className={styles.filters} role="group" aria-label="장소 종류">
           {PLACE_CATEGORIES.map((category) => {
@@ -237,14 +297,15 @@ export function PlacesScreen() {
           </div>
         )}
 
-        {nothingChosen && !error && (
+        {nothingChosen && !error && !pinned && (
           <div className={mapStyles.message}>
             <strong>보고 싶은 종류를 골라 주세요</strong>
             <p>위쪽 칩을 눌러 병원·미용·보호센터를 켤 수 있어요.</p>
           </div>
         )}
 
-        {!nothingChosen && result && !error && places.length === 0 && !loading && (
+        {/* 검색으로 고른 장소가 지도에 그려져 있으면(조회 결과는 비어도) "장소가 없어요"를 보이지 않는다 */}
+        {!nothingChosen && result && !error && canvasPlaces.length === 0 && !loading && (
           <div className={mapStyles.message}>
             <span className={mapStyles.emptyArt} aria-hidden="true">
               <span className={mapStyles.emptyCircle}>
@@ -276,7 +337,7 @@ export function PlacesScreen() {
               type="button"
               className={styles.close}
               aria-label="장소 카드 닫기"
-              onClick={() => setSelectedId(null)}
+              onClick={() => selectOnMap(null)}
             >
               <Icon name="close" size={18} />
             </button>
@@ -351,7 +412,14 @@ export function PlacesScreen() {
           </aside>
         )}
       </div>
-      {searchOpen && <PlaceSearchPanel center={searchCenter} onClose={closeSearch} />}
+      {searchOpen && (
+        <PlaceSearchPanel
+          center={searchCenter}
+          initialText={searchText}
+          onSelect={chooseResult}
+          onClose={closeSearch}
+        />
+      )}
     </div>
   );
 }

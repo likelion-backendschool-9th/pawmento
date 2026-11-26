@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icon";
 import type { MapPoint } from "@/features/map/types/MapBounds";
+import type { Place } from "@/features/map/types/Place";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
 import { useRecentSearches } from "../hooks/useRecentSearches";
 import { distanceLabel } from "../utils/placeDistance";
@@ -22,18 +23,23 @@ function Highlight({ text, query }: { text: string; query: string }) {
   );
 }
 
-// 정보 지도의 장소 검색 화면(#195-S9, S10, S12, S13, S14). 이름이나 주소를 입력하면 멈춘 뒤 검색하고, 입력이 없으면 최근 검색어를 보인다.
-// 결과를 눌러 지도로 이동하는 부분(S11)은 다음 PR에서 연결한다. 지도 중심은 열 때 정해 거리 계산에만 쓴다.
+// 정보 지도의 장소 검색 화면(#195-S9, S10, S11, S12, S13, S14). 이름이나 주소를 입력하면 멈춘 뒤 검색하고, 입력이 없으면 최근 검색어를 보인다.
+// 결과를 누르면 그 검색어를 최근 검색어에 남기고 onSelect로 알린다(지도로 이동하는 일은 부모가 한다). 지도 중심은 열 때 정해 거리 계산에만 쓴다.
+// initialText가 있으면 그 검색어로 바로 검색해 열린다(고른 장소의 검색창을 다시 눌렀을 때).
 export function PlaceSearchPanel({
   center,
+  initialText = "",
+  onSelect,
   onClose,
 }: {
   center: MapPoint | null;
+  initialText?: string;
+  onSelect: (place: Place, text: string) => void;
   onClose: () => void;
 }) {
   const { state, setInput, retry } = usePlaceSearch();
   const recent = useRecentSearches();
-  const [text, setText] = useState("");
+  const [text, setText] = useState(initialText);
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
   const body = useRef<HTMLDivElement>(null);
@@ -44,6 +50,13 @@ export function PlaceSearchPanel({
     () => (center ? { center: { latitude: center.latitude, longitude: center.longitude } } : {}),
     [center],
   );
+
+  // 다시 열린 검색창은 지난 검색어로 바로 검색한다
+  useEffect(() => {
+    if (initialText.trim() !== "") setInput(initialText, context);
+    // 열릴 때 한 번만 한다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 브라우저의 모달 dialog(showModal)를 쓴다. 열려 있는 동안 Tab 이동이 안에서만 돌고 뒤 화면은 조작할 수 없다. Esc는 cancel 이벤트로 받는다.
   useEffect(() => {
@@ -218,28 +231,41 @@ export function PlaceSearchPanel({
               {places.map((place) => {
                 const open24h = open24hLabel(place);
                 return (
-                  <li key={place.id} className={styles.result}>
-                    <span
-                      className={styles.kindIcon}
-                      aria-hidden="true"
-                      dangerouslySetInnerHTML={{ __html: placeMarkup(place.category, false, 28) }}
-                    />
-                    <span className={styles.text}>
-                      <span className={styles.name}>
-                        {/* 장소 이름은 한 덩어리로 묶는다. 묶지 않으면 강조 조각 사이에도 간격이 생겨 "서울동물병원"이 "서울 동물 병원"처럼 보인다 */}
-                        <span>
-                          <Highlight text={place.name} query={state.text} />
+                  <li key={place.id}>
+                    <button
+                      type="button"
+                      className={styles.result}
+                      // 새 결과가 오기 전의 이전 결과는 누를 수 없다(#195-S11)
+                      disabled={state.status === "loading"}
+                      onClick={() => {
+                        if (state.status === "loading") return;
+                        // 결과를 누른 검색어를 최근 검색어에 남기고 고른 장소를 알린다(#195-S11, S14)
+                        recent.add(state.text);
+                        onSelect(place, state.text.trim());
+                      }}
+                    >
+                      <span
+                        className={styles.kindIcon}
+                        aria-hidden="true"
+                        dangerouslySetInnerHTML={{ __html: placeMarkup(place.category, false, 28) }}
+                      />
+                      <span className={styles.text}>
+                        <span className={styles.name}>
+                          {/* 장소 이름은 한 덩어리로 묶는다. 묶지 않으면 강조 조각 사이에도 간격이 생겨 "서울동물병원"이 "서울 동물 병원"처럼 보인다 */}
+                          <span>
+                            <Highlight text={place.name} query={state.text} />
+                          </span>
+                          {open24h && <span className={styles.badge24}>{open24h}</span>}
                         </span>
-                        {open24h && <span className={styles.badge24}>{open24h}</span>}
+                        <span className={styles.meta}>
+                          {PLACE_STYLE[place.category].label} ·{" "}
+                          <Highlight text={place.address ?? "주소 정보 없음"} query={state.text} />
+                        </span>
                       </span>
-                      <span className={styles.meta}>
-                        {PLACE_STYLE[place.category].label} ·{" "}
-                        <Highlight text={place.address ?? "주소 정보 없음"} query={state.text} />
-                      </span>
-                    </span>
-                    {place.distanceMeters !== null && (
-                      <span className={styles.distance}>{distanceLabel(place.distanceMeters)}</span>
-                    )}
+                      {place.distanceMeters !== null && (
+                        <span className={styles.distance}>{distanceLabel(place.distanceMeters)}</span>
+                      )}
+                    </button>
                   </li>
                 );
               })}
