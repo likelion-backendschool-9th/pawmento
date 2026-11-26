@@ -32,8 +32,8 @@ class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInvi
     }
 
     @Override
-    public boolean consume(String codeHash, Instant now) {
-        return codeJpaRepository.deleteUsable(codeHash, now) == 1;
+    public boolean consume(Long codeId, Instant now) {
+        return codeJpaRepository.deleteUsable(codeId, now) == 1;
     }
 
     @Override

@@ -217,7 +217,7 @@
 2. 초대 코드와 가족 되기·목록 — S2~S6, S19
    - 파일: `family/adapter/in/web/FamilyController`(`@RequestMapping("/families")`), `PetInviteCode`(`pet_invite_codes`, 코드 해시와 발급자 저장), 초대·가입·목록 유스케이스
    - 발급: 한 트랜잭션에서 반려동물 행 잠금 → 요청자가 소유주나 가족인지 확인(아니면 403) → 코드 저장
-   - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 코드를 다시 읽고 잠금 뒤 시각으로 만료 전인지 확인(아니면 404, 이미 가족인지보다 먼저) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(`code_hash`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
+   - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 코드를 다시 읽어 처음 읽은 행(같은 id·반려동물)이고 잠금 뒤 시각으로 만료 전인지 확인 (아니면 404, 이미 가족인지보다 먼저) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(확인한 코드 행의 `id`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
    - 목록: 소유주 id → 가족 줄(가입 순, 같으면 id 순) → 요청자가 소유주나 가족인지 확인(아니면 403) → 회원 프로필을 한 번에 조회. 잠그지 않는다
    - member: 새 입력 포트 `ListMemberProfilesUseCase`·`ListMemberProfilesQuery(memberIds)` → `List<MemberProfileResult(memberId, nickname, tag)>`. 다른 회원에게 보여도 되는 값만 주고(이메일·역할 제외), 없는 회원은 예외 없이 빠진다
    - pet: 새 입력 포트 `GetPetSummaryUseCase`·`GetPetSummaryQuery(petId)` → `Optional<PetSummaryResult(petId, name, tag)>`. 요청자 검사가 없다. 부르는 도메인이 권한을 먼저 확인한 뒤에만 부른다. pet 담당과 합의(#236)
