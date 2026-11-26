@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Repository;
 
+import com.pawmento.family.application.port.out.DeletePetFamilyMemberPort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
@@ -12,7 +13,7 @@ import lombok.RequiredArgsConstructor;
 
 @Repository
 @RequiredArgsConstructor
-class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamilyMemberPort {
+class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamilyMemberPort, DeletePetFamilyMemberPort {
 
     private final PetFamilyMemberJpaRepository memberRepository;
 
@@ -38,5 +39,10 @@ class FamilyPersistenceAdapter implements LoadPetFamilyMemberPort, SavePetFamily
         return memberRepository.findByMemberIdOrderByJoinedAtAscIdAsc(memberId).stream()
                 .map(PetFamilyMemberJpaEntity::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean delete(Long petId, Long memberId) {
+        return memberRepository.deleteByPetIdAndMemberId(petId, memberId) == 1;
     }
 }

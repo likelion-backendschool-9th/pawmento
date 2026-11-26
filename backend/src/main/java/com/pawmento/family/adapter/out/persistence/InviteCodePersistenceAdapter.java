@@ -9,6 +9,7 @@ import com.pawmento.family.application.port.out.LoadPetInviteCodePort;
 import com.pawmento.family.application.port.out.SavePetInviteCodePort;
 import com.pawmento.family.application.port.out.ConsumePetInviteCodePort;
 import com.pawmento.family.application.port.out.DeleteExpiredPetInviteCodesPort;
+import com.pawmento.family.application.port.out.DeletePetInviteCodesByIssuerPort;
 import com.pawmento.family.domain.PetInviteCode;
 
 import lombok.RequiredArgsConstructor;
@@ -16,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 @Repository
 @RequiredArgsConstructor
 class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInviteCodePort,
-        ConsumePetInviteCodePort, DeleteExpiredPetInviteCodesPort {
+        ConsumePetInviteCodePort, DeleteExpiredPetInviteCodesPort, DeletePetInviteCodesByIssuerPort {
 
     private final PetInviteCodeJpaRepository codeJpaRepository;
 
@@ -38,6 +39,11 @@ class InviteCodePersistenceAdapter implements SavePetInviteCodePort, LoadPetInvi
     @Override
     public int deleteExpired(Long petId, Instant now) {
         return codeJpaRepository.deleteExpired(petId, now);
+    }
+
+    @Override
+    public int deleteByIssuer(Long petId, Long issuerMemberId) {
+        return codeJpaRepository.deleteByIssuer(petId, issuerMemberId);
     }
 
 }
