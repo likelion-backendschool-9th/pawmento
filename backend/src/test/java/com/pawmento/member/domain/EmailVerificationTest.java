@@ -14,7 +14,7 @@ class EmailVerificationTest {
 	private static final Instant NOW = Instant.parse("2026-11-26T09:00:00Z");
 
 	@Test
-	@DisplayName("#279-S1 보내면 이메일을 소문자로 정리하고, 번호는 10분 뒤 만료되며 틀린 횟수는 0이다")
+	@DisplayName("#279-S1 보내면 이메일을 소문자로 정리하고, 번호는 5분 뒤 만료되며 틀린 횟수는 0이다")
 	void sendNormalizesEmailAndSetsExpiry() {
 		EmailVerification verification = EmailVerification.send(" A@Test.COM ", VerificationPurpose.SIGNUP, "hash", NOW);
 
@@ -25,7 +25,7 @@ class EmailVerificationTest {
 		assertThat(verification.getSendId()).isNotBlank();
 		assertThat(verification.getFailedAttempts()).isZero();
 		assertThat(verification.getSentAt()).isEqualTo(NOW);
-		assertThat(verification.getCodeExpiresAt()).isEqualTo(Instant.parse("2026-11-26T09:10:00Z"));
+		assertThat(verification.getCodeExpiresAt()).isEqualTo(Instant.parse("2026-11-26T09:05:00Z"));
 	}
 
 	@Test
