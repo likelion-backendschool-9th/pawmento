@@ -1,18 +1,21 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.pawmento.map.domain.Place;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PreDestroy;
 
 /**
  * 검색용 열(name_key, address_key)을 더하기 전에 저장한 장소의 열을 서버가 시작할 때 채운다(#195-S19).
@@ -26,11 +29,12 @@ import lombok.RequiredArgsConstructor;
  * 시작하고, 그 장소들은 검색에서 빠진다. 채우지 못한 행은 건너뛰고 로그에 남기며, 다음에 서버가 켜질 때 다시 시도한다.
  * 채우기가 통째로 실패해도(예: DB 연결) 서버 시작은 막지 않는다.
  *
- * <p>시작할 때 실패하거나 못 채운 행이 있으면 서버를 다시 켜기를 기다리지 않고 {@link #retry()}가 일정 간격으로 다시 시도한다
- * (DB 연결이 잠시 끊겼다 돌아온 경우 등). 시도 횟수에는 상한이 있어 계속 실패하는 행이 있어도 로그를 끝없이 남기지 않는다.
+ * <p>시작할 때 실패하거나 못 채운 행이 있으면 서버를 다시 켜기를 기다리지 않고 일정 간격으로 다시 시도한다(DB 연결이 잠시 끊겼다
+ * 돌아온 경우 등). 다시 시도는 이 클래스만 쓰는 전용 스레드에서 돈다. 공용 {@code @Scheduled} 스레드는 미디어·엽서 같은 다른 예약 작업과 같이
+ * 쓰므로 장소 1.5만 곳을 갱신하는 동안 그 작업들을 붙잡을 수 있고, 다른 기능의 스케줄링 설정(인증키가 없으면 꺼지는 등)에 따라 등록되지
+ * 않을 수도 있다. 시도 횟수에는 상한이 있어 계속 실패하는 행이 있어도 로그를 끝없이 남기지 않는다.
  */
 @Component
-@RequiredArgsConstructor
 class PlaceSearchKeyBackfill implements ApplicationRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(PlaceSearchKeyBackfill.class);
@@ -40,7 +44,21 @@ class PlaceSearchKeyBackfill implements ApplicationRunner {
 
 	private final PlaceJpaRepository placeJpaRepository;
 
-	private final AtomicInteger retriesLeft = new AtomicInteger();
+	private final long retryDelayMs;
+
+	// 다시 시도만 하는 전용 스레드. 서버를 끌 때 멈추도록 데몬 스레드로 둔다
+	private final ScheduledExecutorService retryExecutor = Executors.newSingleThreadScheduledExecutor(task -> {
+		Thread thread = new Thread(task, "place-search-key-backfill-retry");
+		thread.setDaemon(true);
+		return thread;
+	});
+
+	@Autowired
+	PlaceSearchKeyBackfill(PlaceJpaRepository placeJpaRepository,
+			@Value("${pawmento.map.search-key-backfill.retry-delay-ms:300000}") long retryDelayMs) {
+		this.placeJpaRepository = placeJpaRepository;
+		this.retryDelayMs = retryDelayMs;
+	}
 
 	/**
 	 * @param filled 이번에 실제로 채운 행의 수
@@ -52,24 +70,26 @@ class PlaceSearchKeyBackfill implements ApplicationRunner {
 	@Override
 	public void run(ApplicationArguments args) {
 		if (attempt()) {
-			retriesLeft.set(MAX_RETRIES);
+			scheduleRetry(MAX_RETRIES);
 		}
 	}
 
-	/** 시작할 때 다 채우지 못했으면 간격을 두고 다시 시도한다. 다 채웠거나 횟수를 다 썼으면 아무것도 하지 않는다. */
-	@Scheduled(fixedDelayString = "${pawmento.map.search-key-backfill.retry-delay-ms:300000}",
-			initialDelayString = "${pawmento.map.search-key-backfill.retry-delay-ms:300000}")
-	void retry() {
-		if (retriesLeft.get() <= 0) {
+	/** 다시 시도할 횟수가 남았으면 간격을 두고 전용 스레드에서 다시 채워 본다. 다 채웠으면 멈추고, 횟수를 다 쓰면 경고만 남기고 끝낸다. */
+	private void scheduleRetry(int retriesLeft) {
+		if (retriesLeft <= 0) {
+			log.warn("장소의 검색용 열 채우기를 {}번 다시 시도했지만 다 채우지 못했습니다. 다음에 서버가 켜질 때 다시 시도합니다.", MAX_RETRIES);
 			return;
 		}
-		int left = retriesLeft.decrementAndGet();
-		if (!attempt()) {
-			retriesLeft.set(0);
-		}
-		else if (left == 0) {
-			log.warn("장소의 검색용 열 채우기를 {}번 다시 시도했지만 다 채우지 못했습니다. 다음에 서버가 켜질 때 다시 시도합니다.", MAX_RETRIES);
-		}
+		retryExecutor.schedule(() -> {
+			if (attempt()) {
+				scheduleRetry(retriesLeft - 1);
+			}
+		}, retryDelayMs, TimeUnit.MILLISECONDS);
+	}
+
+	@PreDestroy
+	void stopRetrying() {
+		retryExecutor.shutdownNow();
 	}
 
 	/** 한 번 채워 보고, 다시 시도해야 하면(통째로 실패했거나 못 채운 행이 있으면) true. 예외는 밖으로 내보내지 않는다. */

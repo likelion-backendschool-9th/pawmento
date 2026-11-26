@@ -5,12 +5,15 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.after;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.DefaultApplicationArguments;
@@ -25,7 +28,13 @@ class PlaceSearchKeyBackfillFailureTest {
 
 	private final PlaceJpaRepository repository = mock(PlaceJpaRepository.class);
 
-	private final PlaceSearchKeyBackfill backfill = new PlaceSearchKeyBackfill(repository);
+	// 다시 시도 간격을 5ms로 줄여, 실제로 전용 스레드에서 예약되어 도는 것을 기다려 확인한다
+	private final PlaceSearchKeyBackfill backfill = new PlaceSearchKeyBackfill(repository, 5);
+
+	@AfterEach
+	void stopRetrying() {
+		backfill.stopRetrying();
+	}
 
 	private static PlaceJpaEntity entity(long id, String name) {
 		PlaceJpaEntity entity = PlaceJpaEntity.from(new PlaceDraft(PlaceCategory.HOSPITAL, "src-" + id, name, "서울 1", null,
@@ -84,40 +93,40 @@ class PlaceSearchKeyBackfillFailureTest {
 	}
 
 	@Test
-	@DisplayName("#195-S19 시작할 때 조회가 실패해도 DB가 돌아오면 서버를 다시 켜지 않고 다시 시도해 채운다")
-	void retriesAfterStartupFailureOnceTheDatabaseRecovers() {
+	@DisplayName("#195-S19 시작할 때 조회가 실패해도 DB가 돌아오면 서버를 다시 켜지 않고, 공용 예약 스레드 밖의 전용 스레드가 다시 시도해 채운다")
+	void retriesOnItsOwnThreadAfterStartupFailureOnceTheDatabaseRecovers() {
 		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L))
 			.thenThrow(new IllegalStateException("DB에 연결할 수 없습니다"))
-			.thenReturn(List.of(entity(1, "하나")));
+			.thenReturn(List.of(entity(1, "하나")))
+			.thenReturn(List.of());
 		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(1L)).thenReturn(List.of());
 		when(repository.fillSearchKeys(eq(1L), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
 			.thenReturn(1);
 
 		backfill.run(new DefaultApplicationArguments());
+		// 시작할 때는 채우지 못했고, 호출한 쪽을 붙잡지 않고 바로 돌아온다
 		verify(repository, times(0)).fillSearchKeys(anyLong(), org.mockito.ArgumentMatchers.anyString(),
 				org.mockito.ArgumentMatchers.any());
 
-		backfill.retry();
-
-		verify(repository).fillSearchKeys(eq(1L), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
-		// 다 채웠으면 더 시도하지 않는다
-		backfill.retry();
-		verify(repository, times(2)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+		// 정해진 시간 안에 전용 스레드가 다시 시도해 채운다
+		verify(repository, timeout(5000)).fillSearchKeys(eq(1L), org.mockito.ArgumentMatchers.anyString(),
+				org.mockito.ArgumentMatchers.any());
+		// 다 채웠으면 더 시도하지 않는다(시작 1번 + 다시 시도 1번)
+		verify(repository, after(300).times(2)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
 	}
 
 	@Test
-	@DisplayName("#195-S19 계속 실패해도 다시 시도는 정해진 횟수까지만 하고, 처음부터 다 채웠으면 다시 시도하지 않는다")
+	@DisplayName("#195-S19 계속 실패해도 다시 시도는 정해진 횟수까지만 한다")
 	void stopsRetryingAfterTheLimit() {
 		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L))
 			.thenThrow(new IllegalStateException("DB에 연결할 수 없습니다"));
 
 		backfill.run(new DefaultApplicationArguments());
-		for (int i = 0; i < PlaceSearchKeyBackfill.MAX_RETRIES + 5; i++) {
-			backfill.retry();
-		}
 
-		// 시작할 때 한 번 + 다시 시도 12번
-		verify(repository, times(1 + PlaceSearchKeyBackfill.MAX_RETRIES))
+		// 시작할 때 한 번 + 다시 시도 12번에서 멈춘다
+		verify(repository, timeout(5000).times(1 + PlaceSearchKeyBackfill.MAX_RETRIES))
+			.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+		verify(repository, after(300).times(1 + PlaceSearchKeyBackfill.MAX_RETRIES))
 			.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
 	}
 
@@ -127,9 +136,25 @@ class PlaceSearchKeyBackfillFailureTest {
 		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L)).thenReturn(List.of());
 
 		backfill.run(new DefaultApplicationArguments());
-		backfill.retry();
 
-		verify(repository, times(1)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+		verify(repository, after(300).times(1)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+	}
+
+	@Test
+	@DisplayName("#195-S19 다시 시도는 호출한 스레드가 아니라 이름이 붙은 전용 스레드에서 돈다")
+	void retriesOnTheDedicatedThread() throws Exception {
+		java.util.concurrent.CompletableFuture<String> threadName = new java.util.concurrent.CompletableFuture<>();
+		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L)).thenAnswer(invocation -> {
+			if (!Thread.currentThread().getName().equals("place-search-key-backfill-retry")) {
+				throw new IllegalStateException("DB에 연결할 수 없습니다");
+			}
+			threadName.complete(Thread.currentThread().getName());
+			return List.of();
+		});
+
+		backfill.run(new DefaultApplicationArguments());
+
+		assertThat(threadName.get(5, java.util.concurrent.TimeUnit.SECONDS)).isEqualTo("place-search-key-backfill-retry");
 	}
 
 }
