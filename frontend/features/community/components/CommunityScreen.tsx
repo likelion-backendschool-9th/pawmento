@@ -1,7 +1,13 @@
 "use client";
 import { ActivityView } from "@/features/community/components/ActivityView";
-import { PostDetail } from "@/features/community/components/PostDetail";
-import { PostEditor } from "@/features/community/components/PostEditor";
+import {
+  PostDetail,
+  ServerPostDetail,
+} from "@/features/community/components/PostDetail";
+import {
+  PostEditor,
+  ServerPostEditor,
+} from "@/features/community/components/PostEditor";
 import { PostList, ServerPostList } from "@/features/community/components/PostList";
 import { useCommunitySource } from "@/features/community/hooks/usePosts";
 import { useLife } from "@/features/shell/hooks/useLife";
@@ -15,9 +21,21 @@ export function CommunityScreen({
 }) {
   const life = useLife();
   const source = useCommunitySource();
-  // 가입·로그인한 회원의 목록은 서버 글을 쓴다. 상세·편집기·내 활동은 다음 단계에서 옮긴다.
-  if (source.kind === "server" && !segments[0] && !activity)
+  // 가입·로그인한 회원은 서버 글을 쓴다. 내 활동은 다음 단계에서 옮긴다.
+  if (source.kind === "server" && !activity) {
+    if (segments[0] === "new") return <ServerPostEditor posts={source.posts} />;
+    if (segments[1] === "edit")
+      return (
+        <ServerPostEditor
+          key={segments[0]}
+          posts={source.posts}
+          postId={segments[0]}
+        />
+      );
+    if (segments[0])
+      return <ServerPostDetail key={segments[0]} posts={source.posts} postId={segments[0]} />;
     return <ServerPostList posts={source.posts} />;
+  }
   if (!life.state) return <LifeStatus error={life.error} loading />;
   if (segments[0] === "new") return <PostEditor />;
   if (segments[0]) {
