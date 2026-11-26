@@ -147,3 +147,61 @@ DiaryLocationState.value()는 사용하지 않아 제거했다. 관측 상태는
 | (새 검사) | #182 "공통 components는 features와 mocks를 가져오지 않는다", #182 "기능 폴더에 domain·application·adapters 계층 폴더가 다시 생기지 않는다" | `import()` 호출도 경로를 모아 검사한다. 문자열을 조합해 만든 경로는 잡지 못한다 |
 
 브라우저 저장 업무의 테스트(`workspace.test.ts`, `workspace-migration.test.ts`, `life.test.ts`, `postcard-demo.test.ts`, `question-workflow.test.ts`, `demo-questions.test.ts`)는 이번에 지우지 않고 가져오는 경로만 `mocks/handlers`로 바꿨다. 이 테스트는 이제 데모(목업)의 동작을 확인할 뿐 운영 업무 규칙의 근거가 아니다. 반려동물·일기·질문·엽서·가족·커뮤니티·관리 규칙은 각 화면을 서버 API에 연결하는 이슈(#85, #104, #129 등)에서 백엔드 시나리오 테스트로 확인하고, 그때 해당 목업 테스트를 줄인다.
+
+## 계층마다 중복된 테스트 줄이기 (#264)
+
+HTTP+DB 시나리오 테스트가 이미 확인하는 동작을 mock 서비스·저장소 테스트에서 지운다. 요청으로 만들거나 고정하기 어려운 분기만 서비스·저장소 테스트로 남긴다. 시나리오 번호는 그대로 둔다. "자동 확인에서 빠지는 범위"에는 지운 테스트에만 있던 단언을 적는다. 대부분 mock 호출 순서·호출 생략과, 결과 값을 시나리오보다 더 정확하게 비교하던 부분이다.
+
+### family
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `ListFamilyServiceTest` 6개(#133-S6 소유주·가족 조회, 403, 404, 가족 없음, 회원 정보 없음) | `FamilyListScenarioTest`의 `ownerAndFamilySeeList`, `ownerOnly`, `refusals`, `familyWithoutMemberRow` | 403일 때 회원 정보 포트를, 404일 때 가족 목록 포트를 부르지 않는다는 호출 생략. 소유주의 회원 정보가 없는 경우(시나리오는 가족 쪽만 만든다) |
+| `CheckPetAccessServiceTest` 4개(#133-S1 OWNER·FAMILY·NONE·없는 반려동물) | `FamilyAccessScenarioTest.decidesRoleFromPetOwnerAndFamilyTable`(`role()`), 기록 가능 여부는 `PetFamilyMemberTest.onlyOwnerAndFamilyCanRecord` | 결과의 `isOwner()` 값. 소유주이거나 반려동물이 없으면 가족 테이블을 조회하지 않는다는 호출 생략 |
+| `IssueInviteCodeServiceTest` 4개(#133-S2 소유주·가족 발급, 403, 404, 해시만 저장) | `FamilyInviteScenarioTest.issueInviteCode`(이번에 발급자와 해시가 응답 코드의 HMAC과 같은지 확인을 더함), `issueDeletesExpiredCodesOfSamePet`(이번에 403·404 발급은 만료 코드를 정리하지 않는지 확인을 더함) | 잠금 → 만료 코드 정리 → 저장의 호출 순서. 정리와 저장이 같은 시각을 쓰는지 |
+| `JoinFamilyServiceTest` 7개(#133-S3 정상 가입·입력 정리, #133-S4 없는·만료된 코드, 잠금 대기 중 만료, 소유주·가족의 409) | `FamilyInviteScenarioTest`의 `joinWithCode`, `unusableCodes`, `alreadyInDoesNotConsumeCode`, `codeExpiresWhileWaitingForLock` | 코드 조회 → 잠금 → 가족 확인 → 소비 → 저장의 호출 순서. 없는 코드면 잠그지 않고, 만료된 코드면 소비하지 않는다는 호출 생략 |
+| `ListMyFamilyPetsServiceTest` 2개(#133-S23 가입 순서, 빈 목록) | `FamilyListScenarioTest.myFamilyPets` | 두 번째 반려동물의 태그·가입 시각 값(시나리오는 첫 줄의 형식만 본다) |
+
+남긴 서비스 테스트: `JoinFamilyServiceTest`의 `missingSummaryIsServerError`, `petGone`, `consumedByOther`, `ListMyFamilyPetsServiceTest.skipsMissingPet`. 반려동물을 찾지 못하는 상태와, 다른 요청이 먼저 코드를 소비한 분기(`consume=false`)는 요청으로 고정하기 어렵다. `sameCodeAtOnce`는 한 요청이 끝난 뒤 다른 요청이 코드 조회에서 404를 받아도 통과하므로 이 분기를 대신하지 못한다. `InviteCodesTest`와 도메인 테스트는 순수 단위 테스트라 그대로 둔다.
+
+### map: 산책
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `GetCurrentWalkServiceTest` 4개(#167-S1 진행 중 산책과 좌표, #167-S11 좌표 없음, #167-S3 없음·5분 경계) | `WalkCurrentScenarioTest`의 #167-S1·S2·S3·S11, 5분 경계는 `WalkPersistenceAdapterTest.loadOpenWalkActiveSinceBoundaryAndEnded`와 `WalkTest.statusByLastActivity` | 진행 중 산책이 없을 때 좌표를 읽지 않는다는 호출 생략. 저장소가 경계 밖 산책을 돌려줘도 서비스가 다시 거른다는 이중 확인 |
+| `ListWalksServiceTest` 3개(#73-S7 서울 날짜 구간·상태 계산, #73-S8 빈 날) | `WalkListScenarioTest`의 #73-S7(서울 0시 경계, ENDED·INTERRUPTED·IN_PROGRESS와 `endedAt`)·S8 | 여러 산책의 좌표를 한 번에 읽는다(N+1 없음)는 호출 횟수. 빈 날에 좌표 포트를 부르지 않는다는 호출 생략 |
+| `WalkPersistenceAdapterTest` 14개: 없는 산책, 활동 시각 저장, 좌표 재전송·일부 겹침·기록 시각 순서·빈 좌표(#73-S4·S6), 날짜 구간·자정 넘김·구간 경계·빈 날·다른 회원과 반려동물(#73-S7·S8·S9), 진행 중 판정 기본 경우(#73-S12), 시작 날짜와 상관없는 진행 중 조회(#167-S1), 잠금 조회 | `WalkPointsScenarioTest`(#73-S3·S4·S6), `WalkListScenarioTest`(#73-S7·S8·S9), `WalkStartEndScenarioTest`(#73-S12·S13), `WalkCurrentScenarioTest`(#167-S2), `WalkRowLockTest`(#73-S14) | `loadById`·`loadByIdForUpdate`가 없는 산책에 빈 값을 주는 것(HTTP 404는 그보다 먼저 `loadOwnership`에서 난다). 단건 `loadByWalkId`의 정렬·빈 목록(시나리오는 `loadByWalkIds`와 SQL로 본다). 마지막 활동 시각의 정확한 값(시나리오는 시작 시각보다 늦은지만 본다) |
+
+남긴 저장소 테스트는 요청으로 만들기 어려운 규칙만 확인한다. 정확한 경계값(나노초 차이), 다른 산책 id나 오래된 끝낸 시각으로 저장할 때의 거절, 영속성 컨텍스트에 엔티티를 남기지 않는 소유자 조회, 진행 중 산책이 둘인 이상한 경우, 같은 기록 시각이라도 다른 산책에는 따로 쌓이는 것이 그 대상이다.
+
+파라미터화로 묶은 것(확인 범위는 같다):
+
+- `WalkTest`: 끝난·중단된 산책의 활동 기록 거절 2개 → `markPointsReceivedKeepsClosedWalk`. 빈 묶음·101개 묶음 2개 → `badBatchSizeKeepsActivity`(빈 묶음의 오류 문구는 `WalkPointsScenarioTest`가 확인). 누적 한도와 음수 개수 2개 → `totalLimit`.
+- `WalkLockTranslationTest`: JPA 연결 예외와 스프링 데이터 접근 예외 2개 → `connectionFailureIsTranslated`. 스프링 예외 쪽은 원인 보존까지 확인하게 넓어졌다.
+
+### map: 장소
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `StartPlaceSyncServiceTest` 3개(#172-S22 접수 후 RUNNING→SUCCEEDED, 관리자 아님, NONE) | `PlaceSyncAdminScenarioTest`의 #172-S22(202·건수, 401·403, NONE). DB 역할이 회수된 ADMIN 토큰은 이번에 시작과 상태 조회 둘 다 403인지 확인하게 넓혔다 | 시작 응답이 늘 RUNNING이라는 것(시나리오는 RUNNING이나 SUCCEEDED를 허용한다)과 `finishedAt` 값. 관리자가 아니면 실행기에 아무것도 맡기지 않는다는 호출 생략 |
+| `ListPlacesServiceTest` 3개(#172-S10 문자열 계약 변환, #172-S21 가장 오래된 시각, 기록 없는 종류면 null) | `PlaceListScenarioTest`의 #172-S10·S21 | 주소가 null인 장소의 응답(시나리오의 장소는 모두 주소가 있다) |
+| `ResolvePlaceAddressServiceTest` 5개(#239-S1 주소와 건물 이름, #239-S2 미호출, #239-S3 못 찾음, #239-S6 없는 장소·잘못된 id) | `PlaceAddressScenarioTest`의 #239-S2·S3·S6(네이버 미호출 확인 포함) | 주소가 null인 장소에서 네이버를 부르지 않는 것(시나리오는 가려지지 않은 주소로만 본다). 서비스에 null·음수 id를 직접 넘길 때 저장소를 읽지 않는다는 호출 생략 |
+| `SyncPublicDataPlacesServiceTest` 보호센터 90% 기준 3개(#172-S9: 339곳 중 2곳, 336곳 중 200곳, 336곳 중 302·303곳) | 거절 3경우는 `shelterRejectsTooFewPlaces` 파라미터 테스트로 묶었고 경우마다 저장 호출이 없는지 본다. 303곳 반영은 `shelterKeepsAtLeastNinetyPercent` | 없음 |
+| `PlaceSyncPersistenceTest` 1개(#172-S4 새 관리번호 추가·종류별 건수) | `PlaceSyncAdminScenarioTest`의 첫 실행 inserted=1 | 한 종류에 여러 건을 넣고 다른 종류는 0건인지 종류별로 세는 것 |
+| `PlaceSyncLockAdapterTest` 2개(#172-S22 같은 종류 배타·놓으면 다시 잡음, 다른 종류는 막지 않음) | `PlaceSyncAdminScenarioTest`의 ALREADY_RUNNING·다른 종류 진행, 끝난 뒤 재시작 | 없음 |
+| `PlacePersistenceAdapterTest` 1개(#172-S10 영역 경계·영역 밖·종류 필터·없는 값 null) | `PlaceListScenarioTest`의 #172-S10(경계선 위, 영역 밖, closedDays null)·S11 | 주소·전화가 null인 행을 읽는 것 |
+
+남긴 테스트:
+
+- 리뷰에서 시나리오가 대신하지 못한다고 확인해 되살린 것: `StartPlaceSyncServiceTest`의 `secondStartWhileRunningIsRejected`(첫 종류가 RUNNING인 동안 다른 종류 접수), `failuresAreRecordedWithAReason`(LOCK_LOST·UNEXPECTED 실패 이유), `SyncPublicDataPlacesServiceTest`의 `reportsInsertedUpdatedDeleted`(0이 아닌 updated가 결과에 담김), `rejectsWhenAnotherRunHoldsTheLock`(잠금을 못 얻으면 받기·저장 미호출), `PlaceSyncPersistenceTest.deletesMissingOfTheSameCategoryOnly`(같은 관리번호를 가진 다른 종류의 행 보존. 시나리오는 관리번호가 서로 달라 이 회귀를 잡지 못한다).
+- 동기화 안전 규칙(totalCount 불일치, 페이지 겹침, 절반·90% 기준, 잠금 해제와 연결 반환), 갱신 건수가 0이 아닌 저장(`updatesChangedFieldsOnly`), 중간 실패 롤백(`failureRollsBackEverything`)은 시나리오가 확인하지 않아 그대로 둔다.
+
+`PlacePhoneTest`·`PlaceAddressTest`는 메서드 하나에 단언을 여러 개 모은 형태라 파라미터화하지 않았다. 바꾸면 메서드는 줄지만 실행 수가 표의 행 수만큼 늘어난다.
+
+### map: 일기 위치
+
+| 지운 테스트 | 남은 확인 위치 | 자동 확인에서 빠지는 범위 |
+| --- | --- | --- |
+| `DiaryLocationPersistenceAdapterTest` 7개: 영역 안만, 경계선 포함, 다른 반려동물 제외(#19-S5), 다른 회원 제외(#19-S7), limit개를 오래된 순으로(#19-S6), 255자를 넘는 저장 행은 저장 데이터 오류(#19-S5), 지운 위치의 핀이 사라짐(#19-S4) | `MapPinScenarioTest`의 #19-S5·S6·S7(500개 순서와 잘림, 잘못 저장된 행의 500과 내부 정보 비노출), `DiaryLocationScenarioTest.flow`(삭제 뒤 위치 행 0개) | 저장소에 500이 아닌 limit을 넘기는 경우(운영 코드는 500만 쓴다). 손상된 행을 `read(id)`로 읽으면 원래 장소 이름이 보존되고 `loadInArea`가 `StoredLocationInvalidException`을 던지는 것. 삭제 직후 영역 조회를 다시 해서 핀이 없는지(흐름 테스트는 DB 행 수를 본다) |
+
+남긴 저장소 테스트는 저장·재저장·유일 제약·출처 기본값·인덱스·JPA 컨텍스트 공유처럼 저장소만 지키는 규칙이다. `DiaryLocationTest`의 좌표 경계는 이미 파라미터 테스트라 그대로 둔다.
