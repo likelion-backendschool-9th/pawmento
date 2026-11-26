@@ -5,6 +5,8 @@ import { toViewportRatio } from "@/features/map/utils/mapBounds";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import {
   markerShiftToVisible,
+  STATIC_SPAN,
+  staticSpanScale,
   type PlaceCanvasProps,
 } from "../utils/placeCanvas";
 import { StaticMapBackdrop } from "./StaticMapBackdrop";
@@ -12,14 +14,18 @@ import mapStyles from "./MapScreen.module.css";
 import styles from "./PlacesScreen.module.css";
 
 // 지도 키가 없거나 네이버 지도를 불러오지 못할 때 쓰는 예시 지도다. 사용자가 움직일 수는 없고, 검색 결과를 누르면 그 지점으로 옮겨 정해진 영역만 보여 준다.
-const SPAN = { latitude: 0.0075, longitude: 0.014 };
-
-function boundsAround(center: PlaceCanvasProps["center"]): MapBounds {
+// 내 위치로 옮길 때는 반경이 보이게 영역을 넓힌다(scale, #226-S2).
+function boundsAround(
+  center: PlaceCanvasProps["center"],
+  scale = 1,
+): MapBounds {
+  const latitude = (STATIC_SPAN.latitude * scale) / 2;
+  const longitude = (STATIC_SPAN.longitude * scale) / 2;
   return {
-    minLatitude: center.latitude - SPAN.latitude / 2,
-    maxLatitude: center.latitude + SPAN.latitude / 2,
-    minLongitude: center.longitude - SPAN.longitude / 2,
-    maxLongitude: center.longitude + SPAN.longitude / 2,
+    minLatitude: center.latitude - latitude,
+    maxLatitude: center.latitude + latitude,
+    minLongitude: center.longitude - longitude,
+    maxLongitude: center.longitude + longitude,
   };
 }
 
@@ -38,18 +44,23 @@ export function StaticPlaceCanvas({
   const [seenToken, setSeenToken] = useState<number | null>(
     focus?.token ?? null,
   );
+  // 영역의 배율. 반경을 맞추라는 요청(내 위치)이 오면 그 반경이 보이게 넓히고, 그 밖의 이동 요청은 지금 배율을 그대로 둔다
+  const [scale, setScale] = useState(
+    focus?.fitRadiusMeters ? staticSpanScale(focus.fitRadiusMeters) : 1,
+  );
   if (focus && focus.token !== seenToken) {
     setSeenToken(focus.token);
     setView(focus.point);
+    if (focus.fitRadiusMeters) setScale(staticSpanScale(focus.fitRadiusMeters));
   }
-  const bounds = boundsAround(view);
+  const bounds = boundsAround(view, scale);
   const box = useRef<HTMLDivElement>(null);
   const shifter = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    onBoundsChange(boundsAround(view));
-    // 영역은 중심에서만 정해진다.
+    onBoundsChange(boundsAround(view, scale));
+    // 영역은 중심과 배율에서만 정해진다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.latitude, view.longitude]);
+  }, [view.latitude, view.longitude, scale]);
 
   // 장소를 고르면 카드가 지도 아래를 덮는다. 네이버 지도처럼 선택한 마커가 카드 뒤에 가려지면 바탕과 마커를 함께 위로 올린다.
   // 이 지도는 움직이지 않는 그림이라 카드가 덮은 높이보다 더 올리지 않는다(올린 만큼 생기는 빈자리가 카드 뒤에 숨는다).
@@ -68,7 +79,7 @@ export function StaticPlaceCanvas({
     element.style.transform = shift === 0 ? "" : `translateY(${-shift}px)`;
     // 장소를 고르거나 풀 때, 지도를 옮길 때만 옮긴다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, view.latitude, view.longitude]);
+  }, [selectedId, view.latitude, view.longitude, scale]);
 
   return (
     <div

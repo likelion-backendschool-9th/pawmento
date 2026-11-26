@@ -5,6 +5,8 @@ export const LOCATION_INTRO = {
   body: "내 주변 장소를 찾으려고 현재 위치를 써요. 위치는 저장하지 않아요.",
   // 믿고 눌러도 되는 이유. 모두 이 앱이 실제로 하는 일이다
   points: ["누를 때 한 번만 읽어요", "움직여도 따라다니지 않아요", "브라우저 설정에서 언제든 끌 수 있어요"],
+  // 주변 장소를 찾으려면 내 위치 근처의 지도 범위(위·경도)가 서버로 가므로 숨기지 않고 알린다(#226-S10)
+  note: "주변 장소를 찾을 때 내 위치 근처의 지도 범위가 서버로 전송돼요.",
   confirm: "계속",
   later: "나중에",
 };
@@ -24,6 +26,7 @@ export const LOCATION_DENIED = {
         "설정 → 개인정보 보호 및 보안 → 위치 서비스를 켜요",
         "목록에서 Safari 웹사이트(홈 화면 앱이면 앱 이름)를 골라요",
         "'앱을 사용하는 동안'으로 바꿔요",
+        "이 사이트만 거부했다면: Safari 주소창의 aA → 웹사이트 설정 → 위치를 '허용'으로 바꿔요",
       ],
     },
     {
@@ -37,4 +40,14 @@ export const LOCATION_FAILED = "위치를 찾지 못했어요. 잠시 뒤 다시
 export const LOCATION_UNSUPPORTED = "이 기기에서는 내 위치를 쓸 수 없어요.";
 
 // 지도의 내 위치 버튼(아이콘만 있다)의 이름. 화면 읽기 프로그램과 마우스를 올렸을 때 보이는 안내에 쓴다
-export const LOCATE_LABEL = { idle: "내 위치로 이동", reading: "내 위치를 찾는 중" };
+export const LOCATE_LABEL = {
+  idle: "내 위치로 이동",
+  reading: "내 위치를 찾는 중",
+  // 이 기기가 위치를 지원하지 않아도 버튼은 눌러서 이유를 볼 수 있다. 사용 불가(aria-disabled)가 아니라 이름으로 알린다
+  unsupported: "내 위치: 이 기기에서는 쓸 수 없어요. 눌러서 이유 보기",
+};
+
+export function locateLabel({ reading, supported }: { reading: boolean; supported: boolean }): string {
+  if (!supported) return LOCATE_LABEL.unsupported;
+  return reading ? LOCATE_LABEL.reading : LOCATE_LABEL.idle;
+}

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { MyLocationState } from "../utils/myLocationController";
 import {
@@ -8,6 +8,7 @@ import {
   LOCATION_INTRO,
   LOCATION_UNSUPPORTED,
 } from "../utils/myLocationText";
+import { nextTabIndex } from "../utils/tabKeys";
 import { PinGlyph } from "./MyLocationArt";
 import styles from "./MyLocation.module.css";
 
@@ -87,6 +88,7 @@ function IntroSheet({ onContinue, onDismiss }: { onContinue: () => void; onDismi
           </li>
         ))}
       </ul>
+      <p className={styles.note}>{LOCATION_INTRO.note}</p>
       <button type="button" className={styles.cta} autoFocus onClick={onContinue}>
         {LOCATION_INTRO.confirm}
       </button>
@@ -106,7 +108,19 @@ function firstDevice(): string {
 function DeniedSheet({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: () => void }) {
   const [guide, setGuide] = useState(false);
   const [device, setDevice] = useState(firstDevice);
-  const current = LOCATION_DENIED.guides.find((item) => item.device === device) ?? LOCATION_DENIED.guides[0];
+  const ids = useId();
+  const tabs = useRef<Array<HTMLButtonElement | null>>([]);
+  const guides = LOCATION_DENIED.guides;
+  const index = Math.max(0, guides.findIndex((item) => item.device === device));
+  const current = guides[index];
+  // 탭 패턴: 왼쪽·오른쪽 방향키로 기기를 바꾸고, 선택한 탭만 Tab 키로 닿는다
+  const onTabKey = (event: React.KeyboardEvent) => {
+    const next = nextTabIndex(event.key, index, guides.length);
+    if (next === null) return;
+    event.preventDefault();
+    setDevice(guides[next].device);
+    tabs.current[next]?.focus();
+  };
   return (
     <Sheet label={LOCATION_DENIED.title} onDismiss={onDismiss}>
       <Badge tone="warm" variant="off" />
@@ -126,13 +140,19 @@ function DeniedSheet({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: (
       </button>
       {guide && (
         <div className={styles.guide}>
-          <div className={styles.tabs} role="tablist" aria-label="기기 선택">
-            {LOCATION_DENIED.guides.map((item) => (
+          <div className={styles.tabs} role="tablist" aria-label="기기 선택" onKeyDown={onTabKey}>
+            {guides.map((item, position) => (
               <button
                 key={item.device}
+                ref={(element) => {
+                  tabs.current[position] = element;
+                }}
+                id={`${ids}-tab-${position}`}
                 type="button"
                 role="tab"
-                aria-selected={item.device === current.device}
+                aria-selected={position === index}
+                aria-controls={`${ids}-panel`}
+                tabIndex={position === index ? 0 : -1}
                 className={styles.tab}
                 onClick={() => setDevice(item.device)}
               >
@@ -140,7 +160,13 @@ function DeniedSheet({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: (
               </button>
             ))}
           </div>
-          <ol className={styles.steps} role="tabpanel">
+          <ol
+            className={styles.steps}
+            role="tabpanel"
+            id={`${ids}-panel`}
+            aria-labelledby={`${ids}-tab-${index}`}
+            tabIndex={0}
+          >
             {current.steps.map((step) => (
               <li key={step}>{step}</li>
             ))}

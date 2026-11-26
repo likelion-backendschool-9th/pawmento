@@ -45,7 +45,7 @@
   border-color: color-mix(in srgb, var(--brand-primary) 38%, var(--mode-border));
 }
 /* 이 기기가 위치를 지원하지 않으면 흐려지지만, 눌러서 이유를 볼 수 있다 */
-.locate[aria-disabled="true"] {
+.locate[data-supported="false"] {
   opacity: 0.45;
 }
 /* 읽는 동안: 바깥 원이 맥박처럼 깜빡인다 */
@@ -211,6 +211,16 @@
   color: #fff;
 }
 
+/* 서버로 가는 것에 대한 한 줄 안내 */
+.note {
+  margin: -8px 0 14px;
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  line-height: 1.6;
+  word-break: keep-all;
+  text-wrap: balance;
+}
+
 /* 버튼: 큰 주 버튼 하나와 글자 버튼 하나 */
 .cta,
 .ghost {
@@ -254,7 +264,8 @@
 .cta:focus-visible,
 .ghost:focus-visible,
 .guideToggle:focus-visible,
-.tab:focus-visible {
+.tab:focus-visible,
+.steps:focus-visible {
   outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }

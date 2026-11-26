@@ -8,7 +8,17 @@ import {
   type LocationReadResult,
   type LocationSource,
 } from "../features/map/utils/myLocationController.ts";
-import { LOCATION_DENIED, LOCATION_FAILED, LOCATION_INTRO, LOCATION_UNSUPPORTED } from "../features/map/utils/myLocationText.ts";
+import {
+  LOCATE_LABEL,
+  LOCATION_DENIED,
+  LOCATION_FAILED,
+  LOCATION_INTRO,
+  LOCATION_UNSUPPORTED,
+  locateLabel,
+} from "../features/map/utils/myLocationText.ts";
+import { nextTabIndex } from "../features/map/utils/tabKeys.ts";
+import { STATIC_SPAN, staticSpanScale } from "../features/map/utils/placeCanvas.ts";
+import { EARTH_RADIUS_METERS, toDegrees, toRadians } from "../features/map/utils/geo.ts";
 
 const FIX: LocationFix = { point: { latitude: 37.4979, longitude: 127.0276 }, accuracy: 35 };
 
@@ -184,4 +194,55 @@ test("#226-S10 위치는 저장소에 쓰지 않는다. 남기는 것은 안내�
   assert.deepEqual(writes, ["introSeen"]);
   // 위치 값은 상태(메모리)에만 있다
   assert.deepEqual(controller.getState().fix, FIX);
+});
+
+test("#226-S2 예시 지도는 내 위치로 옮길 때 반경(500m·1km·3km)의 원이 영역 안에 들어오게 넓힌다. 기본 영역은 500m를 자른다", () => {
+  const latitude = 37.5445;
+  // 기본 영역의 남북 반폭(약 417m)은 500m 반경보다 작아서 그대로는 잘린다
+  const half = STATIC_SPAN.latitude / 2;
+  assert.ok(half < toDegrees(500 / EARTH_RADIUS_METERS));
+  for (const radius of [500, 1000, 3000]) {
+    const scale = staticSpanScale(radius);
+    const radiusLat = toDegrees(radius / EARTH_RADIUS_METERS);
+    const radiusLng = radiusLat / Math.cos(toRadians(latitude));
+    assert.ok((STATIC_SPAN.latitude * scale) / 2 > radiusLat, `${radius}: 남북`);
+    assert.ok((STATIC_SPAN.longitude * scale) / 2 > radiusLng, `${radius}: 동서`);
+  }
+  // 작은 반경이라도 기본보다 좁히지는 않는다
+  assert.equal(staticSpanScale(50), 1);
+});
+
+test("#226-S4 iPhone 안내에는 Safari에서 이 사이트만 거부한 경우의 경로(웹사이트 설정 → 위치)가 있다", () => {
+  const iPhone = LOCATION_DENIED.guides.find((guide) => guide.device === "iPhone");
+  assert.ok(iPhone);
+  assert.ok(iPhone.steps.some((step) => step.includes("웹사이트 설정") && step.includes("위치")));
+  // Android 안내도 그대로 있다
+  assert.ok(LOCATION_DENIED.guides.some((guide) => guide.device === "Android"));
+});
+
+test("#226-S4 기기 선택 탭은 방향키로 옮기고, 처음과 끝이 이어지며, Home·End로 처음·끝에 간다", () => {
+  assert.equal(nextTabIndex("ArrowRight", 0, 2), 1);
+  assert.equal(nextTabIndex("ArrowRight", 1, 2), 0);
+  assert.equal(nextTabIndex("ArrowLeft", 0, 2), 1);
+  assert.equal(nextTabIndex("ArrowLeft", 1, 2), 0);
+  assert.equal(nextTabIndex("Home", 1, 3), 0);
+  assert.equal(nextTabIndex("End", 0, 3), 2);
+  // 탭이 아닌 키는 건드리지 않는다
+  assert.equal(nextTabIndex("Enter", 0, 2), null);
+  assert.equal(nextTabIndex("Tab", 0, 2), null);
+  assert.equal(nextTabIndex("ArrowRight", 0, 0), null);
+});
+
+test("#226-S3 이 기기가 위치를 지원하지 않으면 버튼 이름이 눌러서 이유를 볼 수 있다고 알린다(사용 불가로 알리지 않는다)", () => {
+  assert.equal(locateLabel({ reading: false, supported: true }), LOCATE_LABEL.idle);
+  assert.equal(locateLabel({ reading: true, supported: true }), LOCATE_LABEL.reading);
+  const unsupported = locateLabel({ reading: false, supported: false });
+  assert.ok(unsupported.includes("눌러서 이유 보기"));
+  // 읽는 중이어도 지원하지 않으면 지원하지 않는다는 이름이다
+  assert.equal(locateLabel({ reading: true, supported: false }), unsupported);
+});
+
+test("#226-S10 권한 안내는 위치를 저장하지 않는다는 말과 함께, 내 위치 근처의 지도 범위가 서버로 전송된다는 것을 숨기지 않고 알린다", () => {
+  assert.ok(LOCATION_INTRO.body.includes("저장하지 않아요"));
+  assert.ok(LOCATION_INTRO.note.includes("서버") && LOCATION_INTRO.note.includes("지도 범위"));
 });

@@ -1,5 +1,6 @@
 import type { MapBounds, MapPoint } from "@/features/map/types/MapBounds";
 import type { Place } from "@/features/map/types/Place";
+import { EARTH_RADIUS_METERS, toDegrees } from "./geo.ts";
 
 // 지도를 이 지점으로 옮겨 달라는 요청(검색 결과를 눌렀을 때, #195-S11). token이 바뀔 때마다 한 번씩 옮긴다(같은 지점을 다시 눌러도 옮긴다).
 // fitRadiusMeters가 있으면 그 반경이 보이게 확대 수준도 맞춘다(내 위치로 옮길 때, #226-S2). 없으면 확대 수준은 그대로다.
@@ -22,6 +23,15 @@ export type PlaceCanvasProps = {
   // 내 위치. 있으면 점과 정확도 원을 그린다
   me?: MyLocationMark | null;
 };
+
+// 예시 지도(정적)가 보여 주는 기본 영역의 크기(도). 사용자가 움직일 수 없고 정해진 영역만 보여 준다.
+export const STATIC_SPAN = { latitude: 0.0075, longitude: 0.014 };
+
+// 예시 지도에서 반경(미터)의 원이 보이도록 영역을 넓히는 배율(1 이상). 위쪽 검색창·종류 칩이 덮는 자리와 여백을 감안해 원의 지름보다 35% 넓게 보인다(#226-S2)
+export function staticSpanScale(radiusMeters: number): number {
+  const diameterDegrees = 2 * toDegrees(radiusMeters / EARTH_RADIUS_METERS);
+  return Math.max(1, (diameterDegrees * 1.35) / STATIC_SPAN.latitude);
+}
 
 // 카드가 지도 아래쪽을 덮을 때 선택한 마커(위에서 y픽셀)가 보이는 영역 안에 오도록 마커를 위로 옮길 픽셀을 구한다.
 // 위로 옮기면 양수, 아래로 옮기면 음수이고, 이미 보이면 0이다. 위쪽 topInset은 종류 칩이 차지하는 자리다.

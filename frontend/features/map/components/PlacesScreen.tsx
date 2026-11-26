@@ -214,6 +214,8 @@ export function PlacesScreen() {
     me: my.state.fix,
   };
   const nothingChosen = categories.length === 0;
+  // 내 위치를 보이는 동안 가운데의 안내(오류, 종류를 모두 끔, 장소 없음)는 아래로 내려 내 위치 점을 가리지 않는다(#226-S2)
+  const lowMessage = my.state.fix ? styles.messageLow : "";
 
   return (
     <div className={styles.page}>
@@ -312,7 +314,7 @@ export function PlacesScreen() {
         )}
 
         {error && (
-          <div className={mapStyles.message} role="alert">
+          <div className={`${mapStyles.message} ${lowMessage}`} role="alert">
             <strong>장소를 불러오지 못했어요</strong>
             <p>{error}</p>
             <button
@@ -326,7 +328,7 @@ export function PlacesScreen() {
         )}
 
         {nothingChosen && !error && !pinned && (
-          <div className={mapStyles.message}>
+          <div className={`${mapStyles.message} ${lowMessage}`}>
             <strong>보고 싶은 종류를 골라 주세요</strong>
             <p>위쪽 칩을 눌러 병원·미용·보호센터를 켤 수 있어요.</p>
           </div>
@@ -334,7 +336,7 @@ export function PlacesScreen() {
 
         {/* 검색으로 고른 장소가 지도에 그려져 있으면(조회 결과는 비어도) "장소가 없어요"를 보이지 않는다 */}
         {!nothingChosen && result && !error && canvasPlaces.length === 0 && !loading && (
-          <div className={`${mapStyles.message} ${my.state.fix ? styles.messageLow : ""}`}>
+          <div className={`${mapStyles.message} ${lowMessage}`}>
             <span className={mapStyles.emptyArt} aria-hidden="true">
               <span className={mapStyles.emptyCircle}>
                 <Icon name="map" size={34} />
