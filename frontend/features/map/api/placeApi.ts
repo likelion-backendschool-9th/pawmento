@@ -12,6 +12,7 @@ import {
   type PlaceSearchQuery,
   type PlaceSearchResult,
 } from "../types/Place.ts";
+import { REQUEST_COORDINATE_DIGITS } from "../utils/geo.ts";
 import { clampBounds, isValidBounds } from "../utils/mapBounds.ts";
 import { checkSearchText, SEARCH_TEXT_MESSAGES } from "../utils/placeSearchText.ts";
 
@@ -45,7 +46,7 @@ type PlaceSearchDto = {
 };
 
 // 서버는 영역 값을 십진수 문자열로만 받는다. toFixed는 지수 표기(1e-7)를 만들지 않아 항상 그 모양이다.
-const decimal = (value: number) => value.toFixed(6);
+const decimal = (value: number) => value.toFixed(REQUEST_COORDINATE_DIGITS);
 
 const isCategory = (value: string): value is PlaceCategory =>
   (PLACE_CATEGORIES as readonly string[]).includes(value);

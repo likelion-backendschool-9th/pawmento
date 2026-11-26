@@ -16,3 +16,15 @@ export function haversineMeters(from: MapPoint, to: MapPoint): number {
     Math.cos(toRadians(from.latitude)) * Math.cos(toRadians(to.latitude)) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(a)));
 }
+
+// 서버로 보내는 좌표의 소수점 자릿수. 지도 영역과 검색 기준 좌표가 모두 이 자리까지 반올림되어 간다(placeApi의 toFixed).
+// 서버는 보낸 좌표로 거리를 구하므로, 화면이 같은 거리를 보이려면 같은 자리로 반올림한 좌표로 계산해야 한다(#226).
+export const REQUEST_COORDINATE_DIGITS = 6;
+
+// 서버가 받게 될 좌표(소수점 여섯 자리로 반올림)
+export function asRequestPoint(point: MapPoint): MapPoint {
+  return {
+    latitude: Number(point.latitude.toFixed(REQUEST_COORDINATE_DIGITS)),
+    longitude: Number(point.longitude.toFixed(REQUEST_COORDINATE_DIGITS)),
+  };
+}

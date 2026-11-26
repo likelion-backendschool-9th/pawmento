@@ -10,7 +10,7 @@ import {
   radiusLabel,
   widerRadius,
 } from "../features/map/utils/nearby.ts";
-import { EARTH_RADIUS_METERS, haversineMeters, toDegrees, toRadians } from "../features/map/utils/geo.ts";
+import { asRequestPoint, EARTH_RADIUS_METERS, haversineMeters, toDegrees, toRadians } from "../features/map/utils/geo.ts";
 import { distanceBetween } from "../features/map/utils/walk.ts";
 import { distanceLabel } from "../features/map/utils/placeDistance.ts";
 import { createPlaceApi } from "../features/map/api/placeApi.ts";
@@ -264,4 +264,57 @@ test("#226-S7 날짜변경선(경도 180도)을 넘는 영역은 서버가 받�
   // 이 앱의 지역(경도 약 124~132도)에서는 잘리지 않는다
   const korea = boundsAround(GANGNAM, 3000);
   assert.ok(korea.minLongitude > 100 && korea.maxLongitude < 140);
+});
+
+// 검색 요청을 흉내 내는 가짜 서버: 요청 주소의 기준 좌표(실제로 서버에 가는 값)로 거리를 구해 정수로 반올림해 준다(서버 (int) Math.round)
+function searchViaRequest(origin: { latitude: number; longitude: number }, places: Place[]) {
+  const http = {
+    get: async <T>(path: string) => {
+      const query = new URLSearchParams(path.split("?")[1]);
+      const sent = { latitude: Number(query.get("latitude")), longitude: Number(query.get("longitude")) };
+      return {
+        places: places.map((item) => ({ ...item, id: Number(item.id), distanceMeters: Math.round(haversineMeters(sent, item)) })),
+        truncated: false,
+      } as T;
+    },
+  } as unknown as ApiClient;
+  return createPlaceApi(http).search({ q: "동물병원", center: origin });
+}
+
+test("#226-S5 표시 거리는 검색이 서버로 보내는 기준 좌표(소수점 여섯 자리)로 구해서, 경계에서도 검색과 같다", async () => {
+  // 리뷰의 사례: 기준점 (37.4979004, 127.0276)에서 북쪽으로 990.48m. 원래 좌표로 반올림하면 990m, 서버가 받은 좌표(37.497900) 기준으로는 991m(1.0km)다
+  const origin = { latitude: 37.4979004, longitude: 127.0276 };
+  const at = northOf(origin, 990.48);
+  const spot = place("7", "경계 병원", at.latitude, at.longitude);
+  const [mine] = nearbyPlaces([spot], origin, 3000);
+  const searched = (await searchViaRequest(origin, [spot])).places[0];
+  assert.equal(Math.round(mine.meters), 990, "실거리는 990.48m다");
+  assert.equal(mine.distanceMeters, searched.distanceMeters);
+  assert.equal(distanceLabel(mine.distanceMeters), distanceLabel(searched.distanceMeters ?? -1));
+  assert.equal(distanceLabel(mine.distanceMeters), "1.0km");
+});
+
+test("#226-S5 기준 좌표와 거리를 여러 가지로 바꿔도 내 주변의 표시 거리는 검색 요청이 돌려주는 거리와 같다", async () => {
+  // 결정된 값으로 만든 기준 좌표(소수점 일곱 자리 이상)와 방위·거리
+  let seed = 7;
+  const next = () => (seed = (seed * 48271) % 2147483647) / 2147483647;
+  const spots: Place[] = [];
+  let mismatches = 0;
+  for (let i = 0; i < 400; i += 1) {
+    const origin = { latitude: 33 + next() * 5, longitude: 124.5 + next() * 7 };
+    const at = destination(origin, next() * 360, 100 + next() * 2900);
+    const spot = place(String(i + 1), `장소${i}`, at.latitude, at.longitude);
+    spots.push(spot);
+    const [mine] = nearbyPlaces([spot], origin, 3100);
+    const searched = (await searchViaRequest(origin, [spot])).places[0];
+    if (mine.distanceMeters !== searched.distanceMeters) mismatches += 1;
+  }
+  assert.equal(mismatches, 0);
+  assert.equal(spots.length, 400);
+});
+
+test("#226-S5 요청 좌표 자릿수는 공용 상수 하나다(서버로 가는 좌표와 표시 거리가 같은 자리로 반올림된다)", () => {
+  const point = asRequestPoint({ latitude: 37.4979004, longitude: 127.02760049 });
+  assert.equal(point.latitude, 37.4979);
+  assert.equal(point.longitude, 127.0276);
 });

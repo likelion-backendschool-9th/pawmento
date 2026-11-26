@@ -1,6 +1,6 @@
 import type { MapBounds, MapPoint } from "../types/MapBounds.ts";
 import type { Place } from "../types/Place.ts";
-import { EARTH_RADIUS_METERS, haversineMeters, toDegrees, toRadians } from "./geo.ts";
+import { asRequestPoint, EARTH_RADIUS_METERS, haversineMeters, toDegrees, toRadians } from "./geo.ts";
 import { clampBounds } from "./mapBounds.ts";
 
 // 내 주변 가까운 순 목록의 규칙(#226). 화면 없이 테스트한다. 서버는 바꾸지 않고 영역 조회 결과를 화면에서 거르고 정렬한다.
@@ -34,7 +34,8 @@ export function boundsAround(center: MapPoint, radiusMeters: number): MapBounds 
 }
 
 // meters는 정렬과 반경 판정에 쓰는 실거리이고, distanceMeters는 화면에 보이는 정수 미터(반올림)다.
-// 검색 API(서버 `(int) Math.round`)와 같은 기준이라, 같은 장소의 거리 글자가 검색과 내 주변에서 달라지지 않는다(#226-S5).
+// 검색 API와 같은 기준이라, 같은 장소의 거리 글자가 검색과 내 주변에서 달라지지 않는다(#226-S5).
+// 검색은 기준 좌표를 소수점 여섯 자리로 반올림해 서버에 보내고 서버가 그 좌표로 거리를 구한다. 그래서 표시 거리도 같은 좌표로 구한다.
 export type NearbyPlace = { place: Place; meters: number; distanceMeters: number };
 
 // 반경 위에 정확히 놓인 장소가 부동소수점 오차(500.0000000000335 같은 값)로 빠지지 않게 하는 여유(미터)
@@ -47,10 +48,11 @@ export function nearbyPlaces(
   origin: MapPoint,
   radiusMeters: number,
 ): NearbyPlace[] {
+  const sent = asRequestPoint(origin);
   return places
     .map((place) => {
       const meters = haversineMeters(origin, place);
-      return { place, meters, distanceMeters: Math.round(meters) };
+      return { place, meters, distanceMeters: Math.round(haversineMeters(sent, place)) };
     })
     .filter((item) => Number.isFinite(item.meters) && item.meters <= radiusMeters + RADIUS_TOLERANCE_METERS)
     .sort((a, b) => a.meters - b.meters || a.place.name.localeCompare(b.place.name, "ko"));
