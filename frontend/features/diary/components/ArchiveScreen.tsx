@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useRef, useState, useSyncExternalStore } from "react";
 import calendarStyles from "./Calendar.module.css";
-import { calendarMonth, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
+import { calendarMonth, hasMonthPicker, isCalendarDate, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
 import { useEffect } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -22,12 +22,12 @@ import styles from "../../shell/components/Workspace.module.css";
 import { JournalCard, EmptyState } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 
-// 데스크톱 Firefox·macOS Safari처럼 기본 월 선택기가 없는 브라우저는 type="month"를 글자 입력으로 바꾼다.
+// 데스크톱 Firefox·macOS Safari처럼 월 선택 화면이 없는 브라우저에서는 보이는 연월 입력란을 쓴다.
 const noSubscribe = () => () => {};
 function supportsMonthInput() {
   const input = document.createElement("input");
   input.type = "month";
-  return input.type === "month";
+  return hasMonthPicker({ inputType: input.type, vendor: navigator.vendor ?? "", maxTouchPoints: navigator.maxTouchPoints ?? 0 });
 }
 
 // 월 선택기가 없을 때 쓰는 연월 입력. 입력 중인 값은 따로 두고, Enter나 포커스를 옮길 때 검사해 반영한다.
@@ -182,6 +182,8 @@ export function ArchiveScreen({
   let invalidDate = false;
   try {
     validateDate(date);
+    // 달력이 그릴 수 없는 연도(예: 0000년)도 잘못된 날짜와 같이 오늘로 연다
+    if (!isCalendarDate(date)) throw Error("올바른 날짜를 선택해 주세요.");
   } catch {
     date = today();
     invalidDate = true;

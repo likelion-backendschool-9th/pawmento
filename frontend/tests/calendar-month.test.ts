@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { calendarMonth, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../features/diary/utils/calendarMonth.ts";
+import { calendarMonth, hasMonthPicker, isCalendarDate, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../features/diary/utils/calendarMonth.ts";
 
 test("#233-S4 월 이동은 연도 경계와 선택 가능한 연월 범위를 유지한다", () => {
   assert.equal(shiftCalendarMonth("2026-12", 1), "2027-01");
@@ -29,4 +29,15 @@ test("#233-S4 연월 입력과 월 계산은 같은 범위(0001-01~9999-12)만 �
     assert.equal(isCalendarMonth(value), false, value);
   assert.throws(() => calendarMonth("0000-01"));
   assert.throws(() => shiftCalendarMonth("0000-12", 1));
+});
+test("#233-S4 주소의 날짜는 달력이 그릴 수 있는 범위의 실제 날짜만 받는다", () => {
+  for (const value of ["0001-01-01", "2024-02-29", "9999-12-31"]) assert.equal(isCalendarDate(value), true, value);
+  for (const value of ["0000-01-01", "2026-02-29", "2026-04-31", "2026-13-01", "2026-11-00", "2026-11-1", ""])
+    assert.equal(isCalendarDate(value), false, value);
+});
+test("#233-S4 월 선택 화면이 없는 데스크톱 Firefox·macOS Safari는 보이는 연월 입력란을 쓴다", () => {
+  assert.equal(hasMonthPicker({ inputType: "month", vendor: "Google Inc.", maxTouchPoints: 0 }), true, "데스크톱 Chrome");
+  assert.equal(hasMonthPicker({ inputType: "month", vendor: "Apple Computer, Inc.", maxTouchPoints: 5 }), true, "iPhone·iPad");
+  assert.equal(hasMonthPicker({ inputType: "month", vendor: "Apple Computer, Inc.", maxTouchPoints: 0 }), false, "macOS Safari");
+  assert.equal(hasMonthPicker({ inputType: "text", vendor: "", maxTouchPoints: 0 }), false, "데스크톱 Firefox");
 });
