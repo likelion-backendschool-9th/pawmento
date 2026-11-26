@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -82,6 +83,8 @@ class JoinFamilyServiceTest {
 		InOrder order = inOrder(load, lock, families, consume, save, pets);
 		order.verify(load).loadByCodeHash(hash);
 		order.verify(lock).lockOwnerId(PET);
+		// 잠금을 얻은 뒤 코드를 다시 읽는다
+		order.verify(load).loadByCodeHash(hash);
 		order.verify(families).existsByPetIdAndMemberId(PET, JOINER);
 		order.verify(consume).consume(hash, NOW);
 		order.verify(save).save(saved.capture());
@@ -106,7 +109,7 @@ class JoinFamilyServiceTest {
 	void normalizesInput() {
 		service.join(new JoinFamilyCommand(JOINER, "  k7q2m9xa "));
 
-		verify(load).loadByCodeHash(hash);
+		verify(load, times(2)).loadByCodeHash(hash);
 		verify(save).save(any());
 	}
 
@@ -152,6 +155,22 @@ class JoinFamilyServiceTest {
 
 		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(JOINER, CODE)))
 				.isInstanceOf(InviteCodeNotFoundException.class);
+		verify(consume, never()).consume(any(), any());
+		verify(save, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("#133-S18 잠금을 기다리는 사이 코드가 폐기되면, 이미 가족이어도 409가 아니라 404다")
+	void revokedWhileWaitingForLock() {
+		// 처음 읽을 때는 있었지만, 잠금을 얻고 다시 읽으면 내보내기가 이미 지웠다
+		when(load.loadByCodeHash(hash)).thenReturn(
+				Optional.of(PetInviteCode.issue(PET, hash, OWNER, NOW.minusSeconds(3600))),
+				Optional.empty());
+		when(families.existsByPetIdAndMemberId(PET, FAMILY)).thenReturn(true);
+
+		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(FAMILY, CODE)))
+				.isInstanceOf(InviteCodeNotFoundException.class);
+		verify(families, never()).existsByPetIdAndMemberId(any(), any());
 		verify(consume, never()).consume(any(), any());
 		verify(save, never()).save(any());
 	}

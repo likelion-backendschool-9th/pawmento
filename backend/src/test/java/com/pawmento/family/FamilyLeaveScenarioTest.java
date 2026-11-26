@@ -1,6 +1,7 @@
 package com.pawmento.family;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -41,6 +42,7 @@ import com.pawmento.family.application.port.in.JoinFamilyUseCase;
 import com.pawmento.family.application.port.in.RemoveFamilyMemberCommand;
 import com.pawmento.family.application.port.in.RemoveFamilyMemberUseCase;
 import com.pawmento.family.application.port.out.DeletePetFamilyMemberPort;
+import com.pawmento.family.application.port.out.DeletePetInviteCodesByIssuerPort;
 import com.pawmento.family.application.port.out.LoadPetFamilyMemberPort;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
@@ -75,6 +77,10 @@ class FamilyLeaveScenarioTest {
 	// 가족 저장소 어댑터 하나가 조회·저장·삭제 포트를 함께 구현한다. 평소엔 진짜를 부르고, S18에서만 특정 지점에서 멈춘다
 	@MockitoSpyBean
 	private LoadPetFamilyMemberPort families;
+
+	// 초대 코드 저장소 어댑터. 평소엔 진짜를 부르고, 롤백 테스트에서만 발급자 기준 삭제를 실패시킨다
+	@MockitoSpyBean
+	private DeletePetInviteCodesByIssuerPort inviteCodes;
 
 	@Test
 	@DisplayName("#133-S10 소유주가 가족을 내보내면 204이고, 내보낸 가족은 목록 403, 그 가족이 만든 코드는 404가 된다. 다른 사람의 코드는 남는다")
@@ -217,6 +223,63 @@ class FamilyLeaveScenarioTest {
 		}
 		assertThat(memberships(pet, family)).isZero();
 		assertThat(codesBy(pet, family)).isZero();
+	}
+
+	@Test
+	@DisplayName("#133-S18 가입이 B의 코드를 읽고 잠금을 기다리는 사이 내보내기가 그 코드를 지우면, 이미 가족인 요청자도 409가 아니라 404다")
+	void removeRevokesCodeWhileJoinWaits() throws Exception {
+		long owner = uniqueMemberId();
+		long family = uniqueMemberId();
+		long alreadyFamily = uniqueMemberId();
+		long pet = pet(owner);
+		saveFamily(pet, family);
+		saveFamily(pet, alreadyFamily);
+		String familyCode = issue.issue(new IssueInviteCodeCommand(family, pet)).code();
+		CountDownLatch deleted = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		// 내보내기가 잠금을 쥐고 B의 멤버십을 지운 순간 멈춘다. 코드는 풀린 뒤 같은 트랜잭션에서 지운다
+		Mockito.doAnswer(invocation -> {
+			Object result = invocation.callRealMethod();
+			deleted.countDown();
+			awaitQuietly(release);
+			return result;
+		}).when((DeletePetFamilyMemberPort) families).delete(eq(pet), eq(family));
+
+		try (var executor = Executors.newFixedThreadPool(2)) {
+			Future<?> removing = executor.submit(() -> remove.remove(new RemoveFamilyMemberCommand(owner, pet, family)));
+			assertThat(deleted.await(5, TimeUnit.SECONDS)).isTrue();
+
+			// 코드는 아직 커밋된 상태로 남아 있어, 가입은 코드를 읽은 뒤 반려동물 잠금에서 기다린다
+			Future<?> joining = executor.submit(() -> join.join(new JoinFamilyCommand(alreadyFamily, familyCode)));
+			blockedOnPetsLock();
+			assertThat(joining.isDone()).isFalse();
+
+			release.countDown();
+			removing.get(10, TimeUnit.SECONDS);
+			assertThat(failureOf(joining)).isInstanceOf(InviteCodeNotFoundException.class);
+		}
+		assertThat(memberships(pet, family)).isZero();
+		assertThat(memberships(pet, alreadyFamily)).isEqualTo(1);
+		assertThat(codesBy(pet, family)).isZero();
+	}
+
+	@Test
+	@DisplayName("#133-S10 코드 삭제가 실패하면 앞서 지운 멤버십도 롤백되어, 멤버십과 코드가 모두 그대로 남는다")
+	void failedCodeDeletionRollsBackMembership() {
+		long owner = uniqueMemberId();
+		long family = uniqueMemberId();
+		long pet = pet(owner);
+		saveFamily(pet, family);
+		issue.issue(new IssueInviteCodeCommand(family, pet));
+		Mockito.doThrow(new RuntimeException("테스트용 코드 삭제 실패"))
+				.when(inviteCodes).deleteByIssuer(eq(pet), eq(family));
+
+		assertThatThrownBy(() -> remove.remove(new RemoveFamilyMemberCommand(owner, pet, family)))
+				.hasStackTraceContaining("테스트용 코드 삭제 실패");
+
+		// 테스트 메서드에는 트랜잭션이 없어, 아래 조회는 내보내기와 다른 연결에서 커밋된 상태를 읽는다
+		assertThat(memberships(pet, family)).isEqualTo(1);
+		assertThat(codesBy(pet, family)).isEqualTo(1);
 	}
 
 	private long pet(long owner) {
