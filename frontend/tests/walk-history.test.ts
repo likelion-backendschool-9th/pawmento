@@ -101,9 +101,6 @@ function fakeApi(handler: (path: string) => unknown, seen: string[] = []): ApiCl
     postEmpty: async () => {
       throw Error("not used");
     },
-    deleteEmpty: async () => {
-      throw Error("not used");
-    },
   };
 }
 

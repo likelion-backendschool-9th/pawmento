@@ -42,9 +42,6 @@ function fakeApi(response: unknown, seen: string[] = []): ApiClient {
     postEmpty: async () => {
       throw Error("not used");
     },
-    deleteEmpty: async () => {
-      throw Error("not used");
-    },
   };
 }
 

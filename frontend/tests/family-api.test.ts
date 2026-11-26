@@ -139,3 +139,42 @@ test("#133-S24 내보내기·나가기 거절은 서버의 code와 문구를 그
     await assert.rejects(api.leave("42"), { code, message });
   }
 });
+
+test("#133-S24 안전한 정수 범위를 넘는 회원 id는 쓰지 않아(null), 서로 다른 두 가족이 같은 id로 섞이지 않는다", async () => {
+  // JSON 숫자 9007199254740993은 읽는 순간 9007199254740992가 되어 두 회원이 구별되지 않는다
+  const { api } = server(() =>
+    new Response(
+      '{"owner":{"memberId":1,"nickname":"다윗","tag":"0427"},"members":['
+        + '{"memberId":9007199254740993,"nickname":"가","tag":"0001","joinedAt":"2026-11-25T03:00:00Z"},'
+        + '{"memberId":9007199254740992,"nickname":"나","tag":"0002","joinedAt":"2026-11-25T04:00:00Z"},'
+        + '{"memberId":9007199254740991,"nickname":"다","tag":"0003","joinedAt":"2026-11-25T05:00:00Z"}]}',
+      { headers: { "Content-Type": "application/json" } },
+    ),
+  );
+
+  const family = await api.list("42");
+
+  assert.deepEqual(family.members.map((member) => member.memberId), [null, null, "9007199254740991"]);
+});
+
+test("#133-S24 서버가 회원 id를 문자열로 주면 큰 값도 그대로 정확히 쓴다", async () => {
+  const { api } = server(() =>
+    Response.json({
+      owner: { memberId: "1", nickname: "다윗", tag: "0427" },
+      members: [{ memberId: "9007199254740993", nickname: "가", tag: "0001", joinedAt: "2026-11-25T03:00:00Z" }],
+    }),
+  );
+
+  const family = await api.list("42");
+
+  assert.equal(family.owner.memberId, "1");
+  assert.equal(family.members[0].memberId, "9007199254740993");
+});
+
+test("#133-S24 id를 알 수 없는 회원은 내보내기 요청을 만들 수 없다", async () => {
+  const { api, calls } = server(() => assert.fail("예상하지 않은 서버 요청"));
+
+  // 화면은 memberId가 null이면 버튼을 그리지 않는다. 혹시 빈 값이 넘어와도 요청을 보내지 않는다
+  await assert.rejects(api.removeMember("42", ""), { code: "NOT_FOUND" });
+  assert.equal(calls.length, 0);
+});
