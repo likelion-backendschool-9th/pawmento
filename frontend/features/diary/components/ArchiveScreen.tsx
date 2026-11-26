@@ -1,6 +1,7 @@
 "use client";
 import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
+import { PolaroidDiaryList } from "./PolaroidDiaryList";
 
 import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
@@ -149,7 +150,7 @@ export function ArchiveScreen({
   }
   const [limit, setLimit] = useState(9);
   const [result, setResult] = useState<{
-    records: JournalItem[];
+    records: Extract<JournalItem, { kind: "DIARY" }>[];
     total: number;
     hasMore: boolean;
   }>({ records: [], total: 0, hasMore: false });
@@ -252,13 +253,11 @@ export function ArchiveScreen({
               기억을 펼치는 중…
             </p>
           ) : result.records.length ? (
-            <div
-              className={`${styles.recordGrid} ${calendar ? styles.calendarRecords : ""}`}
-            >
-              {result.records.map((record) => (
-                <JournalCard key={record.id} record={record} />
-              ))}
-            </div>
+            calendar ? (
+              <div className={`${styles.recordGrid} ${styles.calendarRecords}`}>
+                {result.records.map(record => <JournalCard key={record.id} record={record} />)}
+              </div>
+            ) : <PolaroidDiaryList records={result.records} />
           ) : (
             <EmptyState
               title="아직 기록이 없는 날이에요"
