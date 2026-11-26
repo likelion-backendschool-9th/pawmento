@@ -91,3 +91,16 @@
 .modeChoice[data-mode="GARDEN"]:has(input:checked) .modeCheck { background:#efe2bf; border-color:transparent; color:#344568; }
 .modeNote { margin:0; text-align:center; font-size:12px; line-height:1.9; color:var(--text-secondary); text-wrap:balance; }
 @media(max-width:359px) { .form .modeChoice { min-height:170px; padding:24px 20px; } .modeChoice strong { font-size:22px; } .modeChoice small { max-width:138px; font-size:12px; } }
+
+.screen[data-step="register"] .content { padding-top:clamp(16px,3dvh,28px); }
+.screen[data-step="register"] .heading { margin-bottom:28px; }
+.screen[data-step="register"] .form { padding:26px 20px; background:linear-gradient(160deg,var(--surface-card),#fbfcf7); }
+.screen[data-step="register"] .form fieldset { gap:22px; }
+.screen[data-step="register"] .photo { max-width:140px; margin:0 auto 6px; }
+.screen[data-step="register"] .photo :global(.photo-picker) { width:140px; }
+.screen[data-step="register"] .photo :global(.photo-picker) > button { border-radius:42px; }
+.screen[data-step="register"] .photo :global(.photo-picker) button > span:has(> strong) { min-height:140px; }
+.screen[data-step="register"] .photo :global(.photo-picker) button > :global(.photo) { height:140px; }
+.screen[data-step="register"] .form label,.screen[data-step="register"] .fieldLabel { font-size:14px; }
+.screen[data-step="register"] .primary { min-height:54px; margin-top:10px; }
+@media(max-height:740px) { .screen[data-step="register"] .content { padding-top:8px; } .screen[data-step="register"] .form { padding:22px 18px; } .screen[data-step="register"] .form fieldset { gap:18px; } }
