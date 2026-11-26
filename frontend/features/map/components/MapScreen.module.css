@@ -179,12 +179,12 @@
   }
 }
 
-/* "기억 핀 | 산책 길" 전환 */
+/* 산책가기 · 산책기록 · 기억핀 */
 .switch {
   display: flex;
-  width: fit-content;
-  gap: 4px;
-  margin: 0 auto 12px;
+  width: 100%;
+  gap: 3px;
+  margin: 0 auto 14px;
   padding: 4px;
   border: 1px solid var(--mode-border);
   border-radius: 999px;
@@ -195,14 +195,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 5px;
   border: 0;
   border-radius: 999px;
   background: none;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 .switch button[aria-pressed="true"] {

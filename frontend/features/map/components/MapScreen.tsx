@@ -27,8 +27,8 @@ type Props = {
   pet: { id: string; name: string; mode: PinMode };
   // 일기 상세 화면이 열 수 있는 기록인가(브라우저에 저장된 기록만 연다)
   canOpenDiary: (diaryId: string) => boolean;
-  // 처음 보여 줄 보기. 기본은 기억 핀이고, 산책이 끝난 뒤에는 산책 길로 들어온다.
-  initialView?: "pins" | "walks";
+  // 기본은 산책가기. 기존 산책 기록 주소는 walks로 들어온다.
+  initialView?: "outing" | "pins" | "walks";
   // 산책 길을 처음 열 날짜(YYYY-MM-DD)
   initialDate?: string | null;
 };
@@ -38,14 +38,13 @@ const REQUEST_DELAY_MS = 250;
 export function MapScreen({
   pet,
   canOpenDiary,
-  initialView = "pins",
+  initialView = "outing",
   initialDate = null,
 }: Props) {
   const { dependencies, account } = useApp();
   // 화면 확인용 예시 핀은 데모 계정에만 보여 준다
   const sample = isDemoAccount(account);
   const session = useWalkSession(pet.id);
-  const walking = session.phase === "walking" || session.phase === "ending";
   const walkCanvasProps = { points: session.points, current: session.points.at(-1) ?? null };
   const garden = pet.mode === "GARDEN";
   // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
@@ -58,15 +57,12 @@ export function MapScreen({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const request = useRef(0);
-  // 지도에 무엇을 보여 줄까: 기억 핀 또는 날짜별 산책 길
-  const [view, setView] = useState<"pins" | "walks">(initialView);
-  // 빈 화면의 "산책 길 보기"를 키보드로 눌러 화면이 바뀌어도 초점을 잃지 않게, 위쪽 전환 버튼으로 옮긴다
-  const [showSummary, setShowSummary] = useState(true);
-  const live = view === "walks" && (walking || (session.phase === "ended" && showSummary));
+  // 산책 세션은 탭을 바꿔도 유지하고, 각 탭의 표시 내용만 나눈다.
+  const [view, setView] = useState<"outing" | "pins" | "walks">(initialView);
   const walksSwitch = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (!bounds) return;
+    if (view !== "pins" || !bounds) return;
     const current = ++request.current;
     const timer = setTimeout(() => {
       setLoading(true);
@@ -93,7 +89,7 @@ export function MapScreen({
         });
     }, REQUEST_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [bounds, pet.id, dependencies, sample, attempt]);
+  }, [view, bounds, pet.id, dependencies, sample, attempt]);
 
   const onBoundsChange = useCallback(
     (next: MapBounds) => setBounds(next),
@@ -115,34 +111,39 @@ export function MapScreen({
     <>
       <CollectionHeading
         title="추억 지도"
-        body={<PetDescription name={pet.name} suffix="와 다녀온 곳,">지도에서 다시 만나요.</PetDescription>}
+        body="함께 걸은 길과 추억을 담아요."
       >
-        <RecordActionLink compact href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
+        {view === "pins" && <RecordActionLink compact href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>}
       </CollectionHeading>
       <ArchiveNavigation petId={pet.id} active="map" />
       <div className={styles.switch} role="group" aria-label="지도 보기">
-        <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
-          <Icon name="pin" size={16} />
-          기억 핀
+        <button type="button" aria-pressed={view === "outing"} onClick={() => setView("outing")}>
+          <Icon name="paw" size={16} />산책가기
         </button>
-        <button
-          ref={walksSwitch}
-          type="button"
-          aria-pressed={view === "walks"}
-          onClick={() => setView("walks")}
-        >
-          <Icon name="route" size={16} />
-          산책 길
+        <button ref={walksSwitch} type="button" aria-pressed={view === "walks"} onClick={() => setView("walks")}>
+          <Icon name="route" size={16} />산책기록
+        </button>
+        <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
+          <Icon name="pin" size={16} />기억핀
         </button>
       </div>
-      {view === "walks" && !live ? (
+      {view === "outing" ? (
+        <>
+          <div className={styles.stage} data-mode={pet.mode}>
+            {clientId && !naverFailed ? (
+              <NaverWalkCanvas {...walkCanvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
+            ) : <StaticWalkCanvas {...walkCanvasProps} />}
+          </div>
+          <WalkWidget session={session} />
+          {session.phase === "ended" && <button type="button" className={styles.textButton} onClick={() => { setView("walks"); walksSwitch.current?.focus(); }}>산책기록 보기 →</button>}
+          {!isServerPetId(pet.id) && <p className={styles.note}>데모 산책은 이 브라우저에서만 연습으로 기록돼요.</p>}
+        </>
+      ) : view === "walks" ? (
         <WalkHistory pet={pet} initialDate={initialDate} />
       ) : (
       <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
-        {live ? (
-          clientId && !naverFailed ? <NaverWalkCanvas {...walkCanvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} /> : <StaticWalkCanvas {...walkCanvasProps} />
-        ) : clientId && !naverFailed ? (
+        {clientId && !naverFailed ? (
           <NaverMapCanvas
             {...canvasProps}
             clientId={clientId}
@@ -153,7 +154,7 @@ export function MapScreen({
         )}
 
         {/* 기억이 하나도 없으면 칩을 숨기고, 핀을 선택하면 선택 카드에 자리를 내준다 */}
-        {!live && result && !error && pins.length > 0 && !selected && (
+        {result && !error && pins.length > 0 && !selected && (
           <div className={styles.chip} role="status">
             <span
               className={styles.chipIcon}
@@ -168,13 +169,13 @@ export function MapScreen({
           </div>
         )}
 
-        {!live && result?.truncated && (
+        {result?.truncated && (
           <p className={styles.notice} role="status">
             기억이 많아서 일부만 보여요. 지도를 확대해 보세요.
           </p>
         )}
 
-        {!live && error && (
+        {error && (
           <div className={styles.message} role="alert">
             <strong>기억을 불러오지 못했어요</strong>
             <p>{error}</p>
@@ -188,7 +189,7 @@ export function MapScreen({
           </div>
         )}
 
-        {!live && result && !error && pins.length === 0 && !loading && (
+        {result && !error && pins.length === 0 && !loading && (
           <div className={styles.message}>
             <span className={styles.emptyArt} aria-hidden="true">
               <span className={styles.emptyCircle}>
@@ -211,13 +212,13 @@ export function MapScreen({
                 walksSwitch.current?.focus();
               }}
             >
-              산책 길 보기
+              산책기록 보기
             </button>
           </div>
         )}
 
       </div>
-        {!live && selected && (
+        {selected && (
           <aside className={styles.sheet} aria-label="선택한 기억">
             <div className={styles.grab} aria-hidden="true" />
             <p className={styles.eyebrow}>{garden ? "기억의 정원" : "기억의 장소"}</p>
@@ -255,9 +256,6 @@ export function MapScreen({
       )}
       </>
       )}
-      <WalkWidget session={{ ...session, start: () => { setView("walks"); setShowSummary(true); return session.start(); } }} />
-      {session.phase === "ended" && showSummary && <button type="button" className={styles.textButton} onClick={() => { setShowSummary(false); setView("walks"); }}>저장된 산책 보기 →</button>}
-      {!isServerPetId(pet.id) && <p className={styles.note}>데모 산책은 이 브라우저에서만 연습으로 기록돼요.</p>}
     </>
   );
 }
