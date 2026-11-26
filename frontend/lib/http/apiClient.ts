@@ -19,6 +19,8 @@ export type ApiClient = {
   get: <T>(path: string) => Promise<T>;
   post: <T>(path: string, body?: unknown) => Promise<T>;
   patch: <T>(path: string, body?: unknown) => Promise<T>;
+  put: <T>(path: string, body?: unknown) => Promise<T>;
+  delete: (path: string) => Promise<void>;
   postEmpty: (path: string) => Promise<void>;
 };
 
@@ -71,6 +73,13 @@ export function createApiClient(options?: {
         method: "PATCH",
         body: JSON.stringify(body ?? {}),
       }),
+    put: <T>(path: string, body?: unknown) =>
+      request<T>(path, {
+        method: "PUT",
+        body: JSON.stringify(body ?? {}),
+      }),
+    delete: (path: string) =>
+      request<void>(path, { method: "DELETE" }, true),
     postEmpty: (path: string) =>
       request<void>(
         path,

@@ -92,6 +92,12 @@ function fakeApi(handler: (path: string) => unknown, seen: string[] = []): ApiCl
     patch: async () => {
       throw Error("not used");
     },
+    put: async () => {
+      throw Error("not used");
+    },
+    delete: async () => {
+      throw Error("not used");
+    },
     postEmpty: async () => {
       throw Error("not used");
     },

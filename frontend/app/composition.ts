@@ -17,6 +17,7 @@ import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { createPetApi } from "../features/pet/api/petApi.ts";
 import { createPetManagementApi } from "../features/pet/api/petManagementApi.ts";
 import { createFamilyApi } from "../features/family/api/familyApi.ts";
+import { createPostApi } from "../features/community/api/postApi.ts";
 import { createMapPinApi } from "../features/map/api/mapPinApi.ts";
 import { createPlaceApi } from "../features/map/api/placeApi.ts";
 import { selectPlaceRepository } from "../features/map/placeSource.ts";
@@ -71,6 +72,8 @@ export function createDependencies() {
     pets: createPetApi(http),
     petManagement: createPetManagementApi(http),
     family: createFamilyApi(http),
+    // 커뮤니티 글 API. 데모 계정이면 화면이 selectCommunitySource로 life의 데모 글을 고른다(#104-S9)
+    posts: createPostApi(http),
     walk: createWalkSession(mapSource.walk, new LocalActiveWalkStore()),
     walkHistory: mapSource.walkHistory,
     map: mapSource.map,
