@@ -775,8 +775,8 @@ textarea {
 }
 .attachments {
   border-top: 1px solid #e5ebdb;
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
 }
 .attachments-heading {
   display: flex;

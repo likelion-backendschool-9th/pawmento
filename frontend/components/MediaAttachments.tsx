@@ -4,8 +4,6 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { MediaAttachment } from "@/types/MediaAttachment";
 import { Icon } from "./Icon";
 import { Photo } from "./Photo";
-import s from "./MediaAttachments.module.css";
-import { PhotoAttachmentCarousel, type PhotoSlide } from "./PhotoAttachmentCarousel";
 export function MediaPlayer({ file }: { file: MediaAttachment }) {
   return (
     <div className="media-player">
@@ -33,16 +31,11 @@ export function MediaPlayer({ file }: { file: MediaAttachment }) {
 export function MediaAttachments({
   value,
   onChange,
-  photo,
-  onPhotoChange,
 }: {
   value: MediaAttachment[];
   onChange: (value: MediaAttachment[]) => void;
-  photo?: string;
-  onPhotoChange?: (value: string) => void;
 }) {
   const id = useId();
-  const photoInput = useRef<HTMLInputElement>(null);
   const [error, setError] = useState("");
   const [recording, setRecording] = useState(false);
   const recorder = useRef<MediaRecorder | null>(null);
@@ -70,37 +63,24 @@ export function MediaAttachments({
     if (!files) return;
     setError("");
     try {
-      if (value.length + files.length - (onPhotoChange && !photo && files.length ? 1 : 0) > 5)
+      if (value.length + files.length > 5)
         throw Error("기록 하나에 추가 첨부는 5개까지 가능해요.");
       const added: MediaAttachment[] = [];
-      let nextPhoto: string | undefined;
-      for (const [index, file] of Array.from(files).entries()) {
-        const primary = Boolean(onPhotoChange && !photo && index === 0);
-        if (!/^image\/(jpeg|png|webp)$/.test(file.type))
-          throw Error("JPG, PNG, WebP 사진을 선택해 주세요.");
-        if (primary && file.size > 1024 * 1024)
-          throw Error("첫 사진은 1MB 이하로 선택해 주세요.");
+      for (const file of Array.from(files)) {
+        if (!/^(image\/(jpeg|png|webp)|audio\/)/.test(file.type))
+          throw Error("사진 또는 음성 파일을 선택해 주세요.");
         if (file.size > 2 * 1024 * 1024)
           throw Error(
             "브라우저 데모에서는 첨부 파일 한 개가 2MB 이하여야 해요.",
           );
-        const url = await read(file);
-        await new Promise<void>((resolve, reject) => {
-          const image = new window.Image();
-          image.onload = () => resolve();
-          image.onerror = () => reject(Error("손상된 사진이에요. 다른 사진을 선택해 주세요."));
-          image.src = url;
-        });
-        if (primary) { nextPhoto = url; continue; }
         added.push({
           id: createId(),
           name: file.name,
           mimeType: file.type,
-          type: "PHOTO",
-          url,
+          type: file.type.startsWith("image/") ? "PHOTO" : "VOICE",
+          url: await read(file),
         });
       }
-      if (nextPhoto !== undefined) onPhotoChange?.(nextPhoto);
       onChange([...value, ...added]);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "첨부하지 못했어요.");
@@ -112,7 +92,7 @@ export function MediaAttachments({
       if (value.length >= 5) throw Error("추가 첨부는 5개까지 가능해요.");
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw Error(
-          "이 환경에서는 녹음을 지원하지 않아요. 다른 브라우저에서 시도해 주세요.",
+          "이 브라우저는 녹음을 지원하지 않아요. 음성 파일로 첨부해 주세요.",
         );
       stream.current = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -156,25 +136,29 @@ export function MediaAttachments({
       );
     }
   }
-  const photos: PhotoSlide[] = [
-    ...(photo ? [{ id: "primary", src: photo, label: "대표 사진", remove: () => onPhotoChange?.("") }] : []),
-    ...value.filter(file => file.type === "PHOTO").map(file => ({
-      id: `attachment-${file.id}`, src: file.url, label: file.name,
-      remove: () => onChange(value.filter(item => item.id !== file.id)),
-    })),
-  ];
-  const otherMedia = value.filter(file => file.type !== "PHOTO");
   return (
     <section className="attachments">
+      <div className="attachments-heading">
+        <strong>사진 · 목소리</strong>
+        <span>선택</span>
+      </div>
       <div className="attachments-actions">
-        <button type="button" className="button secondary" disabled={recording}
-          onClick={() => photoInput.current?.click()}>
-          <Icon name="camera" size={16} />사진 추가
-        </button>
-        <input className="visually-hidden" id={`${id}-photo`} ref={photoInput}
-          type="file" tabIndex={-1} aria-label="추가 사진 파일" disabled={recording} multiple
-          accept="image/jpeg,image/png,image/webp"
-          onChange={event => { void select(event.target.files); event.target.value = ""; }} />
+        <label htmlFor={id} className="button secondary">
+          <Icon name="plus" size={15} />
+          파일 추가
+        </label>
+        <input
+          className="visually-hidden"
+          id={id}
+          type="file"
+          disabled={recording}
+          multiple
+          accept="image/jpeg,image/png,image/webp,audio/*"
+          onChange={(event) => {
+            void select(event.target.files);
+            event.target.value = "";
+          }}
+        />
         <button
           type="button"
           className={`button ${recording ? "destructive" : "secondary"}`}
@@ -183,23 +167,22 @@ export function MediaAttachments({
           }
         >
           <Icon name="mic" size={16} />
-          {recording ? "녹음 끝내기" : "목소리 추가"}
+          {recording ? "녹음 끝내기" : "목소리 녹음"}
         </button>
       </div>
       {recording && (
         <p role="status">녹음 중이에요. 최대 30초 뒤 자동으로 마칩니다.</p>
       )}
       <small>
-        {onPhotoChange ? "첫 사진 1MB · 추가 첨부 5개, 개별 2MB" : "첨부 최대 5개 · 개별 2MB"}
+        추가 첨부 최대 5개 · 개별 2MB · 미디어는 자동 재생되지 않아요.
       </small>
       {error && (
         <p role="alert" className="error">
           {error}
         </p>
       )}
-      {photos.length > 0 && <PhotoAttachmentCarousel photos={photos} disabled={recording} />}
-      {otherMedia.length > 0 && <div className={`attachments-list ${s.previews}`}>
-        {otherMedia.map((file) => (
+      <div className="attachments-list">
+        {value.map((file) => (
           <div key={file.id}>
             <MediaPlayer file={file} />
             <button
@@ -214,7 +197,7 @@ export function MediaAttachments({
             </button>
           </div>
         ))}
-      </div>}
+      </div>
     </section>
   );
 }

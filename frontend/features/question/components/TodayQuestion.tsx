@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { QuestionHeading } from "./QuestionHeading";
+import { PhotoPicker } from "@/components/PhotoPicker";
 import { MediaAttachments } from "@/components/MediaAttachments";
 import type { MediaAttachment } from "@/types/MediaAttachment";
 import type { Pet } from "@/features/pet/types/Pet";
@@ -87,10 +88,13 @@ export function TodayQuestion({ pet }: { pet: Pet }) {
                 onChange={event => { setBody(event.target.value); setSaved(false); }}
                 placeholder="문득 떠오르는 작은 순간부터 들려주세요." />
               <div className={s.count}>{body.length.toLocaleString()} / 3,000</div>
-              <div className={s.media}>
-                <MediaAttachments photo={photo} onPhotoChange={value => { setPhoto(value); setSaved(false); }}
-                  value={attachments} onChange={value => { setAttachments(value); setSaved(false); }} />
-              </div>
+              <details className={s.media}>
+                <summary><Icon name="plus" size={16} /> 사진·음성 함께 남기기{(photo || attachments.length > 0) && <span> · 첨부 있음</span>}</summary>
+                <div className={s.mediaContent}>
+                  <PhotoPicker value={photo} onChange={value => { setPhoto(value); setSaved(false); }} />
+                  <MediaAttachments value={attachments} onChange={value => { setAttachments(value); setSaved(false); }} />
+                </div>
+              </details>
               {error && <p role="alert" className="error">{error}</p>}
               <button className={`button primary full ${s.save}`} disabled={busy || !body.trim()}>
                 <Icon name="check" size={16} />{busy ? "저장하는 중…" : "답변 남기기"}
