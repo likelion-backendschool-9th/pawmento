@@ -8,6 +8,8 @@ import { Icon } from "@/components/Icon";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { isDemoAccount } from "../types/account";
 import type { PetInput } from "@/features/pet/types/Pet";
+import { COMPANION_KINDS } from "@/features/pet/types/companionKinds";
+import { BirthdayDateField } from "@/features/pet/components/BirthdayDateField";
 import { today } from "@/lib/date";
 import { useUnsavedChanges } from "@/features/shell/hooks/useUnsavedChanges";
 import s from "./OnboardingScreen.module.css";
@@ -25,6 +27,8 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   const app = useApp();
   const router = useRouter();
   const [input, setInput] = useState<PetInput>({ name: "", species: "DOG", breed: "", birthday: "", photoUrl: "" });
+  const [kind, setKind] = useState<(typeof COMPANION_KINDS)[number]["id"]>("DOG");
+  const [birthdayUnknown, setBirthdayUnknown] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -34,7 +38,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [memberPets] = useState(app.state.pets.length);
   const invitation = app.dependencies.onboardingPreview.invitation;
-  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.breed || input.birthday || input.photoUrl));
+  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.birthday || input.photoUrl || kind !== "DOG" || birthdayUnknown));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -55,13 +59,11 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   }
 
   return <main id="main" className={s.screen}>
-    <header className={s.top}><Link className={s.back} href={step === "choose" ? "/sign-in?preview=1" : "/welcome"} aria-label="이전 화면">←</Link><span>우리의 첫 페이지</span><span className={s.step}>{step === "choose" ? "1" : "2"} / 2</span></header>
     <div className={s.brand}><Brand /></div>
     <section className={s.content}>
       <header className={s.heading}>
-        <span className={s.icon}><Icon name={step === "choose" ? "book" : step === "join" ? "mail" : "paw"} size={24} /></span>
-        <h1>{step === "choose" ? "어떻게 시작할까요?" : step === "join" ? "함께할 초대가 도착했어요" : "함께할 아이를 소개해 주세요"}</h1>
-        <p>{step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "아이의 작은 이야기부터 차근차근 담아볼게요."}</p>
+        <h1>{step === "choose" ? "어떻게 시작할까요?" : step === "join" ? "함께할 초대가 도착했어요" : "우리 아이를 소개해 주세요"}</h1>
+        <p>{step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "이름과 사진으로 첫 기억을 시작해요."}</p>
       </header>
       {step === "choose" ? <div className={s.choices}>
         <Link className={s.choice} href="/welcome/register"><span className={s.choiceIcon}><Icon name="paw" size={26} /></span><span><strong>처음 기록해요</strong><small>아이의 프로필을 등록하고<br />우리만의 기록 공간을 만들어요.</small></span><Icon name="chevron" size={18} /></Link>
@@ -72,9 +74,20 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
           {step === "register" ? <>
             <div className={s.photo}><PhotoPicker value={input.photoUrl} onChange={(photoUrl) => setInput((old) => ({ ...old, photoUrl }))} /></div>
             <label>이름<input value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} placeholder="아이의 이름을 알려주세요" maxLength={20} required /></label>
-            <label>어떤 친구인가요?<select aria-label="어떤 친구인가요?" value={input.species} onChange={(event) => setInput({ ...input, species: event.target.value as PetInput["species"] })}><option value="DOG">강아지</option><option value="CAT">고양이</option><option value="OTHER">다른 친구</option></select></label>
-            <label>품종 <span className={s.optional}>선택</span><input value={input.breed} onChange={(event) => setInput({ ...input, breed: event.target.value })} placeholder="예: 웰시코기, 코리안숏헤어" maxLength={100} /></label>
-            <label>생일 <span className={s.optional}>선택</span><input type="date" value={input.birthday} onChange={(event) => setInput({ ...input, birthday: event.target.value })} max={today()} /></label>
+            <div className={s.field}>
+              <span className={s.fieldLabel} id="companion-kind-label">어떤 친구인가요?</span>
+              <div className={s.kindChoices} role="group" aria-labelledby="companion-kind-label">
+                {COMPANION_KINDS.map((option) => <button type="button" key={option.id} aria-pressed={kind === option.id} onClick={() => { setSaved(false); setKind(option.id); setInput((old) => ({ ...old, species: option.species, speciesDetail: option.species === "OTHER" ? option.label : undefined })); }}>{option.label}{kind === option.id && <Icon name="check" size={13} />}</button>)}
+              </div>
+            </div>
+            <div className={s.field}>
+              <span className={s.fieldLabel} id="birthday-choice-label">생일</span>
+              <div className={s.birthdayChoices} role="group" aria-labelledby="birthday-choice-label">
+                <button type="button" aria-pressed={!birthdayUnknown} onClick={() => { setSaved(false); setBirthdayUnknown(false); }}>생일 선택</button>
+                <button type="button" aria-pressed={birthdayUnknown} onClick={() => { setSaved(false); setBirthdayUnknown(true); setInput((old) => ({ ...old, birthday: "" })); }}>생일을 몰라요</button>
+              </div>
+              {!birthdayUnknown && <BirthdayDateField value={input.birthday} onChange={(birthday) => { setSaved(false); setInput((old) => ({ ...old, birthday })); }} />}
+            </div>
           </> : <>
             <div className={s.envelope} aria-hidden="true"><Icon name="mail" size={52} /><span><Icon name="paw" size={22} /></span></div>
             <label>초대 코드<input className={s.code} value={code} onChange={(event) => { setCode(event.target.value.toUpperCase()); setError(""); }} placeholder="8자리 코드를 입력해 주세요" autoComplete="off" autoCapitalize="characters" spellCheck={false} maxLength={8} required /></label>

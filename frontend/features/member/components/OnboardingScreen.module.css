@@ -1,12 +1,8 @@
-.screen { width:100%; max-width:480px; min-height:100dvh; margin:auto; padding:env(safe-area-inset-top) 24px max(26px,env(safe-area-inset-bottom)); background:radial-gradient(ellipse at 5% 0,#edf2e2,transparent 50%),var(--surface-page); font-family:var(--font-sans); }
-.top { display:flex; align-items:center; gap:12px; min-height:68px; font-size:12px; color:var(--text-secondary); }
-.back { display:grid; place-items:center; width:40px; height:40px; border:1px solid var(--mode-border); border-radius:50%; background:var(--surface-card); color:var(--brand-primary); font-size:22px; text-decoration:none; }
-.step { margin-left:auto; font-variant-numeric:tabular-nums; font-size:11px; }
-.brand { display:flex; justify-content:center; margin:15px 0 30px; }
+.screen { width:100%; max-width:480px; min-height:100dvh; margin:auto; padding:calc(28px + env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom)); background:radial-gradient(ellipse at 5% 0,#edf2e2,transparent 50%),var(--surface-page); font-family:var(--font-sans); }
+.brand { display:flex; justify-content:center; margin:0 0 32px; }
 .brand :global(.brand) { font-size:28px; }
 .brand :global(.brand-words small) { display:block; margin-top:6px; font-size:10px; font-weight:400; }
-.heading { margin:0 0 28px; text-align:center; }
-.icon { display:grid; place-items:center; width:52px; height:52px; margin:0 auto 17px; border-radius:20px; background:var(--mode-subtle); color:var(--brand-primary); }
+.heading { margin:0 0 24px; text-align:center; }
 .heading h1 { margin:0; font-size:25px; font-weight:600; letter-spacing:-.8px; line-height:1.5; text-wrap:balance; }
 .heading p { margin:10px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.8; text-wrap:balance; }
 .choices { display:grid; gap:14px; }
@@ -17,15 +13,14 @@
 .choice strong { display:block; margin-bottom:9px; font-size:18px; font-weight:600; }
 .choice small { display:block; font-size:12px; line-height:1.8; color:var(--text-secondary); }
 .choice > svg { flex:none; color:var(--text-secondary); }
-.form { padding:24px 20px; border:1px solid var(--mode-border); border-radius:26px; background:var(--surface-card); }
+.form { padding:24px 20px; border:1px solid var(--mode-border); border-radius:28px; background:var(--surface-card); }
 .form fieldset { min-width:0; display:grid; gap:20px; margin:0; padding:0; border:0; }
 .form label { position:relative; display:grid; gap:9px; color:var(--text-primary); font-size:13px; font-weight:500; }
-.form input,.form select { width:100%; min-width:0; min-height:52px; padding:12px 14px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-primary); font:400 16px/1.5 var(--font-sans); }
+.form input { width:100%; min-width:0; min-height:52px; padding:12px 14px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-primary); font:400 16px/1.5 var(--font-sans); }
 .form input::placeholder { font-size:13px; }
-.optional { position:absolute; right:0; top:0; color:var(--text-muted); font-size:11px; font-weight:400; }
-.photo { max-width:180px; margin:0 auto 6px; }
-.photo :global(.photo-picker) { width:180px; }
-.photo :global(.photo-picker) > button { aspect-ratio:1; height:auto; min-height:0; border-radius:28px; }
+.photo { max-width:116px; margin:0 auto 3px; }
+.photo :global(.photo-picker) { width:116px; }
+.photo :global(.photo-picker) > button { aspect-ratio:1; height:auto; min-height:0; border-radius:36px; }
 .photo :global(.photo-picker) small { font-size:10px; }
 .primary { display:flex; align-items:center; justify-content:center; gap:9px; min-height:52px; width:100%; margin-top:4px; padding:12px; border:0; border-radius:15px; background:var(--brand-primary); color:var(--color-white); font:600 14px/1.5 var(--font-sans); text-decoration:none; cursor:pointer; }
 .primary:disabled { opacity:.6; }
@@ -39,5 +34,19 @@
 .demoCode button { display:flex; align-items:center; gap:8px; padding:8px; border:0; border-radius:8px; background:var(--surface-card); color:var(--brand-primary); font:600 13px/1.5 var(--font-sans); cursor:pointer; }
 .demoCode small { font-weight:400; font-size:10px; }
 .error { margin:0; padding:12px; background:var(--color-apricot-100); border-radius:12px; color:var(--text-danger); font-size:12px; line-height:1.7; }
-.screen button:focus-visible,.screen a:focus-visible,.screen input:focus-visible,.screen select:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.screen button:focus-visible,.screen a:focus-visible,.screen input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
 @media(max-width:359px) { .screen { padding-inline:16px; } .heading h1 { font-size:22px; } .choice { gap:12px; padding:20px 14px; } .choiceIcon { width:44px; } .choice strong { font-size:17px; } .form { padding:22px 16px; } }
+
+.photo :global(.photo-picker) button strong + span { display:none; }
+.photo :global(.photo-picker) > small { display:none; }
+.field { display:grid; gap:10px; min-width:0; }
+.fieldLabel { font-size:13px; font-weight:500; color:var(--text-primary); }
+.kindChoices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.kindChoices button { position:relative; min-width:0; min-height:46px; padding:10px 8px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-secondary); font:500 13px/1.5 var(--font-sans); cursor:pointer; }
+.kindChoices button[aria-pressed="true"] { background:var(--mode-subtle); border-color:var(--brand-primary); color:var(--brand-primary); }
+.kindChoices button > svg { position:absolute; top:3px; right:3px; }
+.birthdayChoices { display:flex; gap:8px; }
+.birthdayChoices button { flex:1; min-height:42px; padding:9px 8px; border:1px solid var(--mode-border); border-radius:13px; background:transparent; color:var(--text-secondary); font:400 12px/1.5 var(--font-sans); cursor:pointer; }
+.birthdayChoices button[aria-pressed="true"] { background:var(--mode-subtle); color:var(--brand-primary); border-color:var(--brand-primary); font-weight:500; }
+.photo :global(.photo-picker) button > span:has(> strong) { min-height:116px; padding:12px; gap:8px; }
+.photo :global(.photo-picker) button > :global(.photo) { height:116px; }

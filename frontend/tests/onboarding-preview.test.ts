@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readWorkspaceSnapshot } from "../mocks/handlers/workspaceStorage.ts";
+import { petSpeciesName } from "../features/shell/utils/presentation.ts";
 import { createDemoOnboarding } from "../mocks/handlers/demoOnboarding.ts";
 import { DemoAuthRepository } from "../mocks/handlers/DemoAuthRepository.ts";
 import { createLifeUseCases } from "../mocks/handlers/lifeUseCases.ts";
@@ -51,4 +53,18 @@ test("#233-S9 체험 코드가 맞아야 함께하는 아이가 편집 권한으
   await preview.join(account, preview.invitation.code);
   assert.equal((await workspace.load(account.id)).pets.length, 1);
   await assert.rejects(workspace.savePet(account.id, { name: "바꿀 수 없음", species: "DOG", breed: "", birthday: "", photoUrl: "" }, pet.id));
+});
+
+test("#233-S9 생일을 모르는 아이와 세부 동물 종류는 데모 기록에 보존한다", async () => {
+  const { workspace } = setup();
+  const pet = await workspace.savePet("new-owner", { name: "토리", species: "OTHER", speciesDetail: "토끼", breed: "", birthday: "", photoUrl: "" });
+  const state = await workspace.load("new-owner");
+  assert.equal(state.selectedPetId, pet.id);
+  assert.equal(state.pets[0].species, "OTHER");
+  assert.equal(state.pets[0].speciesDetail, "토끼");
+  assert.equal(state.pets[0].birthday, "");
+  assert.equal(state.pets[0].breed, "");
+  assert.equal(petSpeciesName(state.pets[0]), "토끼");
+  assert.equal(readWorkspaceSnapshot({ schemaVersion: 2, state }).pets[0].speciesDetail, "토끼");
+  assert.throws(() => readWorkspaceSnapshot({ schemaVersion: 2, state: { ...state, pets: [{ ...state.pets[0], speciesDetail: {} }] } }));
 });

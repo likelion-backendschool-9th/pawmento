@@ -6,3 +6,7 @@ export const speciesName = {
 };
 export const messageOf = (cause: unknown) =>
   cause instanceof Error ? cause.message : "잠시 후 다시 시도해 주세요.";
+
+export function petSpeciesName(pet: { species: keyof typeof speciesName; speciesDetail?: string }) {
+  return pet.species === "OTHER" && pet.speciesDetail ? pet.speciesDetail : speciesName[pet.species];
+}
