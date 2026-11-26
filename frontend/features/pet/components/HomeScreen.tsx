@@ -2,6 +2,7 @@
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { today } from "@/lib/date";
@@ -149,6 +150,7 @@ function DailyHome({ pet }: { pet: Pet }) {
                 body="첫 기억부터 천천히 담아보세요."
                 href={`/pets/${pet.id}/diary/new`}
                 action="기억 남기기"
+                actionIcon="edit"
               />
             )}
           </section>
@@ -168,8 +170,7 @@ function DailyHome({ pet }: { pet: Pet }) {
               />
             )}
             <div className={g.questionActions}>
-              <Link
-                className="button primary"
+              <RecordActionLink full
                 href={
                   answer
                     ? `/pets/${pet.id}/questions/answers/${answer.id}`
@@ -183,7 +184,7 @@ function DailyHome({ pet }: { pet: Pet }) {
                   : pet.accessRole === "VIEWER"
                     ? "질문 기록 보기"
                     : "오늘의 질문 답하기"}
-              </Link>
+              </RecordActionLink>
               <Link className="text-link" href={`/pets/${pet.id}/questions/history`}>
                 지난 질문과 답변 <Icon name="arrow" size={15} />
               </Link>

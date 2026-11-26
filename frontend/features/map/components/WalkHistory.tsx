@@ -1,6 +1,6 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import { PetDescription } from "@/features/pet/components/PetDescription";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { WalkRecord } from "@/features/map/types/WalkRecord";
@@ -135,10 +135,7 @@ export function WalkHistory({ pet, initialDate }: Props) {
             <p className={styles.empty}>
               <PetDescription name={pet.name} suffix="와 함께한 산책,">이 날은 아직 기록이 없어요.</PetDescription>
             </p>
-            <Link className="button primary" href={`/pets/${pet.id}/map/walk`}>
-              <Icon name="route" size={17} />
-              산책 시작
-            </Link>
+            <RecordActionLink icon="route" href={`/pets/${pet.id}/map/walk`}>산책 시작</RecordActionLink>
           </>
         )}
         {walks.length > 0 && (

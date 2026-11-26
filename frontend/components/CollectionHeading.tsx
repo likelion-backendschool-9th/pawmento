@@ -3,7 +3,7 @@ import s from "./CollectionHeading.module.css";
 
 export function CollectionHeading({ title, body, children }: {
   title: string;
-  body: ReactNode;
+  body?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -12,7 +12,7 @@ export function CollectionHeading({ title, body, children }: {
         <h1>{title}</h1>
         {children && <div className={s.action}>{children}</div>}
       </div>
-      <p>{body}</p>
+      {body != null && <p>{body}</p>}
     </header>
   );
 }
