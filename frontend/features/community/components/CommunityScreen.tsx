@@ -1,5 +1,8 @@
 "use client";
-import { ActivityView } from "@/features/community/components/ActivityView";
+import {
+  ActivityView,
+  ServerActivityNotice,
+} from "@/features/community/components/ActivityView";
 import {
   PostDetail,
   ServerPostDetail,
@@ -21,8 +24,9 @@ export function CommunityScreen({
 }) {
   const life = useLife();
   const source = useCommunitySource();
-  // 가입·로그인한 회원은 서버 글을 쓴다. 내 활동은 다음 단계에서 옮긴다.
-  if (source.kind === "server" && !activity) {
+  // 가입·로그인한 회원은 서버 글을 쓴다. 서버에 없는 기능은 그리지 않는다(#104-S10).
+  if (source.kind === "server") {
+    if (activity) return <ServerActivityNotice />;
     if (segments[0] === "new") return <ServerPostEditor posts={source.posts} />;
     if (segments[1] === "edit")
       return (
