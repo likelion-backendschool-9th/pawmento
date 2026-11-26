@@ -178,3 +178,43 @@ test("#133-S24 id를 알 수 없는 회원은 내보내기 요청을 만들 수 
   await assert.rejects(api.removeMember("42", ""), { code: "NOT_FOUND" });
   assert.equal(calls.length, 0);
 });
+
+test("#133-S23 안전한 정수 범위를 넘는 반려동물 id는 '가족으로 함께하는 친구'에서 빠져, 두 반려동물이 같은 링크로 섞이지 않는다", async () => {
+  // JSON 숫자 9007199254740993은 읽는 순간 9007199254740992가 되어 두 반려동물이 구별되지 않는다
+  const { api } = server(() =>
+    new Response(
+      "["
+        + '{"petId":9007199254740993,"name":"가","tag":"0001","joinedAt":"2026-11-24T03:00:00Z"},'
+        + '{"petId":9007199254740992,"name":"나","tag":"0002","joinedAt":"2026-11-24T04:00:00Z"},'
+        + '{"petId":9007199254740991,"name":"다","tag":"0003","joinedAt":"2026-11-24T05:00:00Z"}'
+        + "]",
+      { headers: { "Content-Type": "application/json" } },
+    ),
+  );
+
+  assert.deepEqual(await api.myPets(), [
+    { id: "9007199254740991", name: "다", tag: "0003", joinedAt: "2026-11-24T05:00:00Z" },
+  ]);
+});
+
+test("#133-S23 서버가 반려동물 id를 문자열로 주면 큰 값도 그대로 목록에 남는다", async () => {
+  const { api } = server(() =>
+    Response.json([{ petId: "9007199254740993", name: "가", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" }]),
+  );
+
+  assert.deepEqual(await api.myPets(), [
+    { id: "9007199254740993", name: "가", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" },
+  ]);
+});
+
+test("#133-S25 가입 응답의 반려동물 id가 안전한 범위를 넘으면 id는 null이고, 문자열이면 그대로다", async () => {
+  const big = server(() =>
+    new Response('{"petId":9007199254740993,"name":"보리","tag":"0001"}', {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+  assert.deepEqual(await big.api.join("K7Q2M9XA"), { id: null, name: "보리", tag: "0001" });
+
+  const text = server(() => Response.json({ petId: "9007199254740993", name: "보리", tag: "0001" }));
+  assert.deepEqual(await text.api.join("K7Q2M9XA"), { id: "9007199254740993", name: "보리", tag: "0001" });
+});
