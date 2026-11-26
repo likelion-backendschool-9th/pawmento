@@ -5,8 +5,9 @@
   --map-water: #d7e6df;
   --map-road: #fffdf7;
   position: relative;
-  height: min(68vh, 640px);
-  min-height: 460px;
+  aspect-ratio: 1;
+  min-height: 0;
+  isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--border-default);
   border-radius: 22px;
@@ -169,7 +170,8 @@
 
 @container app (max-width: 767px) {
   .stage {
-    height: min(72vh, 620px);
+    aspect-ratio: 1;
+    height: auto;
     border-radius: 18px;
   }
   .sheet .button {
@@ -261,3 +263,7 @@
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+.stage { border: 6px solid var(--surface-card); outline: 1px solid var(--mode-border); border-radius: 26px; box-shadow: 0 6px 22px color-mix(in srgb,var(--brand-primary) 9%,transparent); }
+.sheet { position:relative; inset:auto; width:auto; margin-top:12px; }
+.message { padding:14px; max-height:calc(100% - 24px); overflow:auto; }

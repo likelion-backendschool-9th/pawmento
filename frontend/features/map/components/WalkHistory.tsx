@@ -61,11 +61,14 @@ export function WalkHistory({ pet, initialDate }: Props) {
 
   return (
     <div className={styles.stage} data-mode={pet.mode} aria-busy={history.pending}>
+      <div className={styles.mapFrame}>
       {clientId && !naverFailed ? (
         <NaverWalkRoutesCanvas {...canvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
       ) : (
         <StaticWalkRoutesCanvas {...canvasProps} />
       )}
+
+      </div>
 
       <section className={styles.week} aria-label="날짜 선택">
         <div className={styles.weekHead}>

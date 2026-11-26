@@ -331,3 +331,10 @@
   background: var(--brand-primary);
   box-shadow: 0 1px 4px rgb(0 0 0 / 0.25);
 }
+
+/* 날짜·지도·목록을 분리해 작은 화면에서도 지도 위를 가리지 않는다. */
+.stage { display:flex; flex-direction:column; gap:12px; height:auto; min-height:0; overflow:visible; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.mapFrame { position:relative; order:1; width:100%; aspect-ratio:1; overflow:hidden; border:6px solid var(--surface-card); outline:1px solid var(--mode-border); border-radius:26px; background:var(--map-land); box-shadow:var(--shadow-card); }
+.week { position:relative; inset:auto; order:0; }
+.sheet { position:relative; inset:auto; order:2; max-height:none; overflow:visible; }
+.routes { top:18px; bottom:18px; height:calc(100% - 36px); }

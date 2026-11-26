@@ -15,6 +15,11 @@ import { NaverMapCanvas } from "./NaverMapCanvas";
 import { StaticMapCanvas } from "./StaticMapCanvas";
 import { pinDetail } from "../utils/pinDetail";
 import { pinMarkup, type PinMode } from "../utils/pinMarkup";
+import { useWalkSession } from "../hooks/useWalkSession";
+import { WalkWidget } from "./WalkWidget";
+import { NaverWalkCanvas } from "./NaverWalkCanvas";
+import { StaticWalkCanvas } from "./StaticWalkCanvas";
+import { isServerPetId } from "../utils/walk";
 import { WalkHistory } from "./WalkHistory";
 import styles from "./MapScreen.module.css";
 
@@ -39,6 +44,9 @@ export function MapScreen({
   const { dependencies, account } = useApp();
   // 화면 확인용 예시 핀은 데모 계정에만 보여 준다
   const sample = isDemoAccount(account);
+  const session = useWalkSession(pet.id);
+  const walking = session.phase === "walking" || session.phase === "ending";
+  const walkCanvasProps = { points: session.points, current: session.points.at(-1) ?? null };
   const garden = pet.mode === "GARDEN";
   // Client ID는 공개되는 값이다. 빌드할 때 번들에 들어간다.
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
@@ -53,6 +61,8 @@ export function MapScreen({
   // 지도에 무엇을 보여 줄까: 기억 핀 또는 날짜별 산책 길
   const [view, setView] = useState<"pins" | "walks">(initialView);
   // 빈 화면의 "산책 길 보기"를 키보드로 눌러 화면이 바뀌어도 초점을 잃지 않게, 위쪽 전환 버튼으로 옮긴다
+  const [showSummary, setShowSummary] = useState(true);
+  const live = view === "walks" && (walking || (session.phase === "ended" && showSummary));
   const walksSwitch = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -107,7 +117,6 @@ export function MapScreen({
         title="추억 지도"
         body={<PetDescription name={pet.name} suffix="와 다녀온 곳,">지도에서 다시 만나요.</PetDescription>}
       >
-        <RecordActionLink icon="paw" compact href={`/pets/${pet.id}/map/walk`}>산책 시작</RecordActionLink>
         <RecordActionLink compact href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
       </CollectionHeading>
       <ArchiveNavigation petId={pet.id} active="map" />
@@ -126,12 +135,14 @@ export function MapScreen({
           산책 길
         </button>
       </div>
-      {view === "walks" ? (
+      {view === "walks" && !live ? (
         <WalkHistory pet={pet} initialDate={initialDate} />
       ) : (
       <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
-        {clientId && !naverFailed ? (
+        {live ? (
+          clientId && !naverFailed ? <NaverWalkCanvas {...walkCanvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} /> : <StaticWalkCanvas {...walkCanvasProps} />
+        ) : clientId && !naverFailed ? (
           <NaverMapCanvas
             {...canvasProps}
             clientId={clientId}
@@ -142,7 +153,7 @@ export function MapScreen({
         )}
 
         {/* 기억이 하나도 없으면 칩을 숨기고, 핀을 선택하면 선택 카드에 자리를 내준다 */}
-        {result && !error && pins.length > 0 && !selected && (
+        {!live && result && !error && pins.length > 0 && !selected && (
           <div className={styles.chip} role="status">
             <span
               className={styles.chipIcon}
@@ -157,13 +168,13 @@ export function MapScreen({
           </div>
         )}
 
-        {result?.truncated && (
+        {!live && result?.truncated && (
           <p className={styles.notice} role="status">
             기억이 많아서 일부만 보여요. 지도를 확대해 보세요.
           </p>
         )}
 
-        {error && (
+        {!live && error && (
           <div className={styles.message} role="alert">
             <strong>기억을 불러오지 못했어요</strong>
             <p>{error}</p>
@@ -177,7 +188,7 @@ export function MapScreen({
           </div>
         )}
 
-        {result && !error && pins.length === 0 && !loading && (
+        {!live && result && !error && pins.length === 0 && !loading && (
           <div className={styles.message}>
             <span className={styles.emptyArt} aria-hidden="true">
               <span className={styles.emptyCircle}>
@@ -205,7 +216,8 @@ export function MapScreen({
           </div>
         )}
 
-        {selected && (
+      </div>
+        {!live && selected && (
           <aside className={styles.sheet} aria-label="선택한 기억">
             <div className={styles.grab} aria-hidden="true" />
             <p className={styles.eyebrow}>{garden ? "기억의 정원" : "기억의 장소"}</p>
@@ -235,7 +247,6 @@ export function MapScreen({
             })()}
           </aside>
         )}
-      </div>
       {result?.sample && (
         <p className={styles.note}>
           데모 계정에서는 서울숲 근처의 예시 기억을 보여 드려요. 로그인하면 내
@@ -244,6 +255,9 @@ export function MapScreen({
       )}
       </>
       )}
+      <WalkWidget session={{ ...session, start: () => { setView("walks"); setShowSummary(true); return session.start(); } }} />
+      {session.phase === "ended" && showSummary && <button type="button" className={styles.textButton} onClick={() => { setShowSummary(false); setView("walks"); }}>저장된 산책 보기 →</button>}
+      {!isServerPetId(pet.id) && <p className={styles.note}>데모 산책은 이 브라우저에서만 연습으로 기록돼요.</p>}
     </>
   );
 }

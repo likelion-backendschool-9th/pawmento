@@ -1,5 +1,7 @@
 /* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕 색은 추억 지도와 같은 팔레트다. */
 .screen {
+  --route-top: 76px;
+  --route-bottom: calc(var(--card-height, 300px) + 28px);
   --map-land: #f4f3ea;
   --map-park: #dfe8cb;
   --map-water: #d7e6df;
@@ -26,9 +28,9 @@
 }
 /* 걸은 길 전체를 위쪽 칩과 실제 카드 윗면 사이에 맞춰 그린다(카드 높이는 화면에서 재서 --card-height로 넘긴다) */
 .routes {
-  top: 76px;
-  bottom: calc(var(--card-height, 300px) + 28px);
-  height: max(48px, calc(100% - 76px - var(--card-height, 300px) - 28px));
+  top: var(--route-top, 18px);
+  bottom: var(--route-bottom, 18px);
+  height: calc(100% - var(--route-top, 18px) - var(--route-bottom, 18px));
 }
 .casing {
   fill: none;
