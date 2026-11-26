@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.pawmento.TestcontainersConfiguration;
 
-// 시나리오는 docs/map/animal-places.md에 있다. 장소 테이블이 지키는 부분(저장 모양, 유일 제약, 영역 조회)을 진짜 PostgreSQL로 확인한다.
+// 시나리오는 docs/map/animal-places.md에 있다. 종류와 관리번호의 유일 제약을 진짜 PostgreSQL로 확인한다. 영역 조회는 PlaceListScenarioTest가 확인한다.
 // 각 테스트가 끝나면 되돌린다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")

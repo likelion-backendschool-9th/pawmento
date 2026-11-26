@@ -9,10 +9,13 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
+import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.port.in.SyncPublicDataPlacesCommand;
 import com.pawmento.map.application.port.in.SyncPublicDataPlacesResult;
 import com.pawmento.map.application.port.out.AppliedPlaces;
@@ -204,20 +207,27 @@ class SyncPublicDataPlacesServiceTest {
 		return rows;
 	}
 
+	@ParameterizedTest(name = "기존 {0}곳에 {1}곳")
+	@CsvSource({ "336, 302", "336, 200", "339, 2" })
+	@DisplayName("#172-S9 저장될 센터가 기존의 90%보다 적으면(경계 302곳, 일부만 온 200곳, 극단적으로 적은 2곳) 지도를 비우지 않고 실패한다")
+	void shelterRejectsTooFewPlaces(int existing, int received) {
+		var store = new FakeStore();
+		store.existing = existing;
+
+		assertThatThrownBy(() -> shelterService(shelters(received), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
+					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
+		assertThat(store.calls).isEmpty();
+	}
+
 	@Test
-	@DisplayName("#172-S9 보호센터는 저장할 건수가 기존의 90% 이상일 때만 반영한다. 기존 336곳이면 303곳은 반영하고, 302곳이나 일부만 온 200곳은 지도를 비우지 않고 실패한다")
+	@DisplayName("#172-S9 보호센터는 저장할 건수가 기존의 90% 이상이면 반영한다. 기존 336곳이면 303곳은 반영한다")
 	void shelterKeepsAtLeastNinetyPercent() {
 		var store = new FakeStore();
 		store.existing = 336;
 
 		assertThat(shelterService(shelters(303), store).sync(new SyncPublicDataPlacesCommand("SHELTER")).saved())
 			.isEqualTo(303);
-		for (int count : new int[] { 302, 200 }) {
-			assertThatThrownBy(() -> shelterService(shelters(count), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
-				.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
-						e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
-		}
-		// 반영은 303곳일 때 한 번뿐이다
 		assertThat(store.calls).hasSize(1);
 	}
 
@@ -269,6 +279,20 @@ class SyncPublicDataPlacesServiceTest {
 		assertThat(result.outOfRange()).isZero();
 		assertThat(store.calls).hasSize(1);
 		assertThat(store.calls.get(0)).extracting(PlaceDraft::sourceId).containsExactly("a");
+	}
+
+	@Test
+	@DisplayName("#172-S4 저장소가 알려 준 추가·갱신·삭제 건수를 결과에 담는다")
+	void reportsInsertedUpdatedDeleted() {
+		var store = new FakeStore();
+		store.existing = 3;
+		store.applied = new AppliedPlaces(1, 2, 4);
+
+		var result = sync(service(new LocalDataSnapshot(3, 3, actives(3)), store));
+
+		assertThat(result.inserted()).isEqualTo(1);
+		assertThat(result.updated()).isEqualTo(2);
+		assertThat(result.deleted()).isEqualTo(4);
 	}
 
 	@Test
@@ -406,6 +430,25 @@ class SyncPublicDataPlacesServiceTest {
 			.isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> service.sync(new SyncPublicDataPlacesCommand(null)))
 			.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	@DisplayName("#172-S22 같은 종류를 이미 다른 곳이 가져오는 중이면 받기도 저장도 하지 않고 이미 실행 중이라고 알린다")
+	void rejectsWhenAnotherRunHoldsTheLock() {
+		var locks = new FakeLocks();
+		locks.available = false;
+		var store = new FakeStore();
+		boolean[] loaded = { false };
+		var service = newService(category -> {
+			loaded[0] = true;
+			return new LocalDataSnapshot(1, 1, actives(1));
+		}, new StorePlacesPortStub(store), locks, new FakeAdmin());
+
+		assertThatThrownBy(() -> sync(service)).isInstanceOf(PlaceSyncAlreadyRunningException.class);
+
+		assertThat(loaded[0]).isFalse();
+		assertThat(store.calls).isEmpty();
+		assertThat(locks.events).containsExactly("acquire HOSPITAL");
 	}
 
 	@Test

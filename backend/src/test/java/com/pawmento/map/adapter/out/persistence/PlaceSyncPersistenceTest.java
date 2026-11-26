@@ -81,6 +81,21 @@ class PlaceSyncPersistenceTest {
 	}
 
 	@Test
+	@DisplayName("#172-S4 이번 목록에 없는 같은 종류만 지우고, 다른 종류는 건드리지 않는다")
+	void deletesMissingOfTheSameCategoryOnly() {
+		adapter.replace(PlaceCategory.HOSPITAL,
+				List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null), draft(PlaceCategory.HOSPITAL, "b", "나병원", null)));
+		adapter.replace(PlaceCategory.GROOMING, List.of(draft(PlaceCategory.GROOMING, "a", "가미용", null)));
+
+		var applied = adapter.replace(PlaceCategory.HOSPITAL, List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null)));
+
+		assertThat(applied).isEqualTo(new AppliedPlaces(0, 0, 1));
+		assertThat(count(PlaceCategory.HOSPITAL)).isEqualTo(1);
+		// 같은 관리번호 "a"가 미용에도 있어도 종류가 달라 그대로다
+		assertThat(count(PlaceCategory.GROOMING)).isEqualTo(1);
+	}
+
+	@Test
 	@DisplayName("#172-S4 영업 상태·24시 근거·출처 시각도 저장하고 읽는다")
 	void storesAllFields() {
 		adapter.replace(PlaceCategory.HOSPITAL,

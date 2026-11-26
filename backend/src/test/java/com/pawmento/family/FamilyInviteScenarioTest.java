@@ -178,6 +178,8 @@ class FamilyInviteScenarioTest {
 		List<String> hashes = jdbc.queryForList(
 				"select code_hash from pet_invite_codes where pet_id = ?", String.class, pet);
 		assertThat(hashes).hasSize(2).allSatisfy(hash -> assertThat(hash).hasSize(64).isNotEqualTo(code));
+		// 저장된 해시는 응답으로 준 코드의 서버 키 HMAC이다
+		assertThat(hashes).contains(inviteCodes.hash(code));
 		// 발급자는 코드를 만든 사람이다
 		assertThat(jdbc.queryForList(
 				"select issuer_member_id from pet_invite_codes where pet_id = ? order by id", Long.class, pet))
@@ -378,8 +380,8 @@ class FamilyInviteScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#133 새 코드를 발급하면 같은 반려동물의 만료된 코드만 지우고, 아직 유효한 코드와 다른 반려동물의 코드는 남긴다")
-	void issueDeletesExpiredCodesOfSamePet() {
+	@DisplayName("#133 새 코드를 발급하면 같은 반려동물의 만료된 코드만 지우고, 아직 유효한 코드와 다른 반려동물의 코드는 남긴다. 거절된 발급은 정리하지 않는다")
+	void issueDeletesExpiredCodesOfSamePet() throws Exception {
 		long owner = uniqueMemberId();
 		long pet = pet(owner);
 		long otherOwner = uniqueMemberId();
@@ -391,6 +393,10 @@ class FamilyInviteScenarioTest {
 
 		// 첫 코드의 만료 시각 정각. 가입 기준(expires_at > now)으로는 이미 쓸 수 없는 코드다
 		clock.set(NOW.plus(Duration.ofHours(24)));
+		// 권한이 없거나 없는 반려동물이면 거절만 하고 만료된 코드를 정리하지 않는다
+		issueCall(uniqueMemberId(), pet).andExpect(status().isForbidden());
+		issueCall(owner, Long.MAX_VALUE).andExpect(status().isNotFound());
+		assertThat(codeRows(pet)).isEqualTo(2);
 		issue(owner, pet);
 
 		assertThat(codeRows(pet)).isEqualTo(2);
