@@ -36,6 +36,9 @@ export function PlaceSearchPanel({
   const [text, setText] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const body = useRef<HTMLDivElement>(null);
+  // 한글 같은 조합 입력 중인지. 조합 중의 글자(강나)로는 검색하지 않고, 조합이 끝난 글자(강남)로 검색한다
+  const composing = useRef(false);
   // 검색은 종류 칩과 상관없이 세 종류 모두에서 찾는다(칩을 모두 꺼도 검색은 되어야 한다)
   const context = useMemo(
     () => (center ? { center: { latitude: center.latitude, longitude: center.longitude } } : {}),
@@ -61,6 +64,12 @@ export function PlaceSearchPanel({
     setInput(next, context);
   }
 
+  // 입력 칸의 글자는 바로 바꾸되, 조합 중에는 검색 타이머를 시작하지 않는다
+  function type(next: string) {
+    setText(next);
+    if (!composing.current) setInput(next, context);
+  }
+
   // 최근 검색어나 제안을 눌러 그 검색어로 바로 검색한다(#195-S14)
   function pick(next: string) {
     change(next);
@@ -70,6 +79,10 @@ export function PlaceSearchPanel({
 
   const view = searchView(state, recent.items.length > 0);
   const places = state.result?.places ?? [];
+  // 새 결과가 도착하거나 보이는 내용이 바뀌면 목록을 맨 위부터 보인다(이전 스크롤 위치가 남아 첫 결과가 가려지지 않게)
+  useEffect(() => {
+    body.current?.scrollTo({ top: 0 });
+  }, [state.result, view]);
   const shown = state.text.trim();
   const problem = checkSearchText(state.text);
   const announcement =
@@ -120,7 +133,15 @@ export function PlaceSearchPanel({
             spellCheck={false}
             value={text}
             placeholder="병원·미용·보호센터 이름이나 주소"
-            onChange={(event) => change(event.target.value)}
+            onChange={(event) => type(event.target.value)}
+            onCompositionStart={() => {
+              composing.current = true;
+            }}
+            onCompositionEnd={(event) => {
+              // 조합이 끝난 글자로 검색한다. 브라우저에 따라 마지막 input 이벤트가 조합 끝보다 먼저일 수 있어 여기서 한 번 더 읽는다
+              composing.current = false;
+              change(event.currentTarget.value);
+            }}
           />
           {text !== "" && (
             <button
@@ -138,7 +159,7 @@ export function PlaceSearchPanel({
         </label>
       </form>
 
-      <div className={styles.body} aria-busy={state.status === "loading"}>
+      <div ref={body} className={styles.body} aria-busy={state.status === "loading"}>
         <p className="visually-hidden" role="status">
           {announcement}
         </p>
@@ -205,7 +226,10 @@ export function PlaceSearchPanel({
                     />
                     <span className={styles.text}>
                       <span className={styles.name}>
-                        <Highlight text={place.name} query={state.text} />
+                        {/* 장소 이름은 한 덩어리로 묶는다. 묶지 않으면 강조 조각 사이에도 간격이 생겨 "서울동물병원"이 "서울 동물 병원"처럼 보인다 */}
+                        <span>
+                          <Highlight text={place.name} query={state.text} />
+                        </span>
                         {open24h && <span className={styles.badge24}>{open24h}</span>}
                       </span>
                       <span className={styles.meta}>
