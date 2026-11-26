@@ -68,3 +68,17 @@
 .inviteChoice { background:linear-gradient(125deg,var(--surface-card),#fffaf3); }
 .choiceNote { margin:8px 0 0; text-align:center; color:var(--text-secondary); font-size:11px; line-height:1.9; text-wrap:balance; }
 @media(max-width:359px) { .profilePreview,.invitationPreview { width:64px; height:82px; } .profilePreview > :global(.photo) { width:52px; height:52px; } .invitationPhoto { left:8px; } .invitationMail { left:4px; } .choiceNote { font-size:10px; } }
+
+.screen[data-step="mode"] .content { justify-content:center; padding-block:24px; }
+.screen[data-step="mode"] .form { flex:none; padding:0; border:0; background:transparent; }
+.modeChoices { display:grid; gap:16px; }
+.modeChoice { display:flex!important; align-items:center; gap:18px!important; min-height:158px; padding:22px 18px; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); cursor:pointer; }
+.modeChoice:has(input:checked) { border-color:var(--brand-primary); box-shadow:0 0 0 1px var(--brand-primary); }
+.modeChoice input { position:absolute; width:1px; height:1px; min-height:0; padding:0; opacity:0; }
+.modeChoice:has(input:focus-visible) { outline:2px solid var(--focus-ring); outline-offset:4px; }
+.modeChoice strong { display:block; font-size:19px; font-weight:600; }
+.modeChoice small { display:block; margin-top:9px; font-size:12px; line-height:1.8; color:var(--text-secondary); text-wrap:balance; }
+.modeArt { display:grid; flex:none; place-items:center; width:70px; height:82px; border-radius:22px; background:linear-gradient(145deg,#fbf0d4,#e9efdc); color:#8a9954; }
+.modeChoice[data-mode="GARDEN"] .modeArt { background:linear-gradient(145deg,#23315b,#585582); color:#ffdfa0; }
+.modeNote { margin:0; text-align:center; font-size:11px; line-height:1.9; color:var(--text-secondary); text-wrap:balance; }
+@media(max-width:359px) { .modeChoice { gap:12px!important; padding:20px 14px; } .modeArt { width:54px; height:70px; } }
