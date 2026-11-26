@@ -28,11 +28,9 @@ export function LandingScreen() {
       <p>지금 곁에 있는 하루도, 마음속에 남은 기억도.<br />우리만의 공간에 차곡차곡 간직해요.</p>
     </section>
     <div className={styles.actions}>
-      {app.sessionReady && !busy ? <Link className={styles.primary} href={app.account ? "/home" : "/sign-in?preview=1"}>{app.account ? "기록 공간으로" : "시작하기"}<Icon name="arrow" size={18} /></Link> : <button type="button" className={styles.primary} disabled>{busy ? "기록 공간을 여는 중…" : "준비하고 있어요…"}</button>}
+      {app.sessionReady && !busy ? <Link className={styles.primary} href={app.account ? "/home" : "/sign-in"}>{app.account ? "기록 공간으로" : "시작하기"}<Icon name="arrow" size={18} /></Link> : <button type="button" className={styles.primary} disabled>{busy ? "기록 공간을 여는 중…" : "준비하고 있어요…"}</button>}
       {!app.account && <>
-        <p className={styles.login}>이미 계정이 있나요?<Link href="/sign-in">로그인</Link></p>
         <button className={styles.demo} type="button" disabled={busy || !app.sessionReady} onClick={() => void openDemo()}>우리의 기록 둘러보기<Icon name="chevron" size={15} /></button>
-        <small className={styles.note}>시작하기는 화면 체험으로 진행돼요.</small>
       </>}
       {error && <p className={styles.error} role="alert">{error}</p>}
     </div>

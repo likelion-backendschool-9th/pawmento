@@ -12,10 +12,7 @@
 .actions { display:grid; justify-items:stretch; gap:12px; margin-top:auto; padding-top:4px; }
 .primary { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:54px; padding:13px; border:0; border-radius:999px; background:var(--brand-primary); color:var(--color-white); font:600 16px/1.5 var(--font-sans); text-decoration:none; }
 .primary:disabled { opacity:.65; }
-.login { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin:3px 0 0; font-size:14px; color:var(--text-secondary); }
-.login a { color:var(--brand-primary); font-weight:600; text-underline-offset:4px; }
 .demo { display:flex; align-items:center; justify-content:center; gap:6px; min-height:40px; padding:9px; border:0; border-radius:12px; background:none; color:var(--text-secondary); font:400 14px/1.5 var(--font-sans); cursor:pointer; }
-.note { text-align:center; color:var(--text-muted); font-size:14px; line-height:1.6; }
 .error { margin:0; padding:12px; border-radius:12px; background:var(--color-apricot-100); color:var(--text-danger); font-size:14px; line-height:1.7; }
 .page a:focus-visible,.page button:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
 @media(max-width:359px) { .page { padding-inline:20px; } .brand { margin-bottom:22px; } .copy h1 { font-size:29px; } .copy p { font-size:15px; } }
