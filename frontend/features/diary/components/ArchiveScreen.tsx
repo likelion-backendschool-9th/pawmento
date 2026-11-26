@@ -3,14 +3,13 @@ import { RecordActionLink } from "@/components/RecordAction";
 import { journalItems } from "@/features/diary/utils/journalItems";
 import { PolaroidDiaryList } from "./PolaroidDiaryList";
 
-import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import calendarStyles from "./Calendar.module.css";
-import { calendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
+import { calendarMonth, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
 import { useEffect } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -23,20 +22,46 @@ import styles from "../../shell/components/Workspace.module.css";
 import { JournalCard, EmptyState } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 
+// 데스크톱 Firefox·macOS Safari처럼 기본 월 선택기가 없는 브라우저는 type="month"를 글자 입력으로 바꾼다.
+const noSubscribe = () => () => {};
+function supportsMonthInput() {
+  const input = document.createElement("input");
+  input.type = "month";
+  return input.type === "month";
+}
+
+// 월 선택기가 없을 때 쓰는 연월 입력. 입력 중인 값은 따로 두고, Enter나 포커스를 옮길 때 검사해 반영한다.
+function MonthTextInput({ value, onCommit }: { value: string; onCommit: (month: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const commit = () => {
+    if (isCalendarMonth(draft)) onCommit(draft);
+    else setDraft(value);
+  };
+  return (
+    <input className={calendarStyles.monthTextInput} type="text" inputMode="numeric" placeholder="YYYY-MM" maxLength={7}
+      aria-label="보고 있는 연월 입력 (예: 2025-02)" value={draft}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={event => {
+        if (event.key === "Enter") { event.preventDefault(); commit(); }
+        else if (event.key === "Escape") setDraft(value);
+      }} />
+  );
+}
+
 export function Calendar({
   pet,
-  compact = false,
   selected,
   onSelect,
 }: {
   pet: Pet;
-  compact?: boolean;
   selected?: string;
   onSelect?: (date: string) => void;
 }) {
   const app = useApp();
-  const router = useRouter();
   const current = today();
+  // 서버 렌더링에서는 기본 선택기가 있다고 보고, 브라우저에서 다시 확인한다
+  const nativeMonth = useSyncExternalStore(noSubscribe, supportsMonthInput, () => true);
   const [month, setMonth] = useState((selected ?? current).slice(0, 7));
   const { year, month: num, first, days } = calendarMonth(month);
   const gesture = useRef<{ id: number; x: number; y: number } | null>(null);
@@ -49,27 +74,33 @@ export function Calendar({
   }
   return (
     <div
-      className={`${styles.calendar} ${calendarStyles.calendar} ${compact ? `${styles.compactCalendar} ${calendarStyles.compact}` : ""}`}
+      className={`${styles.calendar} ${calendarStyles.calendar}`}
     >
       <div className={`${styles.calendarHeader} ${calendarStyles.header}`}>
-        <label className={calendarStyles.monthLabel}>
-          <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
-          <Icon name="calendar" size={16} />
-          <input className={calendarStyles.monthInput} type="month" value={month} min="0001-01" max="9999-12"
-            aria-label="보고 있는 연월 선택"
-            onClick={event => {
-              const input = event.currentTarget;
-              try { input.showPicker?.(); } catch { input.focus(); }
-            }}
-            onChange={event => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value)) setMonth(event.target.value); }} />
-        </label>
+        {nativeMonth ? (
+          <label className={calendarStyles.monthLabel}>
+            <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
+            <Icon name="calendar" size={16} />
+            <input className={calendarStyles.monthInput} type="month" value={month} min="0001-01" max="9999-12"
+              aria-label="보고 있는 연월 선택"
+              onClick={event => {
+                const input = event.currentTarget;
+                try { input.showPicker?.(); } catch { input.focus(); }
+              }}
+              onChange={event => { if (isCalendarMonth(event.target.value)) setMonth(event.target.value); }} />
+          </label>
+        ) : (
+          <div className={calendarStyles.monthLabel}>
+            <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
+            {/* 다른 달로 옮기면 입력란도 그 달로 다시 채운다 */}
+            <MonthTextInput key={month} value={month} onCommit={setMonth} />
+          </div>
+        )}
         <button type="button" className={calendarStyles.todayButton}
           aria-pressed={selected === current && month === current.slice(0, 7)}
           onClick={() => {
             setMonth(current.slice(0, 7));
-            if (selected === current) return;
-            if (compact) router.push(`/pets/${pet.id}/calendar?date=${current}`);
-            else onSelect?.(current);
+            if (selected !== current) onSelect?.(current);
           }} aria-label="오늘 날짜로 이동">오늘</button>
       </div>
       <div className={`${styles.calendarGrid} ${calendarStyles.grid}`} tabIndex={0} role="group" aria-label="달력 날짜 · 좌우로 넘겨 월 이동"
@@ -117,32 +148,17 @@ export function Calendar({
           const count = records.filter(
             (record) => record.recordedDate === date,
           ).length;
-          const href = `/pets/${pet.id}/calendar?date=${date}`;
-          const contents = (
-            <>
-              <span>{i + 1}</span>
-              {count > 0 && <span className={calendarStyles.mark} aria-hidden="true"><Icon name="paw" size={22} /></span>}
-            </>
-          );
-          const cls = `${styles.calendarDay} ${calendarStyles.day} ${date === selected ? styles.selectedDay : ""}`;
-          return compact ? (
-            <Link
-              className={cls}
-              key={date}
-              href={href}
-              aria-label={`${formatDate(date)} 기록 ${count}개`}
-            >
-              {contents}
-            </Link>
-          ) : (
+          return (
             <button
-              className={cls}
+              type="button"
+              className={`${styles.calendarDay} ${calendarStyles.day} ${date === selected ? styles.selectedDay : ""}`}
               key={date}
               onClick={() => onSelect?.(date)}
               aria-label={`${formatDate(date)} 기록 ${count}개`}
               aria-pressed={date === selected}
             >
-              {contents}
+              <span>{i + 1}</span>
+              {count > 0 && <span className={calendarStyles.mark} aria-hidden="true"><Icon name="paw" size={22} /></span>}
             </button>
           );
         })}

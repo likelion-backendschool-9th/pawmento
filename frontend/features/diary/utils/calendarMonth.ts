@@ -1,5 +1,9 @@
+// 달력이 다루는 연월은 0001-01부터 9999-12까지다(월 입력의 min·max, 월 이동 범위와 같다).
+export function isCalendarMonth(value: string) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(value) && value >= "0001-01";
+}
 export function calendarMonth(value: string) {
-  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) throw Error("올바른 연월을 선택해 주세요.");
+  if (!isCalendarMonth(value)) throw Error("올바른 연월을 선택해 주세요.");
   const date = new Date(`${value}-01T12:00:00Z`);
   const last = new Date(date);
   last.setUTCMonth(last.getUTCMonth() + 1);
