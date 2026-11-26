@@ -22,3 +22,9 @@ export function isCalendarDate(value: string): boolean {
   const month = Number(value.slice(5, 7));
   return year >= 1 && year <= 9999 && month >= 1 && month <= 12 && monthCells(year, month).includes(value);
 }
+
+// 세로 스크롤과 짧은 탭은 월 이동으로 처리하지 않는다.
+export function swipeMonthDirection(dx: number, dy: number): -1 | 0 | 1 {
+  if (Math.abs(dx) < 48 || Math.abs(dx) <= Math.abs(dy) * 1.2) return 0;
+  return dx < 0 ? 1 : -1;
+}

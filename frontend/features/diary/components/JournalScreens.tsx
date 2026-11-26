@@ -144,7 +144,7 @@ export function JournalForm({
             : "다이어리"}
       </Link>
       <PageHeading
-        eyebrow={questionAnswer ? "오늘의 작은 기억" : "마음에 남은 순간"}
+        eyebrow={questionAnswer ? "오늘의 작은 기억" : undefined}
         title={
           record
             ? "우리의 이야기 다듬기"
@@ -169,10 +169,7 @@ export function JournalForm({
           </header>
         )}
         <section className={styles.editorFields}>
-          <span className="badge">
-            <Icon name={questionAnswer ? "book" : "edit"} size={14} />
-            {questionAnswer ? "질문 답변" : "자유 기록"}
-          </span>
+          {questionAnswer && <span className="badge"><Icon name="book" size={14} />질문 답변</span>}
 
           {!questionAnswer && (
             <div className={editorStyles.titleField}>

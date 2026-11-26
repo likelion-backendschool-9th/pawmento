@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { monthCells, moveMonth, isCalendarDate } from "../features/diary/utils/dateSelection.ts";
+import { monthCells, moveMonth, isCalendarDate, swipeMonthDirection } from "../features/diary/utils/dateSelection.ts";
 import { searchDemoLocations } from "../mocks/fixtures/demoLocationSearch.ts";
 
 test("#233-S9 날짜 선택은 윤년·월 경계·1~9999년을 보존한다", () => {
@@ -23,4 +23,12 @@ test("#233-S9 데모 위치 검색은 빈 검색을 제외하고 주소·장소�
   assert.equal(searchDemoLocations("서울 숲").length, 2);
   assert.equal(searchDemoLocations("성동구 뚝섬로 273")[0].id, "seoul-forest");
   assert.equal(searchDemoLocations("없는 주소").length, 0);
+});
+
+test("#233-S9 달력은 가로 스와이프만 월 이동으로 처리한다", () => {
+  assert.equal(swipeMonthDirection(-70, 4), 1);
+  assert.equal(swipeMonthDirection(70, 4), -1);
+  assert.equal(swipeMonthDirection(-10, 0), 0);
+  assert.equal(swipeMonthDirection(50, 90), 0);
+  assert.equal(swipeMonthDirection(50, 50), 0);
 });

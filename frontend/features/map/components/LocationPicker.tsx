@@ -18,7 +18,6 @@ type Props = {
   mode: PinMode;
   initial: PickedLocation | null;
   onConfirm: (location: PickedLocation) => void;
-  onClear: () => void;
   onClose: () => void;
 };
 
@@ -30,7 +29,6 @@ export function LocationPicker({
   mode,
   initial,
   onConfirm,
-  onClear,
   onClose,
 }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
@@ -58,6 +56,14 @@ export function LocationPicker({
       if (element?.open) element.close();
     };
   }, []);
+
+  function selectPlace(place: ReturnType<typeof searchDemoLocations>[number]) {
+    const point = { latitude: place.latitude, longitude: place.longitude };
+    setStart(point);
+    setCenter(point);
+    setName(place.name);
+    setError("");
+  }
 
   function confirm() {
     try {
@@ -93,7 +99,6 @@ export function LocationPicker({
         </header>
 
         <div className={styles.body}>
-          <p className={styles.intro}>지도를 움직여 기억을 남길 곳을 골라 주세요.</p>
           <div className={styles.mapArea}>
             {clientId && !naverFailed ? (
               <NaverPickerCanvas
@@ -117,19 +122,18 @@ export function LocationPicker({
           </div>
 
           <section className={styles.sheet}>
-            <form className={styles.search} onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); setSearched(query.trim()); }}>
+            <form className={styles.search} onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); const text = query.trim(); setSearched(text); const first = sample ? searchDemoLocations(text)[0] : null; if (first) selectPlace(first); }}>
               <label htmlFor="location-search">주소·장소 검색</label>
               <div className={styles.searchRow}>
-                <input id="location-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setSearched(null); }} placeholder="주소나 장소 이름을 입력해 주세요" autoComplete="off" maxLength={200} />
+                <input id="location-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setSearched(null); }} placeholder={sample ? "주소나 장소 이름을 입력해 주세요" : "주소 검색 준비 중"} autoComplete="off" maxLength={200} />
                 <button type="submit" disabled={!query.trim() || !sample} aria-label="주소 검색"><Icon name="search" size={19} /></button>
               </div>
-              <p className={styles.helper}>{sample ? "데모에서는 서울숲·뚝섬·올림픽공원 예시를 검색할 수 있어요." : "주소 검색은 준비 중이에요. 지도에서 직접 위치를 골라 주세요."}</p>
               {sample && searched && <ul className={styles.results} aria-label="주소 검색 결과">
-                {results.map((place) => <li key={place.id}><button type="button" onClick={() => { const point = { latitude: place.latitude, longitude: place.longitude }; setStart(point); setCenter(point); setName(place.name); setSearched(null); setQuery(place.name); setError(""); }}><Icon name="pin" size={18} /><span><strong>{place.name}</strong><small>{place.address}</small></span></button></li>)}
+                {results.map((place) => <li key={place.id}><button type="button" onClick={() => { selectPlace(place); setSearched(null); setQuery(place.name); }}><Icon name="pin" size={18} /><span><strong>{place.name}</strong><small>{place.address}</small></span></button></li>)}
                 {results.length === 0 && <li className={styles.empty} role="status">예시에서 찾지 못했어요. ‘서울숲’으로 검색하거나 지도에서 골라 주세요.</li>}
               </ul>}
             </form>
-            <div className={styles.coordinates}><Icon name="pin" size={16} /><span>선택한 위치</span><small>{center.latitude.toFixed(5)}, {center.longitude.toFixed(5)}</small></div>
+            <p className={styles.selectedPlace}><Icon name="pin" size={16} /><span>선택한 위치</span></p>
             <label htmlFor="place-name">장소 이름 (선택)</label>
             <input
               id="place-name"
@@ -142,14 +146,6 @@ export function LocationPicker({
               placeholder="예: 서울숲 반려견 놀이터"
               autoComplete="off"
             />
-            <p className={styles.helper}>
-              <Icon name="pin" size={14} />
-              지도에서 고른 곳에 알아보기 쉬운 이름을 붙여 주세요.
-            </p>
-            <p className={styles.helper}>
-              <Icon name="lock" size={14} />
-              데모에서 고른 위치는 저장되지 않아요.
-            </p>
             {error && (
               <p className="error" role="alert">
                 {error}
@@ -157,9 +153,6 @@ export function LocationPicker({
             )}
             <button type="button" className="button primary" onClick={confirm}>
               이 위치로 붙이기
-            </button>
-            <button type="button" className={styles.skip} onClick={onClear}>
-              위치 선택 안 하기
             </button>
           </section>
         </div>
