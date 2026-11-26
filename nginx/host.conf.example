@@ -7,10 +7,19 @@
 # 바꿀 값: <팀 도메인>, <TEAM_PORT>, 인증서 경로
 # 인증서는 certbot 기준 경로다. 서버에서 쓰는 방식에 맞춰 바꾼다
 
+# 접근 로그에는 요청 경로만 남기고 쿼리 문자열(? 뒤)은 남기지 않는다 (#262)
+# 장소 검색어와 지도 영역·좌표는 GET 주소의 쿼리 문자열로 오가는데, 사용자가 입력한 값이라 로그에 남기지 않는다
+# 이 줄은 nginx의 http 설정 안(보통 이 파일처럼 conf.d, sites-enabled 아래)에 있어야 한다. 같은 이름의 log_format이 이미 있으면 이름을 바꾼다
+log_format pawmento_no_query '$remote_addr - $remote_user [$time_local] '
+                             '"$request_method $uri $server_protocol" $status $body_bytes_sent '
+                             '"$http_user_agent"';
+
 # HTTP로 들어오면 HTTPS로 보낸다
 server {
     listen 80;
     server_name <팀 도메인>;
+    # 주소를 그대로 돌려보내는 요청이라 여기도 쿼리 문자열을 남기지 않는다. 경로는 서버에서 쓰는 로그 위치에 맞춘다
+    access_log /var/log/nginx/<팀 도메인>.access.log pawmento_no_query;
     return 301 https://$host$request_uri;
 }
 
@@ -19,6 +28,8 @@ server {
     # nginx 1.25.1 이상. 그보다 오래된 버전이면 이 줄을 지우고 위 줄을 `listen 443 ssl http2;`로 바꾼다
     http2 on;
     server_name <팀 도메인>;
+
+    access_log /var/log/nginx/<팀 도메인>.access.log pawmento_no_query;
 
     ssl_certificate     /etc/letsencrypt/live/<팀 도메인>/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/<팀 도메인>/privkey.pem;
