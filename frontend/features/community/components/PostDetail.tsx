@@ -4,10 +4,22 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { Photo } from "@/components/Photo";
 import { Icon } from "@/components/Icon";
+import { useApp } from "@/app/AppProvider";
 import { categories } from "@/features/community/utils/categories";
 import type { Post } from "@/features/community/types/community";
+import type { PostApi } from "@/features/community/api/postApi";
+import {
+  isLoginRequired,
+  useLoginRedirect,
+  usePost,
+  usePostActions,
+} from "@/features/community/hooks/usePosts";
 import { useLife } from "@/features/shell/hooks/useLife";
-import { LifeStatus, lifeStyles as s } from "@/features/shell/components/LifeUi";
+import {
+  LifeEmpty,
+  LifeStatus,
+  lifeStyles as s,
+} from "@/features/shell/components/LifeUi";
 export function PostDetail({ post }: { post: Post }) {
   const life = useLife();
   const router = useRouter();
@@ -246,6 +258,91 @@ export function PostDetail({ post }: { post: Post }) {
           </div>
         </form>
       </dialog>
+    </div>
+  );
+}
+
+export function PostNotFound() {
+  return (
+    <LifeEmpty
+      title="게시글을 찾을 수 없어요"
+      body="삭제되었거나 운영 처리된 글이에요."
+      href="/community"
+      action="목록으로"
+    />
+  );
+}
+
+// 가입·로그인한 회원의 상세(#104-S4). 수정·삭제는 작성자에게만 보인다.
+// 좋아요·북마크·신고·댓글·사진은 서버 API가 없어 그리지 않는다(#104-S10).
+export function ServerPostDetail({
+  posts: api,
+  postId,
+}: {
+  posts: PostApi;
+  postId: string;
+}) {
+  const app = useApp();
+  const router = useRouter();
+  const toLogin = useLoginRedirect();
+  const loaded = usePost(api, postId);
+  const actions = usePostActions(api);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  if (loaded.status === "missing") return <PostNotFound />;
+  if (loaded.status === "error")
+    return (
+      <div className="form-stack">
+        <LifeStatus error={loaded.error} />
+        <button className="button secondary" onClick={loaded.retry}>
+          다시 시도
+        </button>
+      </div>
+    );
+  const post = loaded.post;
+  if (!post) return <LifeStatus loading />;
+  const mine = post.authorId === app.account?.id;
+  const listHref = `/community?category=${encodeURIComponent(post.category)}`;
+  async function remove(postId: string) {
+    if (!confirm("이 게시글을 삭제할까요?")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await actions.remove(postId);
+      app.notify("게시글을 삭제했어요.");
+      router.push(listHref);
+    } catch (cause) {
+      if (isLoginRequired(cause)) return toLogin();
+      setError(cause instanceof Error ? cause.message : "삭제하지 못했어요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className={s.reading}>
+      <Link href={listHref} className="text-link">
+        ← {post.categoryName}
+      </Link>
+      <article className={s.article}>
+        <span className="badge">{post.categoryName}</span>
+        <h1>{post.title}</h1>
+        <div className={s.articleMeta}>
+          <span>
+            {mine ? "나" : "보호자"} ·{" "}
+            {new Date(post.createdAt).toLocaleString("ko-KR")}
+          </span>
+          {mine && (
+            <span>
+              <Link href={`/community/${post.id}/edit`}>수정</Link>
+              <button disabled={busy} onClick={() => void remove(post.id)}>
+                삭제
+              </button>
+            </span>
+          )}
+        </div>
+        <p className={s.articleBody}>{post.body}</p>
+      </article>
+      <LifeStatus error={error} />
     </div>
   );
 }

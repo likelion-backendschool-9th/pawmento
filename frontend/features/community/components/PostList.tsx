@@ -8,6 +8,9 @@ import { Photo } from "@/components/Photo";
 import { Icon } from "@/components/Icon";
 import { categories } from "@/features/community/utils/categories";
 import type { Category } from "@/features/community/types/community";
+import type { PostApi } from "@/features/community/api/postApi";
+import { usePostList } from "@/features/community/hooks/usePosts";
+import { useApp } from "@/app/AppProvider";
 import type { useLife } from "@/features/shell/hooks/useLife";
 import {
   LifeStatus,
@@ -206,6 +209,112 @@ export function PostList({
         게시글과 댓글은 이 브라우저에서만 공유되는 데모 데이터입니다. 실제
         사용자에게 공개되지 않아요.
       </DemoNote>
+    </>
+  );
+}
+
+// 가입·로그인한 회원의 목록. 서버 카테고리 탭과 최신순 글, "더 보기"(#104-S2, S3).
+// 검색·정렬·좋아요·댓글 수는 서버 API가 없어 그리지 않는다(#104-S10).
+export function ServerPostList({ posts: api }: { posts: PostApi }) {
+  const router = useRouter();
+  const search = useSearchParams();
+  const { account } = useApp();
+  const list = usePostList(api, search.get("category"));
+  const category = list.category;
+  const writeHref = category
+    ? `/community/new?category=${category}`
+    : "/community/new";
+  return (
+    <>
+      <CollectionHeading
+        title="커뮤니티"
+        body={<>반려생활의 발견부터 소중한 기억까지,<br />서로의 이야기를 나누어요.</>}
+      >
+        <RecordActionLink href={writeHref}>글 쓰기</RecordActionLink>
+      </CollectionHeading>
+      <div className={s.communityBanner}>
+        <Icon name="users" size={29} />
+        <div>
+          <strong>함께라서 조금 더 따뜻한 일상</strong>
+          <p>나누고 싶은 질문과 경험을 들려주세요.</p>
+        </div>
+      </div>
+      {list.categories && (
+        <nav className={s.categories} aria-label="커뮤니티 카테고리">
+          {list.categories.map((item) => (
+            <button
+              key={item.code}
+              className={category === item.code ? s.selected : ""}
+              aria-pressed={category === item.code}
+              onClick={() =>
+                router.replace(`/community?category=${encodeURIComponent(item.code)}`, {
+                  scroll: false,
+                })
+              }
+            >
+              {item.name}
+            </button>
+          ))}
+        </nav>
+      )}
+      {category && ["FUNERAL", "MEMORIAL"].includes(category) && (
+        <DemoNote>
+          개인 경험을 나누는 공간입니다. 장례·건강 관련 전문적인 판단은 해당
+          전문가에게 확인해 주세요.
+        </DemoNote>
+      )}
+      {list.error ? (
+        <div className="form-stack">
+          <LifeStatus error={list.error} />
+          <button className="button secondary" onClick={list.retry}>
+            다시 시도
+          </button>
+        </div>
+      ) : !list.posts ? (
+        <LifeStatus loading />
+      ) : list.posts.length ? (
+        <>
+          <div className={s.postList}>
+            {list.posts.map((post) => (
+              <Link
+                href={`/community/${post.id}`}
+                key={post.id}
+                className={s.postCard}
+              >
+                <div>
+                  <span className="badge">{post.categoryName}</span>
+                  <h2>{post.title}</h2>
+                  <p>{post.preview}</p>
+                  <footer>
+                    <span>
+                      {post.authorId === account?.id ? "나" : "보호자"} ·{" "}
+                      {new Date(post.createdAt).toLocaleDateString("ko-KR")}
+                    </span>
+                  </footer>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <LifeStatus error={list.moreError} />
+          {list.nextCursor && (
+            <button
+              className="button secondary"
+              disabled={list.loadingMore}
+              onClick={() => void list.loadMore()}
+            >
+              {list.loadingMore ? "불러오는 중…" : "더 보기"}
+            </button>
+          )}
+        </>
+      ) : (
+        <LifeEmpty
+          title="아직 이야기가 없어요"
+          body="첫 번째 이야기를 나누어 주세요."
+          href={writeHref}
+          action="글 쓰기"
+          actionIcon="edit"
+        />
+      )}
     </>
   );
 }
