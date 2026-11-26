@@ -70,9 +70,13 @@ class PlaceJpaEntity {
 	private Instant sourceUpdatedAt;
 
 	// 검색용으로 정규화한 이름·주소(#195). 영역 조회의 겹침 제거와 같은 기준(PlaceSelection.comparableName)이다.
-	// 이 열을 더하기 전에 저장한 행은 비어 있고, 서버가 시작할 때 PlaceSearchKeyBackfill이 이 두 열만 채운다
+	// 이 열을 더하기 전에 저장한 행은 비어 있고, 서버가 시작할 때 PlaceSearchKeyBackfill이 이 두 열만 채운다.
+	// 원본 이름·주소 열(255자)보다 넉넉히 잡는다. 소문자로 바꾸면 길어지는 글자가 있다(İ는 i와 결합 점 두 글자가 된다).
+	// 한 글자가 최대 두 글자로 늘어나므로 255자의 두 배(510자) 안에 든다. 길이가 모자라면 키를 저장하지 못해 가져오기가 실패한다
+	@Column(length = 1024)
 	private String nameKey;
 
+	@Column(length = 1024)
 	private String addressKey;
 
 	@Column(nullable = false, updatable = false)
