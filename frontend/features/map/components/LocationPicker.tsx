@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useApp } from "@/app/AppProvider";
+import { isDemoAccount } from "@/features/member/types/account";
 import { Icon } from "@/components/Icon";
 import type { MapPoint } from "@/features/map/types/MapBounds";
 import type { PickedLocation } from "@/features/map/types/PickedLocation";
-import { pickLocation, PLACE_NAME_MAX_LENGTH } from "@/features/map/utils/pickedLocation";
+import { pickLocation, placeNameAfterPick, PLACE_NAME_MAX_LENGTH } from "@/features/map/utils/pickedLocation";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
 import { NaverPickerCanvas } from "./NaverPickerCanvas";
 import { StaticPickerCanvas } from "./StaticPickerCanvas";
@@ -15,7 +17,6 @@ type Props = {
   mode: PinMode;
   initial: PickedLocation | null;
   onConfirm: (location: PickedLocation) => void;
-  onClear: () => void;
   onClose: () => void;
 };
 
@@ -27,13 +28,23 @@ export function LocationPicker({
   mode,
   initial,
   onConfirm,
-  onClear,
   onClose,
 }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
-  const start: MapPoint = initial ?? DEFAULT_MAP_CENTER;
+  const { account, dependencies } = useApp();
+  const searchLocations = dependencies.locationSearch.searchDemo;
+  const sample = isDemoAccount(account);
+  // 지도를 옮길 위치. 결과를 고를 때마다 새 값이라, 같은 결과를 다시 골라도 그 위치로 돌아간다
+  const [start, setStart] = useState<MapPoint>(initial ?? DEFAULT_MAP_CENTER);
+  const [query, setQuery] = useState("");
+  const [searched, setSearched] = useState<string | null>(null);
+  const results = sample && searched ? searchLocations(searched) : [];
   const [center, setCenter] = useState<MapPoint>(start);
   const [name, setName] = useState(initial?.placeName ?? "");
+  // 검색 결과로 채운 장소 이름. 사용자가 직접 쓴 이름은 결과를 골라도 덮지 않는다
+  const filledName = useRef<string | null>(null);
+  // 결과를 고른 횟수. 예시 지도는 이 값으로 다시 그려 같은 결과를 다시 골라도 그 위치로 돌아간다
+  const [picks, setPicks] = useState(0);
   const [error, setError] = useState("");
   const [naverFailed, setNaverFailed] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -50,6 +61,17 @@ export function LocationPicker({
       if (element?.open) element.close();
     };
   }, []);
+
+  function selectPlace(place: ReturnType<typeof searchLocations>[number]) {
+    const point = { latitude: place.latitude, longitude: place.longitude };
+    setStart(point);
+    setCenter(point);
+    const nextName = placeNameAfterPick(name, filledName.current, place.name);
+    if (nextName === place.name) filledName.current = place.name;
+    setName(nextName);
+    setPicks((count) => count + 1);
+    setError("");
+  }
 
   function confirm() {
     try {
@@ -73,14 +95,6 @@ export function LocationPicker({
     >
       <div className={styles.panel}>
         <header className={styles.bar}>
-          <button
-            type="button"
-            className={styles.roundButton}
-            onClick={onClose}
-            aria-label="돌아가기"
-          >
-            <Icon name="chevron" size={20} />
-          </button>
           <h2>위치 붙이기</h2>
           <button
             type="button"
@@ -102,7 +116,7 @@ export function LocationPicker({
                 onUnavailable={() => setNaverFailed(true)}
               />
             ) : (
-              <StaticPickerCanvas center={start} onCenterChange={setCenter} />
+              <StaticPickerCanvas key={picks} center={start} onCenterChange={setCenter} />
             )}
             <p className={styles.hint} role="status">
               지도를 움직여 핀을 놓아 보세요
@@ -115,8 +129,17 @@ export function LocationPicker({
           </div>
 
           <section className={styles.sheet}>
-            <p className={styles.eyebrow}>OUR MEMORY MAP</p>
-            <h3>이 장소를 기록에 남길게요</h3>
+            <form className={styles.search} onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); const text = query.trim(); setSearched(text); const first = sample ? searchLocations(text)[0] : null; if (first) selectPlace(first); }}>
+              <label htmlFor="location-search">주소·장소 검색</label>
+              <div className={styles.searchRow}>
+                <input id="location-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setSearched(null); }} placeholder={sample ? "주소나 장소 이름을 입력해 주세요" : "주소 검색 준비 중"} autoComplete="off" maxLength={200} />
+                <button type="submit" disabled={!query.trim() || !sample} aria-label="주소 검색"><Icon name="search" size={19} /></button>
+              </div>
+              {sample && searched && <ul className={styles.results} aria-label="주소 검색 결과">
+                {results.map((place) => <li key={place.id}><button type="button" onClick={() => { selectPlace(place); setSearched(null); setQuery(place.name); }}><Icon name="pin" size={18} /><span><strong>{place.name}</strong><small>{place.address}</small></span></button></li>)}
+                {results.length === 0 && <li className={styles.empty} role="status">예시에서 찾지 못했어요. ‘서울숲’으로 검색하거나 지도에서 골라 주세요.</li>}
+              </ul>}
+            </form>
             <label htmlFor="place-name">장소 이름 (선택)</label>
             <input
               id="place-name"
@@ -129,14 +152,6 @@ export function LocationPicker({
               placeholder="예: 서울숲 반려견 놀이터"
               autoComplete="off"
             />
-            <p className={styles.helper}>
-              <Icon name="pin" size={14} />
-              비워 두면 저장할 때 주소로 채워 드려요.
-            </p>
-            <p className={styles.helper}>
-              <Icon name="lock" size={14} />
-              위치는 나만 볼 수 있어요. 가족에게도 보이지 않아요.
-            </p>
             {error && (
               <p className="error" role="alert">
                 {error}
@@ -144,9 +159,6 @@ export function LocationPicker({
             )}
             <button type="button" className="button primary" onClick={confirm}>
               이 위치로 붙이기
-            </button>
-            <button type="button" className={styles.skip} onClick={onClear}>
-              위치 없이 저장하기
             </button>
           </section>
         </div>

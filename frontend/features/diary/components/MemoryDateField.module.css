@@ -1,0 +1,25 @@
+.field { display:grid; gap:9px; margin:12px 0 18px; }
+.field > label { margin:0; color:var(--text-secondary); font-family:var(--font-sans); font-size:var(--editor-label-font-size,13px); font-weight:500; line-height:1.5; }
+.trigger { display:flex; align-items:center; gap:10px; width:100%; min-height:52px; padding:12px 14px; border:1px solid var(--mode-border); border-radius:15px; background:var(--surface-card); color:var(--text-primary); font:inherit; font-family:var(--font-sans); font-size:var(--editor-field-font-size,16px); font-weight:400; line-height:1.5; cursor:pointer; text-align:left; }
+.trigger span { flex:1; }
+.trigger > svg { color:var(--brand-primary); flex:none; }
+.dialog { box-sizing:border-box; width:calc(100% - 32px); max-width:400px; max-height:calc(100dvh - 32px); margin:auto; padding:22px; border:1px solid var(--mode-border); border-radius:28px; background:var(--surface-card); color:var(--text-primary); font-family:var(--font-sans); overflow:auto; box-shadow:0 24px 80px #26352333; }
+.dialog::backdrop { background:#25332266; backdrop-filter:blur(5px); }
+.header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:20px; }
+.header h2 { font-size:20px; font-weight:600; margin:0; letter-spacing:-.6px; }
+.iconButton { display:grid; place-items:center; flex:none; width:44px; height:44px; padding:0; border:0; border-radius:50%; background:var(--mode-subtle); color:var(--brand-primary); cursor:pointer; }
+.iconButton:disabled { opacity:.3; }
+.previous { display:flex; transform:rotate(180deg); }
+.month { display:flex; align-items:center; justify-content:space-between; gap:5px; margin-bottom:16px; }
+.monthLabel { font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
+.swipeZone { touch-action:pan-y pinch-zoom; user-select:none; }
+.week,.days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; text-align:center; }
+.week { font-size:11px; color:var(--text-muted); margin-bottom:9px; }
+.week span:first-child { color:var(--text-danger); }
+.days button { position:relative; display:grid; place-items:center; aspect-ratio:1; padding:0; border:1px solid transparent; border-radius:50%; background:none; color:var(--text-primary); font:inherit; font-size:14px; cursor:pointer; }
+.days button[aria-current="date"] { border-color:var(--mode-border); }
+.days button[aria-pressed="true"] { background:var(--brand-primary); color:var(--color-white); }
+.actions { margin-top:18px; }
+.actions button { width:100%; min-height:48px; border:0; border-radius:14px; background:var(--brand-primary); color:var(--color-white); font:inherit; font-size:14px; cursor:pointer; }
+.dialog button:focus-visible,.trigger:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+@media(max-width:359px) { .dialog { padding:16px; } .header h2 { font-size:18px; } }

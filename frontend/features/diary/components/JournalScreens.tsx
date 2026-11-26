@@ -19,6 +19,9 @@ import { formatDate } from "@/lib/date";
 import type { JournalItem } from "../types/JournalItem";
 import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
+import { MemoryDateField } from "./MemoryDateField";
+import { isCalendarDate } from "../utils/dateSelection";
+import editorStyles from "./JournalEditor.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
 import { messageOf } from "../../shell/utils/presentation";
@@ -80,6 +83,11 @@ export function JournalForm({
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (busy || (questionAnswer && !questionText)) return;
+    // 날짜 칸은 버튼이라 브라우저의 required가 막지 못한다. ?date=엉터리처럼 들어온 값은 저장 전에 알린다
+    if (!questionAnswer && !isCalendarDate(date)) {
+      setError("기억하고 싶은 날짜를 선택해 주세요.");
+      return;
+    }
     if (record?.legacy && record.attachments?.some((a) => a.type === "VIDEO")) {
       setError("영상이 포함된 이전 데모 기록은 읽기만 가능해요.");
       return;
@@ -142,7 +150,7 @@ export function JournalForm({
             : "다이어리"}
       </Link>
       <PageHeading
-        eyebrow={questionAnswer ? "오늘의 작은 기억" : "마음에 남은 순간"}
+        eyebrow={questionAnswer ? "오늘의 작은 기억" : undefined}
         title={
           record
             ? "우리의 이야기 다듬기"
@@ -154,7 +162,7 @@ export function JournalForm({
       />
       <form
         onSubmit={save}
-        className={`${styles.editor} ${styles.diaryEditor}`}
+        className={`${styles.editor} ${styles.diaryEditor} ${editorStyles.form}`}
       >
         {questionAnswer && (
           <header className={styles.editorQuestion}>
@@ -167,17 +175,16 @@ export function JournalForm({
           </header>
         )}
         <section className={styles.editorFields}>
-          <span className="badge">
-            <Icon name={questionAnswer ? "book" : "edit"} size={14} />
-            {questionAnswer ? "질문 답변" : "자유 기록"}
-          </span>
+          {questionAnswer && <span className="badge"><Icon name="book" size={14} />질문 답변</span>}
 
           {!questionAnswer && (
+            <div className={editorStyles.titleField}>
             <label htmlFor="diary-title">
-              제목 <span aria-hidden="true">*</span>
+              <span>제목 <span className={editorStyles.required}>(필수)</span></span>
               <input
                 id="diary-title"
                 required
+                aria-describedby="diary-title-count"
                 maxLength={200}
                 value={title}
                 placeholder="오늘의 기억에 이름을 붙여 주세요"
@@ -186,29 +193,19 @@ export function JournalForm({
                   setTitle(event.target.value);
                 }}
               />
-              <small>{[...title].length} / 100자 · 필수 입력</small>
             </label>
+            <small id="diary-title-count">{[...title].length} / 100자</small>
+            </div>
           )}
-          <label>
-            {questionAnswer ? "답변 등록일" : "기억하고 싶은 날짜"}
-            <input
-              type="date"
-              required
-              value={date}
-              onChange={(event) => {
-                setSaved(false);
-                setDate(event.target.value);
-              }}
-              readOnly={questionAnswer}
-              max="9999-12-31"
-            />
-            {questionAnswer && (
-              <small>
-                답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은
-                유지돼요.
-              </small>
-            )}
-          </label>
+          {questionAnswer ? (
+            <label>
+              답변 등록일
+              <input type="date" required value={date} readOnly max="9999-12-31" />
+              <small>답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은 유지돼요.</small>
+            </label>
+          ) : (
+            <MemoryDateField value={date} mode={pet.mode} onChange={(next) => { setSaved(false); setError(""); setDate(next); }} />
+          )}
           {!questionAnswer && (
             <LocationField
               mode={pet.mode}

@@ -35,9 +35,6 @@ export function LocationField({
           </span>
           <span className={styles.pickedText}>
             <strong>{value.placeName ?? "지도에서 고른 위치"}</strong>
-            <small>
-              {value.latitude.toFixed(5)}, {value.longitude.toFixed(5)}
-            </small>
           </span>
           <button
             ref={opener}
@@ -76,10 +73,6 @@ export function LocationField({
           initial={value}
           onConfirm={(location) => {
             onChange(location);
-            close();
-          }}
-          onClear={() => {
-            onChange(null);
             close();
           }}
           onClose={close}
