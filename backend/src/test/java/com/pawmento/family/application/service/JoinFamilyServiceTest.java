@@ -44,6 +44,7 @@ class JoinFamilyServiceTest {
 	private static final Long JOINER = 3L;
 	private static final String CODE = "K7Q2M9XA";
 	private static final Instant NOW = Instant.parse("2026-11-24T03:00:00Z");
+	private static final Long CODE_ID = 77L;
 
 	private final InviteCodes inviteCodes = new InviteCodes("test-secret");
 	private final String hash = inviteCodes.hash(CODE);
@@ -67,7 +68,7 @@ class JoinFamilyServiceTest {
 		when(clock.instant()).thenAnswer(invocation -> now.get());
 		// 한 시간 전에 발급한, 아직 23시간 남은 코드
 		when(load.loadByCodeHash(hash))
-				.thenReturn(Optional.of(PetInviteCode.issue(PET, hash, OWNER, NOW.minusSeconds(3600))));
+				.thenReturn(Optional.of(storedCode(CODE_ID, PET)));
 		when(lock.lockOwnerId(PET)).thenReturn(Optional.of(OWNER));
 		when(consume.consume(any(), any())).thenReturn(true);
 		when(pets.loadSummary(PET)).thenReturn(Optional.of(new PetSummary(PET, "보리", "0001")));
@@ -86,7 +87,8 @@ class JoinFamilyServiceTest {
 		// 잠금을 얻은 뒤 코드를 다시 읽는다
 		order.verify(load).loadByCodeHash(hash);
 		order.verify(families).existsByPetIdAndMemberId(PET, JOINER);
-		order.verify(consume).consume(hash, NOW);
+		// 해시가 아니라 확인한 코드 행 id로 소비한다
+		order.verify(consume).consume(CODE_ID, NOW);
 		order.verify(save).save(saved.capture());
 		order.verify(pets).loadSummary(PET);
 		assertThat(saved.getValue().getPetId()).isEqualTo(PET);
@@ -164,13 +166,41 @@ class JoinFamilyServiceTest {
 	void revokedWhileWaitingForLock() {
 		// 처음 읽을 때는 있었지만, 잠금을 얻고 다시 읽으면 내보내기가 이미 지웠다
 		when(load.loadByCodeHash(hash)).thenReturn(
-				Optional.of(PetInviteCode.issue(PET, hash, OWNER, NOW.minusSeconds(3600))),
+				Optional.of(storedCode(CODE_ID, PET)),
 				Optional.empty());
 		when(families.existsByPetIdAndMemberId(PET, FAMILY)).thenReturn(true);
 
 		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(FAMILY, CODE)))
 				.isInstanceOf(InviteCodeNotFoundException.class);
 		verify(families, never()).existsByPetIdAndMemberId(any(), any());
+		verify(consume, never()).consume(any(), any());
+		verify(save, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("#133-S18 잠금 뒤 다시 읽은 코드가 같은 해시의 다른 행이면 404이고, 코드도 멤버십도 건드리지 않는다")
+	void sameHashDifferentRowAfterLock() {
+		// 처음 읽은 코드는 지워지고, 같은 값이 새 행으로 다시 발급된 상황
+		when(load.loadByCodeHash(hash)).thenReturn(
+				Optional.of(storedCode(CODE_ID, PET)),
+				Optional.of(storedCode(CODE_ID + 1, PET)));
+
+		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(JOINER, CODE)))
+				.isInstanceOf(InviteCodeNotFoundException.class);
+		verify(families, never()).existsByPetIdAndMemberId(any(), any());
+		verify(consume, never()).consume(any(), any());
+		verify(save, never()).save(any());
+	}
+
+	@Test
+	@DisplayName("#133-S18 잠금 뒤 다시 읽은 코드가 다른 반려동물의 것이면 404이고, 코드도 멤버십도 건드리지 않는다")
+	void codeOfOtherPetAfterLock() {
+		when(load.loadByCodeHash(hash)).thenReturn(
+				Optional.of(storedCode(CODE_ID, PET)),
+				Optional.of(storedCode(CODE_ID, PET + 1)));
+
+		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(JOINER, CODE)))
+				.isInstanceOf(InviteCodeNotFoundException.class);
 		verify(consume, never()).consume(any(), any());
 		verify(save, never()).save(any());
 	}
@@ -204,5 +234,11 @@ class JoinFamilyServiceTest {
 		assertThatThrownBy(() -> service.join(new JoinFamilyCommand(JOINER, CODE)))
 				.isInstanceOf(InviteCodeNotFoundException.class);
 		verify(save, never()).save(any());
+	}
+
+	// DB에서 읽어 온 코드처럼 id가 있다. 한 시간 전에 발급해 아직 23시간 남았다
+	private PetInviteCode storedCode(Long id, Long petId) {
+		Instant issuedAt = NOW.minusSeconds(3600);
+		return PetInviteCode.restore(id, petId, hash, OWNER, issuedAt.plus(PetInviteCode.VALID_FOR), issuedAt);
 	}
 }
