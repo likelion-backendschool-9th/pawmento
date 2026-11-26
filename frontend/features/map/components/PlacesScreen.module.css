@@ -3,6 +3,12 @@
   display: block;
 }
 
+/* 추억 지도(MapScreen)의 .stage는 정사각형(aspect-ratio: 1)인데, 정보 지도는 높이를 직접 정해서 쓴다. 비율이 남아 있으면 너비가 높이와 같아져
+   (휴대폰에서 697px) 화면 밖으로 넘치므로 이 화면에서는 비율을 쓰지 않는다. */
+.page [data-places-stage] {
+  aspect-ratio: auto;
+}
+
 /* 예시 지도의 바탕과 마커를 함께 담아, 선택한 마커가 카드에 가려지면 같이 올린다 */
 .shifter {
   position: absolute;
