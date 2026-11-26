@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { createPostApi } from "../features/community/api/postApi.ts";
 import { selectCommunitySource } from "../features/community/source.ts";
+import { appendPosts, pickCategory } from "../features/community/utils/postList.ts";
 import type { Account } from "../features/member/types/account.ts";
 import { ApiError, createApiClient } from "../lib/http/apiClient.ts";
 
@@ -226,4 +227,45 @@ test("#104-S9 서버 글이 실패해도 데모 글로 대신하지 않고 오�
 test("#104-S9 의존성 조립은 같은 HTTP 클라이언트로 글 API를 만든다", () => {
   const composition = readFileSync(resolve("app/composition.ts"), "utf8");
   assert.match(composition, /posts:\s*createPostApi\(http\)/);
+});
+
+const serverCategories = [
+  { code: "LIFE", name: "반려 생활" },
+  { code: "CARE", name: "건강·돌봄" },
+  { code: "FUNERAL", name: "장례 정보" },
+  { code: "MEMORIAL", name: "추모 방식" },
+  { code: "MEMORY", name: "기억 나누기" },
+];
+
+test("#104-S12 주소의 카테고리가 서버에 있으면 그대로, 없거나 비면 첫 카테고리를 고른다", () => {
+  assert.equal(pickCategory(serverCategories, "CARE"), "CARE");
+  assert.equal(pickCategory(serverCategories, "NOPE"), "LIFE");
+  assert.equal(pickCategory(serverCategories, ""), "LIFE");
+  assert.equal(pickCategory(serverCategories, null), "LIFE");
+  assert.equal(pickCategory([], "CARE"), undefined);
+});
+
+function summaries(from: number, to: number) {
+  const posts = [];
+  for (let postId = from; postId >= to; postId -= 1) {
+    posts.push({
+      id: String(postId),
+      category: "LIFE",
+      categoryName: "반려 생활",
+      title: `글 ${postId}`,
+      preview: `미리보기 ${postId}`,
+      authorId: "3",
+      createdAt: "2026-11-25T03:00:00Z",
+    });
+  }
+  return posts;
+}
+
+test("#104-S13 더 보기로 받은 글을 뒤에 이어 붙이고, 겹친 글은 한 번만 둔다", () => {
+  const merged = appendPosts(summaries(25, 6), summaries(6, 1));
+
+  assert.deepEqual(
+    merged.map((post) => post.id),
+    summaries(25, 1).map((post) => post.id),
+  );
 });
