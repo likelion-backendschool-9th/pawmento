@@ -279,13 +279,15 @@
 }
 
 /* 휴대폰에서는 지도가 머리글과 하단 메뉴 사이를 가득 채운다. 위쪽 제목은 접고, 카드는 하단 메뉴 위에 붙는 시트가 된다.
-   머리글·하단 메뉴 높이는 SpaceShell이 /places에서 --shell-top, --shell-bottom으로 알려 준다. */
+   머리글·하단 메뉴 높이는 SpaceShell이 --app-header-height, --app-nav-height로 알려 준다. */
 @container app (max-width: 767px) {
   .heading {
     display: none;
   }
   .page [data-places-stage] {
-    height: calc(100dvh - var(--shell-top, 76px) - var(--shell-bottom, 71px));
+    /* 머리글(--app-header-height)과 하단 메뉴(--app-nav-height), 본문 위아래 여백 24px씩을 뺀 높이. 예전 --shell-top·--shell-bottom은
+       이제 아무도 정하지 않아 기본값(76px·71px)이 쓰여 지도가 하단 메뉴 뒤로 밀려 내려가 페이지가 스크롤되고 카드의 아래쪽이 가려졌다 */
+    height: calc(100dvh - var(--app-header-height, 76px) - var(--app-nav-height, 82px) - 48px);
     /* 아주 낮은 화면에서 지도가 하단 메뉴 뒤로 밀려 페이지가 스크롤되지 않도록 하한을 작게 둔다 */
     min-height: 240px;
     border: 0;
