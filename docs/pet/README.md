@@ -9,6 +9,7 @@
 | [#45](https://github.com/likelion-backendschool-9th/pawmento/issues/45) | 설계 문서 작업(반려동물 본문 + 마이·관리자 골격) | 이 README, [manage.md](manage.md), [admin](../admin/README.md), [mypage](../mypage/README.md) |
 | [#46](https://github.com/likelion-backendschool-9th/pawmento/issues/46) | 반려동물 등록·관리(MVP, **백엔드 API**) | [manage.md](manage.md) |
 | [#178](https://github.com/likelion-backendschool-9th/pawmento/issues/178) | 반려동물 출생 연도 입력·연도 기준 나이 조회 | [birth-year-and-age.md](birth-year-and-age.md) |
+| [#253](https://github.com/likelion-backendschool-9th/pawmento/issues/253) | 반려동물 관리 목록·상세의 출생 연도와 나이 표시 | [birth-year-display.md](birth-year-display.md) |
 | [#72](https://github.com/likelion-backendschool-9th/pawmento/issues/72) | pet 예외의 공통 기본 예외 전환 계획 | [exception-migration.md](exception-migration.md) |
 | [#130](https://github.com/likelion-backendschool-9th/pawmento/issues/130) | 반려동물 프로필 사진 연결·조회·교체·제거 | [profile-photo.md](profile-photo.md) |
 
