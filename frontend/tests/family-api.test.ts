@@ -99,3 +99,43 @@ test("#133-S24 로그인이 풀리면 UNAUTHORIZED로 알린다", async () => {
   await assert.rejects(api.list("42"), { code: "UNAUTHORIZED" });
   await assert.rejects(api.myPets(), { code: "UNAUTHORIZED" });
 });
+
+test("#133-S24 소유주의 내보내기는 그 가족의 id와 petId로 본문 없는 DELETE를 보낸다", async () => {
+  const { api, calls } = server(() => new Response(null, { status: 204 }));
+
+  await api.removeMember("42", "7");
+
+  assert.deepEqual(calls, [{ url: "/api/v1/families/members/7?petId=42", method: "DELETE", body: undefined }]);
+});
+
+test("#133-S24 가족의 나가기는 /members/me와 petId로 본문 없는 DELETE를 보낸다", async () => {
+  const { api, calls } = server(() => new Response(null, { status: 204 }));
+
+  await api.leave("42");
+
+  assert.deepEqual(calls, [{ url: "/api/v1/families/members/me?petId=42", method: "DELETE", body: undefined }]);
+});
+
+test("#133-S24 숫자가 아닌 가족 id나 반려동물 id는 서버에 보내지 않고 NOT_FOUND다", async () => {
+  const { api, calls } = server(() => assert.fail("예상하지 않은 서버 요청"));
+
+  // ../me 같은 값이 경로에 들어가 다른 API(나가기)를 부르지 않게 막는다
+  for (const memberId of ["me", "../me", "0", "-1", "abc", ""]) {
+    await assert.rejects(api.removeMember("42", memberId), { code: "NOT_FOUND" });
+  }
+  await assert.rejects(api.removeMember("..", "7"), { code: "NOT_FOUND" });
+  await assert.rejects(api.leave("abc"), { code: "NOT_FOUND" });
+  assert.equal(calls.length, 0);
+});
+
+test("#133-S24 내보내기·나가기 거절은 서버의 code와 문구를 그대로 전한다", async () => {
+  for (const [status, code, message] of [
+    [403, "FORBIDDEN", "이 반려동물의 소유주나 가족만 할 수 있습니다."],
+    [404, "NOT_FOUND", "이 반려동물의 가족이 아닙니다."],
+    [409, "CONFLICT", "소유주는 가족에서 빠질 수 없습니다. 먼저 소유주를 넘기거나 반려동물을 삭제해 주세요."],
+  ] as const) {
+    const { api } = server(() => Response.json({ code, message }, { status }));
+    await assert.rejects(api.removeMember("42", "7"), { code, message });
+    await assert.rejects(api.leave("42"), { code, message });
+  }
+});

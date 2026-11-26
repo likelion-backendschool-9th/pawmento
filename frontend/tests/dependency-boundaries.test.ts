@@ -266,6 +266,9 @@ test("#52-S6 반려동물 목록 API는 조회 결과를 아이 요약으로 돌
     postEmpty: async () => {
       throw Error("unused");
     },
+    deleteEmpty: async () => {
+      throw Error("unused");
+    },
   };
   const pets = createPetApi(http);
   assert.deepEqual(await pets.listMine(), [{ id: "1", name: "콩이" }]);

@@ -74,6 +74,9 @@ function fakeApi(handlers: {
     postEmpty: async () => {
       throw Error("not used");
     },
+    deleteEmpty: async () => {
+      throw Error("not used");
+    },
   };
 }
 
