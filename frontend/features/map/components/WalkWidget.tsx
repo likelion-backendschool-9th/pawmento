@@ -14,28 +14,7 @@ export function WalkWidget({ session }: Props) {
     <section className={styles.widget} aria-label="산책 위젯">
       <div className={styles.summary}>
         <div className={styles.scene} data-moving={moving} aria-label={moving ? "걷는 강아지" : "쉬는 강아지"} role="img">
-          <svg viewBox="0 0 120 100" aria-hidden="true">
-            <ellipse cx="60" cy="87" rx="42" ry="5" fill="currentColor" opacity=".12" />
-            <g className={styles.dog} fill="#dfa65e" stroke="#b98043" strokeWidth="1.3" strokeLinejoin="round">
-              <path className={styles.tail} d="M30 52C7 55 8 32 21 31C16 43 23 44 35 43Z" fill="#f6d49b" />
-              <path className={styles.backLeg} d="M38 66L35 84Q29 88 26 83L28 64Z" />
-              <path className={styles.backLeg} d="M77 64L83 83Q83 88 75 85L67 66Z" />
-              <path d="M27 49Q39 35 70 45L84 57L77 73Q49 81 29 68Z" fill="#edbd7c" />
-              <path d="M32 62Q50 70 74 58L76 72Q47 82 31 69Z" fill="#fff3da" stroke="none" />
-              <path className={styles.frontLeg} d="M36 66L43 83Q43 89 34 85L28 66Z" fill="#fff3da" />
-              <path className={styles.frontLeg} d="M71 64L70 84Q65 89 60 84L61 65Z" fill="#fff3da" />
-              <g className={styles.head}>
-                <path d="M66 40L63 15Q78 12 84 36M85 36L98 15Q107 21 101 45" />
-                <path d="M68 31L68 21L78 35M91 33L98 23L98 40" fill="#e7a498" stroke="none" />
-                <path d="M64 39Q79 27 96 39L105 51Q113 63 98 68Q76 75 65 57Z" fill="#f4c887" />
-                <path d="M83 37L91 48Q101 47 108 54Q109 67 96 69Q79 67 75 57Z" fill="#fff5df" stroke="none" />
-                <path d="M100 50Q109 47 109 53Q107 58 103 56Z" fill="#4b4036" stroke="none" />
-                {moving ? <ellipse cx="91" cy="46" rx="2.4" ry="3" fill="#4b4036" stroke="none" /> : <path d="M87 47Q91 50 95 46" fill="none" stroke="#4b4036" strokeWidth="2" />}
-                <path d="M96 60Q101 63 105 59" fill="none" stroke="#4b4036" />
-                <path d="M70 61L82 69L71 77L65 66Z" fill="#849660" stroke="none" />
-              </g>
-            </g>
-          </svg>
+          <span className={styles.sprite} aria-hidden="true" />
         </div>
         <div className={styles.metrics}>
           <p className={styles.status}><i data-active={moving} />{status}</p>

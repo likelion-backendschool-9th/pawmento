@@ -1,7 +1,7 @@
 .widget { margin-top: 14px; padding: 14px; border: 1px solid var(--mode-border); border-radius: 24px; background: var(--surface-card); box-shadow: 0 5px 18px color-mix(in srgb, var(--brand-primary) 6%, transparent); }
 .summary { display:flex; align-items:center; gap:14px; }
-.scene { flex:none; width:90px; height:88px; border-radius:20px; color:var(--brand-primary); background:linear-gradient(150deg,var(--mode-subtle),var(--surface-card)); overflow:hidden; }
-.scene svg { width:100%; height:100%; }
+.scene { display:grid; place-items:center; flex:none; width:90px; height:88px; border-radius:20px; color:var(--brand-primary); background:linear-gradient(150deg,var(--mode-subtle),var(--surface-card)); overflow:hidden; }
+.sprite { display:block; width:100%; aspect-ratio:1; background-image:url("/images/walk/corgi-watercolor-sprites.webp"); background-size:200% 200%; background-position:100% 100%; background-repeat:no-repeat; }
 .metrics { flex:1; min-width:0; }
 .status { display:flex; align-items:center; gap:6px; margin:0 0 12px; color:var(--text-secondary); font-size:12px; }
 .status i { width:6px; height:6px; border-radius:50%; background:var(--text-muted); }
@@ -16,14 +16,11 @@
 .note,.warning { margin:10px 2px 0; font-size:12px; line-height:1.6; color:var(--text-secondary); overflow-wrap:anywhere; }
 .warning { color:var(--text-danger); }
 .discard { background:none; border:0; padding:10px 0; color:var(--text-secondary); font:inherit; font-size:12px; text-decoration:underline; cursor:pointer; }
-.frontLeg,.backLeg { transform-box:fill-box; transform-origin:50% 0; }
-.tail { transform-origin:28px 50px; }
-.scene[data-moving="true"] .frontLeg { animation:step .65s ease-in-out infinite alternate; }
-.scene[data-moving="true"] .backLeg { animation:step .65s ease-in-out infinite alternate-reverse; }
-.scene[data-moving="true"] .dog { animation:bounce .325s ease-in-out infinite alternate; }
-.scene[data-moving="true"] .tail { animation:wag .5s ease-in-out infinite alternate; }
-@keyframes step { from {transform:rotate(-19deg)} to {transform:rotate(19deg)} }
-@keyframes bounce { to {transform:translateY(-1.5px)} }
-@keyframes wag { to {transform:rotate(-12deg)} }
-@media(prefers-reduced-motion:reduce) { .scene[data-moving="true"] * { animation:none; } }
+.scene[data-moving="true"] .sprite { animation:walkCycle .8s steps(1,end) infinite; }
+@keyframes walkCycle {
+  0%,100% { background-position:0 0; }
+  25%,75% { background-position:100% 0; }
+  50% { background-position:0 100%; }
+}
+@media(prefers-reduced-motion:reduce) { .scene[data-moving="true"] .sprite { animation:none; background-position:0 0; } }
 @container app (max-width:359px) { .scene { width:68px; height:76px; } .summary { gap:9px; } .metrics dd { font-size:16px; } }
