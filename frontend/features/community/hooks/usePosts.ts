@@ -46,13 +46,17 @@ export function useLoginRedirect() {
 
 // 저장·삭제한 글을 화면끼리 나눈다. Next는 지나온 화면을 숨겨 두었다가 다시 보이므로,
 // 알리지 않으면 돌아간 목록과 상세에 고치기 전 글이나 지운 글이 남는다.
-// 값이 null이면 지운 글이다.
+// 값이 null이면 지운 글이다. 로그아웃 뒤 다른 계정으로 들어오면 남지 않게 계정별로 둔다.
 const changedPosts = new Map<string, PostDetail | null>();
 let revision = 0;
 const listeners = new Set<() => void>();
 
-function publish(postId: string, post: PostDetail | null | undefined) {
-  if (post !== undefined) changedPosts.set(postId, post);
+function changedKey(accountId: string | undefined, postId: string) {
+  return `${accountId ?? ""}:${postId}`;
+}
+
+function publish(key: string, post: PostDetail | null | undefined) {
+  if (post !== undefined) changedPosts.set(key, post);
   revision += 1;
   for (const listener of listeners) listener();
 }
@@ -208,13 +212,14 @@ type PostResult =
 // 상세와 수정 폼이 쓰는 글 하나(#104-S4, S7). 404면 "missing"이다.
 // 이 탭에서 고치거나 지운 글은 서버에 다시 묻지 않고 그 결과를 쓴다.
 export function usePost(api: PostApi, postId: string) {
+  const key = changedKey(useApp().account?.id, postId);
   const [result, setResult] = useState<PostResult>();
   const [attempt, setAttempt] = useState(0);
   usePostRevision();
   const toLogin = useLoginRedirect();
   useEffect(() => {
     // 이 탭에서 방금 고친 글은 PUT 응답을 그대로 쓰고 GET을 다시 부르지 않는다.
-    if (changedPosts.has(postId)) return;
+    if (changedPosts.has(key)) return;
     let cancelled = false;
     api
       .get(postId)
@@ -235,13 +240,13 @@ export function usePost(api: PostApi, postId: string) {
     return () => {
       cancelled = true;
     };
-  }, [api, postId, attempt, toLogin]);
+  }, [api, postId, key, attempt, toLogin]);
   const retry = useCallback(() => {
     setResult(undefined);
     setAttempt((value) => value + 1);
   }, []);
   const current = result?.postId === postId ? result : undefined;
-  const changed = changedPosts.get(postId);
+  const changed = changedPosts.get(key);
   const post =
     changed === null
       ? undefined
@@ -264,28 +269,29 @@ export function usePost(api: PostApi, postId: string) {
 
 // 글쓰기·수정·삭제. 성공하면 다른 화면에 알려 목록과 상세를 맞춘다.
 export function usePostActions(api: PostApi) {
+  const accountId = useApp().account?.id;
   const create = useCallback(
     async (input: Parameters<PostApi["create"]>[0]) => {
       const postId = await api.create(input);
-      publish(postId, undefined);
+      publish(changedKey(accountId, postId), undefined);
       return postId;
     },
-    [api],
+    [api, accountId],
   );
   const update = useCallback(
     async (postId: string, input: Parameters<PostApi["update"]>[1]) => {
       const post = await api.update(postId, input);
-      publish(postId, post);
+      publish(changedKey(accountId, postId), post);
       return post;
     },
-    [api],
+    [api, accountId],
   );
   const remove = useCallback(
     async (postId: string) => {
       await api.remove(postId);
-      publish(postId, null);
+      publish(changedKey(accountId, postId), null);
     },
-    [api],
+    [api, accountId],
   );
   return { create, update, remove };
 }
