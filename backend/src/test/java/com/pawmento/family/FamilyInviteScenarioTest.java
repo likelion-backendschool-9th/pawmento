@@ -178,6 +178,10 @@ class FamilyInviteScenarioTest {
 		List<String> hashes = jdbc.queryForList(
 				"select code_hash from pet_invite_codes where pet_id = ?", String.class, pet);
 		assertThat(hashes).hasSize(2).allSatisfy(hash -> assertThat(hash).hasSize(64).isNotEqualTo(code));
+		// 발급자는 코드를 만든 사람이다
+		assertThat(jdbc.queryForList(
+				"select issuer_member_id from pet_invite_codes where pet_id = ? order by id", Long.class, pet))
+				.containsExactly(owner, family);
 	}
 
 	@Test
