@@ -257,7 +257,7 @@ export function ArchiveScreen({
               <div className={`${styles.recordGrid} ${styles.calendarRecords}`}>
                 {result.records.map(record => <JournalCard key={record.id} record={record} />)}
               </div>
-            ) : <PolaroidDiaryList records={result.records} />
+            ) : <PolaroidDiaryList records={result.records} currentAuthor={app.account ?? undefined} />
           ) : (
             <EmptyState
               title="아직 기록이 없는 날이에요"
