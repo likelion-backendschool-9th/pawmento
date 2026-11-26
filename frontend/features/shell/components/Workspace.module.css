@@ -104,18 +104,6 @@
   gap: 12px;
   margin-bottom: 14px;
 }
-.calendarHeader strong {
-  font-size: 16px;
-  font-weight: 550;
-}
-.calendarHeader > div {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-.calendarHeader button {
-  font-size: 12px;
-}
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -147,38 +135,9 @@
 .calendarDay:hover {
   background: var(--surface-subtle);
 }
-.calendarDay > i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--color-sage-600);
-}
-.today {
-  background: #e9eed7;
-  color: var(--brand-primary);
-  font-weight: 600;
-}
 .selectedDay {
   background: var(--brand-primary) !important;
   color: white;
-}
-.selectedDay > i {
-  background: white;
-}
-.calendarLegend {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 11px;
-  color: var(--text-muted);
-  margin: 20px 0 0;
-}
-.calendarLegend > i {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-sage-600);
 }
 .calendarRecords {
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -680,12 +639,6 @@
   .calendarRecords .recordInfo {
     padding: 12px;
   }
-  .calendarHeader strong {
-    font-size: 15px;
-  }
-  .calendarHeader button {
-    min-width: 35px;
-  }
   .calendarDay {
     min-height: 41px;
     font-size: 13px;
@@ -1012,16 +965,6 @@
 .calendarHeader {
   margin-bottom: 22px;
 }
-.calendarHeader strong {
-  font-size: 18px;
-  color: #708b4d;
-}
-.calendarHeader button {
-  min-height: 32px;
-  min-width: 32px;
-  color: var(--mode-muted, #6f7d62);
-  font-size: 11px;
-}
 .calendarGrid {
   gap: 5px;
 }
@@ -1039,25 +982,11 @@
   gap: 5px;
   color: var(--mode-muted, #6f7d62);
 }
-.calendarDay > i {
-  position: absolute;
-  right: 8px;
-  top: 12px;
-  width: 4px;
-  height: 4px;
-}
-.calendarDay.today {
-  border-color: #c2d69f;
-  background: #f0f6e5;
-  color: var(--mode-muted, #6f7d62);
-}
 .calendarDay.selectedDay {
   background: #e7f0d9 !important;
   border-color: #a7c47d;
-  color: #608c2f !important;
-}
-.calendarDay.selectedDay > i {
-  background: #6e9e36;
+  /* 연한 초록 바탕에서 12px 숫자가 WCAG AA 4.5:1을 넘게 한다(5.1:1) */
+  color: #4a6d22 !important;
 }
 .cellDiary {
   display: flex;
@@ -1092,40 +1021,9 @@
   color: var(--mode-muted, #6f7d62);
   margin: 0 0 17px;
 }
-.calendarLegend {
-  font-size: 10px;
-  color: var(--mode-muted, #6f7d62);
-}
 .weekday {
   font-size: 11px;
   color: var(--mode-muted, #6f7d62);
-}
-.compactCalendar .calendarGrid {
-  gap: 1px;
-}
-.compactCalendar .calendarDay {
-  min-height: 29px;
-  padding: 4px;
-  align-items: center;
-  justify-content: center;
-  border: 0;
-  background: transparent;
-  aspect-ratio: 1;
-  font-size: 10px;
-}
-.compactCalendar .calendarDay.today {
-  background: #eff5e5;
-}
-.compactCalendar .calendarDay > i {
-  position: static;
-  width: 3px;
-  height: 3px;
-}
-.compactCalendar .calendarHeader {
-  margin-bottom: 10px;
-}
-.compactCalendar .calendarLegend {
-  font-size: 9px;
 }
 .editor {
   background: var(--mode-card, #fffefb);
@@ -1419,15 +1317,6 @@
   .cellDiary {
     display: none;
   }
-  .calendarDay > i {
-    top: auto;
-    bottom: 9px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .calendarHeader strong {
-    font-size: 16px;
-  }
   .calendarGrid {
     gap: 4px;
   }
@@ -1440,23 +1329,8 @@
   .calendarHeader {
     margin-bottom: 17px;
   }
-  .calendarHeader button {
-    min-height: 30px;
-    min-width: 29px;
-    font-size: 10px;
-  }
   .weekday {
     font-size: 10px;
-  }
-  .calendarLegend {
-    font-size: 9px;
-  }
-  .compactCalendar .calendarDay > i {
-    position: static;
-    transform: none;
-  }
-  .compactCalendar .calendarDay {
-    padding: 3px;
   }
 
   .recordPhoto {
