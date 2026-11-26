@@ -176,7 +176,7 @@ HTTP+DB 시나리오 테스트가 이미 확인하는 동작을 mock 서비스·
 
 파라미터화로 묶은 것(확인 범위는 같다):
 
-- `WalkTest`: 끝난·중단된 산책의 활동 기록 거절 2개 → `markPointsReceivedKeepsClosedWalk`. 빈 묶음·101개 묶음 2개 → `badBatchSizeKeepsActivity`(빈 묶음의 오류 문구는 `WalkPointsScenarioTest`가 확인). 누적 한도와 음수 개수 2개 → `totalLimit`.
+- `WalkTest`: 끝난·중단된 산책의 활동 기록 거절 2개 → `markPointsReceivedKeepsClosedWalk`. 빈 묶음·101개 묶음 2개 → `badBatchSizeKeepsActivity`(빈 묶음의 오류 문구는 `WalkPointsScenarioTest`가 확인).
 - `WalkLockTranslationTest`: JPA 연결 예외와 스프링 데이터 접근 예외 2개 → `connectionFailureIsTranslated`. 스프링 예외 쪽은 원인 보존까지 확인하게 넓어졌다.
 
 ### map: 장소
