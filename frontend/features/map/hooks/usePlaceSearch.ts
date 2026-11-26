@@ -10,7 +10,11 @@ export function usePlaceSearch() {
     () => new PlaceSearchController((query) => dependencies.places.search(query)),
     [dependencies],
   );
-  useEffect(() => () => controller.dispose(), [controller]);
+  // 화면이 숨겨지거나 개발 모드(Strict Mode)에서 정리되면 기다리던 검색이 취소되므로, 다시 보일 때 이어서 검색한다
+  useEffect(() => {
+    controller.resume();
+    return () => controller.dispose();
+  }, [controller]);
   const state = useSyncExternalStore(controller.subscribe, controller.getState, controller.getState);
   return { state, setInput: controller.setInput, retry: controller.retry };
 }

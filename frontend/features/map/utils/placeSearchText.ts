@@ -4,7 +4,14 @@
 export const MIN_SEARCH_LENGTH = 2;
 export const MAX_SEARCH_LENGTH = 30;
 
-const IGNORED_IN_NAME = /[\s()[\]{}·\-_.,'"]/g;
+// Java의 정규식 \s(UNICODE_CHARACTER_CLASS 없음)는 [ \t\n\x0B\f\r]만 지운다. JS의 \s는 NBSP(U+00A0)·전각 공백(U+3000)도 지워
+// 서버와 달라지므로 같은 여섯 글자만 적는다
+const IGNORED_IN_NAME = /[ \t\n\v\f\r()[\]{}·\-_.,'"]/g;
+// Java의 String.strip()이 지우는 공백(Character.isWhitespace). NBSP(U+00A0, U+2007, U+202F)는 지우지 않는다. JS의 trim()은 지워서 다르다
+const WHITESPACE =
+  "\\u0009-\\u000d\\u001c-\\u001f\\u0020\\u1680\\u2000-\\u2006\\u2008-\\u200a\\u2028\\u2029\\u205f\\u3000";
+const STRIP = new RegExp(`^[${WHITESPACE}]+|[${WHITESPACE}]+$`, "g");
+const strip = (text: string) => text.replace(STRIP, "");
 // Java의 Character.isISOControl과 같은 범위(U+0000~001F, U+007F~009F)
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 
@@ -23,7 +30,7 @@ export const SEARCH_TEXT_MESSAGES: Record<SearchTextProblem, string> = {
 
 // 띄어쓰기·괄호·구두점·대소문자를 무시한 비교용 값. 최근 검색어의 중복을 가릴 때도 쓴다.
 export function comparableSearchText(text: string): string {
-  return text.trim().toLowerCase().replace(IGNORED_IN_NAME, "");
+  return strip(text).toLowerCase().replace(IGNORED_IN_NAME, "");
 }
 
 // 서버로 보낼 검색어(앞뒤 공백을 지운 입력)를 돌려주거나, 보낼 수 없는 이유를 돌려준다.
@@ -33,5 +40,5 @@ export function checkSearchText(input: string): SearchTextCheck {
   const length = Array.from(key).length;
   if (length < MIN_SEARCH_LENGTH) return { ok: false, problem: "TOO_SHORT" };
   if (length > MAX_SEARCH_LENGTH) return { ok: false, problem: "TOO_LONG" };
-  return { ok: true, text: input.trim() };
+  return { ok: true, text: strip(input) };
 }

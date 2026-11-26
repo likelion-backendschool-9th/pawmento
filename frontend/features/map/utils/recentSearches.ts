@@ -46,8 +46,10 @@ export function removeRecentSearch(list: readonly string[], text: string): strin
 }
 
 // 저장소는 쓸 때마다 가져온다(브라우저 전역을 이 파일에서 직접 쓰지 않는다). 저장소가 없거나 읽기·쓰기가 실패하면
-// 이 기억장치 안의 값으로 이어 간다.
+// 이 기억장치 안의 값으로 이어 간다. 계정이 없으면(owner가 빈 문자열, 로그인 전) 저장소를 쓰지 않고 이번 방문 동안만 기억한다.
+// 빈 계정의 키는 같은 기기에서 로그인하지 않은 다음 사람과 공유되기 때문이다.
 export function createRecentSearches(getStorage: () => StorageLike | null) {
+  const storageFor = (owner: string) => (owner === "" ? null : getStorage());
   const memory = new Map<string, string[]>();
   // 저장소에 쓰지 못한 계정. 그 뒤로는 저장소의 옛 값이 아니라 이번 방문의 값을 쓴다
   const volatile = new Set<string>();
@@ -55,7 +57,7 @@ export function createRecentSearches(getStorage: () => StorageLike | null) {
   function load(owner: string): string[] {
     if (volatile.has(owner)) return memory.get(owner) ?? [];
     try {
-      const storage = getStorage();
+      const storage = storageFor(owner);
       if (storage) {
         const list = parseRecentSearches(storage.getItem(recentSearchKey(owner)));
         memory.set(owner, list);
@@ -70,7 +72,7 @@ export function createRecentSearches(getStorage: () => StorageLike | null) {
   function save(owner: string, list: string[]): string[] {
     memory.set(owner, list);
     try {
-      const storage = getStorage();
+      const storage = storageFor(owner);
       if (!storage) {
         volatile.add(owner);
       } else if (list.length === 0) {

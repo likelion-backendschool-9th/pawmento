@@ -467,3 +467,125 @@ test("#195-S10 화면이 사라지면(dispose) 기다리던 검색을 취소하�
     mock.timers.reset();
   }
 });
+
+// ── 리뷰 반영: dispose 뒤 같은 입력, 로그인 전 최근 검색어, 서버와 같은 공백 처리 ──────────────
+
+test("#195-S10 기다리던 검색이 dispose로 취소된 뒤에도 같은 입력으로 다시 검색한다(loading에 멈추지 않는다)", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const queries: string[] = [];
+    const controller = new PlaceSearchController(async (query) => {
+      queries.push(query.q);
+      return found(query.q);
+    });
+    controller.setInput("서울숲");
+    controller.dispose();
+    mock.timers.tick(1000);
+    await flush();
+    assert.deepEqual(queries, []);
+    // 같은 글자를 다시 넣으면 기다리는 검색이 없으므로 다시 검색한다
+    controller.setInput("서울숲");
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.deepEqual(queries, ["서울숲"]);
+    assert.equal(controller.getState().status, "done");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("#195-S10 요청 중에 dispose돼도 옛 응답은 버리고, 같은 입력으로 다시 검색한다", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const slow = deferred();
+    const answers = [slow.promise, Promise.resolve(found("다시 받은 결과"))];
+    const controller = new PlaceSearchController(() => answers.shift()!);
+    controller.setInput("서울숲");
+    mock.timers.tick(SEARCH_DELAY_MS);
+    controller.dispose();
+    slow.resolve(found("버려질 옛 응답"));
+    await flush();
+    assert.equal(controller.getState().status, "loading");
+    assert.equal(controller.getState().result, null);
+    controller.setInput("서울숲");
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.equal(controller.getState().status, "done");
+    assert.equal(controller.getState().result?.places[0].name, "다시 받은 결과");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("#195-S10 화면이 다시 보일 때(resume) 취소돼 멈춘 검색을 이어서 하고, 멈춘 것이 없으면 아무것도 하지 않는다", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const queries: string[] = [];
+    const controller = new PlaceSearchController(async (query) => {
+      queries.push(query.q);
+      return found(query.q);
+    });
+    // 입력이 없을 때와 기다리는 검색이 살아 있을 때는 아무것도 하지 않는다
+    controller.resume();
+    controller.setInput("서울숲");
+    controller.resume();
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.deepEqual(queries, ["서울숲"]);
+    controller.resume();
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.deepEqual(queries, ["서울숲"]);
+
+    // 숨겨지며 취소된 검색(Strict Mode의 정리와 같은 순서)은 다시 보일 때 이어진다
+    controller.setInput("강남역");
+    controller.dispose();
+    controller.resume();
+    assert.equal(controller.getState().status, "loading");
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.deepEqual(queries, ["서울숲", "강남역"]);
+    assert.equal(controller.getState().status, "done");
+    assert.equal(controller.getState().text, "강남역");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("#195-S14 계정이 없으면(로그인 전) 브라우저 저장소를 쓰지 않고 이번 방문 동안만 기억한다", () => {
+  const calls: string[] = [];
+  const store = createRecentSearches(() => {
+    calls.push("storage");
+    return {
+      getItem: () => null,
+      setItem: () => calls.push("set"),
+      removeItem: () => calls.push("remove"),
+    } as unknown as Pick<Storage, "getItem" | "setItem" | "removeItem">;
+  });
+  store.add("", "서울숲");
+  assert.deepEqual(store.add("", "강남"), ["강남", "서울숲"]);
+  assert.deepEqual(store.load(""), ["강남", "서울숲"]);
+  store.clear("");
+  assert.deepEqual(store.load(""), []);
+  assert.equal(calls.length, 0);
+  // 계정이 있으면 저장소를 쓴다
+  store.add("member-1", "서울숲");
+  assert.ok(calls.includes("set"));
+});
+
+test("#195-S6 앞뒤 공백은 서버의 String.strip()과 같은 글자만 지우고(NBSP는 그대로), 가운데 공백은 \\s의 여섯 글자만 무시한다", () => {
+  // 전각 공백(U+3000)·줄 구분(U+2028)·U+001C는 앞뒤에서 지운다
+  assert.deepEqual(checkSearchText("　서울숲　"), { ok: true, text: "서울숲" });
+  assert.deepEqual(checkSearchText("\u001c서울숲 "), { ok: true, text: "서울숲" });
+  // NBSP(U+00A0)는 서버가 지우지 않으므로 클라이언트도 지우지 않고 그대로 보낸다
+  assert.deepEqual(checkSearchText(" 서울숲"), { ok: true, text: " 서울숲" });
+  // 가운데의 전각 공백·NBSP는 무시하지 않는다(서버와 같은 글자 수로 센다)
+  assert.equal(comparableSearchText("서울　숲"), "서울　숲");
+  assert.equal(comparableSearchText("서울 숲"), "서울 숲");
+  // 가운데의 탭·세로 탭은 \s라서 지운다. U+001C는 제어 문자라서 검색어로 쓸 수 없다
+  assert.equal(comparableSearchText("서울\t\u000b숲"), "서울숲");
+  assert.deepEqual(checkSearchText("서울\u001c숲"), { ok: false, problem: "INVALID_CHARACTER" });
+  // 이 값들로 센 길이도 서버와 같다: 전각 공백 하나가 사이에 있으면 3글자라 짧지 않다
+  assert.equal(checkSearchText("서　숲").ok, true);
+  assert.deepEqual(checkSearchText("　서　"), { ok: false, problem: "TOO_SHORT" });
+});
