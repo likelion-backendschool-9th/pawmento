@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Brand } from "@/components/Brand";
 import { Icon } from "@/components/Icon";
+import { Photo } from "@/components/Photo";
 import { PhotoPicker } from "@/components/PhotoPicker";
 import { isDemoAccount } from "../types/account";
 import type { PetInput } from "@/features/pet/types/Pet";
@@ -70,8 +71,15 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
         <p>{step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "이름과 사진으로 첫 기억을 시작해요."}</p>
       </header>
       {step === "choose" ? <div className={s.choices}>
-        <Link className={s.choice} href="/welcome/register"><span className={s.choiceIcon}><Icon name="paw" size={26} /></span><span><strong>처음 기록해요</strong><small>아이를 소개하고<br />새 기록을 시작해요.</small></span><Icon name="chevron" size={18} /></Link>
-        <Link className={`${s.choice} ${s.inviteChoice}`} href="/welcome/join"><span className={s.choiceIcon}><Icon name="mail" size={26} /></span><span><strong>초대받았어요</strong><small>초대 코드를 입력하고<br />함께 추억을 쌓아요.</small></span><Icon name="chevron" size={18} /></Link>
+        <Link className={s.choice} href="/welcome/register">
+          <span className={s.profilePreview} aria-hidden="true"><Photo src="reference:portrait" alt="" /><span><Icon name="paw" size={14} /></span></span>
+          <span><strong>처음 기록해요</strong><small>아이의 일상과 추억을 차곡차곡</small><span className={s.choiceAction}>아이 소개하기 <Icon name="arrow" size={14} /></span></span><Icon name="chevron" size={18} />
+        </Link>
+        <Link className={`${s.choice} ${s.inviteChoice}`} href="/welcome/join">
+          <span className={s.invitationPreview} aria-hidden="true"><span className={s.invitationPhoto}><Photo src="reference:running" alt="" /></span><span className={s.invitationMail}><Icon name="mail" size={33} /><Icon name="paw" size={12} /></span></span>
+          <span><strong>초대받았어요</strong><small>같은 아이의 기억을 함께 남겨요</small><span className={s.choiceAction}>초대 코드로 함께하기 <Icon name="arrow" size={14} /></span></span><Icon name="chevron" size={18} />
+        </Link>
+        <p className={s.choiceNote}>어떤 방식으로 시작해도 괜찮아요.<br />나중에 다른 아이를 등록하거나 초대에 참여할 수 있어요.</p>
         {memberPets > 0 && <Link className={s.continue} href="/home">이미 함께하는 아이의 홈으로 →</Link>}
       </div> : <form onSubmit={submit} className={s.form}>
         <fieldset disabled={busy}>
