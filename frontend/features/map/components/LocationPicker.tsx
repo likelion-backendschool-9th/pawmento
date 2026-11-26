@@ -133,7 +133,6 @@ export function LocationPicker({
                 {results.length === 0 && <li className={styles.empty} role="status">예시에서 찾지 못했어요. ‘서울숲’으로 검색하거나 지도에서 골라 주세요.</li>}
               </ul>}
             </form>
-            <p className={styles.selectedPlace}><Icon name="pin" size={16} /><span>선택한 위치</span></p>
             <label htmlFor="place-name">장소 이름 (선택)</label>
             <input
               id="place-name"

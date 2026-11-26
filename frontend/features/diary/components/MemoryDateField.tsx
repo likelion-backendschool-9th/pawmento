@@ -38,7 +38,6 @@ function DateDialog({ value, mode, onClose, onConfirm }: { value: string; mode: 
   const current = today();
   const gesture = useRef<{ x: number; y: number } | null>(null);
   const ignoreClick = useRef(false);
-  const showingToday = selected === current && year === Number(current.slice(0, 4)) && month === Number(current.slice(5, 7));
   useEffect(() => {
     const element = dialog.current;
     const previous = document.body.style.overflow;
@@ -58,7 +57,6 @@ function DateDialog({ value, mode, onClose, onConfirm }: { value: string; mode: 
     }}>
       <header className={styles.header}>
         <h2>언제의 기억인가요?</h2>
-        <button type="button" className={styles.today} aria-pressed={showingToday} onClick={() => choose(current)}>오늘</button>
       </header>
       <div className={styles.month}>
         <button type="button" className={styles.iconButton} aria-label="이전 달" disabled={year === 1 && month === 1} onClick={() => setMonth(moveMonth(year, month, -1))}><span className={styles.previous}><Icon name="chevron" size={20} /></span></button>
