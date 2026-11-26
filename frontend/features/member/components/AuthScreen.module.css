@@ -39,9 +39,9 @@
 .emailError { margin:2px 0 0; color:var(--text-danger); font-size:14px; line-height:1.6; }
 @media(max-width:359px) { .emailRow { flex-wrap:wrap; } .emailRow input { flex-basis:100%; } .emailRow .codeButton { width:100%; } }
 
-.socialButtons { display:grid; gap:12px; }
-.socialButtons button { position:relative; display:flex; align-items:center; justify-content:center; gap:12px; width:100%; min-height:54px; padding:14px 44px; border:1px solid var(--mode-border); border-radius:999px; font:500 16px/1.5 var(--font-sans); cursor:pointer; }
-.socialButtons svg { position:absolute; left:20px; width:22px; height:22px; }
+.socialButtons { display:flex; justify-content:center; gap:20px; padding:4px 0; }
+.socialButtons button { display:grid; place-items:center; flex:none; width:56px; height:56px; padding:15px; border:1px solid var(--mode-border); border-radius:50%; box-shadow:0 3px 10px #35432108; cursor:pointer; }
+.socialButtons svg { width:24px; height:24px; }
 .socialButtons .kakao { background:#fee500; border-color:#fee500; color:#191919; }
 .socialButtons .google { background:#fff; border-color:#dadce0; color:#3c4043; }
 .socialButtons button:disabled { opacity:.6; cursor:wait; }
