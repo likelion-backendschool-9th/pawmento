@@ -64,7 +64,7 @@ test("#85-S1 관리 목록은 세션 쿠키와 함께 서버에서 프로필을 
   assert.deepEqual(await createPetManagementApi(empty).listMine(), []);
 });
 
-test("#85-S2 조회 실패를 전달하고 재시도하면 서버에서 다시 조회하며, 본문 없는 401은 로그인 필요 오류다(#85-S3)", async () => {
+test("#85-S2 조회 실패를 전달하고 재시도하면 서버에서 다시 조회한다", async () => {
   let calls = 0;
   const http = createApiClient({
     async fetch() {
@@ -79,9 +79,10 @@ test("#85-S2 조회 실패를 전달하고 재시도하면 서버에서 다시 �
   await assert.rejects(api.listMine(), { code: "INTERNAL_ERROR" });
   assert.deepEqual(await api.listMine(), []);
   assert.equal(calls, 2);
+});
 
-  // 응답 본문이 없어도 401은 로그인 필요 오류로 전달한다(#85-S3)
-  const unauthorized = createApiClient({ fetch: async () => new Response(null, { status: 401 }) });
-  await assert.rejects(createPetManagementApi(unauthorized).listMine(), { code: "UNAUTHORIZED" });
+test("#85-S3 응답 본문이 없어도 401은 로그인 필요 오류로 전달한다", async () => {
+  const http = createApiClient({ fetch: async () => new Response(null, { status: 401 }) });
+  await assert.rejects(createPetManagementApi(http).listMine(), { code: "UNAUTHORIZED" });
 });
 

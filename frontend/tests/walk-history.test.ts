@@ -194,14 +194,17 @@ test("#73-S7 데모 계정은 오늘 기준 예시 산책을 보여 준다. 3일
   assert.deepEqual(times, [...times].sort());
 });
 
-test("#73-S9 일반 계정의 브라우저 반려동물에는 예시 산책을 섞지 않는다. 데모 계정에만 섞고, 예시도 기록도 없는 날은 빈 목록이다(#73-S8)", async () => {
+test("#73-S8 예시도 기록도 없는 날은 빈 목록이다", async () => {
+  const demo = new DemoWalkRepository(() => NOW);
+  assert.deepEqual(await demo.listByDate("uuid-pet", "2026-11-18", { sample: true }), { walks: [], sample: false });
+});
+
+test("#73-S9 일반 계정의 브라우저 반려동물에는 예시 산책을 섞지 않는다. 데모 계정에만 섞는다", async () => {
   const demo = new DemoWalkRepository(() => NOW);
   // 예시가 있는 날(3일 전)이어도 옵션이 없으면 빈 목록이다
   assert.deepEqual(await demo.listByDate("ordinary-pet", "2026-11-17"), { walks: [], sample: false });
   assert.deepEqual(await demo.listByDate("ordinary-pet", "2026-11-17", { sample: false }), { walks: [], sample: false });
   assert.equal((await demo.listByDate("demo-pet", "2026-11-17", { sample: true })).walks.length, 2);
-  // 데모 계정이어도 예시도 기록도 없는 날은 빈 목록이다(#73-S8)
-  assert.deepEqual(await demo.listByDate("uuid-pet", "2026-11-18", { sample: true }), { walks: [], sample: false });
   // 일반 계정이 직접 기록한 연습 산책은 그대로 나온다
   const walk = await demo.start("ordinary-pet");
   await demo.addPoints(walk.walkId, [{ latitude: 37.5, longitude: 127, recordedAt: "2026-11-20T03:00:15Z" }]);

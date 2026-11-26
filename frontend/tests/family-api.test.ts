@@ -58,6 +58,14 @@ test("#133-S25 코드로 참여는 앞뒤 공백을 지워 보내고, 반려동�
   assert.deepEqual(calls, [{ url: "/api/v1/families/members", method: "POST", body: { code: "k7q2m9xa" } }]);
 });
 
+test("#133-S25 쓸 수 없는 코드는 서버의 code와 문구를 그대로 전한다", async () => {
+  const { api } = server(() =>
+    Response.json({ code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." }, { status: 404 }),
+  );
+
+  await assert.rejects(api.join("ZZZZZZZZ"), { code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." });
+});
+
 test("#133-S23 내가 가족인 반려동물 목록은 id를 문자열로 바꾸고 순서를 지킨다", async () => {
   const { api, calls } = server(() =>
     Response.json([
@@ -112,12 +120,7 @@ test("#133-S24 숫자가 아닌 반려동물 id나 가족 id는 서버에 보내
   assert.equal(calls.length, 0);
 });
 
-test("#133-S24 내보내기·나가기 거절과 쓸 수 없는 코드(#133-S25)는 서버의 code와 문구를 그대로 전한다", async () => {
-  const join = server(() =>
-    Response.json({ code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." }, { status: 404 }),
-  );
-  await assert.rejects(join.api.join("ZZZZZZZZ"), { code: "NOT_FOUND", message: "사용할 수 없는 초대 코드입니다." });
-
+test("#133-S24 내보내기·나가기 거절은 서버의 code와 문구를 그대로 전한다", async () => {
   for (const [status, code, message] of [
     [403, "FORBIDDEN", "이 반려동물의 소유주나 가족만 할 수 있습니다."],
     [404, "NOT_FOUND", "이 반려동물의 가족이 아닙니다."],

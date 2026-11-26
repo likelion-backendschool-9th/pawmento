@@ -467,11 +467,23 @@ test("#195-S10 화면이 사라지면(dispose) 기다리던 검색을 취소하�
     await flush();
     assert.deepEqual(queries, ["서울숲"]);
     assert.equal(controller.getState().status, "done");
-    // 다른 입력도 평소처럼 검색한다
-    controller.setInput("강남역");
+
+    // 취소한 직후 다른 입력을 넣어도 그 입력만 검색한다
+    const other: string[] = [];
+    const fresh = new PlaceSearchController(async (query) => {
+      other.push(query.q);
+      return found(query.q);
+    });
+    fresh.setInput("서울숲");
+    fresh.dispose();
+    mock.timers.tick(1000);
+    await flush();
+    assert.deepEqual(other, []);
+    fresh.setInput("강남역");
     mock.timers.tick(SEARCH_DELAY_MS);
     await flush();
-    assert.deepEqual(queries, ["서울숲", "강남역"]);
+    assert.deepEqual(other, ["강남역"]);
+    assert.equal(fresh.getState().status, "done");
   } finally {
     mock.timers.reset();
   }

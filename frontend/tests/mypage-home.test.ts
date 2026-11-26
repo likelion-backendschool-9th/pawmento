@@ -143,7 +143,7 @@ test("#52-S4 같은 달 재변경은 409 CONFLICT이고 닉네임은 그대로�
   assert.equal((await auth.current())?.nickname, "첫번째");
 });
 
-test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이이고, 없으면 0이다(#52-S7)", async () => {
+test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이다", async () => {
   const { fetchImpl, calls } = mockFetch(() =>
     jsonResponse(200, [
       { petId: 1, name: "콩이" },
@@ -157,12 +157,14 @@ test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이이�
     { id: "1", name: "콩이" },
     { id: "2", name: "보리" },
   ]);
-  assert.match(calls[0]!.url, /\/api\/v1\/pets$/);
+  assert.equal(calls[0]!.url, "/api/v1/pets");
   assert.equal(calls[0]!.method, "GET");
+});
 
-  // 반려동물이 없으면 친구 수는 0이다(#52-S7)
-  const empty = mockFetch(() => jsonResponse(200, []));
-  assert.equal((await createPetApi(createApiClient({ fetch: empty.fetchImpl })).listMine()).length, 0);
+test("#52-S7 반려동물이 없으면 친구 수는 0이다", async () => {
+  const { fetchImpl } = mockFetch(() => jsonResponse(200, []));
+  const pets = createPetApi(createApiClient({ fetch: fetchImpl }));
+  assert.equal((await pets.listMine()).length, 0);
 });
 
 test("#52-S8 로그아웃은 POST /auth/logout이고 이후 me 접근이 막힌다", async () => {
