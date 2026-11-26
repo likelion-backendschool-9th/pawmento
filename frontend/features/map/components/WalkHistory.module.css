@@ -4,19 +4,26 @@
   --map-park: #dfe8cb;
   --map-water: #d7e6df;
   --walk-paused: #bf8a5b;
-  position: relative;
-  height: min(86dvh, 800px);
-  min-height: 660px;
-  overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: 22px;
-  background: var(--map-land);
-  box-shadow: var(--shadow-card);
+  /* 날짜·지도·목록을 차례로 쌓아 작은 화면에서도 지도 위를 가리지 않는다 */
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 .stage[data-mode="GARDEN"] {
   --map-land: #f6f2ec;
   --map-park: #e6e1ee;
   --map-water: #dde3ec;
+}
+.mapFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 6px solid var(--surface-card);
+  outline: 1px solid var(--mode-border);
+  border-radius: 26px;
+  background: var(--map-land);
+  box-shadow: var(--shadow-card);
 }
 .canvas {
   position: absolute;
@@ -28,15 +35,15 @@
 .staticMap {
   background: var(--map-land);
 }
-/* 경로는 위쪽 날짜 막대와 아래쪽 목록을 피해 가운데에 그린다 */
+/* 경로는 지도 테두리 안쪽에 맞춰 그린다 */
 .routes {
   position: absolute;
   left: 0;
   right: 0;
-  top: 150px;
-  bottom: 300px;
+  top: 18px;
+  bottom: 18px;
   width: 100%;
-  height: calc(100% - 450px);
+  height: calc(100% - 36px);
 }
 .route {
   cursor: pointer;
@@ -104,11 +111,6 @@
 
 /* 위쪽 날짜 막대 */
 .week {
-  position: absolute;
-  z-index: 4;
-  top: 14px;
-  left: 14px;
-  right: 14px;
   padding: 12px 12px 10px;
   border: 1px solid var(--mode-border);
   border-radius: 22px;
@@ -205,13 +207,6 @@
 
 /* 아래쪽 목록 */
 .sheet {
-  position: absolute;
-  z-index: 4;
-  left: 14px;
-  right: 14px;
-  bottom: 14px;
-  max-height: clamp(200px, 34dvh, 290px);
-  overflow-y: auto;
   padding: 16px 14px 14px;
   border: 1px solid var(--mode-border);
   border-radius: 26px;

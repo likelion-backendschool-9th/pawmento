@@ -2,7 +2,7 @@
 import type { WalkCanvasProps } from "../utils/walkCanvas";
 import { fitPoints } from "@/features/map/utils/walkRoutes";
 import { StaticMapBackdrop } from "./StaticMapBackdrop";
-import styles from "./WalkScreen.module.css";
+import styles from "./WalkCanvas.module.css";
 
 // 지도 키가 없을 때 쓰는 예시 지도. 지금 위치를 가운데에 두고 지나온 길만 그린다.
 export function StaticWalkCanvas({ points }: WalkCanvasProps) {

@@ -5,13 +5,16 @@
   --map-water: #d7e6df;
   --map-road: #fffdf7;
   position: relative;
-  height: min(68vh, 640px);
-  min-height: 460px;
+  aspect-ratio: 1;
+  min-height: 0;
+  isolation: isolate;
   overflow: hidden;
-  border: 1px solid var(--border-default);
-  border-radius: 22px;
+  /* 흰 액자 테두리 안에 지도를 담는다 */
+  border: 6px solid var(--surface-card);
+  outline: 1px solid var(--mode-border);
+  border-radius: 26px;
   background: var(--map-land);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--brand-primary) 9%, transparent);
 }
 .stage[data-mode="GARDEN"] {
   --map-land: #f6f2ec;
@@ -98,7 +101,10 @@
   top: 50%;
   width: min(360px, calc(100% - 40px));
   transform: translate(-50%, -50%);
-  padding: 26px 22px 22px;
+  /* 작은 지도에서도 안내가 지도 밖으로 넘치지 않게 안에서 스크롤한다 */
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  padding: 14px;
   border: 1px solid var(--mode-border);
   border-radius: 24px;
   background: var(--surface-card);
@@ -117,24 +123,16 @@
   line-height: 1.7;
 }
 
+/* 선택한 기억은 지도를 가리지 않게 지도 아래 카드로 보여 준다 */
 .sheet {
-  position: absolute;
-  z-index: 5;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  margin-top: 12px;
+  /* 핀을 골라 카드로 스크롤할 때 하단 메뉴에 가리지 않게 한다 */
+  scroll-margin-bottom: calc(var(--app-nav-height, 0px) + 12px);
   padding: 10px 20px 20px;
   border: 1px solid var(--mode-border);
   border-radius: 24px 24px 20px 20px;
   background: var(--surface-card);
   box-shadow: 0 -6px 34px rgb(101 83 51 / 0.12);
-}
-.grab {
-  width: 38px;
-  height: 4px;
-  margin: 0 auto 12px;
-  border-radius: 4px;
-  background: var(--border-default);
 }
 .eyebrow {
   margin: 0;
@@ -159,30 +157,18 @@
   font-size: 12.5px;
 }
 
-/* PC에서는 선택 카드가 지도 폭 전체로 늘어나지 않게 폭을 제한하고 왼쪽 아래에 붙인다 */
-@container app (min-width: 768px) {
-  .sheet {
-    right: auto;
-    width: min(440px, calc(100% - 24px));
-  }
-}
-
 @container app (max-width: 767px) {
-  .stage {
-    height: min(72vh, 620px);
-    border-radius: 18px;
-  }
   .sheet .button {
     width: 100%;
   }
 }
 
-/* "기억 핀 | 산책 길" 전환 */
+/* 산책가기 · 산책기록 · 기억핀 */
 .switch {
   display: flex;
-  width: fit-content;
-  gap: 4px;
-  margin: 0 auto 12px;
+  width: 100%;
+  gap: 3px;
+  margin: 0 auto 14px;
   padding: 4px;
   border: 1px solid var(--mode-border);
   border-radius: 999px;
@@ -193,14 +179,19 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 9px 18px;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+  min-height: 44px;
+  padding: 9px 5px;
   border: 0;
   border-radius: 999px;
   background: none;
   color: var(--text-secondary);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
 }
 .switch button[aria-pressed="true"] {
@@ -210,6 +201,16 @@
 .switch button:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
+}
+
+/* 산책가기: 위젯 · (끝난 뒤) 산책기록 보기 · 지도 · 안내를 같은 간격으로 쌓는다 */
+.outing {
+  display: grid;
+  gap: 12px;
+}
+.outing > .textButton,
+.outing > .note {
+  margin: 0 auto;
 }
 
 /* 빈 화면 일러스트: 발자국 원 + 핀 배지 (시안 08) */
@@ -251,6 +252,7 @@
   color: var(--text-secondary);
   font: inherit;
   font-size: 14px;
+  text-decoration: none;
   cursor: pointer;
 }
 .textButton:hover {
