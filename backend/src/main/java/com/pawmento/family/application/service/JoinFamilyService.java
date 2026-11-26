@@ -54,10 +54,12 @@ public class JoinFamilyService implements JoinFamilyUseCase {
 
         Long ownerId = lockPetOwnerPort.lockOwnerId(petId).orElseThrow(InviteCodeNotFoundException::new);
 
+        // 잠금을 기다리는 사이 코드가 폐기됐을 수 있어, 잠금 뒤에 다시 읽어 아직 쓸 수 있는지 확인한다.
+        // 이 확인이 기존 멤버십 검사보다 먼저여야 폐기된 코드가 409가 아니라 404가 된다
         Instant now = Instant.now(clock);
-        if (!code.isUsableAt(now)) {
-            throw new InviteCodeNotFoundException();
-        }
+        loadPetInviteCodePort.loadByCodeHash(codeHash)
+                .filter(current -> current.isUsableAt(now))
+                .orElseThrow(InviteCodeNotFoundException::new);
 
         boolean alreadyIn = ownerId.equals(command.memberId())
                 || loadPetFamilyMemberPort.existsByPetIdAndMemberId(petId, command.memberId());
