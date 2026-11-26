@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.pawmento.community.adapter.in.web.report.ReportPostRequest;
+import com.pawmento.community.adapter.in.web.report.ReportPostResponse;
 import com.pawmento.community.application.port.in.CreatePostCommand;
 import com.pawmento.community.application.port.in.CreatePostUseCase;
 import com.pawmento.community.application.port.in.DeletePostCommand;
@@ -24,6 +26,8 @@ import com.pawmento.community.application.port.in.GetPostUseCase;
 import com.pawmento.community.application.port.in.ListPostCategoriesUseCase;
 import com.pawmento.community.application.port.in.ListPostsQuery;
 import com.pawmento.community.application.port.in.ListPostsUseCase;
+import com.pawmento.community.application.port.in.report.ReportPostCommand;
+import com.pawmento.community.application.port.in.report.ReportPostUseCase;
 import com.pawmento.global.security.LoginMember;
 
 import jakarta.validation.Valid;
@@ -41,6 +45,7 @@ public class PostController {
 	private final EditPostUseCase editPostUseCase;
 	private final DeletePostUseCase deletePostUseCase;
 	private final ListPostCategoriesUseCase listPostCategoriesUseCase;
+	private final ReportPostUseCase reportPostUseCase;
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -78,6 +83,15 @@ public class PostController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	void delete(@LoginMember Long memberId, @PathVariable Long postId) {
 		deletePostUseCase.delete(new DeletePostCommand(memberId, postId));
+	}
+
+	// 신고 여부와 건수는 신고한 본인 말고는 알리지 않는다. 이 응답도 접수한 신고 id만 돌려준다
+	@PostMapping("/{postId}/reports")
+	@ResponseStatus(HttpStatus.CREATED)
+	ReportPostResponse report(@LoginMember Long memberId, @PathVariable Long postId,
+			@RequestBody ReportPostRequest request) {
+		return new ReportPostResponse(reportPostUseCase
+			.report(new ReportPostCommand(memberId, postId, request.reasonType(), request.reasonDetail())));
 	}
 
 }

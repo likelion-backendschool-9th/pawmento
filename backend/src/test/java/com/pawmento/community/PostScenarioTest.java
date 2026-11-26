@@ -61,6 +61,8 @@ class PostScenarioTest {
 
 	@BeforeEach
 	void clearPosts() {
+		// 신고가 글을 FK로 가리키므로 먼저 지운다
+		jdbcTemplate.update("DELETE FROM post_reports");
 		jdbcTemplate.update("DELETE FROM posts");
 	}
 
