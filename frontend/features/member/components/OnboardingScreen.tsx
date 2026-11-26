@@ -94,9 +94,9 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
         <fieldset disabled={busy}>
           {choosingMode ? <>
             <div className={s.modeChoices} role="radiogroup" aria-label="시작할 공간">
-              {([{ value: "ACTIVE", title: "일상", caption: "함께하는 오늘을 기록해요", icon: "sun" }, { value: "GARDEN", title: "기억의 정원", caption: "그리운 아이의 추억을 간직해요", icon: "sparkle" }] as const).map((option) => <label key={option.value} className={s.modeChoice} data-mode={option.value}>
+              {([{ value: "ACTIVE", title: "일상", caption: "함께하는 오늘을 기록해요" }, { value: "GARDEN", title: "기억의 정원", caption: "그리운 아이의 추억을 간직해요" }] as const).map((option) => <label key={option.value} className={s.modeChoice} data-mode={option.value}>
                 <input type="radio" name="mode" value={option.value} checked={mode === option.value} onChange={() => { setMode(option.value); setError(""); }} required />
-                <span className={s.modeArt} aria-hidden="true"><Icon name={option.icon} size={32} /></span>
+                <span className={s.modeArt} aria-hidden="true" /><span className={s.modeCheck} aria-hidden="true">{mode === option.value && <Icon name="check" size={14} />}</span>
                 <span><strong>{option.title}</strong><small>{option.caption}</small></span>
               </label>)}
             </div>
