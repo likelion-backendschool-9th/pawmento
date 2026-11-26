@@ -137,12 +137,13 @@ class SocialLoginScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#40-S5 이메일로 가입한 회원과 같은 이메일의 구글 계정은 409이고 쿠키를 받지 못한다")
+	@DisplayName("#40-S5 이메일로 가입한 회원과 같은 이메일(대소문자만 달라도)의 구글 계정은 409이고 쿠키를 받지 못한다")
 	void sameEmailAsLocalIsConflict() throws Exception {
 		String email = uniqueEmail();
 		signUp(email).andExpect(status().isCreated());
 
-		socialLogin("google", google(uniqueSub(), email, "다윗")).andExpect(status().isConflict())
+		// 구글이 대소문자를 다르게 준 같은 이메일도 같은 이메일로 본다
+		socialLogin("google", google(uniqueSub(), email.toUpperCase(), "다윗")).andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("CONFLICT"))
 			.andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("처음 가입한 방법으로 로그인해 주세요")))
 			.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));

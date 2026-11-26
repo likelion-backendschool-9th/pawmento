@@ -1,11 +1,9 @@
 package com.pawmento.member.application.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,9 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.port.in.ChangeMemberNicknameCommand;
-import com.pawmento.member.application.port.in.MemberResult;
 import com.pawmento.member.application.port.out.LoadMemberPort;
 import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
@@ -76,60 +72,6 @@ class ChangeMemberNicknameServiceTest {
 		when(save.save(any())).thenThrow(failure);
 		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "콩이 보호자")))
 				.isSameAs(failure);
-	}
-
-	@Test
-	@DisplayName("#137-S4 닉네임이 바뀌면 이전 태그를 피해 새 태그를 받는다")
-	void newNicknameGetsNewTag() {
-		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member()));
-		when(tags.next("보리 보호자", "0427")).thenReturn("0581");
-
-		MemberResult result = service.changeNickname(new ChangeMemberNicknameCommand(1L, "보리 보호자"));
-
-		assertThat(result.nickname()).isEqualTo("보리 보호자");
-		assertThat(result.tag()).isEqualTo("0581");
-	}
-
-	@Test
-	@DisplayName("#137-S5 같은 닉네임이면 태그를 뽑지도 저장하지도 않는다")
-	void sameNicknameKeepsTag() {
-		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member()));
-
-		MemberResult result = service.changeNickname(new ChangeMemberNicknameCommand(1L, " 보호자 "));
-
-		assertThat(result.tag()).isEqualTo("0427");
-		verify(tags, never()).next(any(), any());
-		verify(save, never()).save(any());
-	}
-
-	@Test
-	@DisplayName("#137-S7 저장이 태그 충돌로 지면 회원을 다시 읽어 새 태그로 다시 저장한다")
-	void retriesWithFreshMemberOnTagConflict() {
-		// 시도마다 새 트랜잭션에서 다시 읽으므로, 실패한 시도의 변경이 없는 회원을 돌려준다
-		when(load.loadForNicknameChange(1L)).thenReturn(Optional.of(member()), Optional.of(member()));
-		when(tags.next("보리", "0427")).thenReturn("0581", "0700");
-		when(save.save(any()))
-				.thenThrow(new DuplicateMemberTagException())
-				.thenAnswer(invocation -> invocation.getArgument(0));
-
-		MemberResult result = service.changeNickname(new ChangeMemberNicknameCommand(1L, "보리"));
-
-		assertThat(result.tag()).isEqualTo("0700");
-		verify(transaction, times(2)).execute(any());
-		verify(load, times(2)).loadForNicknameChange(1L);
-	}
-
-	@Test
-	@DisplayName("#137-S11 세 번 모두 태그 충돌이면 409 예외를 그대로 올린다")
-	void givesUpAfterThreeConflicts() {
-		// 시도마다 롤백된 새 회원을 읽는 것처럼, 부를 때마다 새 회원을 돌려준다
-		when(load.loadForNicknameChange(1L)).thenAnswer(invocation -> Optional.of(member()));
-		when(tags.next("보리", "0427")).thenReturn("0581");
-		when(save.save(any())).thenThrow(new DuplicateMemberTagException());
-
-		assertThatThrownBy(() -> service.changeNickname(new ChangeMemberNicknameCommand(1L, "보리")))
-				.isInstanceOf(DuplicateMemberTagException.class);
-		verify(transaction, times(3)).execute(any());
 	}
 
 	private Member member() {

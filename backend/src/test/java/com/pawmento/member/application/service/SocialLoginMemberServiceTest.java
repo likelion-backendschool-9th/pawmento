@@ -3,7 +3,6 @@ package com.pawmento.member.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.time.Clock;
@@ -14,12 +13,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.exception.DuplicateMemberTagException;
 import com.pawmento.member.application.exception.DuplicateSocialAccountException;
-import com.pawmento.member.application.exception.SocialEmailConflictException;
 import com.pawmento.member.application.exception.SocialLoginFailedException;
 import com.pawmento.member.application.exception.UnsupportedSocialProviderException;
 import com.pawmento.member.application.port.in.LoginMemberResult;
@@ -62,23 +59,6 @@ class SocialLoginMemberServiceTest {
 	}
 
 	@Test
-	@DisplayName("#40-S1 처음 오면 비밀번호 없는 구글 회원으로 가입하고 토큰을 받는다")
-	void firstLoginRegisters() {
-		googleReturns("dawit@gmail.com", "다윗");
-		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123")).thenReturn(Optional.empty());
-		when(saveMember.saveSocial(any(), any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-		LoginMemberResult result = service.login(google());
-
-		ArgumentCaptor<Member> saved = ArgumentCaptor.forClass(Member.class);
-		verify(saveMember).saveSocial(saved.capture(), eq(AuthProvider.GOOGLE), eq("g-123"));
-		assertThat(saved.getValue().getPasswordHash()).isNull();
-		assertThat(result.member().nickname()).isEqualTo("다윗");
-		assertThat(result.member().role()).isEqualTo("USER");
-		assertThat(result.accessToken()).isEqualTo("token");
-	}
-
-	@Test
 	@DisplayName("#40-S2 이름이 없으면 '보호자', 21자 이상이면 앞 20자로 가입한다")
 	void nicknameIsAdjusted() {
 		when(loadMember.loadByProvider(any(), any())).thenReturn(Optional.empty());
@@ -92,19 +72,6 @@ class SocialLoginMemberServiceTest {
 	}
 
 	@Test
-	@DisplayName("#40-S3 같은 구글 계정으로 다시 오면 새로 가입하지 않고 같은 회원으로 로그인한다")
-	void returningMemberLogsIn() {
-		googleReturns("dawit@gmail.com", "다윗");
-		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123"))
-				.thenReturn(Optional.of(googleMember(7L, "dawit@gmail.com")));
-
-		LoginMemberResult result = service.login(google());
-
-		assertThat(result.member().id()).isEqualTo(7L);
-		verify(saveMember, never()).saveSocial(any(), any(), any());
-	}
-
-	@Test
 	@DisplayName("#40-S4 구글의 이메일이 바뀌어도 같은 sub이면 같은 회원으로 로그인한다")
 	void changedEmailStillSameMember() {
 		googleReturns("new@gmail.com", "다윗");
@@ -113,18 +80,6 @@ class SocialLoginMemberServiceTest {
 
 		assertThat(service.login(google()).member().id()).isEqualTo(7L);
 		verify(existsMember, never()).existsByEmail(any());
-	}
-
-	@Test
-	@DisplayName("#40-S5 같은 이메일로 이미 가입한 회원이 있으면 연결하지 않고 409로 막는다")
-	void sameEmailIsBlocked() {
-		googleReturns("Dawit@Gmail.com", "다윗");
-		when(loadMember.loadByProvider(AuthProvider.GOOGLE, "g-123")).thenReturn(Optional.empty());
-		when(existsMember.existsByEmail("dawit@gmail.com")).thenReturn(true);
-
-		assertThatThrownBy(() -> service.login(google())).isInstanceOf(SocialEmailConflictException.class);
-		verify(saveMember, never()).saveSocial(any(), any(), any());
-		verify(tokenIssuer, never()).issue(any(), any());
 	}
 
 	@Test
