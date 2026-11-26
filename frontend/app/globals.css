@@ -1,5 +1,12 @@
 @import "../styles/tokens.css";
 @font-face {
+  font-family: "Wanted Sans";
+  src: url("/fonts/WantedSansVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 400 1000;
+  font-display: swap;
+}
+@font-face {
   font-family: Pretendard;
   src: url("/fonts/PretendardVariable.woff2") format("woff2");
   font-style: normal;

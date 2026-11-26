@@ -1,6 +1,7 @@
 "use client";
 import { journalItems } from "@/features/diary/utils/journalItems";
 import { PolaroidDiaryList } from "./PolaroidDiaryList";
+import diaryStyles from "./ArchiveScreen.module.css";
 
 import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
@@ -200,8 +201,8 @@ export function ArchiveScreen({
         title={calendar ? "다이어리 달력" : "다이어리"}
         body={calendar ? undefined : "우리의 일상을 기록해요."}
       >
-        <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
-          <Icon name="plus" size={17} />
+        <Link className={diaryStyles.createLink} href={`/pets/${pet.id}/diary/new`}>
+          <span className={diaryStyles.createIcon} aria-hidden="true"><Icon name="edit" size={15} /></span>
           기록 남기기
         </Link>
       </CollectionHeading>

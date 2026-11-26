@@ -1,0 +1,5 @@
+.createLink[href] { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 6px 13px 6px 7px; border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-subtle); color: var(--text-primary); font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap; box-shadow: none; transition: background .15s, border-color .15s; }
+.createIcon { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-card); color: var(--brand-primary); }
+.createLink:hover { background: var(--surface-card); border-color: var(--brand-primary); }
+.createLink:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .createLink[href] { transition: none; } }
