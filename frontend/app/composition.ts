@@ -28,6 +28,7 @@ import { createMapSource } from "../features/map/source.ts";
 import { createWalkSession } from "../features/map/walkSession.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { DemoPlaceRepository } from "../mocks/handlers/DemoPlaceRepository.ts";
+import { searchDemoLocations } from "../mocks/fixtures/demoLocationSearch.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
 export { demoDiarySamples } from "../mocks/fixtures/demoDiaries.ts";
@@ -77,6 +78,8 @@ export function createDependencies() {
     walk: createWalkSession(mapSource.walk, new LocalActiveWalkStore()),
     walkHistory: mapSource.walkHistory,
     map: mapSource.map,
+    // 위치 선택의 예시 검색도 이곳에서만 연결한다. 서버 계정에서는 화면이 호출하지 않는다.
+    locationSearch: { searchDemo: searchDemoLocations },
     // 정보 지도의 장소. 목업을 명시적으로 켰을 때만 예시 장소를 보이고, 그 밖에는 서버를 부른다(#172-S19)
     places: selectPlaceRepository({
       mockRequested: isDevelopmentMockRequested(),

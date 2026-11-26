@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useApp } from "@/app/AppProvider";
 import { isDemoAccount } from "@/features/member/types/account";
-import { searchDemoLocations } from "@/mocks/fixtures/demoLocationSearch";
 import { Icon } from "@/components/Icon";
 import type { MapPoint } from "@/features/map/types/MapBounds";
 import type { PickedLocation } from "@/features/map/types/PickedLocation";
@@ -32,12 +31,13 @@ export function LocationPicker({
   onClose,
 }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
-  const { account } = useApp();
+  const { account, dependencies } = useApp();
+  const searchLocations = dependencies.locationSearch.searchDemo;
   const sample = isDemoAccount(account);
   const [start, setStart] = useState<MapPoint>(initial ?? DEFAULT_MAP_CENTER);
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState<string | null>(null);
-  const results = sample && searched ? searchDemoLocations(searched) : [];
+  const results = sample && searched ? searchLocations(searched) : [];
   const [center, setCenter] = useState<MapPoint>(start);
   const [name, setName] = useState(initial?.placeName ?? "");
   const [error, setError] = useState("");
@@ -57,7 +57,7 @@ export function LocationPicker({
     };
   }, []);
 
-  function selectPlace(place: ReturnType<typeof searchDemoLocations>[number]) {
+  function selectPlace(place: ReturnType<typeof searchLocations>[number]) {
     const point = { latitude: place.latitude, longitude: place.longitude };
     setStart(point);
     setCenter(point);
@@ -122,7 +122,7 @@ export function LocationPicker({
           </div>
 
           <section className={styles.sheet}>
-            <form className={styles.search} onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); const text = query.trim(); setSearched(text); const first = sample ? searchDemoLocations(text)[0] : null; if (first) selectPlace(first); }}>
+            <form className={styles.search} onSubmit={(event) => { event.preventDefault(); event.stopPropagation(); const text = query.trim(); setSearched(text); const first = sample ? searchLocations(text)[0] : null; if (first) selectPlace(first); }}>
               <label htmlFor="location-search">주소·장소 검색</label>
               <div className={styles.searchRow}>
                 <input id="location-search" type="search" value={query} onChange={(event) => { setQuery(event.target.value); setSearched(null); }} placeholder={sample ? "주소나 장소 이름을 입력해 주세요" : "주소 검색 준비 중"} autoComplete="off" maxLength={200} />
