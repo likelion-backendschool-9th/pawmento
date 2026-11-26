@@ -17,7 +17,8 @@ import { PetProfileFields } from "./PetProfileFields";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
 import { messageOf } from "../../shell/utils/presentation";
 
-export function PetList() {
+/** Switches only among pets of this browser's workspace; server IDs never enter it. */
+function useSelectWorkspacePet() {
   const app = useApp();
   const router = useRouter();
   const confirmNavigation = useConfirmNavigation();
@@ -26,6 +27,7 @@ export function PetList() {
   async function select(pet: Pet) {
     if (pet.id === app.state.selectedPetId || !confirmNavigation()) return;
     setBusy(true);
+    setError("");
     try {
       await app.dependencies.workspace.selectPet(app.account!.id, pet.id);
       await app.refresh();
@@ -36,6 +38,53 @@ export function PetList() {
       setBusy(false);
     }
   }
+  return { busy, error, select };
+}
+
+/** Keeps the former header switch reachable for HTTP sessions that already have browser records. */
+export function WorkspacePetSwitch() {
+  const app = useApp();
+  const { busy, error, select } = useSelectWorkspacePet();
+  if (!app.state.pets.length) return null;
+  return (
+    <section className={styles.workspaceSwitch} aria-labelledby="workspace-switch-title">
+      <h2 id="workspace-switch-title">이 브라우저의 기록</h2>
+      <p className="muted">이 브라우저에 쌓인 기록 중 볼 아이를 골라요.</p>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <ul>
+        {app.state.pets.map((pet) => {
+          const current = app.state.selectedPetId === pet.id;
+          return (
+            <li key={pet.id}>
+              <span title={pet.name}>
+                <strong>{pet.name}</strong>
+                <small>{pet.mode === "GARDEN" ? "정원" : "일상"}</small>
+              </span>
+              <button
+                type="button"
+                className="button secondary"
+                disabled={busy || current}
+                aria-pressed={current}
+                aria-label={`${pet.name}${current ? " · 현재 보고 있는 아이" : "의 공간으로 전환"}`}
+                onClick={() => void select(pet)}
+              >
+                {current ? "보는 중" : "전환"}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+export function PetList() {
+  const app = useApp();
+  const { busy, error, select } = useSelectWorkspacePet();
   return (
     <>
       <PageHeading
