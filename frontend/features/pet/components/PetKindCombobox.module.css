@@ -1,5 +1,5 @@
 .field { position:relative; display:grid; gap:10px; min-width:0; }
-.field > label { font:500 13px/1.5 var(--font-sans); color:var(--text-primary); }
+.field > label { font:500 15px/1.5 var(--font-sans); color:var(--text-primary); }
 .control { display:flex; align-items:center; border:1px solid var(--mode-border); border-radius:15px; background:var(--surface-card); }
 .control:focus-within { outline:2px solid var(--focus-ring); outline-offset:2px; }
 .field .control input { flex:1; min-width:0; width:100%; min-height:52px; padding:12px 14px; border:0; outline:0; border-radius:15px; background:transparent; color:var(--text-primary); font:400 16px/1.5 var(--font-sans); }

@@ -1,44 +1,44 @@
-.screen { display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100dvh; margin:auto; padding:calc(20px + env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom)); background:radial-gradient(ellipse at 5% 0,#edf2e2,transparent 50%),var(--surface-page); font-family:var(--font-sans); }
+.screen { display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100dvh; margin:auto; padding:calc(20px + env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom)); background:linear-gradient(110deg,var(--surface-page) 22%,#f6f7f2b3 85%),url('/images/watercolor-garden.png') right top / auto 260px no-repeat,var(--surface-page); font-family:var(--font-sans); }
 .content { display:flex; flex-direction:column; flex:1; }
 .brand { flex:none; display:flex; justify-content:flex-start; margin:0 0 28px; }
 .brand :global(.brand) { gap:8px; font-size:22px; line-height:1; }
 .brand :global(.brand-logo) { flex:none; width:36px; height:36px; }
 .brand :global(.brand-words small) { display:none; }
 .heading { margin:12px 0 28px; text-align:left; }
-.heading h1 { margin:0; font-size:25px; font-weight:600; letter-spacing:-.8px; line-height:1.5; text-wrap:balance; }
-.heading p { margin:10px 0 0; color:var(--text-secondary); font-size:13px; line-height:1.8; text-wrap:balance; }
+.heading h1 { margin:0; font-size:28px; font-weight:600; letter-spacing:-.8px; line-height:1.5; text-wrap:balance; word-break:keep-all; overflow-wrap:anywhere; }
+.heading p { margin:10px 0 0; color:var(--text-secondary); font-size:15px; line-height:1.8; text-wrap:balance; word-break:keep-all; overflow-wrap:anywhere; }
 .choices { display:grid; grid-template-columns:minmax(0,1fr); align-content:start; flex:1; gap:16px; }
 .choice { display:flex; flex-direction:row; align-items:center; gap:16px; min-height:168px; padding:22px 18px; text-align:left; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); text-decoration:none; color:var(--text-primary); box-shadow:0 6px 24px #35432105; }
 .choice > span:nth-child(2) { flex:1; min-width:0; }
 .choice strong { display:block; margin-bottom:9px; font-size:22px; font-weight:600; }
 .form { display:flex; flex-direction:column; flex:1; padding:0; }
 .form fieldset { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:flex-start; gap:22px; margin:0; padding:0; border:0; }
-.form label { position:relative; display:grid; gap:9px; color:var(--text-primary); font-size:13px; font-weight:500; }
+.form label { position:relative; display:grid; gap:9px; color:var(--text-primary); font-size:15px; font-weight:500; }
 .form input { width:100%; min-width:0; min-height:52px; padding:12px 14px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-primary); font:400 16px/1.5 var(--font-sans); }
-.form input::placeholder { font-size:13px; }
+.form input::placeholder { font-size:14px; }
 .photo { max-width:116px; margin:0 auto 3px; }
 .photo :global(.photo-picker) { width:116px; }
 .photo :global(.photo-picker) > button { aspect-ratio:1; height:auto; min-height:0; border-radius:36px; }
-.photo :global(.photo-picker) small { font-size:10px; }
-.primary { display:flex; align-items:center; justify-content:center; gap:9px; min-height:52px; width:100%; margin-top:4px; padding:12px; border:0; border-radius:15px; background:var(--brand-primary); color:var(--color-white); font:600 14px/1.5 var(--font-sans); text-decoration:none; cursor:pointer; }
+.photo :global(.photo-picker) small { font-size:14px; }
+.primary { display:flex; align-items:center; justify-content:center; gap:9px; min-height:52px; width:100%; margin-top:4px; padding:12px; border:0; border-radius:999px; background:var(--brand-primary); color:var(--color-white); font:600 16px/1.5 var(--font-sans); text-decoration:none; cursor:pointer; }
 .primary:disabled { opacity:.6; }
-.notice { flex:none; margin:20px 12px 0; text-align:center; color:var(--text-muted); font-size:11px; line-height:1.8; }
-.continue { grid-column:1/-1; padding:14px; text-align:center; font-size:12px; color:var(--brand-primary); text-underline-offset:4px; }
+.notice { flex:none; margin:20px 12px 0; text-align:center; color:var(--text-muted); font-size:15px; line-height:1.8; }
+.continue { grid-column:1/-1; padding:14px; text-align:center; font-size:14px; color:var(--brand-primary); text-underline-offset:4px; }
 .form .code { text-align:center; letter-spacing:3px; font-size:20px; font-weight:600; }
-.form .code::placeholder { font-size:12px; font-weight:400; letter-spacing:0; }
-.demoCode { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px; border-radius:13px; background:var(--mode-subtle); color:var(--text-secondary); font-size:11px; }
-.demoCode button { display:flex; align-items:center; gap:8px; padding:8px; border:0; border-radius:8px; background:var(--surface-card); color:var(--brand-primary); font:600 13px/1.5 var(--font-sans); cursor:pointer; }
-.demoCode small { font-weight:400; font-size:10px; }
-.error { margin:0; padding:12px; background:var(--color-apricot-100); border-radius:12px; color:var(--text-danger); font-size:12px; line-height:1.7; }
+.form .code::placeholder { font-size:14px; font-weight:400; letter-spacing:0; }
+.demoCode { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px; border-radius:13px; background:var(--mode-subtle); color:var(--text-secondary); font-size:14px; }
+.demoCode button { display:flex; align-items:center; gap:8px; padding:8px; border:0; border-radius:8px; background:var(--surface-card); color:var(--brand-primary); font:600 16px/1.5 var(--font-sans); cursor:pointer; }
+.demoCode small { font-weight:400; font-size:14px; }
+.error { margin:0; padding:12px; background:var(--color-apricot-100); border-radius:12px; color:var(--text-danger); font-size:14px; line-height:1.7; }
 .screen button:focus-visible,.screen a:focus-visible,.screen input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
-@media(max-width:359px) { .screen { padding-inline:16px; } .heading h1 { font-size:22px; } .choice { gap:12px; padding:20px 14px; } .choice strong { font-size:20px; } .form { padding:0; } }
+@media(max-width:359px) { .screen { padding-inline:16px; } .heading h1 { font-size:25px; } .choice { gap:12px; padding:20px 14px; } .choice strong { font-size:20px; } .form { padding:0; } }
 
 .photo :global(.photo-picker) button strong + span { display:none; }
 .photo :global(.photo-picker) > small { display:none; }
 .field { display:grid; gap:10px; min-width:0; }
-.fieldLabel { font-size:13px; font-weight:500; color:var(--text-primary); }
+.fieldLabel { font-size:15px; font-weight:500; color:var(--text-primary); }
 .birthdayChoices { display:flex; gap:8px; }
-.birthdayChoices button { flex:1; min-height:42px; padding:9px 8px; border:1px solid var(--mode-border); border-radius:13px; background:transparent; color:var(--text-secondary); font:400 12px/1.5 var(--font-sans); cursor:pointer; }
+.birthdayChoices button { flex:1; min-height:42px; padding:9px 8px; border:1px solid var(--mode-border); border-radius:13px; background:transparent; color:var(--text-secondary); font:400 14px/1.5 var(--font-sans); cursor:pointer; }
 .birthdayChoices button[aria-pressed="true"] { background:var(--mode-subtle); color:var(--brand-primary); border-color:var(--brand-primary); font-weight:500; }
 .photo :global(.photo-picker) button > span:has(> strong) { min-height:116px; padding:12px; gap:8px; }
 .photo :global(.photo-picker) button > :global(.photo) { height:116px; }
@@ -61,11 +61,11 @@
 .invitationPhoto > :global(.photo) { width:100%; height:100%; border-radius:2px; overflow:hidden; }
 .invitationMail { position:absolute; bottom:13px; left:12px; display:grid; place-items:center; width:74px; height:49px; border:1px solid #dfceb5; border-radius:8px; background:#fffaf1; color:#a8855c; transform:rotate(-8deg); box-shadow:0 3px 9px #80613e10; }
 .invitationMail > svg:last-child { position:absolute; padding:2px; box-sizing:content-box; border-radius:50%; background:#fffaf1; }
-.choice .choiceAction { display:flex; align-items:center; gap:6px; margin-top:13px; color:var(--brand-primary); font-size:13px; font-weight:500; }
+.choice .choiceAction { display:flex; align-items:center; gap:6px; margin-top:13px; color:var(--brand-primary); font-size:14px; font-weight:500; }
 .inviteChoice .choiceAction { color:#92734c; }
 .inviteChoice { background:linear-gradient(125deg,var(--surface-card),#fffaf3); }
-.choiceNote { margin:8px 0 0; text-align:center; color:var(--text-secondary); font-size:11px; line-height:1.9; text-wrap:balance; }
-@media(max-width:359px) { .profilePreview,.invitationPreview { width:88px; height:104px; } .profilePreview > :global(.photo) { width:70px; height:70px; } .invitationPhoto { left:8px; } .invitationMail { left:4px; } .choiceNote { font-size:11px; } }
+.choiceNote { margin:8px 0 0; text-align:center; color:var(--text-secondary); font-size:14px; line-height:1.9; text-wrap:balance; word-break:keep-all; overflow-wrap:anywhere; }
+@media(max-width:359px) { .profilePreview,.invitationPreview { width:88px; height:104px; } .profilePreview > :global(.photo) { width:70px; height:70px; } .invitationPhoto { left:8px; } .invitationMail { left:4px; } .choiceNote { font-size:14px; } }
 
 
 .screen[data-step="mode"] .content { justify-content:flex-start; }
@@ -77,7 +77,7 @@
 .modeChoice input { position:absolute; width:1px; height:1px; min-height:0; padding:0; opacity:0; }
 .modeChoice:has(input:focus-visible) { outline:2px solid var(--focus-ring); outline-offset:4px; }
 .modeChoice strong { display:block; font-size:24px; font-weight:600; letter-spacing:-.6px; }
-.modeChoice small { display:block; max-width:160px; margin-top:12px; font-size:13px; line-height:1.8; color:var(--text-secondary); text-wrap:balance; }
+.modeChoice small { display:block; max-width:175px; margin-top:12px; font-size:15px; line-height:1.8; color:var(--text-secondary); text-wrap:balance; word-break:keep-all; overflow-wrap:anywhere; }
 .modeArt { position:absolute; z-index:-1; inset:0; background:linear-gradient(90deg,#f6f7ed 8%,#f6f7eddd 36%,#f6f7ed00 80%),url('/images/watercolor-garden.png') 80% center / cover; }
 .modeChoice[data-mode="GARDEN"] { background:#14274b; border-color:#344568; }
 .modeChoice[data-mode="GARDEN"] .modeArt { background:linear-gradient(90deg,#14274bf2 0%,#14274bb5 45%,#14274b00 100%),url('/images/garden-motion-base.png') center 81% / cover; }
@@ -88,14 +88,14 @@
 .modeChoice:has(input:checked) .modeCheck { background:var(--brand-primary); border-color:transparent; color:white; }
 .modeChoice[data-mode="GARDEN"] .modeCheck { border-color:#ffffff66; background:#14274b88; }
 .modeChoice[data-mode="GARDEN"]:has(input:checked) .modeCheck { background:#efe2bf; border-color:transparent; color:#344568; }
-.modeNote { margin:0; text-align:center; font-size:12px; line-height:1.9; color:var(--text-secondary); text-wrap:balance; }
-@media(max-width:359px) { .form .modeChoice { min-height:170px; padding:24px 20px; } .modeChoice strong { font-size:22px; } .modeChoice small { max-width:138px; font-size:12px; } }
+.modeNote { margin:0; text-align:center; font-size:14px; line-height:1.9; color:var(--text-secondary); text-wrap:balance; word-break:keep-all; overflow-wrap:anywhere; }
+@media(max-width:359px) { .form .modeChoice { min-height:170px; padding:24px 20px; } .modeChoice strong { font-size:22px; } .modeChoice small { max-width:156px; font-size:14px; } }
 
 .screen[data-step="register"] .photo { max-width:112px; margin:0 auto 8px; }
 .screen[data-step="register"] .photo :global(.photo-picker) { width:112px; }
 .screen[data-step="register"] .photo :global(.photo-picker) > button { border-radius:34px; }
 .screen[data-step="register"] .photo :global(.photo-picker) button > span:has(> strong) { min-height:112px; }
 .screen[data-step="register"] .photo :global(.photo-picker) button > :global(.photo) { height:112px; }
-.screen[data-step="register"] .form label,.screen[data-step="register"] .fieldLabel { font-size:14px; }
+.screen[data-step="register"] .form label,.screen[data-step="register"] .fieldLabel { font-size:15px; }
 .screen[data-step="register"] .primary { margin-top:auto; }
 .screen[data-step="register"] .form fieldset { gap:22px; }
