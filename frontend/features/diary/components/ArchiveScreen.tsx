@@ -281,12 +281,7 @@ export function ArchiveScreen({
               </button>
             </div>
           )}
-          {result.total > 0 && !result.hasMore && (
-            <p className={styles.endNote}>
-              <Icon name="leaf" size={16} />
-              여기까지, 우리가 쌓아온 이야기예요.
-            </p>
-          )}
+
         </section>
       </div>
     </>
