@@ -198,6 +198,7 @@ export function ArchiveScreen({
     <>
       <CollectionHeading
         title={calendar ? "다이어리 달력" : "다이어리"}
+        body={calendar ? undefined : "우리의 일상을 기록해요."}
       >
         <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />
