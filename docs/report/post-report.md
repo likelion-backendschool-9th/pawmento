@@ -14,7 +14,7 @@
 - Given 회원 B가 쓴 글 7(제목 `산책 후기`, 카테고리 `LIFE`, version 2)이 있다
 - When  회원 A가 `POST /api/v1/reports`에 `{"targetType":"POST","targetId":7,"reasonType":"SPAM"}`을 보낸다
 - Then  201과 `{"reportId": <새 id>}`를 받는다
-- Then  `reports`에 target_type `POST`, target_id 7, status `PENDING`, reporter A, reasonType `SPAM`, reasonDetail `null`, snapshot 제목 `산책 후기`·본문·카테고리 `LIFE`·targetVersion 2가 저장된다 (고침 #112: report 도메인 분리와 대상 일반화)
+- Then  `reports`에 target_type `POST`, target_id 7, status `PENDING`, reporter A, reasonType `SPAM`, reasonDetail `null`, target_author_id B, snapshot 제목 `산책 후기`·본문·카테고리 `LIFE`·targetVersion 2가 저장된다 (고침 #112: report 도메인 분리와 대상 일반화, PR #276 리뷰로 작성자 ID 저장)
 
 #112-S2 경계: 접수 뒤 글 수정 [테스트]
 - Given S1의 신고가 저장됐다
@@ -165,6 +165,7 @@
    - 관리자 담당이 만든 `community` 아래 목록 파일 16개를 `report`로 옮긴다(아래 표). 옮기는 것과 필드를 바꾸는 것은 커밋을 나눠, 첫 커밋은 패키지 선언과 import만 바꾼다.
    - 계약 변경: `FindReportPagePort.Item`은 `postId`·`postState` 대신 `targetType`·`targetId`를 갖고 `snapshotExpired`를 더한다. `ListReportItemResult`는 `postId`·`PostState` 대신 `targetType`·`targetId`·`targetState`(`VISIBLE`/`HIDDEN`/`DELETED`/`MISSING`)를 갖고 `snapshotExpired`를 더한다. `ReportListItemResponse`도 같은 9개 필드가 된다.
    - 파일: `ReportPersistenceAdapter`가 `FindReportPagePort`도 구현하고 조회 쿼리는 `ReportJpaRepository`에 둔다(`size + 1`건으로 `hasMore`, `snapshot_cleared_at`으로 `snapshotExpired`). `report/application/port/out/FindTargetStatesPort.java`(대상 종류와 id 목록 → 찾은 대상의 상태), `PostReportTargetAdapter`가 이 포트도 구현, `community/application/port/in/ListPostStatesUseCase.java`·`PostStateResult.java`, `community/application/service/ListPostStatesService.java`(`deleted_at`으로 `VISIBLE`/`DELETED`), `ListReportsService`에 `@Service`와 상태 붙이기(결과에 없는 대상은 `MISSING`), `test/.../report/ReportPagePersistenceTest.java`, `test/.../report/ReportListScenarioTest.java`(S11, S15를 `ListReportsUseCase`로 확인)
+   - 필드 변경 커밋에서 기존 목록 테스트도 함께 고친다. `ListReportsServiceTest`, `ReportListItemResponseTest`, `AdminReportControllerTest`의 `Item`·`ListReportItemResult` 생성, 매핑, 정확한 키 검사를 9개 필드로 맞춘다. 컨트롤러 등록과 실제 조회·보안을 연결한 HTTP 통합 검증은 #92에 남긴다. (PR #276 리뷰)
    - 관리자 담당 파일을 옮기고 필드를 바꾸므로 PR에 이동 파일과 계약 변경을 적고 관리자 담당(@D-Gyun103)을 리뷰어로 지정한다.
    - 확인: `./gradlew test --tests 'com.pawmento.report.*'`
 
@@ -180,7 +181,7 @@
 - 신고할 때는 유형만 고르고, `OTHER`만 설명을 1~200자로 적는다. 다른 유형에 설명을 보내면 400이다. 신고 당시 글 원문을 스냅샷으로 저장하므로 관리자는 설명 없이도 판단할 수 있고, 신고자가 남의 글이나 개인정보를 옮겨 적는 일이 줄어든다. 처음 초안은 "모든 유형에서 설명 선택, 최대 500자"였고, 500자는 유형 없이 사유 문장 하나만 받던 프론트 데모의 상한이었다. (#112)
 - 일반 사용자 화면과 API에서 신고 여부와 건수를 알리지 않는 원칙은 [report README](README.md#정한-것)에 있다. 중복 신고의 409 "이미 신고한 게시글이에요."는 요청한 회원 본인의 신고만 보고 판정하므로 이 원칙에 맞는다. (#112)
 - 그 밖의 접수 규칙(중복·본인 글·대상 상태·유형 6개)과 운영 목록 필드는 [이슈 #112 본문](https://github.com/likelion-backendschool-9th/pawmento/issues/112)과 [관리자 목록 계약](../admin/report-management.md#목록에서-채택하는-계약)을 따른다. (#112)
-- 스냅샷은 접수 트랜잭션에서 대상 한 건을 읽어 `snapshot_title`·`snapshot_body`·`snapshot_category_code`·`snapshot_target_version`을 함께 저장한다. 캡처 시각은 신고의 `created_at`이다. 닉네임·이메일·IP는 복제하지 않는다. `snapshot_category_code`는 글에만 있고 다른 대상은 null이다. ([관리자 계획 Q4](../admin/report-management.md#q4--접수-스냅샷과-운영-상세))
+- 스냅샷은 접수 트랜잭션에서 대상 한 건을 읽어 `snapshot_title`·`snapshot_body`·`snapshot_category_code`·`snapshot_target_version`과 대상 작성자 ID `target_author_id`를 함께 저장한다. 작성자 ID는 관리자 상세의 `authorId`와 작성자 본인 처리 금지에 쓰며, 대상 행을 찾을 수 없는(`MISSING`) 신고에서도 이 판정이 되도록 접수 때 남긴다. 내부 ID라 개인정보 복제 금지 원칙에 걸리지 않는다. (PR #276 리뷰) 캡처 시각은 신고의 `created_at`이다. 닉네임·이메일·IP는 복제하지 않는다. `snapshot_category_code`는 글에만 있고 다른 대상은 null이다. ([관리자 계획 Q4](../admin/report-management.md#q4--접수-스냅샷과-운영-상세))
 - 글을 읽은 뒤 신고를 저장하기 전에 작성자가 글을 고치거나 지워도, 신고는 읽은 시점의 스냅샷으로 201 접수한다. 글 행을 잠그지 않는다. 신고자가 본 시점의 글은 공개 상태였고, 접수해 두어야 작성자가 바로 지운 글도 관리자가 신고 당시 내용으로 확인하고 관리할 수 있다. 지운 글의 신고가 목록에 `DELETED`로 남는 것과도 맞다. 이 순서는 #112-S13으로 확인한다. (#112)
 - 커서 경계·`hasMore`·마지막 페이지 표현은 관리자 쪽이 정했고, `FindReportPagePort`는 `beforeReportId` 배타 경계와 `hasMore`만 제공한다. (#92)
 - 운영 목록은 신고 테이블만으로 페이지를 정한 뒤 대상 상태를 붙인다. 대상 도메인 테이블과 SQL로 조인하지 않는다. 대상 조회 결과에 없는 신고도 목록에서 빼지 않고 `targetState: MISSING`으로 둔다. 글은 soft delete라 정상이라면 대상이 사라지지 않으므로, 이 값은 운영자가 데이터 이상을 알아볼 수 있게 `DELETED`와 구분한다. 페이지 크기와 커서는 대상 조회 결과와 상관없이 신고 id 기준이다. (#92 관리자 담당 답변, #112)

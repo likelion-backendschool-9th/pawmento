@@ -28,6 +28,7 @@
 | `id` | 신고 id. 자동 증가. 운영 목록의 정렬과 커서 기준 |
 | `target_type` | 대상 종류(`POST`) |
 | `target_id` | 대상 id. FK 없음 |
+| `target_author_id` | 접수 때의 대상 작성자 id. 관리자 상세의 `authorId`와 작성자 본인 처리 금지에 쓴다. FK 없음 |
 | `reporter_id` | 신고한 회원 id. FK 없음(탈퇴 하드 삭제를 막지 않는다) |
 | `status` | `PENDING`·`RESOLVED`·`DISMISSED` |
 | `reason_type` | `SPAM`·`ABUSE`·`HARMFUL`·`MISINFO`·`PRIVACY`·`OTHER` |

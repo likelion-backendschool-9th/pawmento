@@ -42,17 +42,17 @@
 
 ### Q4 — 접수 스냅샷과 운영 상세
 
-- #112의 접수 트랜잭션에서 글 한 행을 읽어 `snapshot_title`, `snapshot_body`, `snapshot_category_code`, `snapshot_post_version`을 함께 저장한다. 캡처 시각은 `created_at`과 같다. 작성자 ID는 `posts.author_id`를 사용한다. 신고 전용 데이터에 닉네임·이메일·연락처·IP·요청 헤더를 복제하지 않는다.
+- #112의 접수 트랜잭션에서 글 한 행을 읽어 `snapshot_title`, `snapshot_body`, `snapshot_category_code`, `snapshot_target_version`과 대상 작성자 ID `target_author_id`를 함께 저장한다. 캡처 시각은 `created_at`과 같다. 상세의 `authorId`와 작성자 본인 처리 판정은 `target_author_id`를 사용하므로, 대상 행을 찾을 수 없어도 작성자 ID가 남는다. (고침 #112: 대상 행 없는 신고에서도 작성자 확인, PR #276 리뷰) 신고 전용 데이터에 닉네임·이메일·연락처·IP·요청 헤더를 복제하지 않는다.
 - 상세는 `reportId`, `targetType`, `targetId`, `reporterId`, `authorId`, `status`, `reasonType`, `reasonDetail`, `createdAt`, 신고 `version`, `snapshot`(당시 `title`(제목 없는 대상은 null), `body`, `targetVersion`, 글이면 `categoryCode`), 현재 `targetState`와 `targetVersion`을 반환한다. 현재 대상을 찾을 수 없으면 `targetState: MISSING`, `targetVersion: null`이다. (고침 #112: 대상 일반화) 처리 뒤에는 `processedBy`, `processedAt`, `resolutionNote`를 반환한다. 신고자·작성자 정보는 내부 ID까지만 제공하고, 판단 자료는 신고 당시 내용으로 한정한다.
 - 작성자가 삭제한 글의 만료 전 스냅샷은 유지하고 현재 상태를 DELETED로 표시한다. 공개 상세는 404다. 회원 탈퇴 이후에도 신고와 스냅샷, 내부 작성자 ID는 기존 보존 정책에 따라 유지한다.
-- RESOLVED 또는 DISMISSED 처리 시점부터 1년이 지나면 `snapshot_title`, `snapshot_body`, `reason_detail`을 지운다. 신고 행과 재신고 판정에 쓰는 `snapshot_post_version`은 유지한다. PENDING은 처리 전에 정리하지 않는다. 만료 상세는 `snapshot: null`, `snapshotExpired: true`로 반환한다. 정리 작업은 첫 만료 전에 별도 PR로 진행한다.
+- RESOLVED 또는 DISMISSED 처리 시점부터 1년이 지나면 `snapshot_title`, `snapshot_body`, `reason_detail`을 지운다. 신고 행과 재신고 판정에 쓰는 `snapshot_target_version`, 작성자 본인 판정에 쓰는 `target_author_id`는 유지한다. (고침 #112: 컬럼 이름 통일) PENDING은 처리 전에 정리하지 않는다. 만료 상세는 `snapshot: null`, `snapshotExpired: true`로 반환한다. 정리 작업은 첫 만료 전에 별도 PR로 진행한다.
 - 만료된 신고는 목록에도 남고, 위 목록 계약에 따라 `snapshotTitle: null`과 `snapshotExpired: true`를 반환한다.
 
 ### Q3·Q5 — 처리·기각과 게시글 숨김
 
-- PENDING 신고 한 건을 RESOLVED 또는 DISMISSED로 바꾼다. 글 작성자나 신고자 본인이 처리하면 403이다. 같은 글의 다른 PENDING 신고는 유지한다. 처리자 ID는 인증된 회원으로, 시각은 서버에서 정한다.
+- PENDING 신고 한 건을 RESOLVED 또는 DISMISSED로 바꾼다. 대상 작성자(`target_author_id`)나 신고자 본인이 처리하면 403이다. 같은 글의 다른 PENDING 신고는 유지한다. 처리자 ID는 인증된 회원으로, 시각은 서버에서 정한다.
 - 처리·기각 메모는 Post와 같은 JavaScript `trim()` 기준으로 앞뒤 공백을 제거한 뒤 1~500자다. 웹과 신고 도메인에서 같은 규칙과 문구를 적용한다. 메모는 신고 행에 저장하고 관리자 상세에서만 반환한다.
-- RESOLVED는 공개 글 숨김과 한 트랜잭션에서 저장한다. 이미 숨기거나 삭제한 글은 신고만 처리하며, DISMISSED도 글을 변경하지 않는다. 상태는 삭제 시각이 있으면 DELETED, 다음으로 숨김 시각이 있으면 HIDDEN, 나머지는 VISIBLE이고, 대상 조회 결과에 없으면 MISSING이다. 숨김은 `report`가 community의 숨김 입력 포트를 같은 트랜잭션에서 불러 함께 성공하거나 함께 롤백한다. (고침 #112: report 도메인 분리)
+- RESOLVED는 공개 글 숨김과 한 트랜잭션에서 저장한다. 이미 숨기거나 삭제한 글과 찾을 수 없는(MISSING) 대상은 신고만 처리하며, DISMISSED도 글을 변경하지 않는다. 상태는 삭제 시각이 있으면 DELETED, 다음으로 숨김 시각이 있으면 HIDDEN, 나머지는 VISIBLE이고, 대상 조회 결과에 없으면 MISSING이다. 숨김은 `report`가 community의 숨김 입력 포트를 같은 트랜잭션에서 불러 함께 성공하거나 함께 롤백한다. (고침 #112: report 도메인 분리)
 - 신고의 기대 버전 조건부 갱신과 게시글의 버전 증가를 적용하고 저장을 flush한다. 어느 쪽이든 버전 충돌로 실패하면 전체를 롤백한다. 기대 버전 불일치, 처리 완료 후 재요청, 숨김 중 글 버전 충돌은 409로 응답하며 관리자는 최신 상세를 다시 조회한다.
 - 숨긴 글은 공개 목록에서 제외하고, 상세는 비로그인·비작성자에게 404를 반환한다. 로그인한 작성자에게는 200과 `hidden: true`, 제목, “운영 정책에 따라 숨겨진 글이에요.”만 반환한다. 작성자 수정은 409, 소프트 삭제는 허용, 신고 접수는 404다. 숨김 해제·이의 제기·내 글 목록은 첫 버전 범위 밖이다.
 
@@ -117,6 +117,7 @@
 
 #92-S2 정상: 상세와 삭제된 대상 [테스트]
 - 접수 뒤 수정되거나 삭제된 글의 신고를 관리자가 조회하면 접수 스냅샷과 현재 상태·버전을 구분해 반환한다. 작성자 탈퇴 뒤에도 보존 기간 내 내부 ID와 스냅샷을 유지한다. 대상 글이 삭제됐으면 현재 상태는 DELETED이고 공개 상세는 404다. (고침 #92: 담당자 답변으로 상세 반환 범위 확정)
+- 대상 행을 찾을 수 없는 신고는 상세가 200이고 스냅샷·`authorId`(접수 때 저장한 값)를 그대로 반환하며, `targetState: MISSING`, `targetVersion: null`이다. 소프트 삭제된 DELETED와 구분한다. (고침 #112: PR #276 리뷰)
 - 처리한 지 1년이 지난 신고의 정리 작업은 제목·본문·사유 상세를 지우고 재신고에 필요한 스냅샷 게시글 버전을 보존한다. 만료 상세는 `snapshot: null`, `snapshotExpired: true`이며 PENDING은 정리되지 않는다. 실제 정리 작업은 별도 PR에서 검증한다.
 
 ## 3. 처리·기각과 원본 보호 (#92-R3)
@@ -128,6 +129,7 @@
 - When A가 RESOLVED 또는 DISMISSED와 기대 버전0을 보낸다
 - Then 합의된 최종 상태와 새 버전을 반환하고 서버의 처리자 A·시각을 기록한다
 - Then 클라이언트가 보낸 다른 처리자·임의 시각은 권한/감사 근거로 사용하지 않는다
+- MISSING 대상의 신고는 RESOLVED·DISMISSED 모두 신고만 처리하고 200이며, 숨김 입력 포트를 부르지 않는다. 접수 때 저장한 작성자 본인이 처리하면 403이다. (고침 #112: PR #276 리뷰)
 - RESOLVED는 공개 상태의 글을 숨기고, 이미 숨기거나 삭제한 글은 신고만 처리한다. DISMISSED는 글 상태를 유지한다. 처리 메모는 필수이며 같은 글의 다른 신고는 PENDING으로 남는다. (고침 #92: 한 건씩 처리하는 담당 계약 반영)
 
 #92-S4 실패: 관리자 권한 [테스트]
@@ -148,6 +150,7 @@
 - When A의 결정이 먼저 커밋되고 C가 version0으로 처리한다
 - Then C는 409·CONFLICT이며 A의 결정·처리자·시각과 대상 조치가 유지된다
 - 별도 PostgreSQL 연결/트랜잭션과 latch/barrier로 같은 버전을 읽은 실제 경합을 확인하고, 커밋 종료 후 새 트랜잭션에서 결정·이력·대상 상태를 확인한다. 기대 버전 사전 비교만으로 완료 처리하지 않는다 (고침 #92: #89의 실제 경합·최종 DB 상태 검증 기준 반영)
+- 기각 뒤 같은 버전 재신고 경합([#112 범위 밖](../report/post-report.md#범위-밖)): 회원 A의 접수 요청이 별도 PostgreSQL 트랜잭션에서 "마지막 신고는 이전 버전 기각"을 읽고 대기하는 사이, A의 같은 대상 현재 버전 신고가 접수되고 관리자가 기각해 커밋한다. 대기하던 요청이 이어지면 409 `CONFLICT`이고, 커밋 뒤 새 트랜잭션에서 A의 같은 대상·같은 버전 신고는 한 건이다. 막는 방법은 기각 단계에서 고른다. (고침 #112: PR #276 리뷰)
 
 #92-S7 경계: 처리 완료 신고의 재요청 [테스트]
 - Given A가 신고101의 version0을 RESOLVED·메모 `확인 완료`로 처리해 커밋했으나 응답을 받지 못했다
