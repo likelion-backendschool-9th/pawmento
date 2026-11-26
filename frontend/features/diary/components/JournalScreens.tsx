@@ -20,6 +20,7 @@ import type { JournalItem } from "../types/JournalItem";
 import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
 import { MemoryDateField } from "./MemoryDateField";
+import { isCalendarDate } from "../utils/dateSelection";
 import editorStyles from "./JournalEditor.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
@@ -82,6 +83,11 @@ export function JournalForm({
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (busy || (questionAnswer && !questionText)) return;
+    // 날짜 칸은 버튼이라 브라우저의 required가 막지 못한다. ?date=엉터리처럼 들어온 값은 저장 전에 알린다
+    if (!questionAnswer && !isCalendarDate(date)) {
+      setError("기억하고 싶은 날짜를 선택해 주세요.");
+      return;
+    }
     if (record?.legacy && record.attachments?.some((a) => a.type === "VIDEO")) {
       setError("영상이 포함된 이전 데모 기록은 읽기만 가능해요.");
       return;
@@ -174,7 +180,7 @@ export function JournalForm({
           {!questionAnswer && (
             <div className={editorStyles.titleField}>
             <label htmlFor="diary-title">
-              제목
+              <span>제목 <span className={editorStyles.required}>(필수)</span></span>
               <input
                 id="diary-title"
                 required
@@ -198,7 +204,7 @@ export function JournalForm({
               <small>답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은 유지돼요.</small>
             </label>
           ) : (
-            <MemoryDateField value={date} mode={pet.mode} onChange={(next) => { setSaved(false); setDate(next); }} />
+            <MemoryDateField value={date} mode={pet.mode} onChange={(next) => { setSaved(false); setError(""); setDate(next); }} />
           )}
           {!questionAnswer && (
             <LocationField

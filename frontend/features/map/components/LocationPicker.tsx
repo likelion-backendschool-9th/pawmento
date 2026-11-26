@@ -6,7 +6,7 @@ import { isDemoAccount } from "@/features/member/types/account";
 import { Icon } from "@/components/Icon";
 import type { MapPoint } from "@/features/map/types/MapBounds";
 import type { PickedLocation } from "@/features/map/types/PickedLocation";
-import { pickLocation, PLACE_NAME_MAX_LENGTH } from "@/features/map/utils/pickedLocation";
+import { pickLocation, placeNameAfterPick, PLACE_NAME_MAX_LENGTH } from "@/features/map/utils/pickedLocation";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
 import { NaverPickerCanvas } from "./NaverPickerCanvas";
 import { StaticPickerCanvas } from "./StaticPickerCanvas";
@@ -34,12 +34,17 @@ export function LocationPicker({
   const { account, dependencies } = useApp();
   const searchLocations = dependencies.locationSearch.searchDemo;
   const sample = isDemoAccount(account);
+  // 지도를 옮길 위치. 결과를 고를 때마다 새 값이라, 같은 결과를 다시 골라도 그 위치로 돌아간다
   const [start, setStart] = useState<MapPoint>(initial ?? DEFAULT_MAP_CENTER);
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState<string | null>(null);
   const results = sample && searched ? searchLocations(searched) : [];
   const [center, setCenter] = useState<MapPoint>(start);
   const [name, setName] = useState(initial?.placeName ?? "");
+  // 검색 결과로 채운 장소 이름. 사용자가 직접 쓴 이름은 결과를 골라도 덮지 않는다
+  const filledName = useRef<string | null>(null);
+  // 결과를 고른 횟수. 예시 지도는 이 값으로 다시 그려 같은 결과를 다시 골라도 그 위치로 돌아간다
+  const [picks, setPicks] = useState(0);
   const [error, setError] = useState("");
   const [naverFailed, setNaverFailed] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -61,7 +66,10 @@ export function LocationPicker({
     const point = { latitude: place.latitude, longitude: place.longitude };
     setStart(point);
     setCenter(point);
-    setName(place.name);
+    const nextName = placeNameAfterPick(name, filledName.current, place.name);
+    if (nextName === place.name) filledName.current = place.name;
+    setName(nextName);
+    setPicks((count) => count + 1);
     setError("");
   }
 
@@ -102,14 +110,13 @@ export function LocationPicker({
           <div className={styles.mapArea}>
             {clientId && !naverFailed ? (
               <NaverPickerCanvas
-                key={`${start.latitude}:${start.longitude}`}
                 clientId={clientId}
                 center={start}
                 onCenterChange={setCenter}
                 onUnavailable={() => setNaverFailed(true)}
               />
             ) : (
-              <StaticPickerCanvas key={`${start.latitude}:${start.longitude}`} center={start} onCenterChange={setCenter} />
+              <StaticPickerCanvas key={picks} center={start} onCenterChange={setCenter} />
             )}
             <p className={styles.hint} role="status">
               지도를 움직여 핀을 놓아 보세요
