@@ -1,7 +1,7 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import { journalItems } from "@/features/diary/utils/journalItems";
 import { PolaroidDiaryList } from "./PolaroidDiaryList";
-import diaryStyles from "./ArchiveScreen.module.css";
 
 import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
@@ -201,10 +201,7 @@ export function ArchiveScreen({
         title={calendar ? "다이어리 달력" : "다이어리"}
         body={calendar ? undefined : "우리의 일상을 기록해요."}
       >
-        <Link className={diaryStyles.createLink} href={`/pets/${pet.id}/diary/new`}>
-          <span className={diaryStyles.createIcon} aria-hidden="true"><Icon name="edit" size={15} /></span>
-          기록 남기기
-        </Link>
+        <RecordActionLink href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
       </CollectionHeading>
       {invalidDate && (
         <p className="error" role="alert">
@@ -264,6 +261,7 @@ export function ArchiveScreen({
               body="작은 순간 하나를 남겨볼까요?"
               href={`/pets/${pet.id}/diary/new${calendar ? `?date=${date}` : ""}`}
               action="이날의 기록 남기기"
+              actionIcon="edit"
             />
           )}
           {result.hasMore && !error && (

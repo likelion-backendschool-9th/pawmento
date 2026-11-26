@@ -1,4 +1,5 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -106,14 +107,8 @@ export function MapScreen({
         title="추억 지도"
         body={<PetDescription name={pet.name} suffix="와 다녀온 곳,">지도에서 다시 만나요.</PetDescription>}
       >
-        <Link className="button secondary" href={`/pets/${pet.id}/map/walk`}>
-          <Icon name="paw" size={17} />
-          산책 시작
-        </Link>
-        <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
-          <Icon name="plus" size={17} />
-          기록 남기기
-        </Link>
+        <RecordActionLink icon="paw" compact href={`/pets/${pet.id}/map/walk`}>산책 시작</RecordActionLink>
+        <RecordActionLink compact href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
       </CollectionHeading>
       <ArchiveNavigation petId={pet.id} active="map" />
       <div className={styles.switch} role="group" aria-label="지도 보기">
@@ -196,9 +191,7 @@ export function MapScreen({
             <p>
               <PetDescription name={pet.name} suffix="와 함께한 곳,">기록에 위치를 붙이면 여기에 모여요.</PetDescription>
             </p>
-            <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
-              기록 쓰러 가기
-            </Link>
+            <RecordActionLink href={`/pets/${pet.id}/diary/new`}>기록 쓰러 가기</RecordActionLink>
             <button
               type="button"
               className={styles.textButton}

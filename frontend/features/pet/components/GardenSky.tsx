@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -278,12 +279,7 @@ export function GardenSky({ pet }: { pet: Pet }) {
                 : "기억 프리뷰는 데모에서 만나볼 수 있어요. 서버 기록 연결은 준비 중이에요."}
             </p>
             {app.sessionSource === "demo" && (
-              <Link
-                className="button primary"
-                href={`/pets/${pet.id}/diary/new`}
-              >
-                첫 기억 남기기
-              </Link>
+<RecordActionLink full href={`/pets/${pet.id}/diary/new`}>첫 기억 남기기</RecordActionLink>
             )}
           </div>
         )}

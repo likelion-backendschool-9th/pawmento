@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { Icon } from "@/components/Icon";
 import styles from "./Life.module.css";
 export { styles as lifeStyles };
@@ -50,18 +51,20 @@ export function LifeEmpty({
   body,
   href,
   action,
+  actionIcon,
 }: {
   title: string;
   body: string;
   href?: string;
   action?: string;
+  actionIcon?: string;
 }) {
   return (
     <div className={styles.empty}>
       <Icon name="leaf" size={32} />
       <h2>{title}</h2>
       <p>{body}</p>
-      {href && (
+      {href && (actionIcon ? <RecordActionLink href={href} icon={actionIcon}>{action}</RecordActionLink> :
         <Link className="button primary" href={href}>
           {action}
         </Link>
