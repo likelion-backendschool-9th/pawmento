@@ -105,11 +105,13 @@
 - Then  204이고 B는 P에 접근할 수 없다(목록 403)
 - Then  B가 만들고 아직 쓰지 않은 P의 초대 코드는 404가 된다
 - Then  가족 B가 다른 가족을 내보내면 403이다
+- Then  대상이 P의 가족이 아니면 404, 소유주 자신을 내보내려 하면 409다. 요청자가 소유주가 아니면 대상을 확인하기 전에 403이다
 
 #133-S11 나가기 [테스트]
 - When  가족 B가 `DELETE /api/v1/families/members/me?petId=P`
 - Then  204이고 B는 P에 접근할 수 없으며, B가 만든 쓰지 않은 코드는 404가 된다
 - Then  소유주 A가 나가기를 요청하면 409다 (먼저 소유주를 넘기거나 반려동물을 삭제해야 함)
+- Then  P의 가족이 아닌 회원이 나가기를 요청하면 403이다
 
 #133-S12 나간 뒤 글 [테스트: diary 시나리오 테스트]
 - Given B가 쓴 다이어리가 있고 B가 나갔다
@@ -118,9 +120,11 @@
 #133-S18 발급과 내보내기가 겹침 [테스트]
 - Given 실제 PostgreSQL. 테스트 메서드에는 트랜잭션을 두지 않는다
 - 발급이 먼저: 가족 B의 발급이 반려동물 행을 잠그고 B의 멤버십을 확인한 순간 barrier로 멈추고, A의 B 내보내기를 시작한다
-  - Then  내보내기는 잠금을 기다린다. 발급이 201로 커밋한 뒤 내보내기가 멤버십과 그 코드를 함께 지워, B가 만든 P의 코드는 0개다
+- Then  내보내기는 잠금을 기다린다. 발급이 201로 커밋한 뒤 내보내기가 멤버십과 그 코드를 함께 지워, B가 만든 P의 코드는 0개다
 - 내보내기가 먼저: A의 B 내보내기가 반려동물 행을 잠그고 B의 멤버십을 지운 순간 barrier로 멈추고, B의 발급을 시작한다
-  - Then  발급은 잠금을 기다린다. 내보내기가 커밋한 뒤 발급은 B의 멤버십이 없어 403이고, B가 만든 P의 코드는 0개다
+- Then  발급은 잠금을 기다린다. 내보내기가 커밋한 뒤 발급은 B의 멤버십이 없어 403이고, B가 만든 P의 코드는 0개다
+- 가입과 내보내기가 겹침: 가입이 B가 만든 코드를 읽은 뒤 반려동물 잠금을 기다리는 사이, A의 B 내보내기가 그 코드를 지우고 커밋한다
+- Then  가입은 잠금 뒤 코드를 다시 읽어 404다. 가입 요청자가 이미 P의 가족이어도 409가 아니라 404다
 
 ## 6. 소유주 이전 (#133-R6)
 소유주는 가족 중 한 명을 골라 소유주를 넘긴다.
@@ -210,17 +214,19 @@
      - `GetPetOwnerUseCase`·`GetPetOwnerQuery(petId)`·`GetPetOwnerResult(ownerMemberId)`. 반환은 `Optional<GetPetOwnerResult>`, 요청자 검사와 잠금은 없다(읽기용)
      - `LockPetOwnerUseCase`·`LockPetOwnerQuery(petId)`. 반려동물 행을 `FOR UPDATE`로 읽어 소유주를 돌려준다. 호출자의 트랜잭션 안에서만 부른다(`Propagation.MANDATORY`)
    - 다른 도메인은 아직 바꾸지 않는다(동작 변화 없음)
-2. 초대 코드와 가족 되기·목록·가족 화면 — S2~S6, S19, S23~S25
+2. 초대 코드와 가족 되기·목록 — S2~S6, S19
    - 파일: `family/adapter/in/web/FamilyController`(`@RequestMapping("/families")`), `PetInviteCode`(`pet_invite_codes`, 코드 해시와 발급자 저장), 초대·가입·목록 유스케이스
    - 발급: 한 트랜잭션에서 반려동물 행 잠금 → 요청자가 소유주나 가족인지 확인(아니면 403) → 코드 저장
-   - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 시각을 읽어 코드가 있고 만료 전인지 다시 확인(아니면 404) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(`code_hash`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
+   - 가입: 한 트랜잭션에서 코드 해시로 반려동물 id 조회(없으면 404) → 반려동물 행 잠금 → 잠금 뒤 코드를 다시 읽어 처음 읽은 행(같은 id·반려동물)이고 잠금 뒤 시각으로 만료 전인지 확인 (아니면 404, 이미 가족인지보다 먼저) → 요청자가 이미 소유주나 가족이면 409(코드는 그대로) → 코드 소비(확인한 코드 행의 `id`와 `expires_at > 잠금 뒤 시각`을 조건으로 한 문장 삭제, 0줄이면 404) → 멤버십 저장. 어디서 실패해도 코드 소비까지 롤백된다
    - 목록: 소유주 id → 가족 줄(가입 순, 같으면 id 순) → 요청자가 소유주나 가족인지 확인(아니면 403) → 회원 프로필을 한 번에 조회. 잠그지 않는다
    - member: 새 입력 포트 `ListMemberProfilesUseCase`·`ListMemberProfilesQuery(memberIds)` → `List<MemberProfileResult(memberId, nickname, tag)>`. 다른 회원에게 보여도 되는 값만 주고(이메일·역할 제외), 없는 회원은 예외 없이 빠진다
    - pet: 새 입력 포트 `GetPetSummaryUseCase`·`GetPetSummaryQuery(petId)` → `Optional<PetSummaryResult(petId, name, tag)>`. 요청자 검사가 없다. 부르는 도메인이 권한을 먼저 확인한 뒤에만 부른다. pet 담당과 합의(#236)
-   - 내가 가족인 반려동물(S23): 요청자의 가족 줄을 `member_id`로 조회(들어간 순, 같으면 id 순) → 한 마리씩 `GetPetSummaryUseCase`. `GetPetSummaryUseCase`의 "권한을 먼저 확인한 뒤에만 부른다" 계약은 요청자 본인의 가족 줄이 채운다. 그 줄에서 나온 petId만 쓰기 때문이다. 한 회원이 가족인 반려동물은 적어 한 마리씩 읽는다. `pet_family_members.member_id` 인덱스는 스키마 파일을 둘 때 함께 둔다
-   - 가족 화면(S24·S25): 같은 단계에서 한다. 새 파일은 `features/family/api/familyApi.ts`, `features/family/types/serverFamily.ts`, `features/family/components/ServerFamilyScreen.tsx`·`JoinFamilyScreen.tsx`·`MyFamilyPets.tsx`, 경로 `app/(app)/pets/manage/[managedPetId]/family/page.tsx`·`app/(app)/family/join/page.tsx`다. 공용 파일 `app/composition.ts`에는 `family` 의존성 한 줄만 더한다. pet 관리 목록 `features/pet/components/PetManagementList.tsx`에 가족 버튼·참여 버튼·"가족으로 함께하는 친구" 섹션을 더하며, 시각 변경은 pet 담당 확인을 받는다(#242)
+   - 내가 가족인 반려동물(S23): 요청자의 가족 줄을 `member_id`로 조회(들어간 순, 같으면 id 순) → 한 마리씩 `GetPetSummaryUseCase`. 요청자 본인의 가족 줄에서 나온 petId만 쓰므로 그 줄이 곧 권한 확인이다. 한 회원이 가족인 반려동물은 적어 한 마리씩 읽는다. `pet_family_members.member_id` 인덱스는 스키마 파일을 둘 때 함께 둔다
+   - 프론트(S24·S25): `features/family/api/familyApi.ts`, `ServerFamilyScreen`·`JoinFamilyScreen`·`MyFamilyPets`, 경로 `/pets/manage/{id}/family`·`/family/join`. 공용 파일 `app/composition.ts`에 `family` 의존성 한 줄을 더한다. pet 관리 목록(`PetManagementList.tsx`)에 가족 버튼·참여 버튼·"가족으로 함께하는 친구" 섹션을 더하며, 시각 변경은 pet 담당 확인을 받는다(#242)
 3. 나가기·내보내기 — S10, S11, S18
    - 한 트랜잭션에서 반려동물 행 잠금 → 권한 확인 → 멤버십 삭제 → 그 회원이 발급한 P의 코드 삭제
+   - API: 내보내기 `DELETE /api/v1/families/members/{memberId}?petId=P`, 나가기 `DELETE /api/v1/families/members/me?petId=P`(204). `petId`는 Request record와 `@Valid`로 받는다
+   - 멤버십 삭제와 코드 삭제는 각각 한 문장이고 같은 트랜잭션이다. 지운 멤버십 줄이 0이면 가족이 아니었던 것이다
 4. 다른 도메인 접근 교체 — S7~S9, S12 (도메인별 PR, 담당과 순서 합의)
    - diary: `CheckDiaryPetAccessPort`가 역할(`OWNER`·`FAMILY`)을 돌려주게 하고 `OwnerDiaryPetAccessAdapter`를 가족 포트로 바꾼다. `DeleteDiaryEntryService`는 `requireAuthor` 대신 "작성자이거나 소유주"를 확인하고, 수정은 `requireAuthor`를 유지한다
      - media에 넘기는 `previous`는 권한 확인을 마친 뒤 `DiaryAttachmentsPort.find(entryId)`로 DB에서 읽은 그 일기의 실제 첨부만 쓴다. 요청 본문의 값은 `previous`로 넘기지 않는다

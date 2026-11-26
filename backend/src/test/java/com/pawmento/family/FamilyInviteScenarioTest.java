@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,6 +56,7 @@ import com.pawmento.family.application.port.in.IssueInviteCodeUseCase;
 import com.pawmento.family.application.port.in.JoinFamilyCommand;
 import com.pawmento.family.application.port.in.JoinFamilyUseCase;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
+import com.pawmento.family.application.service.InviteCodes;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.pet.application.port.in.CreatePetCommand;
 import com.pawmento.pet.application.port.in.CreatePetUseCase;
@@ -134,6 +136,9 @@ class FamilyInviteScenarioTest {
 
 	@Autowired
 	private JoinFamilyUseCase join;
+
+	@Autowired
+	private InviteCodes inviteCodes;
 
 	// 평소엔 진짜 저장소를 그대로 부르고, S19의 저장 실패 테스트에서만 한 번 실패시킨다
 	@MockitoSpyBean
@@ -389,6 +394,46 @@ class FamilyInviteScenarioTest {
 		long joiner = uniqueMemberId();
 		join.join(new JoinFamilyCommand(joiner, stillValid));
 		assertThat(memberships(pet, joiner)).isEqualTo(1);
+	}
+
+	@Test
+	@DisplayName("#133-S18 가입이 잠금을 기다리는 사이 코드가 지워지고 같은 값이 다른 반려동물에 다시 발급되면 404이고, 새 코드와 두 반려동물의 멤버십은 그대로다")
+	void sameValueReissuedToOtherPetWhileWaiting() throws Exception {
+		long owner = uniqueMemberId();
+		long otherOwner = uniqueMemberId();
+		long joiner = uniqueMemberId();
+		long pet = pet(owner);
+		long otherPet = pet(otherOwner);
+		String code = issue(owner, pet);
+		String hash = inviteCodes.hash(code);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+
+		try (var executor = Executors.newFixedThreadPool(2)) {
+			Future<?> holder = executor.submit(() -> transaction.executeWithoutResult(status -> {
+				lockPetOwners.lock(new LockPetOwnerQuery(pet));
+				locked.countDown();
+				awaitQuietly(release);
+			}));
+			assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
+
+			// 가입은 코드(P의 행)를 읽은 뒤 P의 잠금에서 기다린다
+			Future<?> joining = executor.submit(() -> join.join(new JoinFamilyCommand(joiner, code)));
+			blockedOnPetsLock();
+
+			// 기다리는 사이 원래 코드가 지워지고, 같은 해시가 다른 반려동물의 새 행으로 들어온다
+			jdbc.update("delete from pet_invite_codes where code_hash = ?", hash);
+			jdbc.update("insert into pet_invite_codes (pet_id, code_hash, issuer_member_id, expires_at, created_at)"
+					+ " values (?, ?, ?, ?, ?)",
+					otherPet, hash, otherOwner, Timestamp.from(NOW.plus(Duration.ofHours(24))), Timestamp.from(NOW));
+
+			release.countDown();
+			holder.get(5, TimeUnit.SECONDS);
+			assertThat(failureOf(joining)).isInstanceOf(InviteCodeNotFoundException.class);
+		}
+		assertThat(memberships(pet, joiner)).isZero();
+		assertThat(memberships(otherPet, joiner)).isZero();
+		assertThat(codeRows(otherPet)).isEqualTo(1);
 	}
 
 	private long pet(long owner) {
