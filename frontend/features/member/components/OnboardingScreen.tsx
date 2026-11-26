@@ -74,7 +74,6 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   return <main id="main" className={s.screen} data-step={choosingMode ? "mode" : step}>
     <div className={s.brand}><Brand /></div>
     <section className={s.content}>
-      {step === "join" && <div className={s.envelope} aria-hidden="true"><Icon name="mail" size={52} /><span><Icon name="paw" size={22} /></span></div>}
       <header className={s.heading}>
         <h1>{choosingMode ? "어떤 공간에서 시작할까요?" : step === "choose" ? "어떻게 시작할까요?" : step === "join" ? "함께할 초대가 도착했어요" : "우리 아이를 소개해 주세요"}</h1>
         <p>{choosingMode ? "함께하는 오늘도, 오래 간직할 기억도 소중하니까요." : step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "이름과 사진으로 첫 기억을 시작해요."}</p>

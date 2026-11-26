@@ -133,7 +133,6 @@ export function AuthScreen({
       <div className={styles.brand}><Brand /></div>
       <section className={styles.formContent}>
         <header className={styles.heading}>
-          <span className={styles.mark}><Icon name={signUp ? "leaf" : "paw"} size={20} /></span>
           <h1>{signUp ? "함께할 이야기를 시작해요" : "우리의 기억을 만나러 가요"}</h1>
           <p>{signUp ? "작은 일상부터 오래 간직할 추억까지." : "함께한 순간은 언제나 여기 있어요."}</p>
         </header>

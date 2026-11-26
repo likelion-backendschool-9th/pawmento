@@ -1,10 +1,11 @@
-.page { display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100dvh; margin:0 auto; padding:calc(28px + env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom)); background:linear-gradient(180deg,#f2f5e9,var(--surface-page) 70%); font-family:var(--font-sans); }
-.brand { display:flex; justify-content:center; margin-bottom:28px; }
-.brand :global(.brand) { font-size:28px; }
-.brand :global(.brand-words small) { display:block; margin-top:6px; font-size:10px; font-weight:400; }
+.page { display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100dvh; margin:0 auto; padding:calc(20px + env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom)); background:linear-gradient(180deg,#f2f5e9,var(--surface-page) 70%); font-family:var(--font-sans); }
+.brand { flex:none; display:flex; justify-content:flex-start; margin:0 0 28px; }
+.brand :global(.brand) { gap:8px; font-size:22px; line-height:1; }
+.brand :global(.brand-logo) { flex:none; width:36px; height:36px; }
+.brand :global(.brand-words small) { display:none; }
 .illustration { position:relative; width:100%; min-height:180px; height:clamp(180px,31dvh,290px); border:1px solid var(--mode-border); border-radius:32px 32px 72px 32px; background:linear-gradient(180deg,#fffefb00,#f6f7f218),url('/images/watercolor-garden.png') 78% center / cover; }
 .gardenMark { position:absolute; display:grid; place-items:center; width:52px; height:52px; bottom:-16px; right:26px; border:5px solid var(--surface-page); border-radius:50%; background:var(--mode-subtle); color:var(--brand-primary); }
-.copy { text-align:center; padding:27px 0 22px; }
+.copy { text-align:left; padding:28px 0; }
 .copy h1 { margin:0; color:var(--text-primary); font-size:32px; font-weight:600; letter-spacing:-1px; line-height:1.5; }
 .copy h1 span { color:var(--brand-primary); }
 .copy p { margin:15px 0 0; color:var(--text-secondary); font-size:13px; line-height:1.9; text-wrap:balance; }
