@@ -171,11 +171,13 @@ class PlaceSyncAdminScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#172-S22 토큰에는 ADMIN이라 적혀 있어도 지금 DB의 역할이 관리자가 아니면 403이다(역할이 바뀐 뒤에도 쓰던 토큰으로 못 돌린다)")
+	@DisplayName("#172-S22 토큰에는 ADMIN이라 적혀 있어도 지금 DB의 역할이 관리자가 아니면 시작도 조회도 403이다(역할이 바뀐 뒤에도 쓰던 토큰으로 못 쓴다)")
 	void currentRoleIsCheckedAgainstTheDatabase() throws Exception {
 		int status = asRole(user, "ADMIN", "/api/v1/admin/places/sync?category=HOSPITAL").andReturn().getResponse().getStatus();
+		int statusQuery = asRoleGet(user, "ADMIN").andReturn().getResponse().getStatus();
 
 		assertThat(status).isEqualTo(403);
+		assertThat(statusQuery).isEqualTo(403);
 		verify(loader, never()).load(any());
 	}
 

@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | [#21](https://github.com/likelion-backendschool-9th/pawmento/issues/21) | 글 작성·조회·수정·삭제 API | [post.md](post.md) |
 | [#104](https://github.com/likelion-backendschool-9th/pawmento/issues/104) | 커뮤니티 화면을 글 API에 연결 | [post-screen.md](post-screen.md) |
-| [#112](https://github.com/likelion-backendschool-9th/pawmento/issues/112) | 게시글 신고 접수와 운영 목록 포트 | [report.md](report.md) |
+| [#112](https://github.com/likelion-backendschool-9th/pawmento/issues/112) | 게시글 신고 접수와 운영 목록 | [report/post-report.md](../report/post-report.md) |
 
 ## 정한 것
 
@@ -18,9 +18,8 @@
 - 글은 soft delete한다(`deleted_at`). 댓글이 붙은 뒤에도 댓글이 가리키는 글이 사라지지 않고, 신고 처리 때 지운 글을 확인할 수 있다. 지운 글은 목록·상세에서 404처럼 보인다. (#21)
 - 고치기·지우기는 작성자만 한다. 작성자 확인은 도메인 객체(`Post`)가 하고, 아니면 403이다. (#21)
 - 목록은 커서 기반이다(`cursor` = 마지막 글 id). 프론트엔드의 더 불러오기와 맞고, 글이 새로 올라와도 다음 페이지가 밀리지 않는다. (#21)
-- 신고 접수·신고 당시 원본(스냅샷)·처리 상태는 community가 맡고, admin은 community가 제공하는 운영 포트만 쓴다. 신고 당시 글을 같은 트랜잭션에서 읽고, 처리할 때 글 숨김을 신고 처리와 한 트랜잭션으로 묶어야 하기 때문이다. 관리자 API(`/api/v1/admin/reports`)도 관리 대상 도메인인 community가 컨트롤러를 둔다. ([관리자 신고 계획](../admin/report-management.md), #92·#112)
-- 신고가 쌓여도 글을 자동으로 숨기지 않는다. 관리자가 신고를 RESOLVED로 처리할 때만 숨긴다. 숨긴 글은 공개 목록에서 빠지고, 상세는 비로그인·비작성자에게 404, 작성자에게만 200과 숨김 안내를 준다. ([관리자 계획 Q3·Q5](../admin/report-management.md#q3q5--처리기각과-게시글-숨김), #92)
-- 일반 사용자 화면과 API에서는 신고 여부와 건수를 신고한 본인 말고는 알리지 않는다. 관리자 조회는 관리자 계획의 계약을 따른다. 자세한 접수 규칙은 [report.md](report.md)에 있다. (#112)
+- 신고는 별도 도메인 `report`가 맡는다. community는 `report`가 부르는 입력 포트만 제공한다: 신고용 글 조회(지운 글은 빈 결과), 글 id 목록의 현재 상태 조회, 이후 처리 단계의 글 숨김. 신고 규칙과 운영 계약은 [report README](../report/README.md#정한-것)에 있다. (고침 #112: community가 신고 데이터와 관리자 API를 맡던 결정을 report 도메인 분리로 바꿈, #92 관리자 담당 동의)
+- 숨긴 글은 공개 목록에서 빠지고, 상세는 비로그인·비작성자에게 404, 작성자에게만 200과 숨김 안내를 준다. 글은 관리자가 신고를 RESOLVED로 처리할 때만 숨긴다. ([관리자 계획 Q3·Q5](../admin/report-management.md#q3q5--처리기각과-게시글-숨김), #92)
 
 ## 데이터 구조 요약
 

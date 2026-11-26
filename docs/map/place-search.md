@@ -163,10 +163,14 @@
    - 검색 열: `places`에 `name_key`·`address_key` 열을 더한다(`ddl-auto: update`가 만든다, `PlaceJpaEntity`). 열은 가져오기에서 장소를 저장할 때 `PlacePersistenceAdapter.replace`가 도메인의 정규화 메서드(`Place`가 `PlaceSelection.comparableName`을 공개로 감싼 `nameKey()`·`addressKey()`)로 채운다. 이미 저장된 행은 서버가 시작할 때 비어 있는 행만 채운다. 시작 시 채우기는 diary의 `DiarySchemaConfiguration`이 `DiaryLocationBackfill.run(jdbc)`를 부르는 방식처럼 영속성 어댑터의 정적 도우미(`map/adapter/out/persistence/PlaceSearchKeyBackfill.java`)를 시작할 때 한 번 부르게 하고, 여러 번 실행해도 같도록 `name_key is null`인 행만 고친다. 확인: `./gradlew test --tests '*PlaceSearchKey*'`(S19)
    - 확인: `./gradlew test --tests '*PlaceSearch*'`
    - 포트 `port.in`에는 도메인 타입을 쓰지 않는다. 컨트롤러는 `port.in`에만 의존한다.
-3. 검색 화면과 최근 검색어 — S9, S10, S11, S12, S13, S14
+3. 검색 화면과 최근 검색어 — S9, S10, S11, S12, S13, S14. 한 번에 올리기엔 커서 **PR 셋으로 나눈다**(3-a → 3-b → 3-c).
    - 시작 조건: 위 2번 PR이 머지된 뒤. [정보 지도 화면](animal-places.md)의 `features/map` 구조(`components`·`hooks`·`api`·`types`)를 따르고 목업은 `mocks`에만 둔다.
-   - 파일: `frontend/features/map/api/searchPlaces.ts`, `types`, `hooks/usePlaceSearch.ts`, `utils/recentSearches.ts`, `components/PlaceSearchPanel.tsx`와 `PlacesScreen.tsx` 연결, `tests/map-place-search.test.ts`
-   - 확인: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, 실제 앱 화면과 캡처([직접])
+   - **3-a 검색 로직** — 화면 없이 로직과 테스트만. S10(입력이 멈춘 뒤 250ms 검색·이전 응답 버림·두 글자 미만은 검색 안 함)과 S13(실패하면 오류를 알리고 다시 시도)의 흐름, S14(최근 검색어의 저장·중복·10개·계정별·깨진 값 무시)의 로직
+     - 파일: `features/map/api/placeApi.ts`의 `search`, `types/Place.ts`(`PlaceSearchQuery`·`PlaceSearchResult`), `utils/placeSearchText.ts`, `utils/placeSearchController.ts`, `utils/recentSearches.ts`, `hooks/usePlaceSearch.ts`, `hooks/useRecentSearches.ts`, 예시 저장소 `mocks/handlers/DemoPlaceRepository.ts`, `tests/map-place-search.test.ts`
+   - **3-b 검색 화면** — S9(검색창 열기), S10·S12·S13·S14의 화면(결과 목록·글자 강조·결과 없음·오류와 다시 시도·최근 검색어 목록)
+     - 파일: `components/PlaceSearchPanel.tsx`와 `PlacesScreen.tsx` 연결
+   - **3-c 결과 선택과 이동** — S11(결과를 누르면 지도가 그 장소로 옮겨 가고 마커 선택·카드 열림, ✕로 풀기)
+   - 확인: `npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`. 화면이 바뀌는 3-b·3-c는 실제 앱 화면과 캡처([직접])
 4. 지역·지하철역 검색 — S15, S16, S17, S18
    - 시작 조건: 위 3번까지 머지, 데이터 출처 결정
    - 파일: 출처에 따라 정한다. 응답에 `areas`를 더하고 `PlaceSearchPanel`에 묶음을 더한다.
@@ -182,6 +186,9 @@
 - 이름 비교 규칙(`PlaceSelection.comparableName`, `IGNORED_IN_NAME`)은 겹침 제거(#172-S15)뿐 아니라 저장된 검색 키와 검색어 정규화를 함께 정한다. 이 규칙을 바꾸면 이미 저장된 검색 키는 옛 규칙 그대로 남아, 검색어는 새 규칙으로 정규화되는데 저장된 키는 달라서 검색이 오류 없이(200으로) 일부 장소를 놓친다(예: `/`를 무시하도록 바꾸면 `q=a/b동물병원`이 `ab동물병원`이 되어 키가 `a/b동물병원`으로 저장된 장소를 못 찾는다). 그래서 `PlaceSelectionComparableNameTest`가 규칙을 고정해 바꾸면 먼저 실패하게 하고, **바꾼 뒤에는 저장된 검색 키를 모두 다시 채운다.** 절차: ① **이전 버전 서버를 멈춘다**(키를 비우기 전부터 새 버전이 켜질 때까지 이전 버전의 장소·검색 키 쓰기를 모두 막는다). 이전 버전이 떠 있으면 새 예약·수동 가져오기나 시작할 때 채우기의 다시 시도가 옛 규칙으로 키를 다시 채우고, 새 서버는 키가 채워진 행을 건너뛰어 옛 키가 남는다. 가져오기가 끝난 것만 확인하고 서버를 켜 둔 채로 키를 비우는 것은 안 된다. ② 그 뒤 DB에서 `update places set name_key = null, address_key = null;`을 한 번 실행한다. ③ 규칙을 바꾼 새 버전을 켠다. 그러면 시작할 때 `PlaceSearchKeyBackfill`이 모든 행을 새 규칙으로 채운다(행마다 한 문장씩 갱신하므로 장소가 많으면 시간이 걸릴 수 있고, 그동안 비어 있는 장소는 검색에 잡히지 않는다). (#195)
 - 지역·지하철역은 `areas`로 **같은 응답에 더한다**. R1의 응답은 바꾸지 않아 R3이 R1·R2의 화면을 깨지 않는다. (#195)
 - 최근 검색어는 기기 브라우저에 저장한다. 서버에 검색 기록을 남기지 않아 개인정보를 늘리지 않는다. (#195)
+- 검색 화면(3-b)은 정보 지도 맨 위의 검색창을 눌러 연다. 휴대폰에서는 화면 전체, 그보다 넓으면 가운데 카드다. 검색은 아래 종류 칩과 상관없이 **세 종류 모두**에서 찾는다(칩을 모두 꺼도 검색은 되어야 한다). 거리는 화면을 열 때의 지도 중심에서 잰다. (#195)
+- 결과의 거리 글자는 [#226-S5](near-me.md)의 규칙(990m까지 10m 단위로 올림, 991m부터 100m 단위의 소수점 한 자리 km)을 `distanceLabel` 한 곳에서 만들어, 검색과 내 주변이 같은 글자를 쓴다. (#195, #226)
+- 3-b에서는 결과를 눌러도 지도로 옮겨 가지 않는다. 결과를 눌러 이동하고 최근 검색어에 저장하는 것(S11)과 "내 위치 주변 보기" 줄(#226 머지 뒤)은 다음 단계다. (#195)
 - 사용자가 입력한 검색어는 장소와 비교만 하고 애플리케이션의 로그·오류 응답에는 남기지 않는다. 장소 이름은 공개 데이터지만 검색어는 개인이 입력한 값이다. 서버 앞의 프록시 기록은 [가정](#가정)에서 따로 확인한다. (#195)
 - 로그인한 회원만 쓴다. (#172-S14과 같음)
 

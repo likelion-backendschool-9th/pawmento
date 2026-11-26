@@ -1,0 +1,18 @@
+.form { padding:20px 18px; border-radius:24px; }
+.form > section > label { margin:20px 0 9px; gap:9px; font-size:13px; }
+.form > section > label:first-of-type { margin-top:16px; }
+.form > section > label input { border-radius:14px; min-height:52px; font-size:16px; }
+.form > section > label small { align-self:flex-end; font-size:11px; }
+.form > section > textarea { border-radius:16px; padding:14px; font-size:16px; line-height:1.8; }
+.titleField { display:grid; gap:4px; margin:0; }
+.titleField label { font-size:13px; gap:9px; }
+.titleField input { min-height:52px; border-radius:14px; font-size:16px; }
+.titleField .required { color:var(--text-muted); font-size:11px; font-weight:400; }
+.titleField small { justify-self:end; font-size:11px; color:var(--text-muted); }
+
+/* 항목 이름은 13px·500, 입력 내용은 같은 글꼴의 16px·400으로 맞춘다. */
+.form { --editor-label-font-size:13px; --editor-field-font-size:16px; font-family:var(--font-sans); }
+.form input,.form textarea,.form button { font-family:var(--font-sans); }
+.form > section > label,.titleField label { color:var(--text-secondary); font-size:var(--editor-label-font-size); font-weight:500; line-height:1.5; }
+.form input,.form > section > textarea { font-size:var(--editor-field-font-size); font-weight:400; line-height:1.5; }
+.form input::placeholder,.form textarea::placeholder { font-size:var(--editor-field-font-size); }

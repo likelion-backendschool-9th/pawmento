@@ -32,3 +32,9 @@ export function pickLocation(
     placeName: placeName === "" ? null : placeName,
   };
 }
+
+// 검색 결과를 골랐을 때의 장소 이름. 비어 있거나 앞서 결과로 채운 이름 그대로면 결과 이름으로 바꾸고,
+// 사용자가 직접 쓴 이름은 남긴다.
+export function placeNameAfterPick(current: string, filled: string | null, picked: string): string {
+  return current.trim() === "" || current === filled ? picked : current;
+}

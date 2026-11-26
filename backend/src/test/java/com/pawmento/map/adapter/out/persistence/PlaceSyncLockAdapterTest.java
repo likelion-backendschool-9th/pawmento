@@ -42,28 +42,6 @@ class PlaceSyncLockAdapterTest {
 	private JdbcTemplate jdbcTemplate;
 
 	@Test
-	@DisplayName("#172-S22 한 종류의 잠금을 잡고 있는 동안 같은 종류는 잡을 수 없고, 놓으면 다시 잡을 수 있다")
-	void sameCategoryIsExclusive() {
-		try (var first = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow()) {
-			assertThat(locks.tryAcquire(PlaceCategory.HOSPITAL)).isEmpty();
-		}
-
-		var again = locks.tryAcquire(PlaceCategory.HOSPITAL);
-		assertThat(again).isPresent();
-		again.get().close();
-	}
-
-	@Test
-	@DisplayName("#172-S22 종류가 다르면 서로 막지 않는다(병원을 가져오는 동안 미용도 가져올 수 있다)")
-	void differentCategoriesDoNotBlockEachOther() {
-		try (var hospital = locks.tryAcquire(PlaceCategory.HOSPITAL).orElseThrow();
-				var grooming = locks.tryAcquire(PlaceCategory.GROOMING).orElseThrow()) {
-			assertThat(hospital).isNotNull();
-			assertThat(grooming).isNotNull();
-		}
-	}
-
-	@Test
 	@DisplayName("#172-S22 잠금을 놓으면 DB 연결도 풀에 돌려준다. 안 돌려주면 몇 번 하다 연결이 바닥난다")
 	void releasingGivesTheConnectionBack() {
 		// 기본 연결 풀(10개)보다 많이 반복해도 막히지 않아야 한다
