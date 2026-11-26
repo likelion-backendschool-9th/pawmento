@@ -8,6 +8,8 @@ import java.time.Instant;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import com.pawmento.member.domain.exception.InvalidEmailVerificationException;
+
 class EmailVerificationTest {
 	private static final Instant NOW = Instant.parse("2026-11-26T09:00:00Z");
 
@@ -20,9 +22,19 @@ class EmailVerificationTest {
 		assertThat(verification.getEmail()).isEqualTo("a@test.com");
 		assertThat(verification.getPurpose()).isEqualTo(VerificationPurpose.SIGNUP);
 		assertThat(verification.getCodeHash()).isEqualTo("hash");
+		assertThat(verification.getSendId()).isNotBlank();
 		assertThat(verification.getFailedAttempts()).isZero();
 		assertThat(verification.getSentAt()).isEqualTo(NOW);
 		assertThat(verification.getCodeExpiresAt()).isEqualTo(Instant.parse("2026-11-26T09:10:00Z"));
+	}
+
+	@Test
+	@DisplayName("#279-S4 발송마다 발송 식별자가 달라, 같은 번호 해시로 보내도 발송끼리 구별된다")
+	void eachSendHasOwnSendId() {
+		EmailVerification first = EmailVerification.send("a@test.com", VerificationPurpose.SIGNUP, "hash", NOW);
+		EmailVerification second = EmailVerification.send("a@test.com", VerificationPurpose.SIGNUP, "hash", NOW);
+
+		assertThat(first.getSendId()).isNotEqualTo(second.getSendId());
 	}
 
 	@Test
@@ -38,18 +50,49 @@ class EmailVerificationTest {
 	}
 
 	@Test
-	@DisplayName("#279-S1 이메일·용도·번호 해시가 없으면 만들지 않는다")
+	@DisplayName("#279-S3 다시 보내면 같은 줄(id)에 새 번호·새 발송 식별자·새 만료를 두고 틀린 횟수를 0으로 되돌린다")
+	void resendReplacesCode() {
+		EmailVerification stored = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "old-hash",
+				"send-1", 3, NOW.plusSeconds(600), NOW);
+		Instant later = NOW.plusSeconds(60);
+
+		EmailVerification next = stored.resend("new-hash", later);
+
+		assertThat(next.getId()).isEqualTo(7L);
+		assertThat(next.getEmail()).isEqualTo("a@test.com");
+		assertThat(next.getPurpose()).isEqualTo(VerificationPurpose.SIGNUP);
+		assertThat(next.getCodeHash()).isEqualTo("new-hash");
+		assertThat(next.getSendId()).isNotBlank().isNotEqualTo("send-1");
+		assertThat(next.getFailedAttempts()).isZero();
+		assertThat(next.getSentAt()).isEqualTo(later);
+		assertThat(next.getCodeExpiresAt()).isEqualTo(later.plus(EmailVerification.CODE_VALID_FOR));
+	}
+
+	@Test
+	@DisplayName("#279-S3 직전 번호와 같은 번호로는 다시 보낼 수 없다 (이전 번호 무효)")
+	void resendRejectsSameCode() {
+		EmailVerification stored = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
+				"send-1", 0, NOW.plusSeconds(600), NOW);
+
+		assertThatThrownBy(() -> stored.resend("hash", NOW.plusSeconds(60)))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+	}
+
+	@Test
+	@DisplayName("#279-S1 이메일·용도·번호 해시·보낸 시각이 없으면 회원 도메인 예외로 거절한다")
 	void sendRejectsMissingValues() {
 		for (String email : new String[] { null, "", "  " }) {
 			assertThatThrownBy(() -> EmailVerification.send(email, VerificationPurpose.SIGNUP, "hash", NOW))
-					.isInstanceOf(IllegalArgumentException.class);
+					.isInstanceOf(InvalidEmailVerificationException.class);
 		}
 		assertThatThrownBy(() -> EmailVerification.send("a@test.com", null, "hash", NOW))
-				.isInstanceOf(IllegalArgumentException.class);
+				.isInstanceOf(InvalidEmailVerificationException.class);
 		for (String codeHash : new String[] { null, "", "  " }) {
 			assertThatThrownBy(() -> EmailVerification.send("a@test.com", VerificationPurpose.SIGNUP, codeHash, NOW))
-					.isInstanceOf(IllegalArgumentException.class);
+					.isInstanceOf(InvalidEmailVerificationException.class);
 		}
+		assertThatThrownBy(() -> EmailVerification.send("a@test.com", VerificationPurpose.SIGNUP, "hash", null))
+				.isInstanceOf(InvalidEmailVerificationException.class);
 	}
 
 	@Test
@@ -57,13 +100,30 @@ class EmailVerificationTest {
 	void restoreKeepsStoredValues() {
 		Instant sentAt = NOW.minusSeconds(30);
 		EmailVerification verification = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.PASSWORD_RESET,
-				"hash", 3, sentAt.plusSeconds(600), sentAt);
+				"hash", "send-1", 3, sentAt.plusSeconds(600), sentAt);
 
 		assertThat(verification.getId()).isEqualTo(7L);
 		assertThat(verification.getPurpose()).isEqualTo(VerificationPurpose.PASSWORD_RESET);
+		assertThat(verification.getSendId()).isEqualTo("send-1");
 		assertThat(verification.getFailedAttempts()).isEqualTo(3);
 		assertThat(verification.getCodeExpiresAt()).isEqualTo(sentAt.plusSeconds(600));
 		assertThat(verification.canResendAt(NOW)).isFalse();
 		assertThat(verification.canResendAt(NOW.plusSeconds(30))).isTrue();
+	}
+
+	@Test
+	@DisplayName("#279-S3 되살릴 때도 만들 때와 같은 규칙을 검사한다 (음수 횟수, 빈 발송 식별자, 빈 시각)")
+	void restoreRejectsBrokenValues() {
+		Instant expires = NOW.plusSeconds(600);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
+				"send-1", -1, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
+				" ", 0, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
+				"send-1", 0, expires, null)).isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
+				"send-1", 0, null, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "", VerificationPurpose.SIGNUP, "hash",
+				"send-1", 0, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
 	}
 }

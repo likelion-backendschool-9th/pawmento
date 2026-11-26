@@ -14,16 +14,18 @@ interface EmailVerificationJpaRepository extends JpaRepository<EmailVerification
 	Optional<EmailVerificationJpaEntity> findByEmailAndPurpose(String email, VerificationPurpose purpose);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("""
-            update EmailVerificationJpaEntity v
-			set v.codeHash = :codeHash, v.failedAttempts = 0, v.codeExpiresAt = :codeExpiresAt, v.sentAt = :sentAt
+	@Query("""
+			update EmailVerificationJpaEntity v
+			set v.codeHash = :codeHash, v.sendId = :sendId, v.failedAttempts = 0,
+				v.codeExpiresAt = :codeExpiresAt, v.sentAt = :sentAt
 			where v.email = :email and v.purpose = :purpose and v.sentAt <= :lastSentAtOrBefore
-            """)
-    int resend(@Param("email") String email, @Param("purpose") VerificationPurpose purpose,
-            @Param("codeHash") String codeHash, @Param("codeExpiresAt") Instant codeExpiresAt,
-            @Param("sentAt") Instant sentAt, @Param("lastSentAtOrBefore") Instant lastSentAtOrBefore);
+			""")
+	int resend(@Param("email") String email, @Param("purpose") VerificationPurpose purpose,
+			@Param("codeHash") String codeHash, @Param("sendId") String sendId,
+			@Param("codeExpiresAt") Instant codeExpiresAt, @Param("sentAt") Instant sentAt,
+			@Param("lastSentAtOrBefore") Instant lastSentAtOrBefore);
 
-    @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("delete from EmailVerificationJpaEntity v where v.id = :id and v.codeHash = :codeHash")
-    int deleteSent(@Param("id") Long id, @Param("codeHash") String codeHash);
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("delete from EmailVerificationJpaEntity v where v.id = :id and v.sendId = :sendId")
+	int deleteSent(@Param("id") Long id, @Param("sendId") String sendId);
 }

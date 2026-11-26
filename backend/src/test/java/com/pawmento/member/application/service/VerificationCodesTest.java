@@ -3,7 +3,11 @@ package com.pawmento.member.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
+import java.util.random.RandomGenerator;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -61,6 +65,54 @@ class VerificationCodesTest {
 
 		assertThat(first.hash("123456")).isEqualTo(first.hash("123456"));
 		assertThat(first.hash("123456")).isNotEqualTo(second.hash("123456"));
+	}
+
+	@Test
+	@DisplayName("#279-S1 서버 언어가 아랍어(ar-EG)여도 번호는 0~9 숫자 6자리다")
+	void newCodeIgnoresDefaultLocale() {
+		Locale original = Locale.getDefault();
+		try {
+			Locale.setDefault(Locale.forLanguageTag("ar-EG"));
+			VerificationCodes codes = new VerificationCodes("test-secret", scripted(42, 999_999));
+
+			assertThat(codes.newCode()).isEqualTo("000042");
+			assertThat(codes.newCode()).isEqualTo("999999").matches("[0-9]{6}");
+		}
+		finally {
+			Locale.setDefault(original);
+		}
+	}
+
+	@Test
+	@DisplayName("#279-S3 다시 받을 때 직전 번호가 또 뽑히면 다시 뽑아, 직전 번호와 다른 번호를 준다")
+	void newCodeOtherThanSkipsPreviousCode() {
+		VerificationCodes codes = new VerificationCodes("test-secret", scripted(123_456, 123_456, 654_321));
+
+		assertThat(codes.newCodeOtherThan(codes.hash("123456"))).isEqualTo("654321");
+	}
+
+	@Test
+	@DisplayName("#279-S1 처음 보낼 때처럼 직전 번호가 없으면 처음 뽑은 번호를 준다")
+	void newCodeOtherThanWithoutPrevious() {
+		VerificationCodes codes = new VerificationCodes("test-secret", scripted(123_456));
+
+		assertThat(codes.newCodeOtherThan(null)).isEqualTo("123456");
+	}
+
+	// 정해 둔 순서대로 번호를 뽑는 가짜 난수
+	private static RandomGenerator scripted(Integer... values) {
+		Iterator<Integer> next = List.of(values).iterator();
+		return new RandomGenerator() {
+			@Override
+			public long nextLong() {
+				throw new UnsupportedOperationException();
+			}
+
+			@Override
+			public int nextInt(int bound) {
+				return next.next();
+			}
+		};
 	}
 
 }

@@ -23,6 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.member.application.exception.EmailVerificationConflictException;
+import com.pawmento.member.application.exception.StoredEmailVerificationInvalidException;
 import com.pawmento.member.domain.EmailVerification;
 import com.pawmento.member.domain.VerificationPurpose;
 
@@ -147,25 +148,39 @@ class EmailVerificationPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#279-S4 메일 실패 뒤 지우기는 같은 id와 번호 해시일 때만 지운다")
+	@DisplayName("#279-S4 메일 실패 뒤 지우기는 같은 id와 발송 식별자일 때만 지운다")
 	void deleteOnlyMatchingSend() {
 		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
 
-		assertThat(adapter.delete(saved.getId(), "hash-other")).isFalse();
+		assertThat(adapter.delete(saved.getId(), "other-send")).isFalse();
 		assertThat(adapter.load(email, VerificationPurpose.SIGNUP)).isPresent();
 
-		assertThat(adapter.delete(saved.getId(), "hash-1")).isTrue();
+		assertThat(adapter.delete(saved.getId(), saved.getSendId())).isTrue();
 		assertThat(adapter.load(email, VerificationPurpose.SIGNUP)).isEmpty();
 	}
 
 	@Test
-	@DisplayName("#279-S4 다른 요청이 새 번호로 바꾼 뒤라면, 앞 요청의 지우기는 새 번호를 지우지 않는다")
+	@DisplayName("#279-S4 다른 요청이 다시 받기로 바꾼 뒤라면, 번호 해시가 같아도 앞 발송의 지우기는 새 발송을 지우지 않는다")
 	void deleteDoesNotRemoveNewerSend() {
 		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
 		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
-		adapter.resend(sent("hash-2", now), SENT_AT);
+		// 6자리가 다시 같은 번호로 뽑힌 경우처럼, 해시는 같고 발송만 다르다
+		EmailVerification second = sent("hash-1", now);
+		assertThat(adapter.resend(second, SENT_AT)).isTrue();
 
-		assertThat(adapter.delete(first.getId(), "hash-1")).isFalse();
-		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getCodeHash()).isEqualTo("hash-2");
+		assertThat(adapter.delete(first.getId(), first.getSendId())).isFalse();
+		EmailVerification remaining = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(remaining.getSendId()).isEqualTo(second.getSendId());
+		assertThat(remaining.getSentAt()).isEqualTo(now);
+	}
+
+	@Test
+	@DisplayName("#279-S3 저장된 줄이 도메인 규칙에 맞지 않으면 요청 오류가 아니라 저장 데이터 오류로 알린다")
+	void brokenStoredRowIsStoredDataError() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("update email_verification set failed_attempts = -1 where email = ?", email);
+
+		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
+				.isInstanceOf(StoredEmailVerificationInvalidException.class);
 	}
 }

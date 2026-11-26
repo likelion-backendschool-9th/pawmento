@@ -40,6 +40,9 @@ class EmailVerificationJpaEntity {
     @Column(nullable = false, length = 64)
     private String codeHash;
 
+    @Column(nullable = false, length = 36)
+	private String sendId;
+
     @Column(nullable = false)
     private int failedAttempts;
 
@@ -55,6 +58,7 @@ class EmailVerificationJpaEntity {
         entity.email = verification.getEmail();
         entity.purpose = verification.getPurpose();
         entity.codeHash = verification.getCodeHash();
+        entity.sendId = verification.getSendId();
         entity.failedAttempts = verification.getFailedAttempts();
         entity.codeExpiresAt = verification.getCodeExpiresAt();
         entity.sentAt = verification.getSentAt();
@@ -62,6 +66,6 @@ class EmailVerificationJpaEntity {
     }
 
     EmailVerification toDomain() {
-        return EmailVerification.restore(id, email, purpose, codeHash, failedAttempts, codeExpiresAt, sentAt);
+        return EmailVerification.restore(id, email, purpose, codeHash, sendId, failedAttempts, codeExpiresAt, sentAt);
     }
 }
