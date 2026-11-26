@@ -55,9 +55,6 @@
 .back svg {
   transform: rotate(180deg);
 }
-.back:hover {
-  background: var(--surface-subtle);
-}
 .field {
   display: flex;
   /* 공통 label 스타일(globals.css)은 세로로 쌓으므로 가로로 되돌린다 */
@@ -70,12 +67,11 @@
   padding: 0 6px 0 14px;
   border: 1px solid var(--border-default);
   border-radius: 999px;
-  background: var(--surface-subtle);
+  background: var(--surface-card);
   color: var(--text-secondary);
 }
 .field:focus-within {
   border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 20%, transparent);
 }
 /* 공통 입력 칸 스타일(globals.css의 input:not([type="file"]))보다 우선하도록 .dialog를 앞에 붙인다 */
 .dialog .field input {
@@ -116,9 +112,6 @@
   background: none;
   color: var(--text-secondary);
   cursor: pointer;
-}
-.clear:hover {
-  background: var(--border-default);
 }
 .back:focus-visible,
 .clear:focus-visible,
@@ -195,9 +188,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.recentItem:hover,
-.remove:hover {
+/* 줄 전체(✕ 포함)에 한 번에 칠한다. 올림(hover)은 마우스가 있는 기기에서만 쓴다(휴대폰에서는 한 번 누르면 올림 상태가 남는다).
+   손가락은 누르는 동안(:active)만 살짝 칠한다 */
+.recent li:active {
   background: var(--surface-subtle);
+}
+@media (hover: hover) and (pointer: fine) {
+  .recent li:hover {
+    background: var(--surface-subtle);
+  }
+  .back:hover {
+    background: var(--surface-subtle);
+  }
+  .clear:hover {
+    background: var(--border-default);
+  }
+  .suggest button:hover {
+    background: var(--surface-subtle);
+  }
 }
 .remove {
   display: grid;
@@ -330,7 +338,4 @@
   font: inherit;
   font-size: 14px;
   cursor: pointer;
-}
-.suggest button:hover {
-  background: var(--surface-subtle);
 }
