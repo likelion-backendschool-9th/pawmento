@@ -18,6 +18,10 @@ import com.pawmento.family.application.port.out.LoadPetSummaryPort;
 import com.pawmento.family.application.port.out.PetSummary;
 import com.pawmento.family.domain.PetFamilyMember;
 
+/**
+ * 목록 순서·빈 목록은 {@code FamilyListScenarioTest.myFamilyPets}가 확인한다.
+ * 여기에는 DB로 만들기 어려운, 가족 줄은 있는데 반려동물 요약이 없는 경우만 남긴다.
+ */
 class ListMyFamilyPetsServiceTest {
 
 	private static final Long ME = 7L;
@@ -27,22 +31,6 @@ class ListMyFamilyPetsServiceTest {
 	private final LoadPetFamilyMemberPort families = mock(LoadPetFamilyMemberPort.class);
 	private final LoadPetSummaryPort pets = mock(LoadPetSummaryPort.class);
 	private final ListMyFamilyPetsService service = new ListMyFamilyPetsService(families, pets);
-
-	@Test
-	@DisplayName("#133-S23 내가 가족으로 들어간 반려동물을 들어간 순서대로 이름·태그·가입 시각과 함께 준다")
-	void listsPetsInJoinOrder() {
-		when(families.loadByMemberId(ME)).thenReturn(List.of(
-				PetFamilyMember.restore(1L, 10L, ME, EARLY),
-				PetFamilyMember.restore(2L, 20L, ME, LATE)));
-		when(pets.loadSummary(10L)).thenReturn(Optional.of(new PetSummary(10L, "보리", "0001")));
-		when(pets.loadSummary(20L)).thenReturn(Optional.of(new PetSummary(20L, "콩이", "0002")));
-
-		List<MyFamilyPetResult> result = service.list(new ListMyFamilyPetsQuery(ME));
-
-		assertThat(result).containsExactly(
-				new MyFamilyPetResult(10L, "보리", "0001", EARLY),
-				new MyFamilyPetResult(20L, "콩이", "0002", LATE));
-	}
 
 	@Test
 	@DisplayName("#133-S23 반려동물 요약을 찾지 못한 줄은 목록에서 빠진다")
@@ -55,13 +43,5 @@ class ListMyFamilyPetsServiceTest {
 
 		assertThat(service.list(new ListMyFamilyPetsQuery(ME)))
 				.extracting(MyFamilyPetResult::petId).containsExactly(20L);
-	}
-
-	@Test
-	@DisplayName("#133-S23 가족으로 들어간 반려동물이 없으면 빈 목록이다")
-	void emptyWhenNone() {
-		when(families.loadByMemberId(ME)).thenReturn(List.of());
-
-		assertThat(service.list(new ListMyFamilyPetsQuery(ME))).isEmpty();
 	}
 }

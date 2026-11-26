@@ -25,7 +25,8 @@ import com.pawmento.map.domain.WalkStatus;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-// 시나리오는 docs/map/walk-route.md에 있다. API를 만들기 전이라 저장소가 지키는 부분만 확인한다.
+// 시나리오는 docs/map/walk-route.md에 있다. 날짜 구간·좌표 재전송·순서처럼 API로 보이는 동작은 Walk*ScenarioTest가 확인한다.
+// 여기에는 요청으로 만들기 어려운 저장소 규칙(정확한 경계값, 오래된 값 덮어쓰기 거절, 영속성 컨텍스트)만 남긴다.
 // 진짜 PostgreSQL에서 확인하고, 각 테스트가 끝나면 되돌린다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -81,13 +82,6 @@ class WalkPersistenceAdapterTest {
 		Map<String, Object> row = jdbcTemplate.queryForMap("select * from walks where id = ?", id);
 		assertThat(row.get("created_at")).isNotNull();
 		assertThat(row.get("updated_at")).isNotNull();
-	}
-
-	@Test
-	@DisplayName("#73-S1 없는 산책을 읽으면 비어 있다")
-	void loadMissing() {
-		assertThat(adapter.loadById(-1L)).isEmpty();
-		assertThat(adapter.loadByIdForUpdate(-1L)).isEmpty();
 	}
 
 	@Test
@@ -164,21 +158,6 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#73-S4 좌표를 받아 마지막 활동 시각이 바뀐 산책을 저장하면 그 값이 남는다")
-	void saveRefreshedActivity() {
-		Long id = saveWalk(PET, MEMBER, NOW);
-		Walk walk = adapter.loadById(id).orElseThrow();
-		Instant later = NOW.plusSeconds(200);
-		walk.requireAcceptingPoints(MEMBER, later, 4);
-		walk.markPointsReceived(later);
-
-		adapter.save(walk);
-		flushAndClear();
-
-		assertThat(adapter.loadById(id).orElseThrow().getLastActivityAt()).isEqualTo(later);
-	}
-
-	@Test
 	@DisplayName("#73-S2 다른 산책의 id로 저장하면 거절하고 값을 바꾸지 않는다")
 	void saveRejectsDifferentIdentity() {
 		Long id = saveWalk(PET, MEMBER, NOW);
@@ -230,38 +209,6 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#73-S6 같은 기록 시각의 좌표를 다시 쌓으면 새로 쌓이지 않고 먼저 쌓인 값이 그대로다")
-	void insertIfAbsentSkipsDuplicates() {
-		Long walkId = saveWalk(PET, MEMBER, NOW);
-		WalkPoint first = WalkPoint.of(walkId, 37.5, 127.0, NOW);
-
-		int firstInserted = adapter.insertIfAbsent(List.of(first));
-		int resent = adapter.insertIfAbsent(List.of(WalkPoint.of(walkId, 10.0, 20.0, NOW)));
-		flushAndClear();
-
-		assertThat(firstInserted).isEqualTo(1);
-		assertThat(resent).isZero();
-		List<WalkPoint> points = adapter.loadByWalkId(walkId);
-		assertThat(points).hasSize(1);
-		assertThat(points.get(0).getLatitude()).isEqualTo(37.5);
-		assertThat(adapter.countByWalkId(walkId)).isEqualTo(1);
-	}
-
-	@Test
-	@DisplayName("#73-S6 일부만 겹치는 묶음을 다시 보내면 새 좌표만 쌓이고 쌓인 개수를 돌려준다")
-	void insertIfAbsentCountsOnlyNewPoints() {
-		Long walkId = saveWalk(PET, MEMBER, NOW);
-		adapter.insertIfAbsent(List.of(WalkPoint.of(walkId, 37.5, 127.0, NOW)));
-
-		int inserted = adapter.insertIfAbsent(List.of(WalkPoint.of(walkId, 37.5, 127.0, NOW),
-				WalkPoint.of(walkId, 37.6, 127.1, NOW.plusSeconds(15)),
-				WalkPoint.of(walkId, 37.7, 127.2, NOW.plusSeconds(30))));
-
-		assertThat(inserted).isEqualTo(2);
-		assertThat(adapter.countByWalkId(walkId)).isEqualTo(3);
-	}
-
-	@Test
 	@DisplayName("#73-S6 같은 기록 시각이어도 다른 산책에는 따로 쌓인다")
 	void sameRecordedAtInDifferentWalks() {
 		Long walkA = saveWalk(PET, MEMBER, NOW);
@@ -273,95 +220,6 @@ class WalkPersistenceAdapterTest {
 		assertThat(inserted).isEqualTo(1);
 		assertThat(adapter.countByWalkId(walkA)).isEqualTo(1);
 		assertThat(adapter.countByWalkId(walkB)).isEqualTo(1);
-	}
-
-	@Test
-	@DisplayName("#73-S4 좌표는 쌓은 순서가 아니라 기록 시각 순으로 읽힌다")
-	void pointsAreOrderedByRecordedAt() {
-		Long walkId = saveWalk(PET, MEMBER, NOW);
-
-		adapter.insertIfAbsent(List.of(WalkPoint.of(walkId, 3.0, 3.0, NOW.plusSeconds(30)),
-				WalkPoint.of(walkId, 1.0, 1.0, NOW), WalkPoint.of(walkId, 2.0, 2.0, NOW.plusSeconds(15))));
-		flushAndClear();
-
-		assertThat(adapter.loadByWalkId(walkId)).extracting(WalkPoint::getLatitude).containsExactly(1.0, 2.0, 3.0);
-	}
-
-	@Test
-	@DisplayName("#73-S4 좌표가 없는 산책은 빈 목록과 0개다")
-	void noPoints() {
-		Long walkId = saveWalk(PET, MEMBER, NOW);
-
-		assertThat(adapter.loadByWalkId(walkId)).isEmpty();
-		assertThat(adapter.countByWalkId(walkId)).isZero();
-	}
-
-	@Test
-	@DisplayName("#73-S7 날짜 구간에는 시작한 시각이 구간에 드는 산책만 시작 시각 순으로 나온다")
-	void loadStartedBetweenByStartDate() {
-		Instant dayStart = seoul(11, 17, 0, 0);
-		Instant nextDayStart = seoul(11, 18, 0, 0);
-		Long morning = saveWalk(PET, MEMBER, seoul(11, 17, 10, 0));
-		Long evening = saveWalk(PET, MEMBER, seoul(11, 17, 23, 50));
-		saveWalk(PET, MEMBER, seoul(11, 16, 23, 59));
-		saveWalk(PET, MEMBER, seoul(11, 18, 9, 0));
-
-		List<Walk> walks = adapter.loadStartedBetween(MEMBER, PET, dayStart, nextDayStart);
-
-		assertThat(walks).extracting(Walk::getId).containsExactly(morning, evening);
-	}
-
-	@Test
-	@DisplayName("#73-S7 자정을 넘겨 중단된 산책은 시작한 날에만 조회되고 다음 날에는 나오지 않는다")
-	void walkCrossingMidnightBelongsToStartDay() {
-		Long crossing = saveWalk(PET, MEMBER, seoul(11, 17, 23, 50));
-		// 11월 18일 00:20에 마지막 좌표를 받고 끊긴 산책이다. 끝내지 않았다
-		jdbcTemplate.update("update walks set last_activity_at = ? where id = ?",
-				java.sql.Timestamp.from(seoul(11, 18, 0, 20)), crossing);
-		flushAndClear();
-
-		List<Walk> onStartDay = adapter.loadStartedBetween(MEMBER, PET, seoul(11, 17, 0, 0), seoul(11, 18, 0, 0));
-		List<Walk> nextDay = adapter.loadStartedBetween(MEMBER, PET, seoul(11, 18, 0, 0), seoul(11, 19, 0, 0));
-
-		assertThat(onStartDay).extracting(Walk::getId).containsExactly(crossing);
-		assertThat(nextDay).isEmpty();
-		Walk walk = onStartDay.get(0);
-		assertThat(walk.getEndedAt()).isNull();
-		assertThat(walk.getLastActivityAt()).isEqualTo(seoul(11, 18, 0, 20));
-		assertThat(walk.status(seoul(11, 18, 9, 0))).isEqualTo(WalkStatus.INTERRUPTED);
-	}
-
-	@Test
-	@DisplayName("#73-S7 구간의 시작 시각은 포함하고 끝 시각은 포함하지 않는다")
-	void loadStartedBetweenBounds() {
-		Instant dayStart = seoul(11, 17, 0, 0);
-		Instant nextDayStart = seoul(11, 18, 0, 0);
-		Long atStart = saveWalk(PET, MEMBER, dayStart);
-		saveWalk(PET, MEMBER, nextDayStart);
-
-		assertThat(adapter.loadStartedBetween(MEMBER, PET, dayStart, nextDayStart)).extracting(Walk::getId)
-			.containsExactly(atStart);
-	}
-
-	@Test
-	@DisplayName("#73-S8 시작한 산책이 없는 날은 빈 목록이다")
-	void loadStartedBetweenEmpty() {
-		saveWalk(PET, MEMBER, seoul(11, 18, 9, 0));
-
-		assertThat(adapter.loadStartedBetween(MEMBER, PET, seoul(11, 17, 0, 0), seoul(11, 18, 0, 0))).isEmpty();
-	}
-
-	@Test
-	@DisplayName("#73-S9 다른 회원의 산책이나 다른 반려동물의 산책은 조회되지 않는다")
-	void loadStartedBetweenScopedToMemberAndPet() {
-		Long mine = saveWalk(PET, MEMBER, seoul(11, 17, 10, 0));
-		saveWalk(PET, MEMBER + 1, seoul(11, 17, 11, 0));
-		saveWalk(PET + 1, MEMBER, seoul(11, 17, 12, 0));
-
-		assertThat(adapter.loadStartedBetween(MEMBER, PET, seoul(11, 17, 0, 0), seoul(11, 18, 0, 0)))
-			.extracting(Walk::getId)
-			.containsExactly(mine);
-		assertThat(adapter.loadStartedBetween(MEMBER + 2, PET, seoul(11, 17, 0, 0), seoul(11, 18, 0, 0))).isEmpty();
 	}
 
 	@Test
@@ -378,15 +236,6 @@ class WalkPersistenceAdapterTest {
 			.isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> adapter.loadStartedBetween(MEMBER, PET, from, null))
 			.isInstanceOf(IllegalArgumentException.class);
-	}
-
-	@Test
-	@DisplayName("#73-S12 끝내지 않았고 기준 시각 이후에 활동한 산책이 있으면 진행 중인 산책이 있는 것이다")
-	void existsOpenWalkActiveSince() {
-		saveWalk(PET, MEMBER, NOW);
-
-		assertThat(adapter.existsOpenWalkActiveSince(PET, NOW.minusSeconds(300))).isTrue();
-		assertThat(adapter.existsOpenWalkActiveSince(PET + 1, NOW.minusSeconds(300))).isFalse();
 	}
 
 	@Test
@@ -414,21 +263,6 @@ class WalkPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#167-S1 회원·반려동물의 끝내지 않았고 기준 시각 이후에 활동한 산책을 시작 날짜와 상관없이 읽는다")
-	void loadOpenWalkActiveSince() {
-		// 이틀 전에 시작했지만 4분 전에 마지막 좌표를 받은 산책. 저장한 뒤 컨텍스트를 비웠으므로 바로 DB 값을 바꿔도 덮어쓰이지 않는다
-		Long walkId = saveWalk(PET, MEMBER, NOW.minusSeconds(2 * 24 * 3600));
-		jdbcTemplate.update("update walks set last_activity_at = ? where id = ?",
-				java.sql.Timestamp.from(NOW.minusSeconds(240)), walkId);
-
-		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW.minusSeconds(300))).map(Walk::getId)
-			.contains(walkId);
-		// 다른 회원, 다른 반려동물은 찾지 않는다
-		assertThat(adapter.loadOpenWalkActiveSince(MEMBER + 1, PET, NOW.minusSeconds(300))).isEmpty();
-		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET + 1, NOW.minusSeconds(300))).isEmpty();
-	}
-
-	@Test
 	@DisplayName("#167-S3 마지막 활동이 정확히 기준 시각이면 포함하고, 조금이라도 오래됐거나 끝낸 산책은 읽지 않는다")
 	void loadOpenWalkActiveSinceBoundaryAndEnded() {
 		Long walkId = saveWalk(PET, MEMBER, NOW);
@@ -452,13 +286,4 @@ class WalkPersistenceAdapterTest {
 		assertThat(adapter.loadOpenWalkActiveSince(MEMBER, PET, NOW.minusSeconds(900))).map(Walk::getId)
 			.contains(later);
 	}
-
-	@Test
-	@DisplayName("#73-S14 행을 잠그고 읽으면 같은 산책이 돌아온다")
-	void loadByIdForUpdate() {
-		Long id = saveWalk(PET, MEMBER, NOW);
-
-		assertThat(adapter.loadByIdForUpdate(id)).map(Walk::getId).contains(id);
-	}
-
 }

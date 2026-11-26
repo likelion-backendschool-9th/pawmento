@@ -254,10 +254,10 @@ class DiaryArchiveScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S25 사용하지 않는 파라미터의 인코딩 오류는 목록·달력에서 무시한다")
+  @DisplayName("#32-S25 사용하지 않는 파라미터의 인코딩 오류·빈 값·중복은 목록·달력에서 무시한다")
   void ignoresUnknownQueryEncoding() throws Exception {
     long pet = pet();
-    for (String extra : List.of("utm=%E0", "%E0=x", "utm=%", "%XX=x")) {
+    for (String extra : List.of("utm=%E0", "%E0=x", "utm=%", "%XX=x", "utm=", "utm=1&utm=2")) {
       for (String path : List.of("/api/v1/diaries", "/api/v1/diaries/calendar")) {
         mvc.perform(
                 get(path)
