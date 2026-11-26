@@ -6,14 +6,14 @@
 .heading { margin:0 0 24px; text-align:center; }
 .heading h1 { margin:0; font-size:25px; font-weight:600; letter-spacing:-.8px; line-height:1.5; text-wrap:balance; }
 .heading p { margin:10px 0 0; color:var(--text-secondary); font-size:12px; line-height:1.8; text-wrap:balance; }
-.choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:stretch; flex:1; gap:12px; }
-.choice { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; min-height:clamp(250px,38dvh,340px); padding:24px 14px; text-align:center; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); text-decoration:none; color:var(--text-primary); box-shadow:0 6px 24px #35432105; }
-.choice > span:nth-child(2) { min-width:0; }
-.choiceIcon { display:grid; flex:none; place-items:center; width:100%; height:clamp(150px,26dvh,240px); border-radius:24px; background:linear-gradient(#edf3e355,#edf3e399),url('/images/watercolor-garden.png') 76% center / cover; color:var(--brand-primary); }
+.choices { display:grid; grid-template-columns:minmax(0,1fr); align-content:center; flex:1; gap:12px; }
+.choice { display:flex; flex-direction:row; align-items:center; gap:16px; min-height:clamp(148px,20dvh,180px); padding:22px 18px; text-align:left; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); text-decoration:none; color:var(--text-primary); box-shadow:0 6px 24px #35432105; }
+.choice > span:nth-child(2) { flex:1; min-width:0; }
+.choiceIcon { display:grid; flex:none; place-items:center; width:72px; height:82px; border-radius:23px; background:linear-gradient(#edf3e355,#edf3e399),url('/images/watercolor-garden.png') 76% center / cover; color:var(--brand-primary); }
 .inviteChoice .choiceIcon { background:radial-gradient(ellipse at 30% 25%,#fffdf6,var(--color-apricot-100) 80%); color:#ab8254; }
 .choice strong { display:block; margin-bottom:9px; font-size:18px; font-weight:600; }
 .choice small { display:block; font-size:12px; line-height:1.8; color:var(--text-secondary); }
-.choice > svg { flex:none; margin-top:6px; color:var(--text-secondary); }
+.choice > svg { flex:none; color:var(--text-secondary); }
 .form { display:flex; flex-direction:column; flex:1; padding:22px 20px; border:1px solid var(--mode-border); border-radius:28px; background:var(--surface-card); }
 .form fieldset { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; gap:18px; margin:0; padding:0; border:0; }
 .form label { position:relative; display:grid; gap:9px; color:var(--text-primary); font-size:13px; font-weight:500; }
@@ -36,7 +36,7 @@
 .demoCode small { font-weight:400; font-size:10px; }
 .error { margin:0; padding:12px; background:var(--color-apricot-100); border-radius:12px; color:var(--text-danger); font-size:12px; line-height:1.7; }
 .screen button:focus-visible,.screen a:focus-visible,.screen input:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
-@media(max-width:359px) { .screen { padding-inline:16px; } .heading h1 { font-size:22px; } .choice { gap:16px; padding:22px 10px; } .choice strong { font-size:16px; } .form { padding:22px 16px; } }
+@media(max-width:359px) { .screen { padding-inline:16px; } .heading h1 { font-size:22px; } .choice { gap:12px; padding:20px 14px; } .choiceIcon { width:56px; height:68px; } .choice strong { font-size:17px; } .form { padding:22px 16px; } }
 
 .photo :global(.photo-picker) button strong + span { display:none; }
 .photo :global(.photo-picker) > small { display:none; }
@@ -52,5 +52,4 @@
 .screen[data-step="choose"] .choice small { font-size:11px; }
 @media(min-height:900px) { .form fieldset { gap:22px; } }
 
-.choices:has(.continue) { grid-template-rows:1fr auto; }
-.choiceIcon > svg { box-sizing:content-box; width:34px; height:34px; padding:15px; border:1px solid var(--mode-border); border-radius:23px; background:var(--mode-card); box-shadow:0 5px 20px #3543210a; }
+.choiceIcon > svg { box-sizing:content-box; width:25px; height:25px; padding:10px; border:1px solid var(--mode-border); border-radius:23px; background:var(--mode-card); box-shadow:0 5px 20px #3543210a; }
