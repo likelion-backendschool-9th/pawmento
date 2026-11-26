@@ -43,8 +43,8 @@
 .codeButton { flex:none; padding:10px 12px; min-height:48px; border:1px solid var(--mode-border); border-radius:13px; background:var(--mode-subtle); color:var(--brand-primary); font:500 11px/1.5 var(--font-sans); cursor:pointer; }
 .codeButton:disabled { opacity:.55; cursor:default; }
 .emailHelp { margin:0; font-size:11px; line-height:1.7; color:var(--text-muted); overflow-wrap:anywhere; }
-.verificationBox { display:grid; gap:9px; margin-top:4px; padding:14px 12px; border:1px solid var(--mode-border); border-radius:16px; background:var(--surface-page); }
-.verificationBox label { display:flex; flex-direction:row; justify-content:space-between; align-items:center; }
+.verificationField { display:grid; gap:8px; margin-top:12px; }
+.verificationField label { display:flex; flex-direction:row; justify-content:space-between; align-items:center; }
 .codeTime { color:var(--brand-primary); font-size:12px; font-variant-numeric:tabular-nums; }
 .emailSuccess { display:flex; align-items:center; gap:6px; margin:2px 0 0; color:var(--brand-primary); font-size:12px; }
 .emailError { margin:2px 0 0; color:var(--text-danger); font-size:12px; line-height:1.6; }

@@ -154,7 +154,7 @@ export function AuthScreen({
                 {signUp && <button type="button" className={styles.codeButton} disabled={!preview || !email.trim() || verificationBusy || verifiedForPreview || resendRemaining > 0} onClick={() => void sendCode()}>{verifiedForPreview ? "인증 완료" : verificationBusy ? "확인 중…" : preview && challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
               </div>
               {signUp && !preview && <p className={styles.emailHelp}>이메일 인증 연결을 준비 중이에요. 아래 화면 체험에서 미리 확인할 수 있어요.</p>}
-              {signUp && preview && challenge && !verified && <div className={styles.verificationBox}>
+              {signUp && preview && challenge && !verified && <div className={styles.verificationField}>
                 <label htmlFor={codeId}>인증 코드<span className={styles.codeTime} role="timer" aria-label="인증 코드 남은 시간">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span></label>
                 <div className={styles.emailRow}><input id={codeId} aria-label="인증 코드" aria-describedby={hintId} value={code} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "").slice(0, 6)); setVerificationError(""); }} placeholder="6자리 숫자를 입력해 주세요" inputMode="numeric" autoComplete="one-time-code" maxLength={6} /><button type="button" className={styles.codeButton} disabled={code.length !== 6 || verificationBusy || remaining === 0} onClick={() => void verifyCode()}>확인</button></div>
                 <p id={hintId} className={styles.emailHelp}>체험용 코드 <strong>{challenge.demoCode}</strong> · 실제 메일은 발송되지 않아요.</p>
