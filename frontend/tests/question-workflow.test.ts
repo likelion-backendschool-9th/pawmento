@@ -334,3 +334,19 @@ test("#12-S4 (고침 #32) 같은 날짜의 혼합 데이터에서 페이지 ID·
   );
   assert.deepEqual(await uc.load("owner"), before);
 });
+
+test("#250-S1 새 질문의 표시 근거는 배정 시 저장되고 이름 변경·새로고침·답변 저장에도 원문은 유지된다", async () => {
+  const { uc } = setup();
+  const pet = await uc.savePet("owner", petInput);
+  const prompt = await uc.questions.current("owner", pet.id);
+  assert.deepEqual(prompt.displayBinding, { name: "보리", template: "{name}와 함께한 순간은?" });
+  await uc.savePet("owner", { ...petInput, name: "구름" }, pet.id);
+  const retained = await uc.questions.current("owner", pet.id);
+  assert.deepEqual(retained, prompt);
+  const answer = await uc.questions.save("owner", {
+    petId: pet.id, promptId: prompt.id, body: "함께한 하루", photoUrl: "",
+  });
+  assert.equal(answer.questionSnapshot, "보리와 함께한 순간은?");
+  const next = await uc.questions.current("owner", pet.id);
+  assert.equal(next.displayBinding?.name, "구름");
+});

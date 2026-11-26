@@ -1,3 +1,4 @@
+import type { QuestionPrompt } from "../types/QuestionAnswer.ts";
 import { currentQuestionText } from "./currentQuestionText.ts";
 
 type AssignedPrompt = {
@@ -5,6 +6,7 @@ type AssignedPrompt = {
   questionId: string;
   questionSnapshot: string;
   completedAt?: string | null;
+  displayBinding?: QuestionPrompt["displayBinding"];
 };
 
 type TemplateQuestion = { id: string; mode: string; text: string };
@@ -31,7 +33,7 @@ export async function loadCurrentQuestion({
   if (!isActive()) return;
   const snapshot = prompt.questionSnapshot;
   publish({ id: prompt.id, text: snapshot });
-  if (prompt.completedAt) return;
+  if (prompt.completedAt || !prompt.displayBinding) return;
   let template: string | undefined;
   try {
     template = (await loadTemplates()).find(
@@ -41,6 +43,6 @@ export async function loadCurrentQuestion({
     // The assigned snapshot remains readable if optional display data is unavailable.
     return;
   }
-  const text = currentQuestionText(name, snapshot, template);
+  const text = currentQuestionText(name, snapshot, template, prompt.displayBinding);
   if (text !== snapshot && isActive()) publish({ id: prompt.id, text });
 }

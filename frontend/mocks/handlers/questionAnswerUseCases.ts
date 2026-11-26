@@ -61,6 +61,7 @@ export function createQuestionAnswerUseCases(
           mode: pet.mode,
           questionId: question.id,
           questionSnapshot: renderQuestion(currentPet.name, question.text),
+          displayBinding: { name: currentPet.name, template: question.text },
           createdAt: runtime.now(),
         };
         ctx.collection.prompts.push(prompt);

@@ -5,6 +5,8 @@ export type QuestionPrompt = {
   mode: "ACTIVE" | "GARDEN" | "LEGACY";
   questionId: string;
   questionSnapshot: string;
+  /** Optional demo display provenance; never reconstructed for older assignments. */
+  displayBinding?: { name: string; template: string };
   createdAt: string;
   completedAt?: string;
 };
