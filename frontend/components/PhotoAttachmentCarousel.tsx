@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { Icon } from "./Icon";
 import { Photo } from "./Photo";
+import { clampSlide } from "../lib/mediaAttachments";
 import s from "./PhotoAttachmentCarousel.module.css";
 
 export type PhotoSlide = { id: string; src: string; label: string; remove: () => void };
@@ -9,7 +10,7 @@ export type PhotoSlide = { id: string; src: string; label: string; remove: () =>
 export function PhotoAttachmentCarousel({ photos, disabled }: { photos: PhotoSlide[]; disabled: boolean }) {
   const track = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState(0);
-  const current = Math.min(position, photos.length - 1);
+  const current = clampSlide(position, photos.length);
   function go(index: number) {
     const node = track.current;
     const slide = node?.children[index] as HTMLElement | undefined;
@@ -32,7 +33,7 @@ export function PhotoAttachmentCarousel({ photos, disabled }: { photos: PhotoSli
           if (event.target !== event.currentTarget) return;
           if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
             event.preventDefault();
-            go(Math.max(0, Math.min(photos.length - 1, current + (event.key === "ArrowRight" ? 1 : -1))));
+            go(clampSlide(current + (event.key === "ArrowRight" ? 1 : -1), photos.length));
           }
         }}
         onScroll={event => {
@@ -43,7 +44,7 @@ export function PhotoAttachmentCarousel({ photos, disabled }: { photos: PhotoSli
         }}>
         {photos.map((photo, index) => (
           <div key={photo.id} className={s.slide} role="group" aria-roledescription="슬라이드" aria-label={`${index + 1} / ${photos.length}`}>
-            <Photo src={photo.src} alt={photo.label} className={s.photo} />
+            <Photo src={photo.src} alt={`${index + 1}번째 사진`} className={s.photo} />
             <button type="button" className={s.remove} aria-label={`${index + 1}번째 사진 삭제`} disabled={disabled} onClick={photo.remove}><Icon name="close" size={17} /></button>
             <span className={s.caption} title={photo.label}>{photo.label}</span>
           </div>
