@@ -73,11 +73,11 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
       {step === "choose" ? <div className={s.choices}>
         <Link className={s.choice} href="/welcome/register">
           <span className={s.profilePreview} aria-hidden="true"><Photo src="reference:portrait" alt="" /><span><Icon name="paw" size={14} /></span></span>
-          <span><strong>처음 기록해요</strong><small>아이의 일상과 추억을 차곡차곡</small><span className={s.choiceAction}>아이 소개하기 <Icon name="arrow" size={14} /></span></span><Icon name="chevron" size={18} />
+          <span><strong>처음 기록해요</strong><small>아이의 일상과 추억을 차곡차곡</small><span className={s.choiceAction}>아이 소개하기 <Icon name="arrow" size={14} /></span></span>
         </Link>
         <Link className={`${s.choice} ${s.inviteChoice}`} href="/welcome/join">
           <span className={s.invitationPreview} aria-hidden="true"><span className={s.invitationPhoto}><Photo src="reference:running" alt="" /></span><span className={s.invitationMail}><Icon name="mail" size={33} /><Icon name="paw" size={12} /></span></span>
-          <span><strong>초대받았어요</strong><small>같은 아이의 기억을 함께 남겨요</small><span className={s.choiceAction}>초대 코드로 함께하기 <Icon name="arrow" size={14} /></span></span><Icon name="chevron" size={18} />
+          <span><strong>초대받았어요</strong><small>같은 아이의 기억을 함께 남겨요</small><span className={s.choiceAction}>초대 코드로 함께하기 <Icon name="arrow" size={14} /></span></span>
         </Link>
         <p className={s.choiceNote}>어떤 방식으로 시작해도 괜찮아요.<br />나중에 다른 아이를 등록하거나 초대에 참여할 수 있어요.</p>
         {memberPets > 0 && <Link className={s.continue} href="/home">이미 함께하는 아이의 홈으로 →</Link>}
