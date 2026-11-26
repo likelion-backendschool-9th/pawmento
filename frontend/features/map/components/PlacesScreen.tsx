@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { PageHeading } from "@/features/shell/components/WorkspaceUi";
-import type { MapBounds } from "@/features/map/types/MapBounds";
+import type { MapBounds, MapPoint } from "@/features/map/types/MapBounds";
 import {
   PLACE_CATEGORIES,
   type PlaceCategory,
@@ -22,6 +22,7 @@ import { PlaceAddressResolver } from "../utils/placeAddress";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
+import { PlaceSearchPanel } from "./PlaceSearchPanel";
 import mapStyles from "./MapScreen.module.css";
 import styles from "./PlacesScreen.module.css";
 
@@ -51,6 +52,25 @@ export function PlacesScreen() {
   } | null>(null);
   const [attempt, setAttempt] = useState(0);
   const request = useRef(0);
+  // 장소 검색 화면(#195). 열 때의 지도 중심을 거리 계산에 쓴다. 닫으면 처음 누른 검색창으로 초점이 돌아간다.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchCenter, setSearchCenter] = useState<MapPoint | null>(null);
+  const searchBar = useRef<HTMLButtonElement>(null);
+  function openSearch() {
+    setSearchCenter(
+      bounds
+        ? {
+            latitude: (bounds.minLatitude + bounds.maxLatitude) / 2,
+            longitude: (bounds.minLongitude + bounds.maxLongitude) / 2,
+          }
+        : null,
+    );
+    setSearchOpen(true);
+  }
+  function closeSearch() {
+    setSearchOpen(false);
+    setTimeout(() => searchBar.current?.focus(), 0);
+  }
 
   useEffect(() => {
     if (!bounds) return;
@@ -162,6 +182,17 @@ export function PlacesScreen() {
           <StaticPlaceCanvas {...canvasProps} />
         )}
 
+        <button
+          ref={searchBar}
+          type="button"
+          className={styles.searchBar}
+          aria-haspopup="dialog"
+          onClick={openSearch}
+        >
+          <Icon name="search" size={18} />
+          <span>병원·미용·보호센터 이름이나 주소 검색</span>
+        </button>
+
         <div className={styles.filters} role="group" aria-label="장소 종류">
           {PLACE_CATEGORIES.map((category) => {
             const on = categories.includes(category);
@@ -187,7 +218,7 @@ export function PlacesScreen() {
         </div>
 
         {result?.truncated && !error && (
-          <p className={mapStyles.notice} role="status">
+          <p className={`${mapStyles.notice} ${styles.noticeLow}`} role="status">
             장소가 많아서 일부만 보여요. 지도를 확대해 보세요.
           </p>
         )}
@@ -320,6 +351,7 @@ export function PlacesScreen() {
           </aside>
         )}
       </div>
+      {searchOpen && <PlaceSearchPanel center={searchCenter} onClose={closeSearch} />}
     </div>
   );
 }
