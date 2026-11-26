@@ -93,6 +93,16 @@ test("#104-S1 다음 페이지는 커서를 붙여 요청하고, 마지막 페�
   assert.equal(page.nextCursor, null);
 });
 
+test("#104-S1 안전한 정수를 넘는 id나 커서는 반올림된 값으로 바꾸지 않고 오류를 낸다", async () => {
+  for (const body of [
+    '{"posts":[{"postId":9007199254740993,"category":"LIFE","categoryName":"반려 생활","title":"t","preview":"p","authorId":3,"createdAt":"2026-11-25T03:00:00Z"}],"nextCursor":null}',
+    '{"posts":[],"nextCursor":9007199254740993}',
+  ]) {
+    const { api } = server(() => new Response(body, { headers: { "Content-Type": "application/json" } }));
+    await assert.rejects(api.list({ category: "LIFE" }), /읽을 수 없어요/);
+  }
+});
+
 test("#104-S5 작성은 카테고리·제목·본문을 보내고 새 글 id를 문자열로 돌려준다", async () => {
   const { api, calls } = server(() => Response.json({ postId: 7 }, { status: 201 }));
 

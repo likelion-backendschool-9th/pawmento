@@ -50,7 +50,7 @@ export function createPostApi(http: ApiClient) {
       const page = await http.get<PostPageDto>(`/posts?${query}`);
       return {
         posts: page.posts.map(toSummary),
-        nextCursor: page.nextCursor === null ? null : String(page.nextCursor),
+        nextCursor: page.nextCursor === null ? null : toId(page.nextCursor, "커서"),
       };
     },
     async get(postId: string): Promise<PostDetail> {
@@ -58,7 +58,7 @@ export function createPostApi(http: ApiClient) {
     },
     async create(input: PostInput): Promise<string> {
       const created = await http.post<{ postId: number }>("/posts", toRequest(input));
-      return String(created.postId);
+      return toId(created.postId, "글 id");
     },
     async update(postId: string, input: PostInput): Promise<PostDetail> {
       return toDetail(
@@ -73,30 +73,39 @@ export function createPostApi(http: ApiClient) {
 
 export type PostApi = ReturnType<typeof createPostApi>;
 
+// 서버의 Long id를 JSON 숫자로 받는다. JSON.parse는 2^53을 넘는 정수를 반올림하므로,
+// 안전한 정수가 아니면 다른 글을 가리키는 id로 다음 요청을 만들지 않고 멈춘다(#257 리뷰).
+function toId(value: number, label: string): string {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw Error(`서버가 보낸 ${label}를 읽을 수 없어요.`);
+  }
+  return String(value);
+}
+
 function toRequest(input: PostInput) {
   return { category: input.category, title: input.title, body: input.body };
 }
 
 function toSummary(dto: PostSummaryDto): PostSummary {
   return {
-    id: String(dto.postId),
+    id: toId(dto.postId, "글 id"),
     category: dto.category,
     categoryName: dto.categoryName,
     title: dto.title,
     preview: dto.preview,
-    authorId: String(dto.authorId),
+    authorId: toId(dto.authorId, "작성자 id"),
     createdAt: dto.createdAt,
   };
 }
 
 function toDetail(dto: PostDto): PostDetail {
   return {
-    id: String(dto.postId),
+    id: toId(dto.postId, "글 id"),
     category: dto.category,
     categoryName: dto.categoryName,
     title: dto.title,
     body: dto.body,
-    authorId: String(dto.authorId),
+    authorId: toId(dto.authorId, "작성자 id"),
     createdAt: dto.createdAt,
     updatedAt: dto.updatedAt,
   };
