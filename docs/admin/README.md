@@ -32,7 +32,7 @@
 
 ## 아직 정하지 않은 것
 
-- 신고·엽서 판매의 데이터 소유 도메인(community / postcard / admin 패키지 여부)
+- 엽서 판매의 데이터 소유 도메인(postcard / admin 패키지 여부). 신고는 `report` 도메인이 맡는다([report README](../report/README.md#정한-것)). (고침 #112)
 - 관리자 계정·역할 부여 API의 방식은 member 담당과 별도로 정한다.
 - 본문 요구사항·시나리오([plan-template](../plan-template.md) 적용)
 - 개발 Feat 이슈 번호
