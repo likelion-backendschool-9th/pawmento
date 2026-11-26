@@ -1,4 +1,4 @@
-.screen { --intro-cream:#fcf9f3; --intro-sage:#69836a; --intro-ink:#344f42; --intro-muted:#68796e; --intro-apricot:#efbd94; display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100svh; margin:0 auto; padding:calc(20px + env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom)); overflow:hidden; background:var(--intro-cream); color:var(--intro-ink); font-family:var(--font-sans); }
+.screen { --intro-cream:#fcf9f3; --intro-sage:#69836a; --intro-ink:#344f42; --intro-sage-strong:#56705a; --intro-muted:#5a6b60; --intro-apricot:#efbd94; display:flex; flex-direction:column; width:100%; max-width:480px; min-height:100svh; margin:0 auto; padding:calc(20px + env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom)); overflow:hidden; background:var(--intro-cream); color:var(--intro-ink); font-family:var(--font-sans); }
 .header { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .smallWordmark,.wordmark { font-weight:750; letter-spacing:-1.6px; line-height:1.2; }
 .smallWordmark { font-size:24px; color:var(--intro-sage); }
@@ -13,7 +13,7 @@
 .smallPrint { position:absolute; left:4%; bottom:7%; width:34px; height:34px; color:var(--intro-sage); transform:rotate(-23deg); }
 .smallLeaf { position:absolute; right:4%; top:15%; color:#b1bc94; transform:rotate(25deg); }
 .copy { padding:6px 2px 20px; text-align:center; }
-.eyebrow { margin:0 0 14px; font-size:13px; font-weight:500; color:var(--intro-sage); letter-spacing:.7px; }
+.eyebrow { margin:0 0 14px; font-size:13px; font-weight:500; color:var(--intro-sage-strong); letter-spacing:.7px; }
 .copy h1 { margin:0; font-size:clamp(25px,7vw,31px); font-weight:650; line-height:1.5; letter-spacing:-1px; white-space:pre-line; word-break:keep-all; }
 .copy h1:focus { outline:none; }
 .description { margin:18px 0 0; font-size:15px; line-height:1.9; color:var(--intro-muted); white-space:pre-line; word-break:keep-all; }
@@ -28,7 +28,7 @@
 .indicators button[data-reached="true"] { color:#9bad8c; }
 .indicators button[aria-current="step"] { color:var(--intro-sage); }
 .indicators button[aria-current="step"] .footprint { animation:pawStep .46s ease-out both; }
-.next { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:56px; padding:14px 18px; border:0; border-radius:999px; background:var(--intro-sage); color:#fffefa; font:600 16px/1.5 var(--font-sans); cursor:pointer; box-shadow:0 6px 16px #69836a1a; }
+.next { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:56px; padding:14px 18px; border:0; border-radius:999px; background:var(--intro-sage-strong); color:#fffefa; font:600 16px/1.5 var(--font-sans); cursor:pointer; box-shadow:0 6px 16px #56705a1a; }
 .next:disabled,.skip:disabled { opacity:.6; cursor:default; }
 .screen button:focus-visible { outline:2px solid var(--intro-ink); outline-offset:4px; }
 .garden { position:absolute; inset:0; border-radius:46% 54% 39% 61% / 50% 44% 56% 50%; background:linear-gradient(#faf6ea25,#f8f8e466),url('/images/watercolor-garden.png') 78% center/cover; }
