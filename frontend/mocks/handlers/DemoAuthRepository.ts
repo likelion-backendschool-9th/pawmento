@@ -30,7 +30,12 @@ export class DemoAuthRepository {
     this.account = entry.account;
     return this.account;
   }
-  async startDemo() {
+  async startDemo(input?: { fresh?: boolean; nickname?: string }) {
+    if (input?.fresh) {
+      const id = `demo-onboarding-${createId()}`;
+      this.account = { id, email: `${id}@pawmento.local`, nickname: input.nickname?.trim() || "기록하는 나", role: "USER", demo: true };
+      return this.account;
+    }
     this.account = {
       id: "demo",
       email: "demo@pawmento.local",
