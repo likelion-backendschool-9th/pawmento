@@ -157,18 +157,21 @@ test("#133-S24 안전한 정수 범위를 넘는 회원 id는 쓰지 않아(null
   assert.deepEqual(family.members.map((member) => member.memberId), [null, null, "9007199254740991"]);
 });
 
-test("#133-S24 서버가 회원 id를 문자열로 주면 큰 값도 그대로 정확히 쓴다", async () => {
+test("#133-S24 지금은 숫자 계약이라, 회원 id가 문자열로 와도 안전한 범위를 넘으면 믿지 않는다", async () => {
   const { api } = server(() =>
     Response.json({
       owner: { memberId: "1", nickname: "다윗", tag: "0427" },
-      members: [{ memberId: "9007199254740993", nickname: "가", tag: "0001", joinedAt: "2026-11-25T03:00:00Z" }],
+      members: [
+        { memberId: "9007199254740993", nickname: "가", tag: "0001", joinedAt: "2026-11-25T03:00:00Z" },
+        { memberId: "9007199254740991", nickname: "나", tag: "0002", joinedAt: "2026-11-25T04:00:00Z" },
+      ],
     }),
   );
 
   const family = await api.list("42");
 
   assert.equal(family.owner.memberId, "1");
-  assert.equal(family.members[0].memberId, "9007199254740993");
+  assert.deepEqual(family.members.map((member) => member.memberId), [null, "9007199254740991"]);
 });
 
 test("#133-S24 id를 알 수 없는 회원은 내보내기 요청을 만들 수 없다", async () => {
@@ -197,17 +200,20 @@ test("#133-S23 안전한 정수 범위를 넘는 반려동물 id는 '가족으�
   ]);
 });
 
-test("#133-S23 서버가 반려동물 id를 문자열로 주면 큰 값도 그대로 목록에 남는다", async () => {
+test("#133-S23 지금은 숫자 계약이라, 반려동물 id가 문자열로 와도 안전한 범위를 넘으면 목록에서 뺀다", async () => {
   const { api } = server(() =>
-    Response.json([{ petId: "9007199254740993", name: "가", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" }]),
+    Response.json([
+      { petId: "9007199254740993", name: "가", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" },
+      { petId: "9007199254740991", name: "나", tag: "0002", joinedAt: "2026-11-24T04:00:00Z" },
+    ]),
   );
 
   assert.deepEqual(await api.myPets(), [
-    { id: "9007199254740993", name: "가", tag: "0001", joinedAt: "2026-11-24T03:00:00Z" },
+    { id: "9007199254740991", name: "나", tag: "0002", joinedAt: "2026-11-24T04:00:00Z" },
   ]);
 });
 
-test("#133-S25 가입 응답의 반려동물 id가 안전한 범위를 넘으면 id는 null이고, 문자열이면 그대로다", async () => {
+test("#133-S25 가입 응답의 반려동물 id가 안전한 범위를 넘으면 숫자든 문자열이든 id는 null이다", async () => {
   const big = server(() =>
     new Response('{"petId":9007199254740993,"name":"보리","tag":"0001"}', {
       headers: { "Content-Type": "application/json" },
@@ -216,5 +222,32 @@ test("#133-S25 가입 응답의 반려동물 id가 안전한 범위를 넘으면
   assert.deepEqual(await big.api.join("K7Q2M9XA"), { id: null, name: "보리", tag: "0001" });
 
   const text = server(() => Response.json({ petId: "9007199254740993", name: "보리", tag: "0001" }));
-  assert.deepEqual(await text.api.join("K7Q2M9XA"), { id: "9007199254740993", name: "보리", tag: "0001" });
+  assert.deepEqual(await text.api.join("K7Q2M9XA"), { id: null, name: "보리", tag: "0001" });
+});
+
+test("#133-S24 관리 목록 [가족]에서 반올림된 반려동물 id로 들어오면 가족 API는 어떤 요청도 보내지 않는다", async () => {
+  // GET /pets의 숫자 9007199254740993은 String(petId)에서 "9007199254740992"가 된다
+  const { api, calls } = server(() => assert.fail("예상하지 않은 서버 요청"));
+
+  for (const petId of ["9007199254740992", "9007199254740993", "99999999999999999999"]) {
+    await assert.rejects(api.list(petId), { code: "NOT_FOUND" });
+    await assert.rejects(api.issueCode(petId), { code: "NOT_FOUND" });
+    await assert.rejects(api.removeMember(petId, "7"), { code: "NOT_FOUND" });
+    await assert.rejects(api.leave(petId), { code: "NOT_FOUND" });
+  }
+  await assert.rejects(api.removeMember("42", "9007199254740992"), { code: "NOT_FOUND" });
+
+  assert.equal(calls.length, 0);
+});
+
+test("#133-S24 안전한 정수 범위의 가장 큰 id는 그대로 요청한다", async () => {
+  const { api, calls } = server(() => new Response(null, { status: 204 }));
+
+  await api.removeMember("9007199254740991", "9007199254740991");
+  await api.leave("9007199254740991");
+
+  assert.deepEqual(calls, [
+    { url: "/api/v1/families/members/9007199254740991?petId=9007199254740991", method: "DELETE", body: undefined },
+    { url: "/api/v1/families/members/me?petId=9007199254740991", method: "DELETE", body: undefined },
+  ]);
 });
