@@ -446,31 +446,9 @@ test("#195-S10 지도 중심·종류와 함께 검색하고, 같은 입력을 �
   }
 });
 
-test("#195-S10 화면이 사라지면(dispose) 기다리던 검색을 취소하고, 그 뒤에도 다시 쓸 수 있다", async () => {
-  mock.timers.enable({ apis: ["setTimeout"] });
-  try {
-    const queries: string[] = [];
-    const controller = new PlaceSearchController(async (query) => {
-      queries.push(query.q);
-      return found(query.q);
-    });
-    controller.setInput("서울숲");
-    controller.dispose();
-    mock.timers.tick(1000);
-    await flush();
-    assert.deepEqual(queries, []);
-    controller.setInput("강남역");
-    mock.timers.tick(SEARCH_DELAY_MS);
-    await flush();
-    assert.deepEqual(queries, ["강남역"]);
-  } finally {
-    mock.timers.reset();
-  }
-});
-
 // ── 리뷰 반영: dispose 뒤 같은 입력, 로그인 전 최근 검색어, 서버와 같은 공백 처리 ──────────────
 
-test("#195-S10 기다리던 검색이 dispose로 취소된 뒤에도 같은 입력으로 다시 검색한다(loading에 멈추지 않는다)", async () => {
+test("#195-S10 화면이 사라지면(dispose) 기다리던 검색을 취소하고, 그 뒤에도 같은 입력·다른 입력으로 다시 검색한다(loading에 멈추지 않는다)", async () => {
   mock.timers.enable({ apis: ["setTimeout"] });
   try {
     const queries: string[] = [];
@@ -489,6 +467,11 @@ test("#195-S10 기다리던 검색이 dispose로 취소된 뒤에도 같은 입�
     await flush();
     assert.deepEqual(queries, ["서울숲"]);
     assert.equal(controller.getState().status, "done");
+    // 다른 입력도 평소처럼 검색한다
+    controller.setInput("강남역");
+    mock.timers.tick(SEARCH_DELAY_MS);
+    await flush();
+    assert.deepEqual(queries, ["서울숲", "강남역"]);
   } finally {
     mock.timers.reset();
   }
