@@ -5,7 +5,7 @@
 ## 한눈에
 - 끝나면: 로그인한 회원이 `POST /api/v1/reports`로 남의 글을 신고하고, 신고 당시 글 내용이 함께 저장된다. 관리자 목록이 쓸 `ListReportsUseCase`가 실제 신고 테이블과 글 상태를 읽어 동작한다.
 - 결정 필요: 없음. `trim()` 공용화는 팀 합의를 기다리며, 그전에는 `report` 도메인에 같은 함수를 둔다([아직 정하지 않은 것](README.md#아직-정하지-않은-것)).
-- 규모: 5단계, 시나리오 15개, PR 2개(접수 / 목록과 관리자 파일 이동)
+- 규모: 5단계, 시나리오 15개, PR 3개(신고 도메인 / 접수 API / 목록과 관리자 파일 이동)
 
 ## 1. 신고 접수 (#112-R1)
 로그인한 회원이 다른 회원의 공개 글을 신고 유형을 골라 신고하면(`OTHER`는 설명을 함께 적는다) PENDING 신고가 저장되고, 같은 시점의 글 제목·본문·카테고리·버전이 함께 저장된다.
@@ -144,11 +144,11 @@
 - 기각 뒤 같은 버전 재신고 경합: 같은 회원의 요청이 "마지막 신고는 이전 버전 기각"을 읽고 저장하기 전에, 다른 요청이 현재 버전으로 접수되고 관리자가 그것을 기각하면 같은 버전의 신고가 두 개 남는다. #112에는 기각 API가 없어 운영에서 `DISMISSED`가 생기지 않으므로 이 경합도 생기지 않는다. #92의 처리·기각 단계에서 막고 그 단계의 회귀 시나리오로 확인한다. 방법(같은 회원·대상 조합의 PostgreSQL advisory lock, 또는 `(target_type, target_id, reporter_id, snapshot_target_version)` 고유 인덱스)은 숨김·복구 규칙과 함께 그 단계에서 고른다. 고유 인덱스는 숨김 해제처럼 대상 버전이 오르지 않는 복구가 생기면 재신고를 영구히 막으므로, 지금 스키마로 굳히지 않는다
 
 ## 작업 순서
-확인 명령은 모두 `backend/`에서 실행하고, 그 단계에서 바꾼 테스트만 돌린다. 전체 테스트는 PR의 CI에서 확인한다. 아래 경로의 `report/`는 `com.pawmento.report`, `community/`는 `com.pawmento.community`다. 1~4단계가 PR 1(접수, 머지 보류 중인 PR #267을 이 구조로 고친다), 5단계가 PR 2(목록, #112를 닫는다)다.
+확인 명령은 모두 `backend/`에서 실행하고, 그 단계에서 바꾼 테스트만 돌린다. 전체 테스트는 PR의 CI에서 확인한다. 아래 경로의 `report/`는 `com.pawmento.report`, `community/`는 `com.pawmento.community`다. 1단계가 PR 1(신고 도메인), 2~4단계가 PR 2(접수 API, 머지 보류 중인 PR #267을 이 구조로 고친다), 5단계가 PR 3(목록, #112를 닫는다)이다. 신고용 글 조회 포트(2단계)는 3단계 시나리오 테스트가 검증하므로 접수 API와 함께 올린다. 앞 PR이 머지된 뒤 다음 PR을 develop 위로 옮겨 올린다.
 
 1. 신고 도메인 — S8, S9, S14의 도메인 규칙
    - 파일: `report/domain/Report.java`(`receive(ReportTarget, reporterId, reasonType, reasonDetail)`. 유형 필수, `OTHER`만 설명 1~200자, NUL 거절, 다른 유형의 설명 거절), `ReportReason.java`, `TargetType.java`(`POST`), `ReportTarget.java`(대상 종류·id·작성자·버전·제목·본문·카테고리 코드를 담는 신고 쪽 값 객체), `PreviousReport.java`, `TextTrim.java`(임시, `Post`와 같은 기준), `domain/exception/InvalidReportException.java`·`OwnTargetReportException.java`, `test/.../report/domain/ReportTest.java`·`PreviousReportTest.java`
-   - `report` 도메인은 community의 `Post`·`TextTrim`을 import하지 않는다. PR #267이 만든 `community/domain/TextTrim`은 되돌려 `Post` 안의 함수로 둔다.
+   - `report` 도메인은 community의 `Post`·`TextTrim`을 import하지 않는다. PR #267이 만든 `community/domain/TextTrim`은 3단계에서 PR #267의 옛 신고 코드를 지울 때 함께 되돌려 `Post` 안의 함수로 둔다.
    - 확인: `./gradlew test --tests 'com.pawmento.report.domain.*'`
 2. community의 신고용 글 조회 입력 포트 — S1, S7의 대상 조회
    - 파일: `community/application/port/in/GetPostForReportUseCase.java`·`PostForReportResult.java`(id·작성자·제목·본문·카테고리 코드·버전), `community/application/service/GetPostForReportService.java`(지운 글은 빈 결과)
