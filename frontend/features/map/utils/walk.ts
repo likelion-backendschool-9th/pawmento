@@ -1,5 +1,6 @@
 import type { MapPoint } from "../types/MapBounds.ts";
 import type { WalkPoint } from "../types/Walk.ts";
+import { haversineMeters } from "./geo.ts";
 
 // 서버의 한도(docs/map/walk-route.md)
 // 서버의 반려동물 id는 양의 정수다. 브라우저에서 만든 반려동물(UUID)은 서버에 물을 수 없어 데모 산책으로 기록한다.
@@ -17,19 +18,9 @@ export const MAX_POINTS_PER_WALK = 5000;
 export const SAMPLE_INTERVAL_MS = 15_000;
 export const FLUSH_EVERY_POINTS = 4;
 
-const EARTH_RADIUS_METERS = 6_371_000;
-const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
-
-// 두 점 사이의 거리(하버사인, 미터)
+// 두 점 사이의 거리(하버사인, 미터). 계산은 공용 geo.ts를 쓴다
 export function distanceBetween(from: MapPoint, to: MapPoint): number {
-  const dLat = toRadians(to.latitude - from.latitude);
-  const dLng = toRadians(to.longitude - from.longitude);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRadians(from.latitude)) *
-      Math.cos(toRadians(to.latitude)) *
-      Math.sin(dLng / 2) ** 2;
-  return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(a)));
+  return haversineMeters(from, to);
 }
 
 // 걸은 거리(점들을 이은 선의 길이, 미터)
