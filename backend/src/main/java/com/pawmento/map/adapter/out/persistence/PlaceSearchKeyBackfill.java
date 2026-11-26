@@ -1,11 +1,13 @@
 package com.pawmento.map.adapter.out.persistence;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.pawmento.map.domain.Place;
@@ -23,6 +25,9 @@ import lombok.RequiredArgsConstructor;
  * <p>한 행에서 실패해도 나머지 행은 계속 채운다. 예외가 반복문 밖에서 처리되면 실패한 행 뒤의 장소가 모두 열이 빈 채로 서버가
  * 시작하고, 그 장소들은 검색에서 빠진다. 채우지 못한 행은 건너뛰고 로그에 남기며, 다음에 서버가 켜질 때 다시 시도한다.
  * 채우기가 통째로 실패해도(예: DB 연결) 서버 시작은 막지 않는다.
+ *
+ * <p>시작할 때 실패하거나 못 채운 행이 있으면 서버를 다시 켜기를 기다리지 않고 {@link #retry()}가 일정 간격으로 다시 시도한다
+ * (DB 연결이 잠시 끊겼다 돌아온 경우 등). 시도 횟수에는 상한이 있어 계속 실패하는 행이 있어도 로그를 끝없이 남기지 않는다.
  */
 @Component
 @RequiredArgsConstructor
@@ -30,7 +35,12 @@ class PlaceSearchKeyBackfill implements ApplicationRunner {
 
 	private static final Logger log = LoggerFactory.getLogger(PlaceSearchKeyBackfill.class);
 
+	/** 시작할 때 실패한 뒤 다시 시도하는 최대 횟수. 기본 간격 5분이면 한 시간 동안 시도한다 */
+	static final int MAX_RETRIES = 12;
+
 	private final PlaceJpaRepository placeJpaRepository;
+
+	private final AtomicInteger retriesLeft = new AtomicInteger();
 
 	/**
 	 * @param filled 이번에 실제로 채운 행의 수
@@ -41,17 +51,42 @@ class PlaceSearchKeyBackfill implements ApplicationRunner {
 
 	@Override
 	public void run(ApplicationArguments args) {
+		if (attempt()) {
+			retriesLeft.set(MAX_RETRIES);
+		}
+	}
+
+	/** 시작할 때 다 채우지 못했으면 간격을 두고 다시 시도한다. 다 채웠거나 횟수를 다 썼으면 아무것도 하지 않는다. */
+	@Scheduled(fixedDelayString = "${pawmento.map.search-key-backfill.retry-delay-ms:300000}",
+			initialDelayString = "${pawmento.map.search-key-backfill.retry-delay-ms:300000}")
+	void retry() {
+		if (retriesLeft.get() <= 0) {
+			return;
+		}
+		int left = retriesLeft.decrementAndGet();
+		if (!attempt()) {
+			retriesLeft.set(0);
+		}
+		else if (left == 0) {
+			log.warn("장소의 검색용 열 채우기를 {}번 다시 시도했지만 다 채우지 못했습니다. 다음에 서버가 켜질 때 다시 시도합니다.", MAX_RETRIES);
+		}
+	}
+
+	/** 한 번 채워 보고, 다시 시도해야 하면(통째로 실패했거나 못 채운 행이 있으면) true. 예외는 밖으로 내보내지 않는다. */
+	private boolean attempt() {
 		try {
 			Result result = backfill();
 			if (result.filled() > 0) {
 				log.info("장소 {}곳의 검색용 열을 채웠습니다.", result.filled());
 			}
 			if (result.failed() > 0) {
-				log.warn("장소 {}곳의 검색용 열을 채우지 못했습니다. 그 장소는 검색에 잡히지 않고, 다음에 켜질 때 다시 시도합니다.", result.failed());
+				log.warn("장소 {}곳의 검색용 열을 채우지 못했습니다. 그 장소는 검색에 잡히지 않아 다시 시도합니다.", result.failed());
 			}
+			return result.failed() > 0;
 		}
 		catch (RuntimeException e) {
-			log.warn("장소의 검색용 열을 채우지 못했습니다. 다음에 켜질 때 다시 채웁니다: {}", e.getClass().getSimpleName());
+			log.warn("장소의 검색용 열을 채우지 못했습니다. 다시 시도합니다: {}", e.getClass().getSimpleName());
+			return true;
 		}
 	}
 

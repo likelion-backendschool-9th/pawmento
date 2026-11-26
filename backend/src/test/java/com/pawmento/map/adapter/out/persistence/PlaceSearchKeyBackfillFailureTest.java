@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,6 +81,55 @@ class PlaceSearchKeyBackfillFailureTest {
 			.thenThrow(new IllegalStateException("DB에 연결할 수 없습니다"));
 
 		assertThatCode(() -> backfill.run(new DefaultApplicationArguments())).doesNotThrowAnyException();
+	}
+
+	@Test
+	@DisplayName("#195-S19 시작할 때 조회가 실패해도 DB가 돌아오면 서버를 다시 켜지 않고 다시 시도해 채운다")
+	void retriesAfterStartupFailureOnceTheDatabaseRecovers() {
+		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L))
+			.thenThrow(new IllegalStateException("DB에 연결할 수 없습니다"))
+			.thenReturn(List.of(entity(1, "하나")));
+		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(1L)).thenReturn(List.of());
+		when(repository.fillSearchKeys(eq(1L), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any()))
+			.thenReturn(1);
+
+		backfill.run(new DefaultApplicationArguments());
+		verify(repository, times(0)).fillSearchKeys(anyLong(), org.mockito.ArgumentMatchers.anyString(),
+				org.mockito.ArgumentMatchers.any());
+
+		backfill.retry();
+
+		verify(repository).fillSearchKeys(eq(1L), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.any());
+		// 다 채웠으면 더 시도하지 않는다
+		backfill.retry();
+		verify(repository, times(2)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+	}
+
+	@Test
+	@DisplayName("#195-S19 계속 실패해도 다시 시도는 정해진 횟수까지만 하고, 처음부터 다 채웠으면 다시 시도하지 않는다")
+	void stopsRetryingAfterTheLimit() {
+		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L))
+			.thenThrow(new IllegalStateException("DB에 연결할 수 없습니다"));
+
+		backfill.run(new DefaultApplicationArguments());
+		for (int i = 0; i < PlaceSearchKeyBackfill.MAX_RETRIES + 5; i++) {
+			backfill.retry();
+		}
+
+		// 시작할 때 한 번 + 다시 시도 12번
+		verify(repository, times(1 + PlaceSearchKeyBackfill.MAX_RETRIES))
+			.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
+	}
+
+	@Test
+	@DisplayName("#195-S19 시작할 때 다 채웠으면 다시 시도하는 일이 없다")
+	void doesNotRetryWhenStartupSucceeded() {
+		when(repository.findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L)).thenReturn(List.of());
+
+		backfill.run(new DefaultApplicationArguments());
+		backfill.retry();
+
+		verify(repository, times(1)).findTop500ByNameKeyIsNullAndIdGreaterThanOrderByIdAsc(0L);
 	}
 
 }
