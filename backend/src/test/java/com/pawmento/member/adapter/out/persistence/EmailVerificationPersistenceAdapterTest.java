@@ -1,0 +1,200 @@
+package com.pawmento.member.adapter.out.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import com.pawmento.TestcontainersConfiguration;
+import com.pawmento.member.application.exception.EmailVerificationConflictException;
+import com.pawmento.member.application.exception.StoredEmailVerificationInvalidException;
+import com.pawmento.member.domain.EmailVerification;
+import com.pawmento.member.domain.VerificationPurpose;
+
+// 시나리오는 docs/member/email-verification.md에 있다. 저장 모양, 이메일·용도 유일 제약, 다시 받기·지우기의 조건을
+// 진짜 PostgreSQL로 확인한다. 어댑터가 문장마다 트랜잭션을 열기 때문에 테스트에는 트랜잭션을 두지 않고, 끝나면 직접 지운다
+@Import(TestcontainersConfiguration.class)
+@SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
+class EmailVerificationPersistenceAdapterTest {
+
+	// DB는 마이크로초까지 저장하므로 비교하기 쉽게 초 단위로 둔다
+	private static final Instant SENT_AT = Instant.parse("2026-11-26T09:00:00Z");
+
+	private final String email = "verify-" + UUID.randomUUID() + "@test.com";
+
+	@Autowired
+	private EmailVerificationPersistenceAdapter adapter;
+
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	@AfterEach
+	void cleanUp() {
+		jdbcTemplate.update("delete from email_verification where email = ?", email);
+	}
+
+	private EmailVerification sent(String codeHash, Instant sentAt) {
+		return EmailVerification.send(email, VerificationPurpose.SIGNUP, codeHash, sentAt);
+	}
+
+	@Test
+	@DisplayName("#279-S1 저장하면 id가 생기고, 이메일·용도로 읽으면 저장한 값이 그대로 나온다")
+	void saveAndLoad() {
+		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
+
+		assertThat(saved.getId()).isNotNull();
+		EmailVerification loaded = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(loaded.getId()).isEqualTo(saved.getId());
+		assertThat(loaded.getEmail()).isEqualTo(email);
+		assertThat(loaded.getCodeHash()).isEqualTo("hash-1");
+		assertThat(loaded.getFailedAttempts()).isZero();
+		assertThat(loaded.getSentAt()).isEqualTo(SENT_AT);
+		assertThat(loaded.getCodeExpiresAt()).isEqualTo(SENT_AT.plus(EmailVerification.CODE_VALID_FOR));
+		assertThat(adapter.load(email, VerificationPurpose.PASSWORD_RESET)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#279-S3 같은 이메일·용도를 또 저장하면 409 예외이고, 용도가 다르면 따로 저장된다")
+	void duplicateEmailAndPurposeConflicts() {
+		adapter.save(sent("hash-1", SENT_AT));
+
+		assertThatThrownBy(() -> adapter.save(sent("hash-2", SENT_AT)))
+				.isInstanceOf(EmailVerificationConflictException.class);
+		adapter.save(EmailVerification.send(email, VerificationPurpose.PASSWORD_RESET, "hash-3", SENT_AT));
+
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getCodeHash()).isEqualTo("hash-1");
+		assertThat(jdbcTemplate.queryForObject("select count(*) from email_verification where email = ?",
+				Integer.class, email)).isEqualTo(2);
+	}
+
+	@Test
+	@DisplayName("#279-S3 다시 받기는 마지막으로 보낸 시각이 기준 이전일 때만 새 번호로 바꾸고 틀린 횟수를 0으로 되돌린다")
+	void resendOnlyAfterInterval() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("update email_verification set failed_attempts = 3 where email = ?", email);
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+
+		// 기준이 보낸 시각보다 1초 앞이면(아직 60초가 안 지났으면) 바꾸지 않는다
+		assertThat(adapter.resend(sent("hash-2", now), SENT_AT.minusSeconds(1))).isFalse();
+		EmailVerification unchanged = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(unchanged.getCodeHash()).isEqualTo("hash-1");
+		assertThat(unchanged.getFailedAttempts()).isEqualTo(3);
+
+		// 기준이 보낸 시각과 같으면(딱 60초) 바꾼다
+		assertThat(adapter.resend(sent("hash-2", now), SENT_AT)).isTrue();
+		EmailVerification resent = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(resent.getId()).isEqualTo(unchanged.getId());
+		assertThat(resent.getCodeHash()).isEqualTo("hash-2");
+		assertThat(resent.getFailedAttempts()).isZero();
+		assertThat(resent.getSentAt()).isEqualTo(now);
+		assertThat(resent.getCodeExpiresAt()).isEqualTo(now.plus(EmailVerification.CODE_VALID_FOR));
+	}
+
+	@Test
+	@DisplayName("#279-S3 저장된 줄이 없으면 다시 받기는 아무것도 바꾸지 않는다")
+	void resendWithoutRowChangesNothing() {
+		assertThat(adapter.resend(sent("hash-1", SENT_AT), SENT_AT)).isFalse();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#279-S3 같은 이메일의 다시 받기가 동시에 와도 한 번만 바뀌고, 남은 번호는 이긴 쪽의 번호다")
+	void concurrentResendChangesOnce() throws Exception {
+		adapter.save(sent("hash-0", SENT_AT));
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+		int requests = 8;
+		ExecutorService pool = Executors.newFixedThreadPool(requests);
+		CountDownLatch start = new CountDownLatch(1);
+		try {
+			List<Future<Boolean>> results = new ArrayList<>();
+			for (int i = 0; i < requests; i++) {
+				String codeHash = "hash-" + (i + 1);
+				results.add(pool.submit(() -> {
+					start.await();
+					return adapter.resend(sent(codeHash, now), now.minus(EmailVerification.RESEND_AFTER));
+				}));
+			}
+			start.countDown();
+
+			int changed = 0;
+			for (Future<Boolean> result : results) {
+				if (result.get(30, TimeUnit.SECONDS)) {
+					changed++;
+				}
+			}
+			assertThat(changed).isEqualTo(1);
+		}
+		finally {
+			pool.shutdownNow();
+		}
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getCodeHash())
+				.isNotEqualTo("hash-0").startsWith("hash-");
+	}
+
+	@Test
+	@DisplayName("#279-S4 메일 실패 뒤 지우기는 같은 id와 발송 식별자일 때만 지운다")
+	void deleteOnlyMatchingSend() {
+		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
+
+		assertThat(adapter.delete(saved.getId(), "other-send")).isFalse();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP)).isPresent();
+
+		assertThat(adapter.delete(saved.getId(), saved.getSendId())).isTrue();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP)).isEmpty();
+	}
+
+	@Test
+	@DisplayName("#279-S4 다른 요청이 다시 받기로 바꾼 뒤라면, 앞 발송의 지우기는 새 발송을 지우지 않는다")
+	void deleteDoesNotRemoveNewerSend() {
+		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+		EmailVerification second = sent("hash-2", now);
+		assertThat(adapter.resend(second, SENT_AT)).isTrue();
+
+		assertThat(adapter.delete(first.getId(), first.getSendId())).isFalse();
+		EmailVerification remaining = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(remaining.getSendId()).isEqualTo(second.getSendId());
+		assertThat(remaining.getCodeHash()).isEqualTo("hash-2");
+	}
+
+	@Test
+	@DisplayName("#279-S3 갱신하는 순간 저장된 번호와 같은 번호로는 다시 받기를 하지 않고, 기존 발송이 그대로 남는다")
+	void resendRejectsSameStoredCode() {
+		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+
+		// 60초는 지났지만 새 번호의 해시가 저장된 해시와 같다 (서비스가 읽은 뒤 다른 요청이 같은 번호로 바꾼 경우)
+		assertThat(adapter.resend(sent("hash-1", now), SENT_AT)).isFalse();
+
+		EmailVerification kept = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(kept.getSendId()).isEqualTo(first.getSendId());
+		assertThat(kept.getSentAt()).isEqualTo(SENT_AT);
+		assertThat(kept.getCodeExpiresAt()).isEqualTo(first.getCodeExpiresAt());
+	}
+
+	@Test
+	@DisplayName("#279-S3 저장된 줄이 도메인 규칙에 맞지 않으면 요청 오류가 아니라 저장 데이터 오류로 알린다")
+	void brokenStoredRowIsStoredDataError() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("update email_verification set failed_attempts = -1 where email = ?", email);
+
+		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
+				.isInstanceOf(StoredEmailVerificationInvalidException.class);
+	}
+}
