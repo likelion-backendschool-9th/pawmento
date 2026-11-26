@@ -116,18 +116,6 @@ export function AuthScreen({
       setBusy(false);
     }
   }
-  async function demo() {
-    setError("");
-    setBusy(true);
-    try {
-      await app.startDemo();
-      router.push(destination);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "다시 시도해 주세요.");
-    } finally {
-      setBusy(false);
-    }
-  }
   return (
     <main id="main" className={styles.auth}>
       <div className={styles.brand}><Brand /></div>
@@ -148,7 +136,7 @@ export function AuthScreen({
                 }} />
                 {signUp && <button type="button" className={styles.codeButton} disabled={!preview || !email.trim() || verificationBusy || verifiedForPreview || resendRemaining > 0} onClick={() => void sendCode()}>{verifiedForPreview ? "인증 완료" : verificationBusy ? "확인 중…" : preview && challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
               </div>
-              {signUp && !preview && <p className={styles.emailHelp}>이메일 인증 연결을 준비 중이에요. 아래 화면 체험에서 미리 확인할 수 있어요.</p>}
+              {signUp && !preview && <p className={styles.emailHelp}>이메일 인증 연결을 준비 중이에요.</p>}
               {signUp && preview && challenge && !verified && <div className={styles.verificationField}>
                 <label htmlFor={codeId}>인증 코드<span className={styles.codeTime} role="timer" aria-label="인증 코드 남은 시간">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span></label>
                 <div className={styles.emailRow}><input id={codeId} aria-label="인증 코드" aria-describedby={hintId} value={code} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "").slice(0, 6)); setVerificationError(""); }} placeholder="6자리 숫자를 입력해 주세요" inputMode="numeric" autoComplete="one-time-code" maxLength={6} /><button type="button" className={styles.codeButton} disabled={code.length !== 6 || verificationBusy || remaining === 0} onClick={() => void verifyCode()}>확인</button></div>
@@ -166,23 +154,20 @@ export function AuthScreen({
           </fieldset>
         </form>
         <p className={styles.switch}>{signUp ? "이미 함께하고 있나요?" : "아직 계정이 없나요?"}<Link href={signUp ? `/sign-in?returnTo=${encodeURIComponent(destination)}${previewQuery}` : `/sign-up?returnTo=${encodeURIComponent(destination)}${previewQuery}`}>{signUp ? "로그인" : "회원가입"}</Link></p>
-        <div className={styles.separator}><span>먼저 만나보고 싶다면</span></div>
-        <button className={styles.demo} type="button" disabled={busy} onClick={demo}><Icon name="book" size={17} />가입 없이 데모 둘러보기<Icon name="chevron" size={15} /></button>
-        {!preview && <Link className={styles.previewEntry} href="/sign-in?preview=1">처음 시작하는 화면 체험하기 <span aria-hidden="true">↗</span></Link>}
-        <details className={styles.preview}>
-          <summary>소셜 로그인 화면 체험</summary>
-          <p>실제 소셜 계정에 연결하지 않는 데모예요.</p>
-          <div className={styles.socialButtons}>
-            {([ ["google", "Google"], ["kakao", "카카오"] ] as const).map(([key, label]) => <button key={key} type="button" disabled={busy} onClick={async () => {
-              setBusy(true); setError("");
-              try { await app.authenticate(await app.dependencies.auth.signInDemoProvider(key)); router.push(destination); }
-              catch (cause) { setError(cause instanceof Error ? cause.message : "로그인하지 못했어요."); }
-              finally { setBusy(false); }
-            }}>{label} 데모</button>)}
-          </div>
-        </details>
+        <div className={styles.separator}><span>간편하게 시작하기</span></div>
+        <div className={styles.socialButtons}>
+          {([["kakao", "카카오"], ["google", "Google"]] as const).map(([key, label]) => <button key={key} className={key === "kakao" ? styles.kakao : styles.google} type="button" disabled={busy} onClick={async () => {
+            setBusy(true); setError("");
+            try { await app.authenticate(await app.dependencies.auth.signInDemoProvider(key)); router.push(destination); }
+            catch (cause) { setError(cause instanceof Error ? cause.message : "로그인하지 못했어요."); }
+            finally { setBusy(false); }
+          }}>
+            {key === "kakao" ? <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.85 5.33 4.64 6.74l-.9 3.3a.35.35 0 0 0 .54.38l3.85-2.55c.61.09 1.24.13 1.87.13 5.52 0 10-3.58 10-8S17.52 3 12 3Z" /></svg> : <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.89-1.74 2.98-4.3 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.96-3.38.96-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92a6 6 0 0 1 0-3.84V7.49H3.07a10 10 0 0 0 0 9.02l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.96c1.47 0 2.79.51 3.82 1.51l2.87-2.87A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59A5.99 5.99 0 0 1 12 5.96Z"/></svg>}
+            <span>{label}로 계속하기</span>
+          </button>)}
+        </div>
+        <p className={styles.socialNote}>소셜 로그인은 현재 데모로 동작해요.</p>
       </section>
-      <footer className={styles.footer}><Icon name="leaf" size={15} /><span>오늘의 마음을, 오래도록.</span></footer>
     </main>
   );
 }

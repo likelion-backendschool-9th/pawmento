@@ -21,18 +21,10 @@
 .switch a { color:var(--brand-primary); font-weight:600; text-underline-offset:3px; }
 .separator { display:flex; align-items:center; gap:10px; margin:24px 0 14px; font-size:14px; color:var(--text-muted); }
 .separator::before,.separator::after { content:""; flex:1; height:1px; background:var(--mode-border); }
-.demo { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:48px; border:1px solid var(--mode-border); border-radius:14px; background:var(--mode-subtle); color:var(--brand-primary); font:500 14px/1.5 var(--font-sans); cursor:pointer; }
-.preview { margin-top:18px; color:var(--text-muted); font-size:14px; text-align:center; }
-.preview summary { cursor:pointer; min-height:36px; padding:10px; }
-.preview p { font-size:14px; line-height:1.6; }
-.socialButtons { display:flex; gap:8px; }
-.socialButtons button { flex:1; min-height:44px; border:1px solid var(--mode-border); border-radius:12px; background:var(--surface-card); color:var(--text-primary); font:inherit; cursor:pointer; }
 .error { margin:0; padding:12px; border-radius:12px; background:var(--color-apricot-100); color:var(--text-danger); font-size:14px; line-height:1.7; }
-.footer { display:flex; align-items:center; justify-content:center; gap:7px; margin-top:auto; padding-top:28px; color:var(--text-secondary); font-size:14px; }
 .auth button:focus-visible,.auth a:focus-visible,.auth input:focus-visible,.auth summary:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
 @media(max-width:359px) { .auth { padding-inline:16px; } .formContent { padding:8px 0 0; } .heading h1 { font-size:25px; } .brand { margin-block:0 22px; } }
 .previewNotice { padding:10px 12px; margin:0 0 20px; border-radius:12px; background:var(--mode-subtle); color:var(--text-secondary); font-size:14px; line-height:1.7; }
-.previewEntry { display:block; text-align:center; padding:15px 8px 0; font-size:14px; color:var(--brand-primary); text-underline-offset:3px; }
 .passwordField { display:grid; gap:8px; }
 .emailField { display:grid; gap:8px; }
 .emailRow { display:flex; align-items:stretch; gap:7px; }
@@ -46,3 +38,11 @@
 .emailSuccess { display:flex; align-items:center; gap:6px; margin:2px 0 0; color:var(--brand-primary); font-size:14px; }
 .emailError { margin:2px 0 0; color:var(--text-danger); font-size:14px; line-height:1.6; }
 @media(max-width:359px) { .emailRow { flex-wrap:wrap; } .emailRow input { flex-basis:100%; } .emailRow .codeButton { width:100%; } }
+
+.socialButtons { display:grid; gap:12px; }
+.socialButtons button { position:relative; display:flex; align-items:center; justify-content:center; gap:12px; width:100%; min-height:54px; padding:14px 44px; border:1px solid var(--mode-border); border-radius:999px; font:500 16px/1.5 var(--font-sans); cursor:pointer; }
+.socialButtons svg { position:absolute; left:20px; width:22px; height:22px; }
+.socialButtons .kakao { background:#fee500; border-color:#fee500; color:#191919; }
+.socialButtons .google { background:#fff; border-color:#dadce0; color:#3c4043; }
+.socialButtons button:disabled { opacity:.6; cursor:wait; }
+.socialNote { margin:12px 0 0; text-align:center; font-size:13px; line-height:1.7; color:var(--text-muted); }
