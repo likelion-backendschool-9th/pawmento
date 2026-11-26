@@ -92,11 +92,13 @@ export function PlacesScreen() {
     setSelectedId(place.id);
     setFocus({ point: { latitude: place.latitude, longitude: place.longitude }, token: Date.now() });
   }
-  // 지도의 마커·빈 곳을 눌러 선택이 바뀌면, 검색으로 고른 장소가 아닌 한 검색어를 지운다
+  // 지도의 마커·빈 곳을 눌러 선택이 바뀌면, 검색으로 고른 장소가 아닌 한 검색어를 지운다.
+  // 아직 실행되지 않은 이동 요청(지도 SDK가 늦게 뜬 경우)도 함께 지워, 풀어 버린 장소로 지도가 가지 않게 한다
   function selectOnMap(id: string | null) {
     if (searchSelectionAfterTap(id, pinned?.id ?? null) === "clear") {
       setPinned(null);
       setSearchText("");
+      setFocus(null);
     }
     setSelectedId(id);
   }
@@ -104,6 +106,7 @@ export function PlacesScreen() {
   function clearSearch() {
     setPinned(null);
     setSearchText("");
+    setFocus(null);
     setSelectedId(null);
     setTimeout(() => searchBar.current?.focus(), 0);
   }
