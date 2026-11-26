@@ -34,7 +34,12 @@ export function WelcomeOnboarding({ onComplete }: { onComplete: () => void }) {
       </div>
     </section>
     <footer className={s.footer}>
-      <div className={s.indicators} role="group" aria-label="소개 페이지 선택">{ONBOARDING_SLIDES.map((slide, page) => <button key={slide.id} type="button" aria-label={`소개 ${page + 1}페이지: ${slide.title.replace(/\n/g, " ")}`} aria-current={page === index ? "step" : undefined} onClick={() => select(page)}><AnimalFootprint /></button>)}</div>
+      <div className={s.indicators} role="group" aria-label="소개 페이지 선택">
+        <svg className={s.stepTrail} viewBox="0 0 280 76" preserveAspectRatio="none" aria-hidden="true"><path d="M28 48C48 48 57 24 84 24S116 46 140 46s31-27 56-27 33 16 56 12" /></svg>
+        {ONBOARDING_SLIDES.map((slide, page) => <button key={slide.id} type="button" data-reached={page <= index} aria-label={`소개 ${page + 1}페이지: ${slide.title.replace(/\n/g, " ")}`} aria-current={page === index ? "step" : undefined} onClick={() => select(page)}>
+          <span className={s.footprint} key={`${slide.id}-${page === index ? "current" : "rest"}`}><AnimalFootprint /></span>
+        </button>)}
+      </div>
       <button className={s.next} type="button" disabled={leaving} onClick={() => last ? finish() : select(index + 1)}>{leaving ? "이동하고 있어요…" : last ? "로그인하고 시작하기" : "다음"}<Icon name="arrow" size={19} /></button>
     </footer>
   </main>;
