@@ -152,10 +152,12 @@ test("#52-S6 반려동물이 있으면 친구 수는 GET /pets 목록 길이다"
   );
   const pets = createPetApi(createApiClient({ fetch: fetchImpl }));
   const list = await pets.listMine();
-  assert.equal(list.length, 2);
-  assert.equal(list[0]?.name, "콩이");
-  assert.equal(list[1]?.name, "보리");
-  assert.match(calls[0]!.url, /\/api\/v1\/pets$/);
+  // 서버의 숫자 id는 문자열로 바꾼 아이 요약이 된다
+  assert.deepEqual(list, [
+    { id: "1", name: "콩이" },
+    { id: "2", name: "보리" },
+  ]);
+  assert.equal(calls[0]!.url, "/api/v1/pets");
   assert.equal(calls[0]!.method, "GET");
 });
 

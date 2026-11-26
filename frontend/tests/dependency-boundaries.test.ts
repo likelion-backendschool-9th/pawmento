@@ -3,8 +3,6 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { resolve, relative } from "node:path";
 import ts from "typescript";
-import type { ApiClient } from "../lib/http/apiClient.ts";
-import { createPetApi } from "../features/pet/api/petApi.ts";
 import { ApplicationError } from "../lib/application/ApplicationError.ts";
 
 function files(folder: string): string[] {
@@ -243,32 +241,6 @@ test("#182 기능 폴더에 domain·application·adapters 계층 폴더가 다�
     if (feature.isDirectory()) walk(resolve("features", feature.name));
   }
   assert.deepEqual(found, []);
-});
-
-test("#52-S6 반려동물 목록 API는 조회 결과를 아이 요약으로 돌려준다", async () => {
-  const http: ApiClient = {
-    async get<T>(path: string) {
-      assert.equal(path, "/pets");
-      return [{ petId: 1, name: "콩이" }] as T;
-    },
-    post: async () => {
-      throw Error("unused");
-    },
-    patch: async () => {
-      throw Error("unused");
-    },
-    put: async () => {
-      throw Error("unused");
-    },
-    delete: async () => {
-      throw Error("unused");
-    },
-    postEmpty: async () => {
-      throw Error("unused");
-    },
-  };
-  const pets = createPetApi(http);
-  assert.deepEqual(await pets.listMine(), [{ id: "1", name: "콩이" }]);
 });
 
 test("#52-S4 UI 오류는 HTTP 상태 없이 애플리케이션 코드로 처리할 수 있다", () => {
