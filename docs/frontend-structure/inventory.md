@@ -21,7 +21,7 @@ URL은 그대로 둔다. 라우트 파일은 `src/app` → `app`으로 옮기기
 | `pets/[petId]/diary/**`, `records/**`, `calendar`, `timeline` | `workspace/.../JournalScreens`, `ArchiveScreen` | 브라우저 |
 | `pets/[petId]/questions/**` | `workspace/.../JournalScreens`, `useCurrentQuestion`, `life/.../QuestionHistory` | 브라우저 + `demoQuestions` |
 | `pets/[petId]/media` | `life/.../MediaScreen` | 브라우저 |
-| `pets/[petId]/map`, `map/walk`, `map/walks/**` | `map/.../MapScreen`, `WalkScreen`, `WalkHistory` | 서버(정수 id) / 데모 샘플 |
+| `pets/[petId]/map`, `map/walk`, `map/walks/**` | `map/.../MapScreen`(산책가기·산책기록·기억핀 탭, `map/walk`는 산책가기 탭), `WalkWidget`, `WalkHistory` | 서버(정수 id) / 데모 샘플 |
 | `pets/[petId]/garden/**`(우체통·엽서) | `life/.../MailboxScreen`, `PostcardPaper` | 브라우저 + `DemoPostcardGenerator` |
 | `pets/[petId]/family`, `family/invite/[inviteId]` | `life/.../FamilyScreen` | 브라우저 |
 | `/community/**` | `life/.../CommunityScreen` | 브라우저 |
