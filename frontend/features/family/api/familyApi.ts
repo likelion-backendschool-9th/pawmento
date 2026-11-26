@@ -12,11 +12,16 @@ type PersonDto = { memberId: number | string; nickname: string | null; tag: stri
 type FamilyDto = { owner: PersonDto; members: (PersonDto & { joinedAt: string })[] };
 type PetDto = { petId: number | string; name: string; tag: string };
 
-// 서버의 Long id를 화면용 문자열로 바꾼다.
-// 2^53 이상인 숫자는 JSON을 읽는 순간 다른 값으로 바뀌었을 수 있어 쓰지 않는다(null)
+// 지금 서버는 Long id를 JSON 숫자로 준다. 2^53 이상은 읽는 순간 다른 값이 될 수 있어,
+// 숫자로 왔든 그 숫자를 문자열로 바꿔 URL에 실었든 믿지 않는다.
+// 서버가 id를 문자열로 내려 주도록 바뀌면 이 범위 검사를 푼다
+function isSafeId(value: string) {
+  return /^[1-9]\d*$/.test(value) && Number.isSafeInteger(Number(value));
+}
+
 function toId(value: number | string): string | null {
-  if (typeof value === "string") return /^[1-9]\d*$/.test(value) ? value : null;
-  return Number.isSafeInteger(value) && value > 0 ? String(value) : null;
+  const text = String(value);
+  return isSafeId(text) ? text : null;
 }
 
 const toPerson = (dto: PersonDto): FamilyPerson => ({
@@ -26,7 +31,7 @@ const toPerson = (dto: PersonDto): FamilyPerson => ({
 });
 
 function requirePetId(petId: string) {
-  if (!/^[1-9]\d*$/.test(petId)) {
+  if (!isSafeId(petId)) {
     throw new ApplicationError("NOT_FOUND", "반려동물을 찾을 수 없어요.");
   }
 }
@@ -66,7 +71,7 @@ export function createFamilyApi(http: ApiClient) {
 
     async removeMember(petId: string, memberId: string): Promise<void> {
       requirePetId(petId);
-      if (!/^[1-9]\d*$/.test(memberId)) {
+      if (!isSafeId(memberId)) {
         throw new ApplicationError("NOT_FOUND", "가족을 찾을 수 없어요.");
       }
       await http.delete(`/families/members/${memberId}?petId=${petId}`);
