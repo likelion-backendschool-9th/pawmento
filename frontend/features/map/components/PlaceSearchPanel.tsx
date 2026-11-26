@@ -235,7 +235,10 @@ export function PlaceSearchPanel({
                     <button
                       type="button"
                       className={styles.result}
+                      // 새 결과가 오기 전의 이전 결과는 누를 수 없다(#195-S11)
+                      disabled={state.status === "loading"}
                       onClick={() => {
+                        if (state.status === "loading") return;
                         // 결과를 누른 검색어를 최근 검색어에 남기고 고른 장소를 알린다(#195-S11, S14)
                         recent.add(state.text);
                         onSelect(place, state.text.trim());

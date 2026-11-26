@@ -255,7 +255,10 @@
   text-align: left;
   cursor: pointer;
 }
-.result:active {
+.result:disabled {
+  cursor: default;
+}
+.result:active:not(:disabled) {
   background: var(--surface-subtle);
 }
 .result:focus-visible {

@@ -30,7 +30,7 @@ export function StaticPlaceCanvas({
   focus,
 }: PlaceCanvasProps) {
   // 보이는 중심. 이동 요청(검색 결과를 눌렀을 때, #195-S11)이 오면 그 지점으로 바꾼다. 렌더링 중에 바꿔야 그린 뒤의 효과들이 새 영역을 쓴다
-  const [view, setView] = useState(center);
+  const [view, setView] = useState(focus?.point ?? center);
   const [seenToken, setSeenToken] = useState<number | null>(focus?.token ?? null);
   if (focus && focus.token !== seenToken) {
     setSeenToken(focus.token);
