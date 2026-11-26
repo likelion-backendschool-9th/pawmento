@@ -19,6 +19,8 @@ import { formatDate } from "@/lib/date";
 import type { JournalItem } from "../types/JournalItem";
 import type { Pet } from "../../pet/types/Pet";
 import styles from "../../shell/components/Workspace.module.css";
+import { MemoryDateField } from "./MemoryDateField";
+import editorStyles from "./JournalEditor.module.css";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { useUnsavedChanges } from "../../shell/hooks/useUnsavedChanges";
 import { messageOf } from "../../shell/utils/presentation";
@@ -154,7 +156,7 @@ export function JournalForm({
       />
       <form
         onSubmit={save}
-        className={`${styles.editor} ${styles.diaryEditor}`}
+        className={`${styles.editor} ${styles.diaryEditor} ${editorStyles.form}`}
       >
         {questionAnswer && (
           <header className={styles.editorQuestion}>
@@ -173,11 +175,13 @@ export function JournalForm({
           </span>
 
           {!questionAnswer && (
+            <div className={editorStyles.titleField}>
             <label htmlFor="diary-title">
-              제목 <span aria-hidden="true">*</span>
+              제목
               <input
                 id="diary-title"
                 required
+                aria-describedby="diary-title-count"
                 maxLength={200}
                 value={title}
                 placeholder="오늘의 기억에 이름을 붙여 주세요"
@@ -186,29 +190,19 @@ export function JournalForm({
                   setTitle(event.target.value);
                 }}
               />
-              <small>{[...title].length} / 100자 · 필수 입력</small>
             </label>
+            <small id="diary-title-count">{[...title].length} / 100자</small>
+            </div>
           )}
-          <label>
-            {questionAnswer ? "답변 등록일" : "기억하고 싶은 날짜"}
-            <input
-              type="date"
-              required
-              value={date}
-              onChange={(event) => {
-                setSaved(false);
-                setDate(event.target.value);
-              }}
-              readOnly={questionAnswer}
-              max="9999-12-31"
-            />
-            {questionAnswer && (
-              <small>
-                답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은
-                유지돼요.
-              </small>
-            )}
-          </label>
+          {questionAnswer ? (
+            <label>
+              답변 등록일
+              <input type="date" required value={date} readOnly max="9999-12-31" />
+              <small>답변을 저장한 시각을 등록일로 기록해요. 수정해도 최초 등록일은 유지돼요.</small>
+            </label>
+          ) : (
+            <MemoryDateField value={date} mode={pet.mode} onChange={(next) => { setSaved(false); setDate(next); }} />
+          )}
           {!questionAnswer && (
             <LocationField
               mode={pet.mode}

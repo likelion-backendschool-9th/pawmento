@@ -1,299 +1,49 @@
-/* 색·그림자·글꼴은 shared/ui/tokens.css의 토큰만 쓴다. 지도 바탕 색은 팔레트에서 파생한 값이다. */
-
-/* ---- 기록 쓰기 화면의 "장소" 항목 ---- */
-.field {
-  display: grid;
-  gap: 10px;
-  margin: 18px 0 4px;
-}
-.fieldLabel {
-  font-size: 12px;
-  color: var(--mode-muted, #6f7d62);
-}
-.attach {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 48px;
-  padding: 0 14px;
-  border: 1px dashed var(--border-default);
-  border-radius: 10px;
-  background: var(--surface-card);
-  color: var(--brand-primary);
-  font-size: 14px;
-  cursor: pointer;
-}
-.attach:hover {
-  background: var(--surface-subtle);
-}
-.picked {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid var(--border-default);
-  border-radius: 10px;
-  background: var(--surface-card);
-}
-.pickedIcon {
-  display: grid;
-  flex: none;
-  width: 36px;
-  height: 36px;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--surface-subtle);
-  color: var(--brand-primary);
-}
-.pickedText {
-  display: grid;
-  min-width: 0;
-  flex: 1;
-}
-.pickedText strong {
-  overflow: hidden;
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.pickedText small {
-  color: var(--text-muted);
-  font-size: 11.5px;
-  font-variant-numeric: tabular-nums;
-}
-.fieldNote {
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-/* ---- 위치 고르기 화면 ---- */
-/* 브라우저의 모달 dialog다. 열려 있는 동안 Tab 이동이 안에서만 돌고 뒤 화면은 조작되지 않는다. */
-.dialog {
-  --map-land: #f4f3ea;
-  --map-park: #dfe8cb;
-  --map-water: #d7e6df;
-  --map-road: #fffdf7;
-  width: 100%;
-  max-width: 480px;
-  height: 100vh;
-  height: 100dvh;
-  max-height: none;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  background: var(--surface-page);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-}
-.dialog[data-mode="GARDEN"] {
-  --map-land: #f6f2ec;
-  --map-park: #e6e1ee;
-  --map-water: #dde3ec;
-  --map-road: #fffcf8;
-}
-.dialog::backdrop {
-  background: rgb(57 69 47 / 0.38);
-}
-.panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-}
-.bar {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: var(--space-wash);
-}
-.bar h2 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-}
-.roundButton {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border: 1px solid var(--mode-border);
-  border-radius: 50%;
-  background: var(--mode-card);
-  color: var(--mode-muted);
-  cursor: pointer;
-}
-/* chevron 아이콘은 오른쪽을 가리키므로 뒤로 가기는 뒤집는다 */
-.roundButton:first-child svg {
-  transform: rotate(180deg);
-}
-
-/* 지도와 입력 카드를 함께 담는 스크롤 영역. 화면이 낮거나 키보드가 올라와 높이가 모자라면 여기서 스크롤해
-   아래의 "이 위치로 붙이기"·"위치 없이 저장하기"에 닿을 수 있다. 높이가 넉넉하면 지도가 남는 높이를 채운다. */
-.body {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-.mapArea {
-  position: relative;
-  flex: 1 0 auto;
-  min-height: clamp(160px, 34vh, 460px);
-  min-height: clamp(160px, 34dvh, 460px);
-  overflow: hidden;
-  background: var(--map-land);
-}
-.canvas {
-  position: absolute;
-  inset: 0;
-  /* 네이버 지도가 칸의 배치 방식을 바꿔도 높이가 0이 되지 않게 크기를 직접 정한다 */
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-}
-.staticMap {
-  overflow: hidden;
-  cursor: grab;
-  background: var(--map-land);
-}
-.staticMap:active {
-  cursor: grabbing;
-}
-.layer {
-  position: absolute;
-  inset: -50%;
-}
-.hint {
-  position: absolute;
-  top: 14px;
-  left: 50%;
-  z-index: 3;
-  margin: 0;
-  padding: 8px 16px;
-  transform: translateX(-50%);
-  border: 1px solid var(--mode-border);
-  border-radius: 999px;
-  background: var(--mode-card);
-  box-shadow: var(--shadow-card);
-  font-size: 13px;
-  white-space: nowrap;
-  backdrop-filter: blur(10px);
-  pointer-events: none;
-}
-/* 지도 가운데에 고정. 핀 끝(아래 가운데)이 고른 좌표다 */
-.centerPin {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: 3;
-  display: block;
-  transform: translate(-50%, -100%);
-  pointer-events: none;
-}
-.centerPin::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 76px;
-  height: 76px;
-  transform: translate(-50%, 34%);
-  border: 1.5px solid var(--brand-primary);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--brand-primary) 8%, transparent);
-  opacity: 0.35;
-}
-.centerPin svg {
-  position: relative;
-}
-
-.sheet {
-  display: grid;
-  flex: none;
-  gap: 0;
-  padding: 14px 20px calc(22px + env(safe-area-inset-bottom, 0px));
-  border: 1px solid var(--mode-border);
-  border-bottom: 0;
-  border-radius: 26px 26px 0 0;
-  background: var(--surface-card);
-  box-shadow: 0 -6px 34px rgb(101 83 51 / 0.12);
-}
-.eyebrow {
-  margin: 0 0 4px;
-  font-family: Georgia, serif;
-  font-size: 10.5px;
-  letter-spacing: 0.26em;
-  color: var(--text-secondary);
-}
-.sheet h3 {
-  margin: 0 0 14px;
-  font-size: 18px;
-  font-weight: 600;
-}
-.sheet label {
-  margin: 0 0 6px;
-  color: var(--text-secondary);
-  font-size: 12.5px;
-}
-.sheet input {
-  width: 100%;
-  height: 46px;
-  padding: 0 14px;
-  border: 1px solid var(--border-default);
-  border-radius: 8px;
-  background: var(--surface-elevated, #fffefa);
-  font-size: 15px;
-}
-.helper {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 8px 0 0;
-  color: var(--text-muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-.helper svg {
-  flex: none;
-  margin-top: 2px;
-}
-.sheet :global(.button) {
-  width: 100%;
-  min-height: 46px;
-  margin-top: 16px;
-}
-.skip {
-  margin-top: 6px;
-  padding: 10px 0 0;
-  border: 0;
-  background: none;
-  color: var(--text-secondary);
-  font-size: 13.5px;
-  cursor: pointer;
-}
-
-/* 화면이 낮으면 지도가 작아져 안내 문구가 가운데 핀을 가리므로 숨긴다 */
-@media (max-height: 560px) {
-  .hint {
-    display: none;
-  }
-}
-
-@container app (min-width: 768px) {
-  .dialog {
-    width: min(560px, 100%);
-    height: min(88vh, 760px);
-    height: min(88dvh, 760px);
-    margin: auto;
-    border-radius: 24px;
-    box-shadow: 0 24px 60px rgb(57 69 47 / 0.28);
-  }
-}
+.field { display:grid; gap:10px; margin:20px 0; }
+.fieldLabel { color:var(--text-secondary); font-size:13px; }
+.attach { display:flex; align-items:center; gap:9px; width:100%; min-height:52px; padding:12px 14px; border:1px solid var(--mode-border); border-radius:15px; background:var(--mode-subtle); color:var(--brand-primary); font:inherit; font-size:14px; cursor:pointer; }
+.picked { display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:12px; border:1px solid var(--mode-border); border-radius:16px; background:var(--surface-card); }
+.pickedIcon { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:50%; background:var(--mode-subtle); color:var(--brand-primary); }
+.pickedText { display:grid; flex:1; min-width:100px; }
+.pickedText strong { font-size:14px; font-weight:600; overflow-wrap:anywhere; }
+.pickedText small,.fieldNote { font-size:11px; color:var(--text-muted); line-height:1.6; }
+.picked button { min-height:44px; }
+.dialog { --map-land:#f4f3ea; --map-park:#dfe8cb; --map-water:#d7e6df; --map-road:#fffdf7; box-sizing:border-box; position:fixed; inset:0; width:100%; max-width:480px; height:100dvh; max-height:100dvh; margin:auto; padding:0; overflow:hidden; border:0; background:var(--surface-page); color:var(--text-primary); font-family:var(--font-sans); }
+.dialog[data-mode="GARDEN"] { --map-land:#f6f2ec; --map-park:#e6e1ee; --map-water:#dde3ec; --map-road:#fffcf8; }
+.dialog::backdrop { background:#25332277; backdrop-filter:blur(5px); }
+.panel { display:flex; flex-direction:column; height:100%; min-height:0; }
+.bar { display:flex; flex:none; align-items:center; justify-content:space-between; gap:12px; padding:calc(12px + env(safe-area-inset-top)) 18px 12px; border-bottom:1px solid var(--mode-border); background:var(--surface-card); }
+.bar h2 { margin:0; font-size:20px; font-weight:600; letter-spacing:-.6px; }
+.roundButton { display:grid; place-items:center; width:44px; height:44px; flex:none; padding:0; border:1px solid var(--mode-border); border-radius:50%; background:var(--mode-subtle); color:var(--brand-primary); cursor:pointer; }
+.body { flex:1; min-height:0; overflow-y:auto; padding:16px 16px calc(20px + env(safe-area-inset-bottom)); overscroll-behavior:contain; }
+.intro { margin:0 0 12px; color:var(--text-secondary); font-size:13px; line-height:1.7; }
+.mapArea { position:relative; width:100%; aspect-ratio:1.2; overflow:hidden; border:5px solid var(--surface-card); outline:1px solid var(--mode-border); border-radius:24px; background:var(--map-land); }
+.canvas { position:absolute; inset:0; width:100%; height:100%; touch-action:none; }
+.staticMap { overflow:hidden; cursor:grab; background:var(--map-land); }
+.staticMap:active { cursor:grabbing; }
+.layer { position:absolute; inset:-50%; }
+.hint { position:absolute; z-index:3; top:10px; left:50%; transform:translateX(-50%); width:max-content; max-width:calc(100% - 16px); margin:0; padding:7px 12px; border:1px solid var(--mode-border); border-radius:999px; background:var(--surface-card); color:var(--text-secondary); font-size:11px; text-align:center; pointer-events:none; }
+.centerPin { position:absolute; left:50%; top:50%; z-index:3; display:block; transform:translate(-50%,-100%); pointer-events:none; }
+.centerPin::before { content:""; position:absolute; left:50%; bottom:0; width:28px; height:10px; transform:translate(-50%,50%); border-radius:50%; background:var(--brand-primary); opacity:.18; }
+.centerPin svg { position:relative; width:38px; height:56px; }
+.sheet { display:grid; margin-top:16px; padding:18px 16px; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); }
+.sheet label { margin:0 0 9px; font-size:13px; color:var(--text-secondary); }
+.sheet input { min-height:48px; width:100%; border-radius:13px; padding:11px 12px; font:inherit; font-size:16px; }
+.search { display:block; }
+.searchRow { display:flex; gap:7px; }
+.searchRow input { flex:1; min-width:0; }
+.searchRow button { display:grid; place-items:center; width:48px; flex:none; border:0; border-radius:13px; background:var(--mode-subtle); color:var(--brand-primary); cursor:pointer; }
+.searchRow button:disabled { opacity:.5; cursor:default; }
+.results { list-style:none; padding:0; margin:12px 0 0; display:grid; gap:7px; }
+.results button { display:flex; align-items:center; gap:10px; width:100%; padding:12px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-primary); font:inherit; text-align:left; cursor:pointer; }
+.results button > svg { color:var(--brand-primary); flex:none; }
+.results button span { display:grid; gap:4px; min-width:0; }
+.results strong { font-size:14px; font-weight:600; }
+.results small,.empty { font-size:12px; color:var(--text-secondary); line-height:1.6; overflow-wrap:anywhere; }
+.coordinates { display:flex; flex-wrap:wrap; align-items:center; gap:7px; padding:14px 0; margin:14px 0; border-block:1px solid var(--mode-border); font-size:12px; color:var(--brand-primary); }
+.coordinates small { color:var(--text-muted); font-variant-numeric:tabular-nums; }
+.helper { display:flex; align-items:flex-start; gap:6px; margin:8px 0 0; color:var(--text-muted); font-size:11px; line-height:1.6; }
+.helper svg { flex:none; margin-top:2px; }
+.sheet :global(.button) { width:100%; min-height:48px; margin-top:18px; border-radius:14px; }
+.skip { min-height:44px; margin-top:8px; padding:9px 0; border:0; background:none; color:var(--text-secondary); font:inherit; font-size:13px; cursor:pointer; }
+.dialog button:focus-visible,.dialog input:focus-visible,.attach:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+@media(min-width:600px) { .dialog { height:calc(100dvh - 48px); max-height:900px; border:1px solid var(--mode-border); border-radius:28px; } }

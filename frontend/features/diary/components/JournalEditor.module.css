@@ -1,0 +1,10 @@
+.form { padding:20px 18px; border-radius:24px; }
+.form > section > label { margin:20px 0 9px; gap:9px; font-size:13px; }
+.form > section > label:first-of-type { margin-top:16px; }
+.form > section > label input { border-radius:14px; min-height:52px; font-size:16px; }
+.form > section > label small { align-self:flex-end; font-size:11px; }
+.form > section > textarea { border-radius:16px; padding:14px; font-size:16px; line-height:1.8; }
+.titleField { display:grid; gap:7px; margin:16px 0 0; }
+.titleField label { font-size:13px; gap:9px; }
+.titleField input { min-height:52px; border-radius:14px; font-size:16px; }
+.titleField small { justify-self:end; font-size:11px; color:var(--text-muted); }
