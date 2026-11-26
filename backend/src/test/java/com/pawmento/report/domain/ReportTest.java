@@ -67,7 +67,7 @@ class ReportTest {
 	@Test
 	@DisplayName("#112-S9 기타의 설명이 없거나 공백·줄바꿈·BOM만 있으면 거절한다")
 	void rejectsBlankOtherDetail() {
-		for (String detail : new String[] {null, "", "   ", "\n\t", "﻿", " 　"}) {
+		for (String detail : new String[] {null, "", "   ", "\n\t", "\uFEFF", " \u3000"}) {
 			assertThatThrownBy(() -> receive("OTHER", detail))
 				.as("설명 %s", detail == null ? "null" : detail.codePoints().boxed().toList())
 				.isInstanceOf(InvalidReportException.class);
