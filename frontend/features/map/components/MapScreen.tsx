@@ -20,7 +20,7 @@ import { WalkWidget } from "./WalkWidget";
 import { NaverWalkCanvas } from "./NaverWalkCanvas";
 import { StaticWalkCanvas } from "./StaticWalkCanvas";
 import { isServerPetId } from "../utils/walk";
-import { seoulDate } from "../utils/walkRecord";
+import { seoulDate, walkHistoryPath } from "../utils/walkRecord";
 import { WalkHistory } from "./WalkHistory";
 import styles from "./MapScreen.module.css";
 
@@ -61,13 +61,10 @@ export function MapScreen({
   // 산책 세션은 탭을 바꿔도 유지하고, 각 탭의 표시 내용만 나눈다.
   const [view, setView] = useState<"outing" | "pins" | "walks">(initialView);
   const walksSwitch = useRef<HTMLButtonElement>(null);
-  // 산책기록을 처음 열 날짜. 끝난 산책에서 들어오면 시작한 날(한국 시각)이다(#73-S16).
-  const [historyDate, setHistoryDate] = useState(initialDate);
   const sheet = useRef<HTMLElement>(null);
-  const openWalks = (date: string | null, focus = false) => {
-    setHistoryDate(date);
+  const openWalks = () => {
     setView("walks");
-    if (focus) walksSwitch.current?.focus();
+    walksSwitch.current?.focus();
   };
 
   useEffect(() => {
@@ -134,7 +131,7 @@ export function MapScreen({
         <button type="button" aria-pressed={view === "outing"} onClick={() => setView("outing")}>
           <Icon name="paw" size={16} />산책가기
         </button>
-        <button ref={walksSwitch} type="button" aria-pressed={view === "walks"} onClick={() => openWalks(initialDate)}>
+        <button ref={walksSwitch} type="button" aria-pressed={view === "walks"} onClick={() => setView("walks")}>
           <Icon name="route" size={16} />산책기록
         </button>
         <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
@@ -145,10 +142,11 @@ export function MapScreen({
         <div className={styles.outing}>
           {/* 산책 시작·끝내기가 첫 화면에 보이도록 위젯을 지도보다 먼저 둔다 */}
           <WalkWidget session={session} />
+          {/* 끝난 산책은 시작한 날(한국 시각)의 산책기록으로 연다. 자정을 넘겨 끝나도 시작한 날이다(#73-S16). */}
           {session.phase === "ended" && session.walk && (
-            <button type="button" className={styles.textButton} onClick={() => openWalks(seoulDate(session.walk!.startedAt), true)}>
+            <Link className={styles.textButton} href={walkHistoryPath(pet.id, seoulDate(session.walk.startedAt))}>
               산책기록 보기 →
-            </button>
+            </Link>
           )}
           <div className={styles.stage} data-mode={pet.mode}>
             {clientId && !naverFailed ? (
@@ -158,7 +156,7 @@ export function MapScreen({
           {!isServerPetId(pet.id) && <p className={styles.note}>데모 산책은 이 브라우저에서만 연습으로 기록돼요.</p>}
         </div>
       ) : view === "walks" ? (
-        <WalkHistory pet={pet} initialDate={historyDate} />
+        <WalkHistory pet={pet} initialDate={initialDate} />
       ) : (
       <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
@@ -226,7 +224,7 @@ export function MapScreen({
             <button
               type="button"
               className={styles.textButton}
-              onClick={() => openWalks(initialDate, true)}
+              onClick={openWalks}
             >
               산책기록 보기
             </button>
