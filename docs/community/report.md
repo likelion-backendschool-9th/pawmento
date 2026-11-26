@@ -5,7 +5,7 @@
 ## 한눈에
 - 끝나면: 로그인한 회원이 `POST /api/v1/posts/{postId}/reports`로 남의 글을 신고하고, 신고 당시 글 내용이 함께 저장된다. 관리자 목록이 연결할 `FindReportPagePort`의 실제 DB 구현이 생긴다.
 - 결정 필요: 없음
-- 규모: 4단계, 시나리오 12개
+- 규모: 4단계, 시나리오 13개
 
 ## 1. 신고 접수 (#112-R1)
 로그인한 회원이 다른 회원의 공개 글을 신고 유형을 골라 신고하면(`OTHER`는 설명을 함께 적는다) PENDING 신고가 저장되고, 같은 시점의 글 제목·본문·카테고리·버전이 함께 저장된다.
@@ -20,6 +20,13 @@
 - Given S1의 신고가 저장됐다
 - When  B가 글 7을 제목 `수정한 글`로 고친다(version 3)
 - Then  신고의 snapshot 제목은 `산책 후기`, postVersion은 2로 그대로다
+
+#112-S13 경계: 글을 읽은 뒤 수정·삭제가 먼저 커밋 [테스트]
+- Given 회원 B가 쓴 글 7(제목 `산책 후기`, 카테고리 `LIFE`, version 2)이 있다
+- When  A의 접수 트랜잭션이 글 7을 읽은 뒤 멈추고, 그사이 별도 트랜잭션에서 B가 글 7을 제목 `수정한 글`로 고쳐 커밋한 다음 접수가 이어진다(실제 PostgreSQL, latch로 순서 제어)
+- Then  201이고 신고의 snapshot 제목·본문·카테고리·postVersion은 처음 읽은 `산책 후기`·원래 본문·`LIFE`·2다
+- When  같은 순서에서 B가 수정 대신 글 7을 지워 커밋한다
+- Then  201이고 snapshot은 처음 읽은 값이며, `find(PENDING, 20, null)`에서 그 신고의 `postState`는 `DELETED`다
 
 ## 2. 중복 신고 (#112-R2)
 같은 회원이 같은 글을 처리 대기 중에 다시 신고하면 409다. 기각된 뒤에는 글이 그사이 수정됐을 때만 다시 접수한다. 다른 회원의 신고와는 상관없다.
@@ -116,6 +123,7 @@
 - 관리자 상세·처리·기각·게시글 숨김(#92-R2·R3). 숨김 컬럼, 목록의 `HIDDEN`, 숨긴 글의 신고 404는 #92의 처리·숨김 단계에서 더하고, 그 단계의 완료 조건으로 검증한다
 - 처리 1년 뒤 스냅샷 정리 작업, 자동 숨김, 프론트 신고 화면 연결
 - 탈퇴 회원의 신고 정리(탈퇴 뒤에도 신고와 내부 ID는 보존 정책대로 남긴다)
+- 기각 뒤 같은 버전 재신고 경합: 같은 회원의 요청이 "마지막 신고는 이전 버전 기각"을 읽고 저장하기 전에, 다른 요청이 현재 버전으로 접수되고 관리자가 그것을 기각하면 같은 버전의 신고가 두 개 남는다. #112에는 기각 API가 없어 운영에서 `DISMISSED`가 생기지 않으므로 이 경합도 생기지 않는다. #92의 처리·기각 단계에서 막고 그 단계의 회귀 시나리오로 확인한다. 방법(같은 회원·글 조합의 PostgreSQL advisory lock, 또는 `(post_id, reporter_id, snapshot_post_version)` 고유 인덱스)은 숨김·복구 규칙과 함께 그 단계에서 고른다. 고유 인덱스는 숨김 해제처럼 글 버전이 오르지 않는 복구가 생기면 재신고를 영구히 막으므로, 지금 스키마로 굳히지 않는다
 
 ## 작업 순서
 확인 명령은 모두 `backend/`에서 실행하고, 그 단계에서 바꾼 테스트만 돌린다. 전체 테스트는 PR의 CI에서 확인한다.
@@ -126,14 +134,15 @@
 2. 신고 테이블과 접수 API, 동시 접수 — S1, S2, S3, S5, S6, S7, S8, S9
    - 파일: `adapter/out/persistence/report/PostReportJpaEntity.java`·`PostReportJpaRepository.java`·`ReportPersistenceAdapter.java`(저장 직후 `flush`, `ux_post_reports_pending` 위반만 `DuplicateReportException`으로 바꾸고 cause 보존), `resources/db/community-report-schema.sql`, `adapter/out/persistence/report/ReportSchemaConfiguration.java`, `application/port/in/report/ReportPostUseCase.java`·`ReportPostCommand.java`, `application/port/out/report/SaveReportPort.java`·`LoadLatestReportPort.java`, `application/service/report/ReportPostService.java`, `application/exception/DuplicateReportException.java`, `domain/report/exception/OwnPostReportException.java`, `adapter/in/web/report/ReportPostRequest.java`·`ReportPostResponse.java`, `PostController`에 `POST /{postId}/reports`, `test/.../community/ReportScenarioTest.java`, `test/.../community/ReportConcurrentCreateTest.java`
    - 기존 `PostScenarioTest`가 `DELETE FROM posts`로 데이터를 지운다. 새 FK 때문에 막히지 않도록 그 앞에서 `post_reports`를 먼저 지운다.
+   - S13은 `ReportConcurrentCreateTest`에서 `LoadPostPort`를 `@MockitoSpyBean`으로 감싸 글을 읽은 직후 latch로 멈추게 하고, 그사이 다른 스레드가 수정·삭제를 커밋한다. 2단계에서는 201과 스냅샷을 확인하고, 목록의 `postState`는 4단계에서 같은 테스트에 더한다.
    - 확인: `./gradlew test --tests 'com.pawmento.community.ReportScenarioTest' --tests 'com.pawmento.community.ReportConcurrentCreateTest' --tests 'com.pawmento.community.PostScenarioTest'`
 3. 기각 뒤 재신고 — S4
    - 파일: `ReportPostService`(가장 최근 신고 판정), `test/.../community/ReportScenarioTest.java`
    - 확인: `./gradlew test --tests 'com.pawmento.community.ReportScenarioTest'`
-4. 운영 목록 포트 구현 — S10, S11, S12
+4. 운영 목록 포트 구현 — S10, S11, S12, S13의 목록 확인
    - 파일: `FindReportPagePort.Item`에 `snapshotExpired`, `ListReportsServiceTest`의 `Item` 생성에 `false`, 2단계의 `ReportPersistenceAdapter`가 `FindReportPagePort`도 구현하고 조회 쿼리는 `PostReportJpaRepository`에 둔다(같은 테이블이라 어댑터를 나누지 않는다, [백엔드 구조](../backend-architecture.md)). `size + 1`건 조회로 `hasMore` 판정, `posts.deleted_at`으로 `postState`, `snapshot_cleared_at`으로 `snapshotExpired`, `test/.../community/ReportPagePersistenceTest.java`
    - `ListReportsServiceTest`는 관리자 담당 파일이라 PR에서 관리자 담당(@D-Gyun103)을 리뷰어로 지정한다.
-   - 확인: `./gradlew test --tests 'com.pawmento.community.ReportPagePersistenceTest' --tests 'com.pawmento.community.application.service.report.ListReportsServiceTest'`
+   - 확인: `./gradlew test --tests 'com.pawmento.community.ReportPagePersistenceTest' --tests 'com.pawmento.community.ReportConcurrentCreateTest' --tests 'com.pawmento.community.application.service.report.ListReportsServiceTest'`
 
 ## 정한 것
 - 신고할 때는 유형만 고르고, `OTHER`만 설명을 1~200자로 적는다. 다른 유형에 설명을 보내면 400이다. 신고 당시 글 원문을 스냅샷으로 저장하므로 관리자는 설명 없이도 판단할 수 있고, 신고자가 남의 글이나 개인정보를 옮겨 적는 일이 줄어든다. 처음 초안은 "모든 유형에서 설명 선택, 최대 500자"였고, 500자는 유형 없이 사유 문장 하나만 받던 프론트 데모의 상한이었다. (#112)
@@ -141,7 +150,7 @@
 - 그 밖의 접수 규칙(중복·본인 글·대상 상태·유형 6개)과 운영 목록 필드는 [이슈 #112 본문](https://github.com/likelion-backendschool-9th/pawmento/issues/112)과 [관리자 목록 계약](../admin/report-management.md#목록에서-채택하는-계약)을 따른다. (#112)
 - 스냅샷은 접수 트랜잭션에서 글 한 행을 읽어 `snapshot_title`·`snapshot_body`·`snapshot_category_code`·`snapshot_post_version`을 함께 저장한다. 캡처 시각은 신고의 `created_at`이다. 닉네임·이메일·IP는 복제하지 않는다. ([관리자 계획 Q4](../admin/report-management.md#q4--접수-스냅샷과-운영-상세))
 - `FindReportPagePort.Item`에 `snapshotExpired`를 더하고, 그래서 컴파일이 깨지는 관리자 담당의 `ListReportsServiceTest`는 #112에서 `Item` 생성에 `false`만 채운다. `ListReportItemResult`·`ListReportsService`·웹 응답으로 옮기는 일은 관리자 목록 연결 작업에서 한다. 관리자 계획이 이 값을 #112가 제공한다고 정했고, 컬럼과 포트가 같은 작업에 있어야 연결 전에 값의 출처를 검사할 수 있기 때문이다. #112는 출력 포트(`FindReportPagePort`)까지 제공하고, 입력 포트 결과(`ListReportItemResult`)로 넘기는 경계는 관리자 쪽이 맡는다. 이 경계와 테스트 수정은 계획 PR에서 관리자 담당(@D-Gyun103)을 리뷰어로 지정해 확인받는다. (#112)
-- 글을 읽은 뒤 신고를 저장하기 전에 작성자가 글을 고치거나 지워도, 신고는 읽은 시점의 스냅샷으로 201 접수한다. 글 행을 잠그지 않는다. 신고자가 본 시점의 글은 공개 상태였고, 접수해 두어야 작성자가 바로 지운 글도 관리자가 신고 당시 내용으로 확인하고 관리할 수 있다. 지운 글의 신고가 목록에 `DELETED`로 남는 것과도 맞다. (#112)
+- 글을 읽은 뒤 신고를 저장하기 전에 작성자가 글을 고치거나 지워도, 신고는 읽은 시점의 스냅샷으로 201 접수한다. 글 행을 잠그지 않는다. 신고자가 본 시점의 글은 공개 상태였고, 접수해 두어야 작성자가 바로 지운 글도 관리자가 신고 당시 내용으로 확인하고 관리할 수 있다. 지운 글의 신고가 목록에 `DELETED`로 남는 것과도 맞다. 이 순서는 #112-S13으로 확인한다. (#112)
 - 커서 경계·`hasMore`·마지막 페이지 표현은 관리자 쪽이 정했고, 포트는 `beforeReportId` 배타 경계와 `hasMore`만 제공한다. (#92)
 
 ## 가정
