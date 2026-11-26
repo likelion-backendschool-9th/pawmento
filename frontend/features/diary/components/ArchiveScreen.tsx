@@ -7,7 +7,9 @@ import { CollectionHeading } from "@/components/CollectionHeading";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import calendarStyles from "./Calendar.module.css";
+import { calendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
 import { useEffect } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -32,51 +34,74 @@ export function Calendar({
   onSelect?: (date: string) => void;
 }) {
   const app = useApp();
+  const router = useRouter();
   const current = today();
   const [month, setMonth] = useState((selected ?? current).slice(0, 7));
-  const [year, num] = month.split("-").map(Number);
-  const first = new Date(Date.UTC(year, num - 1, 1)).getUTCDay();
-  const days = new Date(Date.UTC(year, num, 0)).getUTCDate();
+  const { year, month: num, first, days } = calendarMonth(month);
+  const gesture = useRef<{ id: number; x: number; y: number } | null>(null);
+  const dragged = useRef(false);
   const records = journalItems(app.state).filter(
     (record) => record.petId === pet.id && record.type !== "QUESTION_ANSWER",
   );
   function shift(delta: number) {
-    const next = new Date(Date.UTC(year, num - 1 + delta, 1));
-    setMonth(next.toISOString().slice(0, 7));
+    setMonth(value => shiftCalendarMonth(value, delta));
   }
   return (
     <div
-      className={`${styles.calendar} ${compact ? styles.compactCalendar : ""}`}
+      className={`${styles.calendar} ${calendarStyles.calendar} ${compact ? `${styles.compactCalendar} ${calendarStyles.compact}` : ""}`}
     >
-      <div className={styles.calendarHeader}>
-        <strong>
-          {year}년 {num}월
-        </strong>
-        <div>
-          <button
-            className="icon-button"
-            onClick={() => shift(-1)}
-            aria-label="이전 달"
-          >
-            ‹
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => setMonth(current.slice(0, 7))}
-            aria-label="이번 달로 이동"
-          >
-            오늘
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => shift(1)}
-            aria-label="다음 달"
-          >
-            ›
-          </button>
-        </div>
+      <div className={`${styles.calendarHeader} ${calendarStyles.header}`}>
+        <label className={calendarStyles.monthLabel}>
+          <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
+          <Icon name="calendar" size={16} />
+          <input className={calendarStyles.monthInput} type="month" value={month} min="0001-01" max="9999-12"
+            aria-label="보고 있는 연월 선택"
+            onClick={event => {
+              const input = event.currentTarget;
+              try { input.showPicker?.(); } catch { input.focus(); }
+            }}
+            onChange={event => { if (/^\d{4}-(0[1-9]|1[0-2])$/.test(event.target.value)) setMonth(event.target.value); }} />
+        </label>
+        <button type="button" className={calendarStyles.todayButton}
+          aria-pressed={selected === current && month === current.slice(0, 7)}
+          onClick={() => {
+            setMonth(current.slice(0, 7));
+            if (selected === current) return;
+            if (compact) router.push(`/pets/${pet.id}/calendar?date=${current}`);
+            else onSelect?.(current);
+          }} aria-label="오늘 날짜로 이동">오늘</button>
       </div>
-      <div className={styles.calendarGrid}>
+      <div className={`${styles.calendarGrid} ${calendarStyles.grid}`} tabIndex={0} role="group" aria-label="달력 날짜 · 좌우로 넘겨 월 이동"
+        onKeyDown={event => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); shift(event.key === "ArrowRight" ? 1 : -1); }
+        }}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+          dragged.current = false;
+        }}
+        onPointerMove={event => {
+          const start = gesture.current;
+          if (!start || start.id !== event.pointerId) return;
+          const dx = event.clientX - start.x, dy = event.clientY - start.y;
+          if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+            dragged.current = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+        }}
+        onPointerUp={event => {
+          const start = gesture.current;
+          gesture.current = null;
+          if (!start || start.id !== event.pointerId) return;
+          const direction = swipeMonthDirection(event.clientX - start.x, event.clientY - start.y);
+          if (direction) { dragged.current = true; shift(direction); }
+        }}
+        onPointerCancel={() => { gesture.current = null; }}
+        onClickCapture={event => {
+          if (dragged.current && event.detail > 0) { event.preventDefault(); event.stopPropagation(); dragged.current = false; }
+        }}>
+
         {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
           <span className={styles.weekday} key={day}>
             {day}
@@ -95,10 +120,10 @@ export function Calendar({
           const contents = (
             <>
               <span>{i + 1}</span>
-              {count > 0 && <i />}
+              {count > 0 && <span className={calendarStyles.mark} aria-hidden="true"><Icon name="paw" size={22} /></span>}
             </>
           );
-          const cls = `${styles.calendarDay} ${date === current ? styles.today : ""} ${date === selected ? styles.selectedDay : ""}`;
+          const cls = `${styles.calendarDay} ${calendarStyles.day} ${date === selected ? styles.selectedDay : ""}`;
           return compact ? (
             <Link
               className={cls}
@@ -121,9 +146,6 @@ export function Calendar({
           );
         })}
       </div>
-      <p className={styles.calendarLegend}>
-        <i /> 이야기를 남긴 날
-      </p>
     </div>
   );
 }
@@ -197,8 +219,8 @@ export function ArchiveScreen({
   return (
     <>
       <CollectionHeading
-        title={calendar ? "다이어리 달력" : "다이어리"}
-        body={<PetDescription name={pet.name} suffix="와 함께한 하루,">한 편씩 모았어요.</PetDescription>}
+        title={calendar ? "캘린더" : "다이어리"}
+        body={calendar ? "함께한 순간을 날짜마다 간직해요." : <PetDescription name={pet.name} suffix="와 함께한 하루,">한 편씩 모았어요.</PetDescription>}
       >
         <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />

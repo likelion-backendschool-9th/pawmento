@@ -1,0 +1,22 @@
+.calendar { min-width: 0; }
+.day.day { min-height: 56px; height: 56px; padding: 4px 2px; align-items: center; justify-content: flex-start; gap: 3px; border-radius: 12px; font-size: 12px; }
+.mark { display: grid; place-items: center; width: 24px; height: 24px; color: var(--brand-primary); }
+.mark > svg { fill: currentColor; stroke: none; }
+.compact .day.day { min-height: 52px; height: 52px; padding: 4px 1px; gap: 2px; }
+.compact .mark { width: 21px; height: 21px; }
+.compact .mark > svg { width: 20px; height: 20px; }
+.day:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+.header.header { align-items: center; gap: 12px; margin-bottom: 12px; }
+.header .monthLabel { position: relative; display: inline-flex; flex-direction: row; align-items: center; gap: 8px; min-height: 44px; color: var(--text-primary); cursor: pointer; }
+.monthText { font-size: 17px; line-height: 1.5; font-weight: 500; white-space: nowrap; }
+.monthLabel > svg { color: var(--text-secondary); opacity: .7; }
+.monthInput { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.monthLabel:focus-within { outline: 2px solid var(--focus-ring); outline-offset: 3px; border-radius: 6px; }
+.header .todayButton { position: relative; isolation: isolate; min-width: 56px; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: 12px; font-weight: 500; cursor: pointer; }
+.todayButton::before { content: ""; position: absolute; z-index: -1; inset: 6px 0; border: 1px solid var(--border-default); border-radius: inherit; background: var(--surface-card); }
+.header .todayButton[aria-pressed="true"] { color: #608c2f; }
+.todayButton[aria-pressed="true"]::before { border-color: #a7c47d; background: #e7f0d9; }
+.todayButton:hover::before { border-color: var(--brand-primary); }
+.todayButton:focus-visible, .grid:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.grid { touch-action: pan-y pinch-zoom; user-select: none; }
