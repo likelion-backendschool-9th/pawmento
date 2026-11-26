@@ -1,5 +1,5 @@
 "use client";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
 import { createOnboardingPreference, ONBOARDING_STORAGE_KEY } from "../utils/onboardingPreference";
@@ -16,11 +16,14 @@ function subscribe(notify: () => void) {
 }
 
 // 루트 진입에만 붙인다. 로그인·회원가입·보호 페이지의 경로/세션/등록 흐름에는 관여하지 않는다.
-export function FirstVisitGate({ children }: { children: ReactNode }) {
+export function FirstVisitGate() {
   const { sessionReady, account } = useApp();
   const router = useRouter();
   const status = useSyncExternalStore(subscribe, snapshot, serverSnapshot);
-  if (!sessionReady || status === "loading") return <main id="main" className={s.screen} aria-busy="true"><span className={s.srOnly}>화면을 준비하고 있어요.</span></main>;
-  if (account || status === "complete") return children;
+  const goToExistingFlow = Boolean(account) || status === "complete";
+  useEffect(() => {
+    if (sessionReady && status !== "loading" && goToExistingFlow) router.replace(account ? "/home" : "/sign-in");
+  }, [sessionReady, status, goToExistingFlow, account, router]);
+  if (!sessionReady || status === "loading" || goToExistingFlow) return <main id="main" className={s.screen} aria-busy="true"><span className={s.srOnly}>화면을 준비하고 있어요.</span></main>;
   return <WelcomeOnboarding onComplete={() => { preference.complete(); router.replace("/sign-in"); }} />;
 }

@@ -25,16 +25,6 @@
 .next { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; min-height:56px; padding:14px 18px; border:0; border-radius:999px; background:var(--intro-sage); color:#fffefa; font:600 16px/1.5 var(--font-sans); cursor:pointer; box-shadow:0 6px 16px #69836a1a; }
 .next:disabled,.skip:disabled { opacity:.6; cursor:default; }
 .screen button:focus-visible { outline:2px solid var(--intro-ink); outline-offset:4px; }
-.photoCard,.photoBack { position:absolute; padding:10px 10px 32px; background:#fffefa; box-shadow:0 12px 26px #6c72541c; border:1px solid #e5e4d4; }
-.photoCard { width:58%; height:70%; top:12%; left:10%; transform:rotate(-8deg); }
-.photoBack { width:45%; height:57%; right:7%; top:6%; transform:rotate(12deg); }
-.photoCard > :global(.photo),.photoBack > :global(.photo) { width:100%; height:100%; border-radius:3px; overflow:hidden; }
-.photoCard > span:last-child { display:block; text-align:center; margin-top:7px; font-size:12px; color:var(--intro-muted); }
-.noteCard { position:absolute; right:0; bottom:4%; display:grid; gap:8px; width:55%; padding:16px; border:1px solid #e6d9c8; border-radius:16px; background:#fff5e8; color:#8f775c; box-shadow:0 6px 18px #7365450c; transform:rotate(5deg); }
-.noteCard span { font-size:12px; word-break:keep-all; }
-.noteCard i { height:1px; background:#e1d7c6; }
-.voiceBadge { position:absolute; left:5%; bottom:1%; display:flex; align-items:center; gap:5px; padding:12px 15px; border:1px solid #dde3d4; border-radius:999px; background:#f9fcf3; color:var(--intro-sage); box-shadow:0 5px 16px #73855814; transform:rotate(-6deg); }
-.voiceBadge span { width:3px; height:12px; border-radius:3px; background:#a6b595; }.voiceBadge span:nth-child(3n) { height:22px; }
 .garden { position:absolute; inset:0; border-radius:46% 54% 39% 61% / 50% 44% 56% 50%; background:linear-gradient(#faf6ea25,#f8f8e466),url('/images/watercolor-garden.png') 78% center/cover; }
 .memoryCard,.memoryBack { position:absolute; width:58%; height:64%; top:17%; left:21%; border:1px solid #e5decc; border-radius:16px; background:#fffcf3; box-shadow:0 12px 24px #73654518; transform:rotate(-8deg); }
 .memoryBack { transform:rotate(9deg) translate(8px,-8px); background:#e5ebd7; }
@@ -55,6 +45,23 @@
 @keyframes brandIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes slideIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pawStep { 0% { transform:translateY(0) scale(.9); } 50% { transform:translateY(-3px) scale(1.08); } 100% { transform:translateY(0) scale(1); } }
-@media(max-width:359px) { .screen { padding-inline:20px; } .artwork { height:clamp(220px,36svh,300px); margin-top:12px; }.copy h1 { font-size:25px; }.description { font-size:14px; }.noteCard { padding:12px; } }
+@media(max-width:359px) { .screen { padding-inline:20px; } .artwork { height:clamp(220px,36svh,300px); margin-top:12px; }.copy h1 { font-size:25px; }.description { font-size:14px; } }
 @media(max-height:720px) { .artwork { height:230px; margin-block:8px; }.copy { padding-bottom:8px; }.copy h1 { font-size:25px; }.description { margin-top:12px; }.footer { gap:10px; }.eyebrow { margin-bottom:8px; } }
 @media(prefers-reduced-motion:reduce) { .slide,.trail > span,.splashBrand,.indicators button[aria-current="step"] { animation:none; }.indicators button { transition:none; } }
+
+.questionCard,.togetherCard { position:absolute; inset:13% 7% 12%; padding:24px; border:1px solid #e2e2cf; border-radius:22px; background:#fffdf7; box-shadow:0 12px 24px #73654514; transform:rotate(-4deg); }
+.questionCard > span { display:flex; align-items:center; gap:7px; color:var(--intro-sage); font-size:13px; }
+.questionCard strong { display:block; margin:18px 0; font-size:21px; font-weight:600; line-height:1.6; letter-spacing:-.5px; }
+.answerLine { padding-top:14px; border-top:1px solid #e5e5d4; font-size:12px; color:var(--intro-muted); }
+.familyAnswer { position:absolute; display:flex; align-items:center; gap:10px; right:0; bottom:4%; max-width:88%; padding:16px; border:1px solid #ead9c6; border-radius:16px; background:#fff1e1; box-shadow:0 6px 20px #7365450c; transform:rotate(3deg); color:#8d7358; }
+.familyAnswer svg { flex:none; width:24px; height:24px; }.familyAnswer span { font-size:12px; word-break:keep-all; }
+.walkMap { position:absolute; inset:6% 7% 9%; overflow:hidden; border:7px solid #fffdf7; border-radius:25px; box-shadow:0 9px 24px #73654514; transform:rotate(-5deg); }
+.walkMap > svg { width:100%; height:100%; object-fit:cover; }
+.mapPin { position:absolute; top:22%; right:21%; color:#c59668; }
+.walkStats { position:absolute; left:13%; right:6%; bottom:1%; display:flex; justify-content:space-around; gap:12px; padding:18px 14px; border:1px solid #e2e5d5; border-radius:18px; background:#fffdf7; box-shadow:0 6px 18px #7365450c; transform:rotate(2deg); }
+.walkStats span { display:flex; align-items:center; gap:7px; font-size:17px; font-weight:600; color:var(--intro-sage); }
+.togetherCard { inset:9% 6% 10%; padding:24px 20px; transform:rotate(-3deg); }
+.avatars { display:flex; justify-content:center; margin-bottom:18px; }.avatars span { display:grid; place-items:center; width:52px; height:52px; border:4px solid #fffdf7; border-radius:50%; background:#e6eddb; color:var(--intro-sage); }.avatars span+span { margin-left:-6px; }.avatars span:nth-child(2) { background:#f9e6d0; color:#bb936a; }.avatars span:nth-child(3) { background:#e5eae5; color:#79958e; }.avatars svg { width:27px; height:27px; }
+.togetherCard strong { display:block; margin-bottom:18px; text-align:center; font-size:17px; font-weight:600; }.sharedLine { display:flex; align-items:center; gap:9px; padding:10px 0; border-top:1px solid #e4e5d7; font-size:12px; color:var(--intro-muted); }
+.inviteBadge { position:absolute; right:0; bottom:3%; display:flex; align-items:center; gap:9px; padding:12px 18px; border:1px solid #ead9c6; border-radius:999px; background:#fff1e1; color:#a08460; font-size:13px; transform:rotate(6deg); }
+@media(max-width:359px), (max-height:720px) { .questionCard { padding:18px; }.questionCard strong { margin:10px 0; font-size:19px; }.familyAnswer { padding:12px; }.togetherCard { padding:16px; }.avatars { margin-bottom:10px; }.togetherCard strong { margin-bottom:12px; font-size:15px; }.sharedLine { padding:8px 0; } }

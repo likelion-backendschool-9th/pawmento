@@ -1,32 +1,24 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
-import { ONBOARDING_SLIDES, SPLASH_DURATION_MS } from "../content";
+import { ONBOARDING_SLIDES } from "../content";
 import { AnimalFootprint } from "./AnimalFootprint";
 import { OnboardingArtwork } from "./OnboardingArtwork";
-import { WelcomeSplash } from "./WelcomeSplash";
 import s from "./WelcomeOnboarding.module.css";
 
 export function WelcomeOnboarding({ onComplete }: { onComplete: () => void }) {
-  const [splash, setSplash] = useState(true);
   const [index, setIndex] = useState(0);
   const [leaving, setLeaving] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const gesture = useRef<{ x: number; y: number } | null>(null);
   const content = ONBOARDING_SLIDES[index];
   const last = index === ONBOARDING_SLIDES.length - 1;
-  useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const timer = window.setTimeout(() => setSplash(false), reduced ? 150 : SPLASH_DURATION_MS);
-    return () => window.clearTimeout(timer);
-  }, []);
   function select(next: number) {
     if (next < 0 || next >= ONBOARDING_SLIDES.length || next === index) return;
     setIndex(next);
     requestAnimationFrame(() => heading.current?.focus({ preventScroll: true }));
   }
   function finish() { if (leaving) return; setLeaving(true); onComplete(); }
-  if (splash) return <WelcomeSplash />;
   return <main id="main" className={s.screen}>
     <header className={s.header}><span className={s.smallWordmark}>Paw<span>Mento</span></span><button className={s.skip} type="button" disabled={leaving} onClick={finish}>건너뛰기</button></header>
     <section className={s.carousel} aria-roledescription="슬라이드 모음" aria-label="PawMento 소개" onDragStart={(event) => event.preventDefault()} onKeyDown={(event) => {
