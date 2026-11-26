@@ -139,10 +139,18 @@
 
 /* 선택한 장소 카드: 종류·24시, 이름, 주소, 전화 걸기·주소 복사, 운영 정보, 출처를 한눈에 보인다 */
 .card {
+  /* 지도 아래를 덮는 시트. 추억 지도(#269)가 공통 .sheet를 지도 아래의 일반 카드로 바꾸면서 위치가 사라져, 카드가 지도 밖에 그려져 보이지 않았다 */
+  position: absolute;
+  z-index: 6;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  margin-top: 0;
   max-height: calc(100% - 24px);
   overflow-y: auto;
   padding-bottom: 18px;
 }
+
 .card h2 {
   margin: 8px 0 6px;
   font-size: 22px;
