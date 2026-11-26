@@ -15,12 +15,19 @@
 .week { font-size:11px; color:var(--text-muted); margin-bottom:9px; }
 .week span:first-child { color:var(--text-danger); }
 .days button { position:relative; display:grid; place-items:center; aspect-ratio:1; padding:0; border:1px solid transparent; border-radius:50%; background:none; color:var(--text-primary); font:inherit; font-size:14px; cursor:pointer; }
-.days button[aria-current="date"] { border-color:var(--mode-border); }
 .days button[aria-pressed="true"] { background:var(--brand-primary); color:var(--color-white); }
 .confirm { margin-top:18px; width:100%; min-height:48px; border:0; border-radius:14px; background:var(--brand-primary); color:var(--color-white); font:inherit; font-size:14px; cursor:pointer; }
-.dialog button:focus-visible,.dialog select:focus-visible,.trigger:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
+.dialog button:focus-visible,.trigger:focus-visible { outline:2px solid var(--focus-ring); outline-offset:2px; }
 @media(max-width:359px) { .dialog { padding:16px; } .header h2 { font-size:18px; } }
 .monthLabel { display:flex; align-items:center; gap:4px; }
-.monthLabel select { width:auto; min-height:40px; padding:4px 6px; border:0; border-radius:8px; background:transparent; color:var(--text-primary); font:600 17px/1.5 var(--font-sans); }
 .days button:disabled { opacity:.28; cursor:default; }
 .confirm:disabled { opacity:.5; cursor:default; }
+
+.yearToggle { display:flex; align-items:center; gap:7px; min-height:42px; padding:8px 12px; border:1px solid var(--mode-border); border-radius:14px; background:var(--mode-subtle); color:var(--brand-primary); font:600 16px/1.5 var(--font-sans); cursor:pointer; }
+.yearToggle svg { transform:rotate(90deg); }
+.yearToggle[aria-expanded="true"] { background:var(--brand-primary); color:var(--color-white); }
+.years { position:relative; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; max-height:min(320px,42dvh); overflow-y:auto; padding:6px; margin:0 -6px; scroll-padding:6px; overscroll-behavior:contain; }
+.years button { min-height:50px; padding:12px 6px; border:1px solid var(--mode-border); border-radius:14px; background:var(--surface-card); color:var(--text-primary); font:500 15px/1.5 var(--font-sans); cursor:pointer; }
+.years button span { margin-left:3px; font-size:11px; color:var(--text-secondary); }
+.years button[aria-selected="true"] { background:var(--brand-primary); border-color:var(--brand-primary); color:var(--color-white); }
+.years button[aria-selected="true"] span { color:inherit; }

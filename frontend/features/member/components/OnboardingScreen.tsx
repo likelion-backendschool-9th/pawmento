@@ -9,6 +9,7 @@ import { PhotoPicker } from "@/components/PhotoPicker";
 import { isDemoAccount } from "../types/account";
 import type { PetInput } from "@/features/pet/types/Pet";
 import { COMPANION_KINDS } from "@/features/pet/types/companionKinds";
+import { PetKindCombobox } from "@/features/pet/components/PetKindCombobox";
 import { BirthdayDateField } from "@/features/pet/components/BirthdayDateField";
 import { today } from "@/lib/date";
 import { useUnsavedChanges } from "@/features/shell/hooks/useUnsavedChanges";
@@ -28,6 +29,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   const router = useRouter();
   const [input, setInput] = useState<PetInput>({ name: "", species: "DOG", breed: "", birthday: "", photoUrl: "" });
   const [kind, setKind] = useState<(typeof COMPANION_KINDS)[number]["id"]>("DOG");
+  const [kindPending, setKindPending] = useState(false);
   const [birthdayUnknown, setBirthdayUnknown] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,7 +40,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [memberPets] = useState(app.state.pets.length);
   const invitation = app.dependencies.onboardingPreview.invitation;
-  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.birthday || input.photoUrl || kind !== "DOG" || birthdayUnknown));
+  useUnsavedChanges(!saved && step === "register" && Boolean(input.name || input.birthday || input.photoUrl || kind !== "DOG" || kindPending || birthdayUnknown));
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -46,6 +48,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
     pending.current = true; setBusy(true); setError("");
     try {
       if (step === "register") {
+        if (kindPending) throw Error("동물 종류를 목록에서 선택해 주세요.");
         if (input.birthday && input.birthday > today()) throw Error("생일은 오늘 또는 이전 날짜로 선택해 주세요.");
         await app.dependencies.workspace.savePet(app.account.id, input);
       } else await app.dependencies.onboardingPreview.join(app.account, code);
@@ -58,7 +61,7 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
     finally { pending.current = false; if (mounted.current) setBusy(false); }
   }
 
-  return <main id="main" className={s.screen}>
+  return <main id="main" className={s.screen} data-step={step}>
     <div className={s.brand}><Brand /></div>
     <section className={s.content}>
       <header className={s.heading}>
@@ -66,25 +69,20 @@ function OnboardingBody({ step }: { step: OnboardingStep }) {
         <p>{step === "choose" ? "처음 만드는 공간도, 함께 나누는 공간도 좋아요." : step === "join" ? "초대한 분에게 받은 코드를 입력해 주세요." : "이름과 사진으로 첫 기억을 시작해요."}</p>
       </header>
       {step === "choose" ? <div className={s.choices}>
-        <Link className={s.choice} href="/welcome/register"><span className={s.choiceIcon}><Icon name="paw" size={26} /></span><span><strong>처음 기록해요</strong><small>아이의 프로필을 등록하고<br />우리만의 기록 공간을 만들어요.</small></span><Icon name="chevron" size={18} /></Link>
-        <Link className={`${s.choice} ${s.inviteChoice}`} href="/welcome/join"><span className={s.choiceIcon}><Icon name="mail" size={26} /></span><span><strong>초대받았어요</strong><small>초대 코드로 들어가<br />소중한 순간을 함께 남겨요.</small></span><Icon name="chevron" size={18} /></Link>
+        <Link className={s.choice} href="/welcome/register"><span className={s.choiceIcon}><Icon name="paw" size={26} /></span><span><strong>처음 기록해요</strong><small>아이를 소개하고<br />새 기록을 시작해요.</small></span><Icon name="chevron" size={18} /></Link>
+        <Link className={`${s.choice} ${s.inviteChoice}`} href="/welcome/join"><span className={s.choiceIcon}><Icon name="mail" size={26} /></span><span><strong>초대받았어요</strong><small>초대 코드를 입력하고<br />함께 추억을 쌓아요.</small></span><Icon name="chevron" size={18} /></Link>
         {memberPets > 0 && <Link className={s.continue} href="/home">이미 함께하는 아이의 홈으로 →</Link>}
       </div> : <form onSubmit={submit} className={s.form}>
         <fieldset disabled={busy}>
           {step === "register" ? <>
             <div className={s.photo}><PhotoPicker value={input.photoUrl} onChange={(photoUrl) => setInput((old) => ({ ...old, photoUrl }))} /></div>
             <label>이름<input value={input.name} onChange={(event) => setInput({ ...input, name: event.target.value })} placeholder="아이의 이름을 알려주세요" maxLength={20} required /></label>
-            <div className={s.field}>
-              <span className={s.fieldLabel} id="companion-kind-label">어떤 친구인가요?</span>
-              <div className={s.kindChoices} role="group" aria-labelledby="companion-kind-label">
-                {COMPANION_KINDS.map((option) => <button type="button" key={option.id} aria-pressed={kind === option.id} onClick={() => { setSaved(false); setKind(option.id); setInput((old) => ({ ...old, species: option.species, speciesDetail: option.species === "OTHER" ? option.label : undefined })); }}>{option.label}{kind === option.id && <Icon name="check" size={13} />}</button>)}
-              </div>
-            </div>
+            <PetKindCombobox value={kind} onPendingChange={setKindPending} onChange={(option) => { setSaved(false); setError(""); setKind(option.id); setInput((old) => ({ ...old, species: option.species, speciesDetail: option.species === "OTHER" ? option.label : undefined })); }} />
             <div className={s.field}>
               <span className={s.fieldLabel} id="birthday-choice-label">생일</span>
               <div className={s.birthdayChoices} role="group" aria-labelledby="birthday-choice-label">
                 <button type="button" aria-pressed={!birthdayUnknown} onClick={() => { setSaved(false); setBirthdayUnknown(false); }}>생일 선택</button>
-                <button type="button" aria-pressed={birthdayUnknown} onClick={() => { setSaved(false); setBirthdayUnknown(true); setInput((old) => ({ ...old, birthday: "" })); }}>생일을 몰라요</button>
+                <button type="button" aria-pressed={birthdayUnknown} onClick={() => { setSaved(false); setBirthdayUnknown(true); setInput((old) => ({ ...old, birthday: "" })); }}>나중에 알려줄게요</button>
               </div>
               {!birthdayUnknown && <BirthdayDateField value={input.birthday} onChange={(birthday) => { setSaved(false); setInput((old) => ({ ...old, birthday })); }} />}
             </div>
