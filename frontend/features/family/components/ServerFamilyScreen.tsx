@@ -2,16 +2,18 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
 import { ApplicationError } from "@/lib/application/ApplicationError";
 import { lifeStyles as s } from "../../shell/components/LifeUi";
 import { PageHeading } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
-import type { FamilyList, FamilyPerson, InviteCode } from "../types/serverFamily";
+import type { FamilyList, FamilyMemberRow, FamilyPerson, InviteCode } from "../types/serverFamily";
 
 type LoadError = { message: string; retry: boolean };
+// 확인 팝업의 대상. 소유주가 누군가를 내보내거나, 가족이 스스로 나간다
+type Confirm = { kind: "remove"; member: FamilyMemberRow } | { kind: "leave" };
 
 const dateTime = (iso: string) =>
   new Intl.DateTimeFormat("ko-KR", {
@@ -40,8 +42,8 @@ function FamilyBody({ petId }: { petId: string }) {
   const [issueError, setIssueError] = useState("");
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  // 새로: 확인을 기다리는 대상(가족의 memberId). 같은 값을 한 번 더 누르면 실행한다
-  const [confirming, setConfirming] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<Confirm | null>(null);
+  const dialog = useRef<HTMLDialogElement>(null);
   const [actionError, setActionError] = useState("");
   const href = `/pets/manage/${encodeURIComponent(petId)}/family`;
   const server = sessionReady && sessionSource === "http" && !!account;
@@ -70,6 +72,11 @@ function FamilyBody({ petId }: { petId: string }) {
     };
   }, [server, dependencies, petId, attempt]);
 
+    // 대상이 정해져 내용이 그려진 뒤에 팝업을 연다
+  useEffect(() => {
+    if (confirm) dialog.current?.showModal();
+  }, [confirm]);
+
   async function issue() {
     setBusy(true);
     setNotice("");
@@ -96,7 +103,7 @@ function FamilyBody({ petId }: { petId: string }) {
     setActionError("");
     try {
       await dependencies.family.removeMember(petId, memberId);
-      setConfirming(null);
+      dialog.current?.close();
       setAttempt((n) => n + 1);
     } catch (cause) {
       setActionError(messageOf(cause));
@@ -149,31 +156,21 @@ function FamilyBody({ petId }: { petId: string }) {
   // 새로: 내가 소유주인지에 따라 버튼이 달라진다
   const isOwner = family.owner.memberId === account?.id;
 
-  function actionFor(memberId: string) {
-    const isMe = memberId === account?.id;
+    function actionFor(member: FamilyMemberRow) {
+    const isMe = member.memberId === account?.id;
     if (!isOwner && !isMe) return null;
-    const label = isMe ? "나가기" : "내보내기";
-    if (confirming !== memberId) {
-      return (
-        <button type="button" className="text-link" disabled={busy} onClick={() => setConfirming(memberId)}>
-          {label}
-        </button>
-      );
-    }
     return (
-      <span>
-        <button
-          type="button"
-          className="text-link"
-          disabled={busy}
-          onClick={() => void (isMe ? leave() : removeMember(memberId))}
-        >
-          정말 {label}
-        </button>{" "}
-        <button type="button" className="text-link" disabled={busy} onClick={() => setConfirming(null)}>
-          취소
-        </button>
-      </span>
+      <button
+        type="button"
+        className="text-link"
+        disabled={busy}
+        onClick={() => {
+          setActionError("");
+          setConfirm(isMe ? { kind: "leave" } : { kind: "remove", member });
+        }}
+      >
+        {isMe ? "나가기" : "내보내기"}
+      </button>
     );
   }
 
@@ -198,7 +195,7 @@ function FamilyBody({ petId }: { petId: string }) {
               person={member}
               note={`${dateTime(member.joinedAt)}부터 함께`}
               badge="가족"
-              action={actionFor(member.memberId)}
+              action={actionFor(member)}
             />
           ))}
           {actionError && <p className="error" role="alert">{actionError}</p>}
@@ -233,6 +230,51 @@ function FamilyBody({ petId }: { petId: string }) {
           {issueError && <p className="error" role="alert">{issueError}</p>}
         </section>
       </div>
+            <dialog ref={dialog} className="dialog" onClose={() => setConfirm(null)}>
+        {confirm?.kind === "remove" && (
+          <>
+            <h2>{confirm.member.nickname ?? "이 회원"}님을 가족에서 내보낼까요?</h2>
+            <p>
+              내보내면 이 친구의 기록을 더 볼 수 없고, 그분이 만든 초대 코드도 함께 사라져요.
+              <br />
+              다시 함께하려면 새 초대 코드가 필요해요.
+            </p>
+          </>
+        )}
+        {confirm?.kind === "leave" && (
+          <>
+            <h2>가족에서 나갈까요?</h2>
+            <p>
+              나가면 이 친구의 기록을 더 볼 수 없고, 내가 만든 초대 코드도 함께 사라져요.
+              <br />
+              다시 함께하려면 새 초대 코드가 필요해요.
+            </p>
+          </>
+        )}
+        {actionError && <p className="error" role="alert">{actionError}</p>}
+        <div className="dialog-actions">
+          <button
+            type="button"
+            autoFocus
+            className="button secondary"
+            disabled={busy}
+            onClick={() => dialog.current?.close()}
+          >
+            취소
+          </button>
+          <button
+            type="button"
+            className="button destructive"
+            disabled={busy}
+            onClick={() => {
+              if (confirm?.kind === "remove") void removeMember(confirm.member.memberId);
+              if (confirm?.kind === "leave") void leave();
+            }}
+          >
+            {busy ? "처리하는 중…" : confirm?.kind === "leave" ? "나가기" : "내보내기"}
+          </button>
+        </div>
+      </dialog>
     </>
   );
 }
