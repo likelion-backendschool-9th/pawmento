@@ -20,6 +20,7 @@ import { WalkWidget } from "./WalkWidget";
 import { NaverWalkCanvas } from "./NaverWalkCanvas";
 import { StaticWalkCanvas } from "./StaticWalkCanvas";
 import { isServerPetId } from "../utils/walk";
+import { seoulDate } from "../utils/walkRecord";
 import { WalkHistory } from "./WalkHistory";
 import styles from "./MapScreen.module.css";
 
@@ -60,6 +61,14 @@ export function MapScreen({
   // 산책 세션은 탭을 바꿔도 유지하고, 각 탭의 표시 내용만 나눈다.
   const [view, setView] = useState<"outing" | "pins" | "walks">(initialView);
   const walksSwitch = useRef<HTMLButtonElement>(null);
+  // 산책기록을 처음 열 날짜. 끝난 산책에서 들어오면 시작한 날(한국 시각)이다(#73-S16).
+  const [historyDate, setHistoryDate] = useState(initialDate);
+  const sheet = useRef<HTMLElement>(null);
+  const openWalks = (date: string | null, focus = false) => {
+    setHistoryDate(date);
+    setView("walks");
+    if (focus) walksSwitch.current?.focus();
+  };
 
   useEffect(() => {
     if (view !== "pins" || !bounds) return;
@@ -91,6 +100,13 @@ export function MapScreen({
     return () => clearTimeout(timer);
   }, [view, bounds, pet.id, dependencies, sample, attempt]);
 
+  // 작은 화면에서는 지도 아래 선택 카드가 첫 화면 밖일 수 있어, 핀을 고르면 카드가 보이게 한다
+  useEffect(() => {
+    if (!selectedId) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    sheet.current?.scrollIntoView?.({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
+  }, [selectedId]);
+
   const onBoundsChange = useCallback(
     (next: MapBounds) => setBounds(next),
     [],
@@ -118,7 +134,7 @@ export function MapScreen({
         <button type="button" aria-pressed={view === "outing"} onClick={() => setView("outing")}>
           <Icon name="paw" size={16} />산책가기
         </button>
-        <button ref={walksSwitch} type="button" aria-pressed={view === "walks"} onClick={() => setView("walks")}>
+        <button ref={walksSwitch} type="button" aria-pressed={view === "walks"} onClick={() => openWalks(initialDate)}>
           <Icon name="route" size={16} />산책기록
         </button>
         <button type="button" aria-pressed={view === "pins"} onClick={() => setView("pins")}>
@@ -126,18 +142,23 @@ export function MapScreen({
         </button>
       </div>
       {view === "outing" ? (
-        <>
+        <div className={styles.outing}>
+          {/* 산책 시작·끝내기가 첫 화면에 보이도록 위젯을 지도보다 먼저 둔다 */}
+          <WalkWidget session={session} />
+          {session.phase === "ended" && session.walk && (
+            <button type="button" className={styles.textButton} onClick={() => openWalks(seoulDate(session.walk!.startedAt), true)}>
+              산책기록 보기 →
+            </button>
+          )}
           <div className={styles.stage} data-mode={pet.mode}>
             {clientId && !naverFailed ? (
               <NaverWalkCanvas {...walkCanvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
             ) : <StaticWalkCanvas {...walkCanvasProps} />}
           </div>
-          <WalkWidget session={session} />
-          {session.phase === "ended" && <button type="button" className={styles.textButton} onClick={() => { setView("walks"); walksSwitch.current?.focus(); }}>산책기록 보기 →</button>}
           {!isServerPetId(pet.id) && <p className={styles.note}>데모 산책은 이 브라우저에서만 연습으로 기록돼요.</p>}
-        </>
+        </div>
       ) : view === "walks" ? (
-        <WalkHistory pet={pet} initialDate={initialDate} />
+        <WalkHistory pet={pet} initialDate={historyDate} />
       ) : (
       <>
       <div className={styles.stage} data-mode={pet.mode} aria-busy={loading}>
@@ -205,10 +226,7 @@ export function MapScreen({
             <button
               type="button"
               className={styles.textButton}
-              onClick={() => {
-                setView("walks");
-                walksSwitch.current?.focus();
-              }}
+              onClick={() => openWalks(initialDate, true)}
             >
               산책기록 보기
             </button>
@@ -217,8 +235,7 @@ export function MapScreen({
 
       </div>
         {selected && (
-          <aside className={styles.sheet} aria-label="선택한 기억">
-            <div className={styles.grab} aria-hidden="true" />
+          <aside ref={sheet} className={styles.sheet} aria-label="선택한 기억">
             <p className={styles.eyebrow}>{garden ? "기억의 정원" : "기억의 장소"}</p>
             <h2>{selected.placeName ?? "이름 없는 장소"}</h2>
             {(() => {

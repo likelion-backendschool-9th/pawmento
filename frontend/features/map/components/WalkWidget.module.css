@@ -1,4 +1,4 @@
-.widget { margin-top: 14px; padding: 14px; border: 1px solid var(--mode-border); border-radius: 24px; background: var(--surface-card); box-shadow: 0 5px 18px color-mix(in srgb, var(--brand-primary) 6%, transparent); }
+.widget { padding: 14px; border: 1px solid var(--mode-border); border-radius: 24px; background: var(--surface-card); box-shadow: 0 5px 18px color-mix(in srgb, var(--brand-primary) 6%, transparent); }
 .summary { display:flex; align-items:center; gap:14px; }
 .scene { display:grid; place-items:center; flex:none; width:90px; height:88px; border-radius:20px; color:var(--brand-primary); background:linear-gradient(150deg,var(--mode-subtle),var(--surface-card)); overflow:hidden; }
 .sprite { display:block; width:100%; aspect-ratio:1; background-image:url("/images/walk/corgi-watercolor-sprites.webp"); background-size:200% 200%; background-position:100% 100%; background-repeat:no-repeat; }
