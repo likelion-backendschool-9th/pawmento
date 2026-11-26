@@ -67,3 +67,33 @@ export function loadNaverMaps(clientId: string): Promise<NaverMapsApi> {
   });
   return loading;
 }
+
+
+type AuthFailureTarget = Pick<Window, "navermap_authFailure">;
+type AuthFailureGroup = { listeners: Set<() => void>; previous: (() => void) | undefined; handler: () => void };
+const authFailureGroups = new WeakMap<AuthFailureTarget, AuthFailureGroup>();
+
+// 지도가 여러 개여도 SDK의 단일 콜백을 공유한다. 마지막 구독을 해제하면 기존 콜백을 복구한다.
+export function subscribeNaverAuthFailure(target: AuthFailureTarget, listener: () => void): () => void {
+  let group = authFailureGroups.get(target);
+  if (!group) {
+    const listeners = new Set<() => void>();
+    const previous = target.navermap_authFailure;
+    const handler = () => { previous?.(); [...listeners].forEach((notify) => notify()); };
+    group = { listeners, previous, handler };
+    authFailureGroups.set(target, group);
+    target.navermap_authFailure = handler;
+  }
+  const current = group;
+  const subscription = () => listener();
+  current.listeners.add(subscription);
+  return () => {
+    current.listeners.delete(subscription);
+    if (current.listeners.size > 0 || authFailureGroups.get(target) !== current) return;
+    if (target.navermap_authFailure === current.handler) {
+      if (current.previous) target.navermap_authFailure = current.previous;
+      else delete target.navermap_authFailure;
+    }
+    authFailureGroups.delete(target);
+  };
+}

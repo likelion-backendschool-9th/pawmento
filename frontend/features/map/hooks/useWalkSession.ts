@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import type { Walk, WalkOutcome, WalkPoint } from "@/features/map/types/Walk";
+import { walkSeconds } from "../utils/walkRecord";
 import type { WalkRecorder } from "@/features/map/utils/WalkRecorder";
 import {
   elapsedSeconds,
@@ -173,7 +174,7 @@ export function useWalkSession(petId: string) {
   }, [walks, owner, petId]);
 
   const supported = typeof navigator === "undefined" || "geolocation" in navigator;
-  const seconds = walk ? elapsedSeconds(walk.startedAt, now) : 0;
+  const seconds = walk ? phase === "ended" && outcome ? walkSeconds({ ...walk, ...outcome, points }) : elapsedSeconds(walk.startedAt, now) : 0;
   return {
     phase,
     walk,

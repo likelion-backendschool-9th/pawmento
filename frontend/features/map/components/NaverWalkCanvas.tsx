@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { loadNaverMaps, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "../utils/naverMaps";
+import { loadNaverMaps, subscribeNaverAuthFailure, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "../utils/naverMaps";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
 import type { WalkCanvasProps } from "../utils/walkCanvas";
 import styles from "./WalkCanvas.module.css";
@@ -30,7 +30,7 @@ export function NaverWalkCanvas({
 
   useEffect(() => {
     let cancelled = false;
-    window.navermap_authFailure = () => latestProps.current.onUnavailable();
+    const unsubscribe = subscribeNaverAuthFailure(window, () => latestProps.current.onUnavailable());
     loadNaverMaps(clientId)
       .then((maps) => {
         if (cancelled || !element.current) return;
@@ -65,9 +65,10 @@ export function NaverWalkCanvas({
         startMarker.current.setMap(null); // 첫 점을 받은 뒤에만 보인다
         setReady(true);
       })
-      .catch(() => latestProps.current.onUnavailable());
+      .catch(() => { if (!cancelled) latestProps.current.onUnavailable(); });
     return () => {
       cancelled = true;
+      unsubscribe();
       setReady(false);
       line.current?.setMap(null);
       marker.current?.setMap(null);

@@ -1,0 +1,50 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { subscribeNaverAuthFailure } from "../features/map/utils/naverMaps.ts";
+
+test("#233-S9 결과창과 배경 지도가 인증 실패를 함께 받고, 닫힌 결과창은 더 이상 받지 않는다", () => {
+  const target: { navermap_authFailure?: () => void } = {};
+  let background = 0;
+  let result = 0;
+  const stopBackground = subscribeNaverAuthFailure(target, () => background++);
+  const handler = target.navermap_authFailure;
+  const stopResult = subscribeNaverAuthFailure(target, () => result++);
+  assert.equal(target.navermap_authFailure, handler);
+  target.navermap_authFailure?.();
+  assert.deepEqual([background, result], [1, 1]);
+  stopResult();
+  target.navermap_authFailure?.();
+  assert.deepEqual([background, result], [2, 1]);
+  stopBackground();
+  assert.equal(target.navermap_authFailure, undefined);
+  stopResult();
+  stopBackground();
+  assert.equal(target.navermap_authFailure, undefined);
+});
+test("#233-S9 마지막 지도 구독이 해제되면 기존 콜백을 복구하고 다른 코드의 새 콜백은 덮어쓰지 않는다", () => {
+  let previousCalled = 0;
+  const previous = () => { previousCalled++; };
+  const target = { navermap_authFailure: previous };
+  const stop = subscribeNaverAuthFailure(target, () => {});
+  target.navermap_authFailure();
+  assert.equal(previousCalled, 1);
+  stop();
+  assert.equal(target.navermap_authFailure, previous);
+  const stopNext = subscribeNaverAuthFailure(target, () => {});
+  const another = () => {};
+  target.navermap_authFailure = another;
+  stopNext();
+  assert.equal(target.navermap_authFailure, another);
+});
+test("#233-S9 같은 함수가 여러 지도에서 구독돼도 각각 독립적으로 해제된다", () => {
+  const target: { navermap_authFailure?: () => void } = {};
+  let calls = 0;
+  const listener = () => calls++;
+  const stopFirst = subscribeNaverAuthFailure(target, listener);
+  const stopSecond = subscribeNaverAuthFailure(target, listener);
+  stopFirst();
+  target.navermap_authFailure?.();
+  assert.equal(calls, 1);
+  stopSecond();
+  assert.equal(target.navermap_authFailure, undefined);
+});

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/Icon";
 import type { WalkOutcome, WalkPoint } from "../types/Walk";
@@ -14,13 +14,14 @@ type Props = {
   outcome: WalkOutcome;
   clientId: string;
   mode: "ACTIVE" | "GARDEN";
+  mapUnavailable: boolean;
+  onMapUnavailable: () => void;
   onClose: () => void;
 };
 
-export function WalkResultDialog({ points, seconds, outcome, clientId, mode, onClose }: Props) {
+export function WalkResultDialog({ points, seconds, outcome, clientId, mode, mapUnavailable, onMapUnavailable, onClose }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useId();
-  const [mapFailed, setMapFailed] = useState(false);
   const distance = formatDistance(pathDistance(points));
   const partial = outcome.status === "INTERRUPTED" || !outcome.complete;
   const canvas = { points, current: points.at(-1) ?? null };
@@ -37,8 +38,8 @@ export function WalkResultDialog({ points, seconds, outcome, clientId, mode, onC
       <button type="button" className={s.close} aria-label="산책 결과 닫기" onClick={onClose} autoFocus><Icon name="close" size={21} /></button>
     </header>
     <div className={s.map}>
-      {points.length > 0 ? clientId && !mapFailed ? <NaverWalkCanvas {...canvas} fitRoute clientId={clientId} onUnavailable={() => setMapFailed(true)} /> : <StaticWalkCanvas {...canvas} /> : <div className={s.empty}><Icon name="route" size={32} /><p>기록된 위치가 없어요</p><span>다음 산책에는 위치 권한을 확인해 주세요.</span></div>}
-      {points.length > 0 && (!clientId || mapFailed) && <span className={s.mapLabel}>예시 지도 위의 기록 경로</span>}
+      {points.length > 0 ? clientId && !mapUnavailable ? <NaverWalkCanvas {...canvas} fitRoute clientId={clientId} onUnavailable={onMapUnavailable} /> : <StaticWalkCanvas {...canvas} /> : <div className={s.empty}><Icon name="route" size={32} /><p>기록된 위치가 없어요</p><span>다음 산책에는 위치 권한을 확인해 주세요.</span></div>}
+      {points.length > 0 && (!clientId || mapUnavailable) && <span className={s.mapLabel}>예시 지도 위의 기록 경로</span>}
     </div>
     <dl className={s.metrics}>
       <div><dt><Icon name="route" size={17} />이동 거리</dt><dd>{distance.value}<span>{distance.unit}</span></dd></div>
