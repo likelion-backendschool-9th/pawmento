@@ -212,7 +212,7 @@ test("#19-S9 예시 지도의 위치 비율은 북쪽이 위쪽이다", () => {
   );
 });
 
-test("#19-S9 핀 모양은 일상은 발자국, 정원은 꽃이고 선택하면 후광이 생긴다", () => {
+test("#19-S9 핀 모양은 일상은 발자국, 정원은 꽃이고, 선택하면 채운 원과 얇은 고리의 두 겹 후광이 생긴다", () => {
   const paw = pinMarkup("ACTIVE");
   const flower = pinMarkup("GARDEN");
   assert.match(paw, /rx="7.4"/);
@@ -222,6 +222,14 @@ test("#19-S9 핀 모양은 일상은 발자국, 정원은 꽃이고 선택하면
   assert.match(paw, /var\(--brand-primary\)/);
   assert.doesNotMatch(paw, /opacity="\.16"/);
   assert.match(pinMarkup("ACTIVE", true), /opacity="\.16"/);
+
+  // 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 두르고, 선택하지 않은 핀에는 후광이 없다
+  const plain = pinMarkup("ACTIVE", false);
+  const selected = pinMarkup("ACTIVE", true);
+  assert.equal((plain.match(/<circle/g) ?? []).length, 0);
+  assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
+  assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
 });
 
 test("#19-R6 지도 비밀 키는 프론트엔드 코드에 두지 않는다", () => {
@@ -303,16 +311,6 @@ test("#19-S10 데모 여부는 이메일이 아니라 데모 세션이 만든 �
   assert.equal(isDemoAccount(await auth.signIn({ email: "tab@example.com", password: "tab-demo-pass" })), true);
   // 닉네임을 바꿔도 데모 표시가 유지된다
   assert.equal(isDemoAccount(await auth.update("새 이름")), true);
-});
-
-test("#19-S9 선택한 핀은 채운 원과 얇은 고리의 두 겹 후광을 두르고 선택하지 않은 핀에는 후광이 없다", () => {
-  const plain = pinMarkup("ACTIVE", false);
-  const selected = pinMarkup("ACTIVE", true);
-  assert.equal((plain.match(/<circle/g) ?? []).length, 0);
-  // 채운 원(fill)과 고리(stroke) 후광이 하나씩 있다
-  assert.equal((selected.match(/<circle[^>]*fill="var\(--brand-primary\)"/g) ?? []).length, 1);
-  assert.equal((selected.match(/<circle[^>]*fill="none"[^>]*stroke="var\(--brand-primary\)"/g) ?? []).length, 1);
-  assert.notEqual(pinMarkup("GARDEN", true), selected, "정원 모드는 꽃 모양이다");
 });
 
 test("#19-S11 예시 지도의 나무는 항상 같은 배치로 공원 안에만 놓이고 서로 겹치지 않는다", () => {

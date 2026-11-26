@@ -289,7 +289,7 @@ test("#172-S19 목업을 켜지 않으면 서버를 부르고 서버가 안 돼�
   assert.equal(seen.length, 1, "목업을 켜면 서버를 부르지 않는다");
 });
 
-test("#172-S19 composition은 목업 플래그를 장소 저장소 선택에 실제로 넘긴다", () => {
+test("#172-S19 composition은 목업 플래그를 장소 저장소 선택에 실제로 넘기고, 목업은 명시적으로 켰을 때만 쓴다", () => {
   const source = readFileSync(
     new URL("../app/composition.ts", import.meta.url),
     "utf8",
@@ -298,9 +298,8 @@ test("#172-S19 composition은 목업 플래그를 장소 저장소 선택에 실
   assert.match(source, /mockRequested:\s*isDevelopmentMockRequested\(\)/);
   assert.match(source, /server:\s*createPlaceApi\(http\)/);
   assert.match(source, /demo:\s*new DemoPlaceRepository\(\)/);
-});
-
-test("#172-S19 목업은 명시적으로 켰을 때만 쓴다", () => {
+  // 목업은 명시적으로 켰을 때만 쓴다
   assert.equal(isDevelopmentMockRequested(true), true);
   assert.equal(isDevelopmentMockRequested(false), false);
 });
+

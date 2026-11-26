@@ -229,8 +229,9 @@ test("#73-S7 이 앱에서 기록한 연습 산책이 그날 목록에 들어가
   assert.equal((await demo.listByDate("pet-b", "2026-11-20")).walks.length, 0);
 });
 
-test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 데모 기록에서 읽는다", async () => {
+test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 데모 기록에서 읽고, 서버에는 예시 옵션을 그대로 전달한다", async () => {
   const calls: string[] = [];
+  const seen: unknown[] = [];
   const history = createMapSource({
     pins: { listPins: async () => ({ pins: [], truncated: false, sample: false }) },
     walks: {
@@ -239,8 +240,8 @@ test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 �
       end: async () => ({ status: "ENDED" as const, endedAt: null }),
     },
     history: {
-      listDay: async (pet, date) => (calls.push(`server:${pet}:${date}`), { walks: [], sample: false }),
-      listDays: async () => ({ byDate: {}, failed: [] }),
+      listDay: async (pet, date, options) => (calls.push(`server:${pet}:${date}`), seen.push(options), { walks: [], sample: false }),
+      listDays: async (_pet, _dates, options) => (seen.push(options), { byDate: {}, failed: [] }),
     },
     demoPins: new DemoMapPinRepository(),
     demoWalks: new DemoWalkRepository(() => NOW),
@@ -249,6 +250,11 @@ test("#73-S7 서버 반려동물(양의 정수 id)은 서버에서, 데모는 �
   const demo = await history.listDay("6f1c0a3e-3c52-4d8e-9d0e-2a2b4c8f9a10", "2026-11-17", { sample: true });
   assert.deepEqual(calls, ["server:10:2026-11-17"]);
   assert.equal(demo.sample, true);
+
+  // 서버 쪽에는 예시 옵션을 그대로 전달한다
+  await history.listDays("10", ["2026-11-18"], { sample: true });
+  await history.listDay("10", "2026-11-18");
+  assert.deepEqual(seen, [{ sample: true }, { sample: true }, undefined]);
 });
 
 test("#73-S7 시작·끝 시각을 \"오전 10:00 – 10:42\"로 적고, 오전·오후가 바뀌면 끝에도 붙인다", () => {
@@ -319,27 +325,6 @@ test("#73-S7 예시 지도와 네이버 지도가 같은 상태별 표시를 따
   assert.deepEqual(routeMarks("ENDED"), { startDot: true, pausedTag: false });
   assert.deepEqual(routeMarks("IN_PROGRESS"), { startDot: true, pausedTag: false });
   assert.deepEqual(routeMarks("INTERRUPTED"), { startDot: false, pausedTag: true });
-});
-
-test("#73-S7 사용 사례는 예시 옵션을 저장소에 그대로 전달한다", async () => {
-  const seen: unknown[] = [];
-  const history = createMapSource({
-    pins: { listPins: async () => ({ pins: [], truncated: false, sample: false }) },
-    walks: {
-      start: async (petId) => ({ walkId: "x", petId, startedAt: "t" }),
-      addPoints: async () => {},
-      end: async () => ({ status: "ENDED" as const, endedAt: null }),
-    },
-    history: {
-      listDay: async (_pet, _date, options) => (seen.push(options), { walks: [], sample: false }),
-      listDays: async (_pet, _dates, options) => (seen.push(options), { byDate: {}, failed: [] }),
-    },
-    demoPins: new DemoMapPinRepository(),
-    demoWalks: new DemoWalkRepository(),
-  }).walkHistory;
-  await history.listDays("10", ["2026-11-18"], { sample: true });
-  await history.listDay("10", "2026-11-18");
-  assert.deepEqual(seen, [{ sample: true }, undefined]);
 });
 
 test("#73-S15 걷는 중인 길은 출발점부터 지금 위치까지 한 화면(0~100)에 맞춰 그린다. 점이 하나여도 깨지지 않는다", () => {
