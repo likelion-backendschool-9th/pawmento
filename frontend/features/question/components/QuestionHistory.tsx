@@ -4,6 +4,7 @@ import { questionHistory } from "@/features/question/utils/questionHistory";
 import { registrationDate } from "@/lib/date";
 
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -30,13 +31,7 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
         body="한 질문에 담긴 나와 가족의 이야기를 다시 만나요."
       >
         {pet.accessRole !== "VIEWER" && (
-          <Link
-            className="button primary"
-            href={`/pets/${pet.id}/questions`}
-          >
-            <Icon name="edit" size={15} />
-            오늘의 질문
-          </Link>
+<RecordActionLink href={`/pets/${pet.id}/questions`}>오늘의 질문</RecordActionLink>
         )}
       </QuestionHeading>
       {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
@@ -123,6 +118,7 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
           body="오늘의 질문에 답하면 이곳에 질문과 답변이 함께 쌓여요."
           href={`/pets/${pet.id}/questions`}
           action="답변 남기기"
+          actionIcon="edit"
         />
       )}
     </>

@@ -97,6 +97,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           title: sample.title,
           body: sample.body,
           photoUrl: sample.photoUrl,
+          authorName: current.nickname,
         });
       }
     }

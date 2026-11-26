@@ -1,6 +1,7 @@
 "use client";
-import { PetDescription } from "@/features/pet/components/PetDescription";
+import { RecordActionLink } from "@/components/RecordAction";
 import { journalItems } from "@/features/diary/utils/journalItems";
+import { PolaroidDiaryList } from "./PolaroidDiaryList";
 
 import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
@@ -171,7 +172,7 @@ export function ArchiveScreen({
   }
   const [limit, setLimit] = useState(9);
   const [result, setResult] = useState<{
-    records: JournalItem[];
+    records: Extract<JournalItem, { kind: "DIARY" }>[];
     total: number;
     hasMore: boolean;
   }>({ records: [], total: 0, hasMore: false });
@@ -220,12 +221,9 @@ export function ArchiveScreen({
     <>
       <CollectionHeading
         title={calendar ? "캘린더" : "다이어리"}
-        body={calendar ? "함께한 순간을 날짜마다 간직해요." : <PetDescription name={pet.name} suffix="와 함께한 하루,">한 편씩 모았어요.</PetDescription>}
+        body={calendar ? "함께한 순간을 날짜마다 간직해요." : "우리의 일상을 기록해요."}
       >
-        <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
-          <Icon name="plus" size={17} />
-          기록 남기기
-        </Link>
+        <RecordActionLink href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
       </CollectionHeading>
       {invalidDate && (
         <p className="error" role="alert">
@@ -274,19 +272,18 @@ export function ArchiveScreen({
               기억을 펼치는 중…
             </p>
           ) : result.records.length ? (
-            <div
-              className={`${styles.recordGrid} ${calendar ? styles.calendarRecords : ""}`}
-            >
-              {result.records.map((record) => (
-                <JournalCard key={record.id} record={record} />
-              ))}
-            </div>
+            calendar ? (
+              <div className={`${styles.recordGrid} ${styles.calendarRecords}`}>
+                {result.records.map(record => <JournalCard key={record.id} record={record} />)}
+              </div>
+            ) : <PolaroidDiaryList records={result.records} currentAuthor={app.account ?? undefined} />
           ) : (
             <EmptyState
               title="아직 기록이 없는 날이에요"
               body="작은 순간 하나를 남겨볼까요?"
               href={`/pets/${pet.id}/diary/new${calendar ? `?date=${date}` : ""}`}
               action="이날의 기록 남기기"
+              actionIcon="edit"
             />
           )}
           {result.hasMore && !error && (
@@ -304,12 +301,7 @@ export function ArchiveScreen({
               </button>
             </div>
           )}
-          {result.total > 0 && !result.hasMore && (
-            <p className={styles.endNote}>
-              <Icon name="leaf" size={16} />
-              여기까지, 우리가 쌓아온 이야기예요.
-            </p>
-          )}
+
         </section>
       </div>
     </>

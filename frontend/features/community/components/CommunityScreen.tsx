@@ -1,4 +1,5 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -89,12 +90,7 @@ export function CommunityScreen({
         title={activity ? "내 커뮤니티 활동" : "커뮤니티"}
         body={<>반려생활의 발견부터 소중한 기억까지,<br />서로의 이야기를 나누어요.</>}
       >
-        <Link
-          className="button primary"
-          href={`/community/new?category=${category}`}
-        >
-          <Icon name="edit" size={16} />글 쓰기
-        </Link>
+        <RecordActionLink href={`/community/new?category=${category}`}>글 쓰기</RecordActionLink>
       </CollectionHeading>
       <div className={s.communityBanner}>
         <Icon name="users" size={29} />
@@ -222,6 +218,7 @@ export function CommunityScreen({
           body="첫 번째 이야기를 나누어 주세요."
           href={`/community/new?category=${category}`}
           action="글 쓰기"
+          actionIcon="edit"
         />
       )}
       <DemoNote>

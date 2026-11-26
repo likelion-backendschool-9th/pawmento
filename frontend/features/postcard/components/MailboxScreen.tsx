@@ -3,6 +3,7 @@ import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -75,13 +76,11 @@ export function MailboxScreen({
         title="기억의 우체통"
         body="우연히 펼친 기억 하나가, 새로운 수채화 장면이 되어 도착해요."
       >
-        <Link
-          className="button primary"
+        <RecordActionLink icon="mail"
           href={`/pets/${pet.id}/garden/mailbox/new`}
         >
-          <Icon name="plus" size={16} />
           데모 엽서 만들기
-        </Link>
+        </RecordActionLink>
       </LifeHeading>
       <DemoNote>
         기록을 랜덤으로 뽑아 새 엽서 그림을 만드는 흐름의 데모예요. 실제 AI 호출
@@ -144,6 +143,7 @@ export function MailboxScreen({
           body="기억하고 싶은 기록을 골라 첫 엽서를 만들어보세요."
           href={`/pets/${pet.id}/garden/mailbox/new`}
           action="데모 엽서 만들기"
+          actionIcon="mail"
         />
       )}
     </>
@@ -250,6 +250,7 @@ function PostcardComposer({ pet }: { pet: Pet }) {
                 body="기억을 먼저 남긴 뒤 엽서를 만들어보세요."
                 href={`/pets/${pet.id}/diary/new`}
                 action="기록 남기기"
+                actionIcon="edit"
               />
             )}
           </section>
