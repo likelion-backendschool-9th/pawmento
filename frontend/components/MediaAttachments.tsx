@@ -3,7 +3,7 @@ import { createId } from "../lib/id";
 import { checkVoiceFile, planPhotoSelection } from "../lib/mediaAttachments";
 import { useEffect, useId, useRef, useState } from "react";
 import type { MediaAttachment } from "@/types/MediaAttachment";
-import { Icon } from "./Icon";
+import { RecordActionButton } from "./RecordAction";
 import { Photo } from "./Photo";
 import s from "./MediaAttachments.module.css";
 import { PhotoAttachmentCarousel, type PhotoSlide } from "./PhotoAttachmentCarousel";
@@ -192,25 +192,19 @@ export function MediaAttachments({
   return (
     <section className="attachments">
       <div className="attachments-actions">
-        <button type="button" className="button secondary" disabled={busy}
-          onClick={() => photoInput.current?.click()}>
-          <Icon name="camera" size={16} />사진 추가
-        </button>
+        <RecordActionButton icon="camera" disabled={busy} onClick={() => photoInput.current?.click()}>사진 추가</RecordActionButton>
         <input className="visually-hidden" id={`${id}-photo`} ref={photoInput}
           type="file" tabIndex={-1} aria-label="추가 사진 파일" disabled={busy} multiple
           accept="image/jpeg,image/png,image/webp"
           onChange={event => { void select(event.target.files); event.target.value = ""; }} />
-        <button
-          type="button"
-          className={`button ${recording ? "destructive" : "secondary"}`}
+        <RecordActionButton icon="mic" danger={recording}
           disabled={reading}
           onClick={() =>
             recording ? recorder.current?.stop() : void startRecording()
           }
         >
-          <Icon name="mic" size={16} />
           {recording ? "녹음 끝내기" : "목소리 추가"}
-        </button>
+        </RecordActionButton>
         <input className="visually-hidden" ref={voiceInput} type="file" tabIndex={-1}
           aria-label="목소리 파일" disabled={busy} accept="audio/*"
           onChange={event => { void selectVoice(event.target.files); event.target.value = ""; }} />

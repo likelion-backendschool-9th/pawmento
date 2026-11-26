@@ -1,6 +1,7 @@
 "use client";
 import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
+import { RecordActionButton } from "@/components/RecordAction";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
 import {
@@ -175,15 +176,12 @@ export function WalkScreen({ pet }: Props) {
               </p>
             )}
             {error && <p className={styles.warn} role="alert">{error}</p>}
-            <button
-              type="button"
-              className="button primary"
+            <RecordActionButton icon="paw"
               disabled={phase !== "idle"}
               onClick={() => void session.start()}
             >
-              <Icon name="paw" size={17} />
               {phase === "starting" ? "시작하는 중…" : "산책 시작"}
-            </button>
+            </RecordActionButton>
           </>
         )}
       </div>

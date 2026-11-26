@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { RecordActionLink } from "@/components/RecordAction";
 import { QuestionAnswer } from "@/components/QuestionAnswer";
 import { Icon } from "@/components/Icon";
 import { Photo } from "@/components/Photo";
@@ -124,11 +125,13 @@ export function EmptyState({
   body,
   href,
   action,
+  actionIcon,
 }: {
   title: string;
   body: string;
   href?: string;
   action?: string;
+  actionIcon?: string;
 }) {
   return (
     <section className={styles.empty}>
@@ -137,7 +140,7 @@ export function EmptyState({
       </span>
       <h2>{title}</h2>
       <p>{body}</p>
-      {href && (
+      {href && (actionIcon ? <RecordActionLink href={href} icon={actionIcon}>{action}</RecordActionLink> :
         <Link href={href} className="button primary">
           {action}
           <Icon name="arrow" size={16} />

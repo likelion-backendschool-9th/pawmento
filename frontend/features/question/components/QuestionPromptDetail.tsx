@@ -1,4 +1,5 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { useApp } from "@/app/AppProvider";
@@ -53,12 +54,7 @@ export function QuestionPromptDetail({
         {app.sessionSource === "demo" && <small>가족 답변 데모</small>}
       </div>
       {!mine && pet.accessRole !== "VIEWER" && prompt.mode === pet.mode && (
-        <Link
-          className="button primary full"
-          href={`/pets/${pet.id}/questions/answers/new?promptId=${encodeURIComponent(prompt.id)}`}
-        >
-          나도 답변 남기기
-        </Link>
+        <RecordActionLink full href={`/pets/${pet.id}/questions/answers/new?promptId=${encodeURIComponent(prompt.id)}`}>나도 답변 남기기</RecordActionLink>
       )}
       {!answers.length && (
         <p className={s.unanswered}>

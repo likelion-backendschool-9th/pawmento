@@ -1,4 +1,5 @@
 "use client";
+import { RecordActionLink } from "@/components/RecordAction";
 import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
@@ -44,10 +45,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
         body={<PetDescription name={pet.name} suffix="의 소중한 기록,">사진과 목소리를 한곳에서 만나요.</PetDescription>}
       >
         {pet.accessRole !== "VIEWER" && (
-          <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
-            <Icon name="plus" size={16} />
-            미디어 남기기
-          </Link>
+          <RecordActionLink icon="camera" href={`/pets/${pet.id}/diary/new`}>미디어 남기기</RecordActionLink>
         )}
       </LifeHeading>
       <ArchiveNavigation petId={pet.id} active="media" />
@@ -85,6 +83,7 @@ export function MediaScreen({ pet }: { pet: Pet }) {
           body="사진, 영상 또는 목소리를 첨부해 첫 기억을 남겨보세요."
           href={`/pets/${pet.id}/diary/new`}
           action="기록 남기기"
+          actionIcon="camera"
         />
       )}
     </>

@@ -1,0 +1,12 @@
+.action[href], button.action { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 6px 13px 6px 7px; border: 1px solid var(--border-default); border-radius: 999px; background: var(--surface-subtle); color: var(--text-primary); font-family: inherit; font-size: 12px; font-weight: 500; line-height: 1.5; white-space: nowrap; box-shadow: none; cursor: pointer; transition: background .15s, border-color .15s; }
+.icon { display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--surface-card); color: var(--brand-primary); }
+.action:hover { background: var(--surface-card); border-color: var(--brand-primary); }
+.action:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.action:disabled { opacity: .5; cursor: default; }
+.action.full { width: 100%; }
+.action.compact { gap: 5px; padding-inline: 6px 10px; font-size: 11px; }
+.compact .icon { width: 24px; height: 24px; }
+button.action.danger { background: #fff0ea; border-color: #dfb4a7; color: var(--text-danger); }
+.danger .icon { color: var(--text-danger); }
+@media (prefers-reduced-motion: reduce) { .action[href], button.action { transition: none; } }
+@container app (max-width: 359px) { .action.compact { padding-inline: 10px; } .compact .icon { display: none; } }
