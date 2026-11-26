@@ -21,7 +21,11 @@ public final class PlaceSelection {
 
 	private static final double EARTH_RADIUS_METERS = 6_371_000;
 
-	// 이름 비교에서 무시하는 글자(띄어쓰기·괄호·구두점). 장소마다 부르므로 한 번만 컴파일해 둔다(검색은 후보 수천 곳에 쓴다, #195)
+	// 이름 비교에서 무시하는 글자(띄어쓰기·괄호·구두점). 장소마다 부르므로 한 번만 컴파일해 둔다(검색은 후보 수천 곳에 쓴다, #195).
+	//
+	// 주의: 이 규칙은 겹침 제거(#172-S15)뿐 아니라 저장된 검색 키(places.name_key·address_key, #195)와 검색어 정규화를 함께 정한다.
+	// 바꾸면 이미 저장된 키는 옛 규칙 그대로 남아 검색이 오류 없이 일부 장소를 놓친다. 바꾼 뒤에는 저장된 키를 모두 다시 채워야 한다
+	// (절차는 docs/map/place-search.md의 "정한 것"). PlaceSelectionComparableNameTest가 이 규칙을 고정해 두어, 바꾸면 먼저 실패한다.
 	private static final Pattern IGNORED_IN_NAME = Pattern.compile("[\\s()\\[\\]{}·\\-_.,'\"]");
 
 	private PlaceSelection() {
