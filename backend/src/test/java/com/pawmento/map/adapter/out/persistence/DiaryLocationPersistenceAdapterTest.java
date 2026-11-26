@@ -25,7 +25,8 @@ import com.pawmento.map.domain.LocationSource;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
-// 시나리오는 docs/map/record-location.md에 있다. API를 만들기 전이라 저장소가 지키는 부분만 확인한다.
+// 시나리오는 docs/map/record-location.md에 있다. 영역·경계·다른 반려동물과 회원·500개 제한·잘못 저장된 행은 MapPinScenarioTest가,
+// 핀 삭제는 DiaryLocationScenarioTest가 확인한다. 여기에는 저장소가 지키는 규칙(유일 제약, 기본값, 인덱스, JPA 컨텍스트)만 남긴다.
 // 진짜 PostgreSQL에서 확인하고, 각 테스트가 끝나면 되돌린다
 @Import(TestcontainersConfiguration.class)
 @SpringBootTest(properties = "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij")
@@ -157,77 +158,6 @@ class DiaryLocationPersistenceAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#19-S4 위치를 지우면 그 기록의 핀이 영역 조회에서 사라진다")
-	void deletedPinDisappears() {
-		save(100L, PET, MEMBER, 37.5, 127.0);
-		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
-		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).hasSize(1);
-
-		adapter.remove(100L);
-
-		assertThat(adapter.loadInArea(MEMBER, PET, area, 10)).isEmpty();
-	}
-
-	@Test
-	@DisplayName("#19-S5 영역 안의 위치만 조회되고 영역 밖은 나오지 않는다")
-	void onlyInsideArea() {
-		save(1L, PET, MEMBER, 37.5, 127.0); // 안
-		save(2L, PET, MEMBER, 36.9, 127.0); // 위도 아래
-		save(3L, PET, MEMBER, 38.1, 127.0); // 위도 위
-		save(4L, PET, MEMBER, 37.5, 125.9); // 경도 왼쪽
-		save(5L, PET, MEMBER, 37.5, 128.1); // 경도 오른쪽
-
-		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
-
-		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
-	}
-
-	@Test
-	@DisplayName("#19-S5 영역의 경계선 위에 있는 위치도 조회된다")
-	void boundaryIsInclusive() {
-		save(1L, PET, MEMBER, 37.0, 126.0);
-		save(2L, PET, MEMBER, 38.0, 128.0);
-
-		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
-
-		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L, 2L);
-	}
-
-	@Test
-	@DisplayName("#19-S5 같은 영역이어도 다른 반려동물의 위치는 나오지 않는다")
-	void otherPetExcluded() {
-		save(1L, PET, MEMBER, 37.5, 127.0);
-		save(2L, PET + 1, MEMBER, 37.5, 127.0);
-
-		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
-
-		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
-	}
-
-	@Test
-	@DisplayName("#19-S7 다른 회원이 만든 위치는 같은 영역·반려동물이어도 나오지 않는다")
-	void otherMemberExcluded() {
-		save(1L, PET, MEMBER, 37.5, 127.0);
-		save(2L, PET, MEMBER + 1, 37.5, 127.0);
-
-		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 10);
-
-		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L);
-	}
-
-	@Test
-	@DisplayName("#19-S6 limit보다 많으면 limit개만 오래된 순으로 돌려준다")
-	void limitsResults() {
-		for (long diaryId = 1; diaryId <= 5; diaryId++) {
-			save(diaryId, PET, MEMBER, 37.5, 127.0);
-		}
-
-		List<DiaryLocation> found = adapter.loadInArea(MEMBER, PET, MapArea.of(37.0, 126.0, 38.0, 128.0), 3);
-
-		assertThat(found).extracting(DiaryLocation::getDiaryId).containsExactly(1L, 2L, 3L);
-	}
-
-	@Test
 	@DisplayName("#19-S6 limit이 1보다 작으면 거부한다")
 	void rejectsInvalidLimit() {
 		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
@@ -243,23 +173,6 @@ class DiaryLocationPersistenceAdapterTest {
 		assertThatThrownBy(() -> adapter.loadInArea(null, PET, area, 10)).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, null, area, 10)).isInstanceOf(IllegalArgumentException.class);
 		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, null, 10)).isInstanceOf(IllegalArgumentException.class);
-	}
-
-	@Test
-	@DisplayName("#19-S5 DB에는 들어가지만 Java 길이로 255자를 넘는 장소 이름의 행은 400이 아니라 저장 데이터 오류(StoredLocationInvalidException, 원인 보존)로 읽힌다")
-	void storedRowBreakingDomainRuleIsStorageError() {
-		// 이모지 128개: PostgreSQL varchar(255)는 문자 수로 128이라 들어가고, Java String.length()는 256이다
-		String emojiName = "\uD83D\uDC36".repeat(128);
-		jdbcTemplate.update("""
-				insert into diary_location (diary_id, pet_id, created_by, latitude, longitude, place_name, created_at, updated_at)
-				values (500, ?, ?, 37.5, 127.0, ?, now(), now())
-				""", PET, MEMBER, emojiName);
-		flushAndClear();
-		MapArea area = MapArea.of(37.0, 126.0, 38.0, 128.0);
-
-		assertThat(adapter.read(500L).orElseThrow().placeName()).isEqualTo(emojiName);
-		assertThatThrownBy(() -> adapter.loadInArea(MEMBER, PET, area, 10))
-			.isInstanceOf(com.pawmento.map.application.exception.StoredLocationInvalidException.class);
 	}
 
 	@Test
