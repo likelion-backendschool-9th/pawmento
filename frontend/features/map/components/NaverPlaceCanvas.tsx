@@ -19,11 +19,14 @@ export function NaverPlaceCanvas({
   onSelect,
   onBoundsChange,
   coveredBottom,
+  focus,
 }: PlaceCanvasProps & { clientId: string; onUnavailable: () => void }) {
   const element = useRef<HTMLDivElement>(null);
   const api = useRef<NaverMapsApi | null>(null);
   const map = useRef<NaverMap | null>(null);
   const markers = useRef<NaverMarker[]>([]);
+  // 이미 처리한 이동 요청. 지도가 아직 준비되지 않았을 때 온 요청은 지도가 만들어진 뒤에 처리한다
+  const handledFocus = useRef<number | null>(null);
   // 콜백은 최신 값을 쓰되 지도는 다시 만들지 않는다.
   const latest = useRef({ onSelect, onBoundsChange, onUnavailable, places, coveredBottom });
   useEffect(() => {
@@ -105,12 +108,19 @@ export function NaverPlaceCanvas({
     });
   }, [places, selectedId]);
 
+  // 검색 결과를 눌러 이동을 요청하면 그 지점으로 지도를 옮긴다(#195-S11). 줌은 바꾸지 않는다.
   // 장소를 고르면 카드가 지도 아래를 덮는다. 선택한 마커가 카드 뒤에 가려지거나 칩에 가려지면 보이는 영역 가운데로 옮긴다.
+  // 두 일을 한 곳에서 해야, 옮긴 뒤의 영역으로 마커 위치를 잰다.
   useEffect(() => {
     const current = map.current;
     const maps = api.current;
     const box = element.current;
-    if (!selectedId || !current || !maps || !box) return;
+    if (!current || !maps || !box) return;
+    if (focus && handledFocus.current !== focus.token) {
+      handledFocus.current = focus.token;
+      current.setCenter(new maps.LatLng(focus.point.latitude, focus.point.longitude));
+    }
+    if (!selectedId) return;
     const place = latest.current.places.find((item) => item.id === selectedId);
     if (!place) return;
     const height = box.clientHeight;
@@ -128,7 +138,7 @@ export function NaverPlaceCanvas({
     // 마커를 위로 옮기려면 지도의 중심을 그만큼 남쪽으로 옮긴다
     const center = current.getCenter();
     current.setCenter(new maps.LatLng(center.lat() - (shift / height) * span, center.lng()));
-  }, [selectedId]);
+  }, [selectedId, focus]);
 
   return (
     <div
