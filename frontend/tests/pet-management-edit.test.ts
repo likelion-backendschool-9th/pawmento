@@ -52,7 +52,7 @@ test("#85-S8 수정 API는 HTTP 실패를 화면이 해석할 수 있는 앱 오
   }
 });
 
-test("#85-S8 최신 프로필과 병합해도 미저장 편집을 유지하고 변경한 필드만 다시 보낸다", () => {
+test("#85-S8 최신 프로필과 병합해도 미저장 편집을 유지하고 변경한 필드만 다시 보내며, 앞뒤 공백만 바꾼 입력은 서버 값을 덮지 않는다", () => {
   const input = { ...original, name: " 콩콩 ", breed: "" };
   const latest: RegisterPetInput = {
     name: "서버 이름",
@@ -64,11 +64,10 @@ test("#85-S8 최신 프로필과 병합해도 미저장 편집을 유지하고 �
   const merged = rebaseProfileInput(original, input, latest);
   assert.deepEqual(merged, { ...latest, name: " 콩콩 ", breed: "" });
   assert.deepEqual(profileChanges(latest, merged), { name: "콩콩", breed: "" });
+
+  // 앞뒤 공백만 바꾼 입력은 서버의 최신 이름이나 품종을 덮지 않는다
+  const latestNames = { ...original, name: "서버 이름", breed: "서버 품종" };
+  const spaced = { ...original, name: " 콩이 ", breed: " 푸들 " };
+  assert.deepEqual(rebaseProfileInput(original, spaced, latestNames), latestNames);
 });
 
-test("#85-S8 앞뒤 공백만 바꾼 입력은 서버의 최신 이름이나 품종을 덮지 않는다", () => {
-  const latest = { ...original, name: "서버 이름", breed: "서버 품종" };
-  const input = { ...original, name: " 콩이 ", breed: " 푸들 " };
-
-  assert.deepEqual(rebaseProfileInput(original, input, latest), latest);
-});
