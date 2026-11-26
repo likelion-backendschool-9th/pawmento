@@ -147,3 +147,5 @@ DiaryLocationState.value()는 사용하지 않아 제거했다. 관측 상태는
 | (새 검사) | #182 "공통 components는 features와 mocks를 가져오지 않는다", #182 "기능 폴더에 domain·application·adapters 계층 폴더가 다시 생기지 않는다" | `import()` 호출도 경로를 모아 검사한다. 문자열을 조합해 만든 경로는 잡지 못한다 |
 
 브라우저 저장 업무의 테스트(`workspace.test.ts`, `workspace-migration.test.ts`, `life.test.ts`, `postcard-demo.test.ts`, `question-workflow.test.ts`, `demo-questions.test.ts`)는 이번에 지우지 않고 가져오는 경로만 `mocks/handlers`로 바꿨다. 이 테스트는 이제 데모(목업)의 동작을 확인할 뿐 운영 업무 규칙의 근거가 아니다. 반려동물·일기·질문·엽서·가족·커뮤니티·관리 규칙은 각 화면을 서버 API에 연결하는 이슈(#85, #104, #129 등)에서 백엔드 시나리오 테스트로 확인하고, 그때 해당 목업 테스트를 줄인다.
+
+커뮤니티(#104)는 가입·로그인한 회원의 화면을 글 API에 연결했지만 `life.test.ts`의 커뮤니티 테스트(#12-S8 두 개)는 줄이지 않았다. 데모 세션과 관리자 신고 화면(`AdminScreen`)이 아직 브라우저 데모 글을 쓰기 때문이다. 서버 글의 규칙은 #21의 백엔드 시나리오 테스트가 확인한다. 두 테스트는 데모 진입점 결정(#168) 뒤 데모를 정리할 때 함께 줄인다.
