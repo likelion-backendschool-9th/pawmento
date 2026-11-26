@@ -202,7 +202,8 @@ class PlaceSearchScenarioTest {
 		for (String query : List.of("", "q=", "q=%EC%84%9C", "q=%20%20%20", "q=" + "a".repeat(31), "q=_%20_",
 				"q=%EC%84%9C%EC%9A%B8&latitude=37.5", "q=%EC%84%9C%EC%9A%B8&longitude=127.0",
 				"q=%EC%84%9C%EC%9A%B8&latitude=91&longitude=127.0", "q=%EC%84%9C%EC%9A%B8&categories=CAFE",
-				"q=%EC%84%9C%EC%9A%B8&categories=HOSPITAL,HOSPITAL", "q=%EC%84%9C%EC%9A%B8&latitude=abc&longitude=127")) {
+				"q=%EC%84%9C%EC%9A%B8&categories=HOSPITAL,HOSPITAL", "q=%EC%84%9C%EC%9A%B8&latitude=abc&longitude=127",
+				"q=ab%00cd", "q=%00%00", "q=%EC%84%9C%EC%9A%B8%01")) {
 			MvcResult result = search(me, query).andReturn();
 			if (result.getResponse().getStatus() != 400 || result.getResponse().getContentAsString().isBlank()) {
 				notRejected.add(query + " -> " + result.getResponse().getStatus());
@@ -212,6 +213,9 @@ class PlaceSearchScenarioTest {
 		// 검색어가 너무 짧다는 이유가 응답에 담겨 화면이 안내할 수 있다
 		String reason = search(me, "q=%EC%84%9C").andReturn().getResponse().getContentAsString();
 		assertThat(reason).contains("2자 이상");
+		// 널 문자가 든 검색어는 500이 아니라 400이고 이유에 검색어를 담지 않는다
+		String nul = search(me, "q=ab%00cd").andReturn().getResponse().getContentAsString();
+		assertThat(nul).contains("쓸 수 없는 글자").doesNotContain("ab");
 		// 검색어는 오류 응답에 담지 않는다
 		String secret = "비밀검색어" + token;
 		String tooLong = search(me, "q=" + encode(secret.repeat(6))).andReturn().getResponse().getContentAsString();

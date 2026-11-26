@@ -68,6 +68,20 @@ class PlaceSearchTest {
 	}
 
 	@Test
+	@DisplayName("#195-S6 널 문자(U+0000) 같은 제어 문자가 든 검색어는 DB를 부르기 전에 쓸 수 없는 글자로 거절하고, 이유에 검색어를 담지 않는다")
+	void rejectsControlCharacters() {
+		for (String query : new String[] { "ab\u0000cd", "\u0000\u0000", "서울\u0001숲", "서울\u007f숲" }) {
+			assertThatThrownBy(() -> PlaceSearch.normalize(query)).as(query.replace('\u0000', '0'))
+				.isInstanceOf(InvalidSearchQueryException.class)
+				.hasMessageContaining("쓸 수 없는 글자")
+				.hasMessageNotContaining("서울")
+				.hasMessageNotContaining("ab");
+		}
+		// 띄어쓰기·탭·줄바꿈은 정규화에서 지워지므로 거절하지 않는다
+		assertThat(PlaceSearch.normalize("서울\t숲\n")).isEqualTo("서울숲");
+	}
+
+	@Test
 	@DisplayName("#195-S3 지도 중심이 없으면 이름이 검색어로 시작하는 곳, 이름에 든 곳, 주소에만 든 곳 순이고 같은 묶음에서는 이름순이며 거리는 null이다")
 	void ordersByRelevanceWithoutCenter() {
 		List<Place> candidates = List.of(

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 영역 안의 후보 장소에서 화면에 줄 장소를 고른다.
@@ -19,6 +20,9 @@ public final class PlaceSelection {
 	static final double OVERLAP_METERS = 30;
 
 	private static final double EARTH_RADIUS_METERS = 6_371_000;
+
+	// 이름 비교에서 무시하는 글자(띄어쓰기·괄호·구두점). 장소마다 부르므로 한 번만 컴파일해 둔다(검색은 후보 수천 곳에 쓴다, #195)
+	private static final Pattern IGNORED_IN_NAME = Pattern.compile("[\\s()\\[\\]{}·\\-_.,'\"]");
 
 	private PlaceSelection() {
 	}
@@ -71,7 +75,7 @@ public final class PlaceSelection {
 	// 같은 가게가 병원과 미용에 띄어쓰기만 다르게 등록된 경우가 많아(예: 스테이동물병원 / 스테이 동물병원) 공백·괄호·구두점을 빼고
 	// 소문자로 맞춰 비교한다. 진짜 데이터에서 이 비교로 253곳이 더 정리되었고 표본은 모두 같은 가게였다
 	static String comparableName(String name) {
-		return name.toLowerCase(Locale.ROOT).replaceAll("[\\s()\\[\\]{}·\\-_.,'\"]", "");
+		return IGNORED_IN_NAME.matcher(name.toLowerCase(Locale.ROOT)).replaceAll("");
 	}
 
 	// 두 좌표 사이의 거리(m). 하버사인 공식이다
