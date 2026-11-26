@@ -28,6 +28,7 @@ import { createMapSource } from "../features/map/source.ts";
 import { createWalkSession } from "../features/map/walkSession.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { DemoPlaceRepository } from "../mocks/handlers/DemoPlaceRepository.ts";
+import { createDemoOnboarding } from "../mocks/handlers/demoOnboarding.ts";
 import { DemoWalkRepository } from "../mocks/handlers/DemoWalkRepository.ts";
 
 export { demoDiarySamples } from "../mocks/fixtures/demoDiaries.ts";
@@ -51,23 +52,16 @@ export function createDependencies() {
     id: () => createId(),
     now: () => new Date().toISOString(),
   };
+  const life = createLifeUseCases(lifeRepository, new DemoPostcardGenerator(), runtime);
+  const workspace = createWorkspaceUseCases(
+    new SharedWorkspaceRepository(new BrowserWorkspaceRepository(), lifeRepository),
+    runtime,
+    new PoolQuestionRepository(lifeRepository),
+  );
   return {
-    life: createLifeUseCases(
-      lifeRepository,
-      new DemoPostcardGenerator(),
-      runtime,
-    ),
-    workspace: createWorkspaceUseCases(
-      new SharedWorkspaceRepository(
-        new BrowserWorkspaceRepository(),
-        lifeRepository,
-      ),
-      {
-        id: () => createId(),
-        now: () => new Date().toISOString(),
-      },
-      new PoolQuestionRepository(lifeRepository),
-    ),
+    life,
+    workspace,
+    onboardingPreview: createDemoOnboarding(workspace, life),
     auth: createMemberSession(http, new DemoAuthRepository()),
     pets: createPetApi(http),
     petManagement: createPetManagementApi(http),

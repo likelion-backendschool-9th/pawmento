@@ -13,7 +13,7 @@ import {
 
 type DemoMember = {
   current(): Promise<Account | null>;
-  startDemo(): Promise<Account>;
+  startDemo(input?: { fresh?: boolean; nickname?: string }): Promise<Account>;
   resetPassword(input: Credentials): Promise<void>;
   withdraw(): Promise<void>;
   signInDemoProvider(provider: "google" | "kakao"): Promise<Account>;
@@ -65,8 +65,8 @@ export function createMemberSession(http: ApiClient, demo: DemoMember) {
           return account;
         });
     },
-    startDemo() {
-      return demo.startDemo().then((account) => {
+    startDemo(input?: { fresh?: boolean; nickname?: string }) {
+      return demo.startDemo(input).then((account) => {
         source = "demo";
         return account;
       });
