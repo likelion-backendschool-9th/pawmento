@@ -10,7 +10,6 @@
 .choice { display:flex; flex-direction:row; align-items:center; gap:16px; min-height:clamp(148px,20dvh,180px); padding:22px 18px; text-align:left; border:1px solid var(--mode-border); border-radius:24px; background:var(--surface-card); text-decoration:none; color:var(--text-primary); box-shadow:0 6px 24px #35432105; }
 .choice > span:nth-child(2) { flex:1; min-width:0; }
 .choice strong { display:block; margin-bottom:9px; font-size:18px; font-weight:600; }
-.choice small { display:block; font-size:12px; line-height:1.8; color:var(--text-secondary); }
 .form { display:flex; flex-direction:column; flex:1; padding:22px 20px; border:1px solid var(--mode-border); border-radius:28px; background:var(--surface-card); }
 .form fieldset { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; gap:18px; margin:0; padding:0; border:0; }
 .form label { position:relative; display:grid; gap:9px; color:var(--text-primary); font-size:13px; font-weight:500; }
@@ -46,7 +45,6 @@
 .photo :global(.photo-picker) button > :global(.photo) { height:116px; }
 
 .screen[data-step="choose"] .heading { margin-top:clamp(12px,5dvh,52px); }
-.screen[data-step="choose"] .choice small { font-size:11px; }
 @media(min-height:900px) { .form fieldset { gap:22px; } }
 
 .screen[data-step="join"] .content { justify-content:center; padding-block:20px; }
@@ -69,4 +67,4 @@
 .inviteChoice .choiceAction { color:#92734c; }
 .inviteChoice { background:linear-gradient(125deg,var(--surface-card),#fffaf3); }
 .choiceNote { margin:8px 0 0; text-align:center; color:var(--text-secondary); font-size:11px; line-height:1.9; text-wrap:balance; }
-@media(max-width:359px) { .profilePreview,.invitationPreview { width:64px; height:82px; } .profilePreview > :global(.photo) { width:52px; height:52px; } .invitationPhoto { left:8px; } .invitationMail { left:4px; } .choice small { text-wrap:balance; } .choiceNote { font-size:10px; } }
+@media(max-width:359px) { .profilePreview,.invitationPreview { width:64px; height:82px; } .profilePreview > :global(.photo) { width:52px; height:52px; } .invitationPhoto { left:8px; } .invitationMail { left:4px; } .choiceNote { font-size:10px; } }
