@@ -7,7 +7,7 @@
 .question { padding: 24px 22px 22px; background: var(--surface-subtle); }
 .meta { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--text-secondary); }
 .number { font-size: 15px; font-weight: 650; color: var(--brand-primary); }
-.question h2 { font-size: 22px; font-weight: 550; line-height: 1.55; letter-spacing: -.7px; margin: 16px 0 10px; overflow-wrap: anywhere; }
+.question h2 { font-size: 20px; font-weight: 550; line-height: 1.55; letter-spacing: -.7px; margin: 16px 0 10px; overflow-wrap: anywhere; word-break: normal; line-break: anywhere; }
 .question > p { font-size: 11px; color: var(--text-secondary); margin: 0; line-height: 1.7; }
 .compose { padding: 24px 22px 20px; }
 .compose > label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 12px; }

@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -60,9 +61,9 @@ export function WalkScreen({ pet }: Props) {
         </Link>
         {walking && (
           <>
-            <span className={styles.chip}>
+            <span className={styles.chip} aria-label={`${pet.name}와 산책 중`} title={`${pet.name}와 산책 중`}>
               <Icon name="paw" size={15} />
-              {pet.name}와 산책 중
+              <span className={styles.walkingName}>{pet.name}</span>
             </span>
             <span className={styles.chip + " " + styles.status + " " + (recording ? styles.rec : styles.paused)}>
               <i aria-hidden="true" />
@@ -88,9 +89,9 @@ export function WalkScreen({ pet }: Props) {
                 ? "위치가 한동안 오지 않아 서버가 산책을 먼저 닫았어요"
                 : outcome?.complete === false
                   ? "걸은 길의 일부만 저장됐어요"
-                  : practice
-                    ? `${pet.name}와 함께 걸은 길을 연습으로 기록했어요`
-                    : `${pet.name}와 함께 걸은 길이 저장됐어요`}
+                  : <PetDescription name={pet.name} suffix="와 함께 걸은 길,">
+                    {practice ? "연습으로 기록했어요." : "소중히 저장했어요."}
+                  </PetDescription>}
             </h2>
             {(outcome?.status === "INTERRUPTED" || outcome?.complete === false) && (
               <p className={styles.warn} role="status">
@@ -165,7 +166,8 @@ export function WalkScreen({ pet }: Props) {
         ) : (
           <>
             <p className={styles.eyebrow}>WALK</p>
-            <h2>{pet.name}와 산책을 시작할까요?</h2>
+            <p className={styles.petName}>{pet.name}</p>
+            <h2>산책을 시작할까요?</h2>
             <p className={styles.notice}>걷는 동안 지나온 길을 지도에 그려 드려요.</p>
             {practice && (
               <p className={styles.notice}>

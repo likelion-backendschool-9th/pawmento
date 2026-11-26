@@ -8,16 +8,19 @@ export function LifeHeading({
   title,
   body,
   children,
+  subject,
 }: {
+  subject?: string;
   label: string;
   title: string;
-  body: string;
+  body: React.ReactNode;
   children?: React.ReactNode;
 }) {
   return (
     <header className={styles.heading}>
       <div>
         <p>{label}</p>
+        {subject && <strong className={styles.headingSubject}>{subject}</strong>}
         <h1>{title}</h1>
         <span>{body}</span>
       </div>

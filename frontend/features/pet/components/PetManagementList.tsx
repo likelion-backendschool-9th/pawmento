@@ -17,7 +17,7 @@ import {
   type PetListSession,
   type PetListState,
 } from "../utils/petManagementList";
-import { PetList } from "./PetScreens";
+import { PetList, WorkspacePetSwitch } from "./PetScreens";
 
 export function PetManagementList() {
   const { account, sessionReady, sessionSource, dependencies } = useApp();
@@ -97,6 +97,8 @@ function ServerList({ session, listMine }: {
         ) : (
           <EmptyServerList />
         ))}
+      {/* 서버 목록은 아직 공간 전환을 지원하지 않아, 브라우저 기록의 기존 전환 경로를 따로 둔다 */}
+      <WorkspacePetSwitch />
       {/* 가족 반려동물은 내 목록 조회의 성공 여부와 따로 불러온다 */}
       <MyFamilyPets />
     </>

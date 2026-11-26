@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -54,7 +55,7 @@ export function TodayQuestion({ pet }: { pet: Pet }) {
 
   return (
     <>
-      <QuestionHeading title="오늘의 질문" body={`${pet.name}의 이야기를, 나의 시선으로 남겨요.`}>
+      <QuestionHeading title="오늘의 질문" body={<PetDescription name={pet.name} suffix="의 이야기를,">나의 시선으로 남겨요.</PetDescription>}>
         <Link className="button secondary" href={`/pets/${pet.id}/questions/history`}>
           <Icon name="book" size={15} /> 이전 질문
         </Link>

@@ -1,4 +1,5 @@
 "use client";
+import { PetDescription } from "@/features/pet/components/PetDescription";
 import { journalItems } from "@/features/diary/utils/journalItems";
 
 import Link from "next/link";
@@ -197,7 +198,7 @@ export function ArchiveScreen({
     <>
       <CollectionHeading
         title={calendar ? "다이어리 달력" : "다이어리"}
-        body={`${pet.name}와 함께한 하루를 한 편씩 모았어요.`}
+        body={<PetDescription name={pet.name} suffix="와 함께한 하루,">한 편씩 모았어요.</PetDescription>}
       >
         <Link className="button primary" href={`/pets/${pet.id}/diary/new`}>
           <Icon name="plus" size={17} />

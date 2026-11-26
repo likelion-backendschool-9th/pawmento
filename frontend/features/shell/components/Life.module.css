@@ -1621,3 +1621,11 @@
 .panelHeading {
   flex-wrap: wrap;
 }
+
+/* Name-bearing headings must fit the app, including unbroken 20-character names. */
+.heading > div { min-width: 0; }
+.heading h1, .heading > div > span { overflow-wrap: anywhere; word-break: normal; }
+.heading h1 { line-height: 1.5; }
+.petReference > section, .memberRow > div { min-width: 0; }
+.petReference strong, .memberRow strong { overflow-wrap: anywhere; word-break: normal; }
+.headingSubject { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin: 0 0 10px; overflow-wrap: anywhere; word-break: normal; }
