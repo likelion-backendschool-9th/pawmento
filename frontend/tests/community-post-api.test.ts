@@ -195,7 +195,7 @@ test("#104-S9 데모 계정이면 브라우저 데모 글을 쓰고 글 API를 �
   assert.deepEqual(calls, []);
 });
 
-test("#104-S9 가입·로그인한 계정이면 글 API를 쓰고 데모 저장소를 부르지 않는다", async () => {
+test("#104-S9 가입·로그인한 계정이면 글 API를 쓰고 데모 저장소를 부르지 않으며, 서버 글이 실패해도 데모 글로 대신하지 않는다", async () => {
   const seen: string[] = [];
   const { api, calls } = server(() =>
     Response.json({ posts: [summaryDto(9)], nextCursor: null }),
@@ -209,17 +209,13 @@ test("#104-S9 가입·로그인한 계정이면 글 API를 쓰고 데모 저장�
   assert.deepEqual(page.posts.map((post) => post.id), ["9"]);
   assert.equal(calls.length, 1);
   assert.deepEqual(seen, []);
-});
 
-test("#104-S9 서버 글이 실패해도 데모 글로 대신하지 않고 오류를 올린다", async () => {
-  const seen: string[] = [];
-  const { api } = server(() => new Response(null, { status: 500 }));
-
-  const source = selectCommunitySource({ account: httpAccount, server: api, demo: demoLife(seen) });
-
-  assert.equal(source.kind, "server");
-  if (source.kind !== "server") return;
-  await assert.rejects(source.posts.list({ category: "LIFE" }), ApiError);
+  // 서버 글이 실패해도 데모 글로 대신하지 않고 오류를 올린다
+  const failing = server(() => new Response(null, { status: 500 }));
+  const failingSource = selectCommunitySource({ account: httpAccount, server: failing.api, demo: demoLife(seen) });
+  assert.equal(failingSource.kind, "server");
+  if (failingSource.kind !== "server") return;
+  await assert.rejects(failingSource.posts.list({ category: "LIFE" }), ApiError);
   assert.deepEqual(seen, []);
 });
 
