@@ -18,6 +18,10 @@ public record ReportTarget(
 		if (type == null || id == null || id <= 0 || authorId == null || version == null) {
 			throw new InvalidReportException("신고할 대상이 필요합니다.");
 		}
+		// 글은 제목·본문·카테고리를 스냅샷으로 함께 보존한다(#112-S1). 제목이 없는 대상(댓글)은 종류를 더할 때 정한다
+		if (type == TargetType.POST && (title == null || body == null || categoryCode == null)) {
+			throw new InvalidReportException("신고할 글의 제목·본문·카테고리가 필요합니다.");
+		}
 	}
 
 	public boolean writtenBy(Long memberId) {

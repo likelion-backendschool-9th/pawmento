@@ -125,6 +125,17 @@ class ReportTest {
 	}
 
 	@Test
+	@DisplayName("#112-S1 글 대상은 제목·본문·카테고리 중 하나라도 없으면 만들 수 없다")
+	void postTargetNeedsSnapshot() {
+		String[][] cases = { {null, "본문", "LIFE"}, {"제목", null, "LIFE"}, {"제목", "본문", null} };
+		for (String[] c : cases) {
+			assertThatThrownBy(() -> new ReportTarget(TargetType.POST, 7L, AUTHOR, 2L, c[0], c[1], c[2]))
+				.as("제목 %s, 본문 %s, 카테고리 %s", c[0], c[1], c[2])
+				.isInstanceOf(InvalidReportException.class);
+		}
+	}
+
+	@Test
 	@DisplayName("신고할 대상과 신고한 회원이 없으면 거절한다")
 	void rejectsMissingTarget() {
 		assertThatThrownBy(() -> Report.receive(null, REPORTER, "SPAM", null))
