@@ -193,6 +193,8 @@
 - Then  소유주와 가족을 가입 순서로 보고, [초대 코드 만들기]를 누르면 코드와 만료 시각을 이 화면에서 한 번만 본다(서버에는 해시만 있다)
 - Then  로그인하지 않았거나 데모 세션이면 로그인 안내를 본다. 403·404는 다시 시도 없이 안내만 본다
 - Then  계정이 바뀌면 앞 계정의 목록·초대 코드가 남지 않는다
+- Then  소유주는 가족 줄마다 [내보내기]를, 가족은 자기 줄에서 [나가기]를 본다. 누르면 한 번 더 확인한 뒤 실행한다
+- Then  내보내면 목록을 다시 불러오고, 나가면 `/pets`로 가며 "가족에서 나왔어요" 알림을 본다
 
 #133-S25 코드로 참여 [직접, API 매핑은 테스트: frontend/tests/family-api.test.ts]
 - Given 회원 D가 서버 세션으로 로그인했다
@@ -227,6 +229,7 @@
    - 한 트랜잭션에서 반려동물 행 잠금 → 권한 확인 → 멤버십 삭제 → 그 회원이 발급한 P의 코드 삭제
    - API: 내보내기 `DELETE /api/v1/families/members/{memberId}?petId=P`, 나가기 `DELETE /api/v1/families/members/me?petId=P`(204). `petId`는 Request record와 `@Valid`로 받는다
    - 멤버십 삭제와 코드 삭제는 각각 한 문장이고 같은 트랜잭션이다. 지운 멤버십 줄이 0이면 가족이 아니었던 것이다
+   - 화면: 가족 화면(S24)에 내보내기·나가기 버튼을 둔다. 공용 파일 `lib/http/apiClient.ts`에 `deleteEmpty`(본문 없는 DELETE) 한 줄을 더한다
 4. 다른 도메인 접근 교체 — S7~S9, S12 (도메인별 PR, 담당과 순서 합의)
    - diary: `CheckDiaryPetAccessPort`가 역할(`OWNER`·`FAMILY`)을 돌려주게 하고 `OwnerDiaryPetAccessAdapter`를 가족 포트로 바꾼다. `DeleteDiaryEntryService`는 `requireAuthor` 대신 "작성자이거나 소유주"를 확인하고, 수정은 `requireAuthor`를 유지한다
      - media에 넘기는 `previous`는 권한 확인을 마친 뒤 `DiaryAttachmentsPort.find(entryId)`로 DB에서 읽은 그 일기의 실제 첨부만 쓴다. 요청 본문의 값은 `previous`로 넘기지 않는다

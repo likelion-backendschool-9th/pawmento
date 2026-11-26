@@ -57,5 +57,18 @@ export function createFamilyApi(http: ApiClient) {
         joinedAt: pet.joinedAt,
       }));
     },
+
+    async removeMember(petId: string, memberId: string): Promise<void> {
+      requirePetId(petId);
+      if (!/^[1-9]\d*$/.test(memberId)) {
+        throw new ApplicationError("NOT_FOUND", "가족을 찾을 수 없어요.");
+      }
+      await http.deleteEmpty(`/families/members/${memberId}?petId=${petId}`);
+    },
+
+    async leave(petId: string): Promise<void> {
+      requirePetId(petId);
+      await http.deleteEmpty(`/families/members/me?petId=${petId}`);
+    },
   };
 }

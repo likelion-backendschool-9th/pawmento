@@ -22,6 +22,7 @@ export type ApiClient = {
   put: <T>(path: string, body?: unknown) => Promise<T>;
   delete: (path: string) => Promise<void>;
   postEmpty: (path: string) => Promise<void>;
+  deleteEmpty: (path: string) => Promise<void>;
 };
 
 type FetchLike = typeof fetch;
@@ -89,6 +90,14 @@ export function createApiClient(options?: {
           headers: { "Content-Type": "application/json" },
         },
         true,
+      ),
+    deleteEmpty: (path: string) =>
+      request<void>(
+        path,
+        {
+          method: "DELETE"
+        },
+        true
       ),
   };
 }

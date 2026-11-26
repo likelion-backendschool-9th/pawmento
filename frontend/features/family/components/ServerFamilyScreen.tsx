@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -30,7 +30,8 @@ export function ServerFamilyScreen() {
 }
 
 function FamilyBody({ petId }: { petId: string }) {
-  const { account, sessionReady, sessionSource, dependencies } = useApp();
+  const { account, sessionReady, sessionSource, dependencies, notify } = useApp();
+  const router = useRouter();
   const [family, setFamily] = useState<FamilyList | null>(null);
   const [error, setError] = useState<LoadError | null>(null);
   const [loginRequired, setLoginRequired] = useState(false);
@@ -39,6 +40,9 @@ function FamilyBody({ petId }: { petId: string }) {
   const [issueError, setIssueError] = useState("");
   const [busy, setBusy] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // 새로: 확인을 기다리는 대상(가족의 memberId). 같은 값을 한 번 더 누르면 실행한다
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [actionError, setActionError] = useState("");
   const href = `/pets/manage/${encodeURIComponent(petId)}/family`;
   const server = sessionReady && sessionSource === "http" && !!account;
 
@@ -86,6 +90,35 @@ function FamilyBody({ petId }: { petId: string }) {
     );
   }
 
+  // 새로: 소유주가 가족을 내보낸다. 끝나면 목록을 다시 불러온다
+  async function removeMember(memberId: string) {
+    setBusy(true);
+    setActionError("");
+    try {
+      await dependencies.family.removeMember(petId, memberId);
+      setConfirming(null);
+      setAttempt((n) => n + 1);
+    } catch (cause) {
+      setActionError(messageOf(cause));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // 새로: 가족이 스스로 나간다. 나가면 이 화면을 볼 수 없으니 목록으로 간다
+  async function leave() {
+    setBusy(true);
+    setActionError("");
+    try {
+      await dependencies.family.leave(petId);
+      notify("가족에서 나왔어요.");
+      router.push("/pets");
+    } catch (cause) {
+      setActionError(messageOf(cause));
+      setBusy(false);
+    }
+  }
+
   if (!sessionReady) {
     return <p className="loading-bar" role="status">로그인 상태를 확인하고 있어요…</p>;
   }
@@ -113,6 +146,37 @@ function FamilyBody({ petId }: { petId: string }) {
     return <p className="loading-bar" role="status">가족을 불러오고 있어요…</p>;
   }
 
+  // 새로: 내가 소유주인지에 따라 버튼이 달라진다
+  const isOwner = family.owner.memberId === account?.id;
+
+  function actionFor(memberId: string) {
+    const isMe = memberId === account?.id;
+    if (!isOwner && !isMe) return null;
+    const label = isMe ? "나가기" : "내보내기";
+    if (confirming !== memberId) {
+      return (
+        <button type="button" className="text-link" disabled={busy} onClick={() => setConfirming(memberId)}>
+          {label}
+        </button>
+      );
+    }
+    return (
+      <span>
+        <button
+          type="button"
+          className="text-link"
+          disabled={busy}
+          onClick={() => void (isMe ? leave() : removeMember(memberId))}
+        >
+          정말 {label}
+        </button>{" "}
+        <button type="button" className="text-link" disabled={busy} onClick={() => setConfirming(null)}>
+          취소
+        </button>
+      </span>
+    );
+  }
+
   return (
     <>
       <Link href="/pets" className="text-link">← 함께하는 친구들</Link>
@@ -134,8 +198,10 @@ function FamilyBody({ petId }: { petId: string }) {
               person={member}
               note={`${dateTime(member.joinedAt)}부터 함께`}
               badge="가족"
+              action={actionFor(member.memberId)}
             />
           ))}
+          {actionError && <p className="error" role="alert">{actionError}</p>}
         </section>
         <section className={s.panel}>
           <div className={s.panelHeading}>
@@ -171,7 +237,12 @@ function FamilyBody({ petId }: { petId: string }) {
   );
 }
 
-function PersonRow({ person, note, badge }: { person: FamilyPerson; note: string; badge: string }) {
+function PersonRow({ person, note, badge, action }: {
+  person: FamilyPerson;
+  note: string;
+  badge: string;
+  action?: React.ReactNode;
+}) {
   const name = person.nickname ?? "알 수 없는 회원";
   return (
     <div className={s.memberRow}>
@@ -181,6 +252,7 @@ function PersonRow({ person, note, badge }: { person: FamilyPerson; note: string
         <small>{note}</small>
       </div>
       <span className="badge">{badge}</span>
+      {action}
     </div>
   );
 }
