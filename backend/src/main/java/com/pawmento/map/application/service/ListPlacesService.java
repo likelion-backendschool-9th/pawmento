@@ -55,22 +55,9 @@ class ListPlacesService implements ListPlacesUseCase {
 				selected.truncated(), dataAsOf(selected.places(), categories));
 	}
 
-	/**
-	 * 이번 응답에 든 장소의 종류(장소가 하나도 없으면 요청한 종류)의 가져온 시각 중 가장 오래된 시각. 그중 가져온 기록을 모르는
-	 * 종류가 있으면 null이다. 배포 직후처럼 기준 시각을 모르는 이전 데이터가 섞이면 다른 종류의 새 시각을 대표로 보여 주지 않아야
-	 * 데이터가 실제보다 새것처럼 보이지 않는다(#172-S21).
-	 */
+	// 가져온 시각을 정하는 규칙은 장소 검색과 같다(PlaceDataAsOf, #172-S21)
 	private Instant dataAsOf(List<Place> places, Set<PlaceCategory> requested) {
-		Set<PlaceCategory> relevant = EnumSet.noneOf(PlaceCategory.class);
-		places.forEach(place -> relevant.add(place.category()));
-		if (relevant.isEmpty()) {
-			relevant.addAll(requested);
-		}
-		Map<PlaceCategory, Instant> synced = loadPlaceDataAsOfPort.syncedAt(relevant);
-		if (!synced.keySet().containsAll(relevant)) {
-			return null;
-		}
-		return Collections.min(synced.values());
+		return PlaceDataAsOf.of(loadPlaceDataAsOfPort, places, requested);
 	}
 
 	// 웹 어댑터가 이름을 검사한 뒤에 오므로 모르는 이름은 호출한 쪽의 버그다(IllegalArgumentException)

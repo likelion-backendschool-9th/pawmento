@@ -11,4 +11,15 @@ import java.time.Instant;
 public record PlaceDraft(PlaceCategory category, String sourceId, String name, String address, String phone,
 		double latitude, double longitude, boolean open24h, Open24hBasis open24hBasis, String openingHours,
 		String closedDays, Instant sourceUpdatedAt) {
+
+	/** 검색용으로 정규화한 이름(#195). 장소를 저장할 때 함께 남긴다. */
+	public String nameKey() {
+		return PlaceSelection.comparableName(name);
+	}
+
+	/** 검색용으로 정규화한 주소. 주소가 없으면 null이다. */
+	public String addressKey() {
+		return address == null ? null : PlaceSelection.comparableName(address);
+	}
+
 }

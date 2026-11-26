@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * 영역 안의 후보 장소에서 화면에 줄 장소를 고른다.
@@ -19,6 +20,13 @@ public final class PlaceSelection {
 	static final double OVERLAP_METERS = 30;
 
 	private static final double EARTH_RADIUS_METERS = 6_371_000;
+
+	// 이름 비교에서 무시하는 글자(띄어쓰기·괄호·구두점). 장소마다 부르므로 한 번만 컴파일해 둔다(검색은 후보 수천 곳에 쓴다, #195).
+	//
+	// 주의: 이 규칙은 겹침 제거(#172-S15)뿐 아니라 저장된 검색 키(places.name_key·address_key, #195)와 검색어 정규화를 함께 정한다.
+	// 바꾸면 이미 저장된 키는 옛 규칙 그대로 남아 검색이 오류 없이 일부 장소를 놓친다. 바꾼 뒤에는 저장된 키를 모두 다시 채워야 한다
+	// (절차는 docs/map/place-search.md의 "정한 것"). PlaceSelectionComparableNameTest가 이 규칙을 고정해 두어, 바꾸면 먼저 실패한다.
+	private static final Pattern IGNORED_IN_NAME = Pattern.compile("[\\s()\\[\\]{}·\\-_.,'\"]");
 
 	private PlaceSelection() {
 	}
@@ -42,7 +50,8 @@ public final class PlaceSelection {
 		return new Selected(truncated ? List.copyOf(sorted.subList(0, limit)) : List.copyOf(sorted), truncated);
 	}
 
-	private static List<Place> withoutOverlappingGrooming(List<Place> places) {
+	// 영역 조회와 검색(PlaceSearch)이 같은 기준으로 겹침을 지운다(#172-S15, #195-S4)
+	static List<Place> withoutOverlappingGrooming(List<Place> places) {
 		Map<String, List<Place>> hospitalsByName = new HashMap<>();
 		for (Place place : places) {
 			if (place.category() == PlaceCategory.HOSPITAL) {
@@ -70,7 +79,7 @@ public final class PlaceSelection {
 	// 같은 가게가 병원과 미용에 띄어쓰기만 다르게 등록된 경우가 많아(예: 스테이동물병원 / 스테이 동물병원) 공백·괄호·구두점을 빼고
 	// 소문자로 맞춰 비교한다. 진짜 데이터에서 이 비교로 253곳이 더 정리되었고 표본은 모두 같은 가게였다
 	static String comparableName(String name) {
-		return name.toLowerCase(Locale.ROOT).replaceAll("[\\s()\\[\\]{}·\\-_.,'\"]", "");
+		return IGNORED_IN_NAME.matcher(name.toLowerCase(Locale.ROOT)).replaceAll("");
 	}
 
 	// 두 좌표 사이의 거리(m). 하버사인 공식이다

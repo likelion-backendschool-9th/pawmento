@@ -1,5 +1,7 @@
 package com.pawmento.map.adapter.in.web;
 
+import java.math.BigDecimal;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +13,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.pawmento.global.security.LoginMember;
+import com.pawmento.map.adapter.in.web.exception.InvalidMapRequestException;
 import com.pawmento.map.application.port.in.AddWalkPointsUseCase;
 import com.pawmento.map.application.port.in.EndWalkCommand;
 import com.pawmento.map.application.port.in.EndWalkUseCase;
 import com.pawmento.map.application.port.in.GetCurrentWalkQuery;
 import com.pawmento.map.application.port.in.ResolvePlaceAddressUseCase;
+import com.pawmento.map.application.port.in.SearchPlacesQuery;
+import com.pawmento.map.application.port.in.SearchPlacesUseCase;
 import com.pawmento.map.application.port.in.GetCurrentWalkUseCase;
 import com.pawmento.map.application.port.in.ListMapPinsQuery;
 import com.pawmento.map.application.port.in.ListMapPinsUseCase;
@@ -39,6 +44,7 @@ class MapController {
 	private final ListMapPinsUseCase listMapPinsUseCase;
 	private final ListPlacesUseCase listPlacesUseCase;
 	private final ResolvePlaceAddressUseCase resolvePlaceAddressUseCase;
+	private final SearchPlacesUseCase searchPlacesUseCase;
 	private final StartWalkUseCase startWalkUseCase;
 	private final AddWalkPointsUseCase addWalkPointsUseCase;
 	private final EndWalkUseCase endWalkUseCase;
@@ -65,6 +71,21 @@ class MapController {
 		return PlacesResponse.from(listPlacesUseCase.list(new ListPlacesQuery(query.latitude("minLatitude"),
 				query.longitude("minLongitude"), query.latitude("maxLatitude"), query.longitude("maxLongitude"),
 				query.placeCategories("categories"))));
+	}
+
+	// 이름이나 주소로 병원·미용·보호센터를 찾는다(#195). 지도 영역과 상관없이 전체에서 찾고, 지도 중심(latitude·longitude)을 함께 보내면 가까운 순이다.
+	// 검색어는 쿼리 문자열로 받는다. 애플리케이션의 로그와 오류 응답에는 남기지 않는다
+	@GetMapping("/places/search")
+	PlaceSearchResponse searchPlaces(@LoginMember Long memberId, HttpServletRequest http) {
+		MapQueryParameters query = MapQueryParameters.parse(http.getQueryString(), "q", "categories", "latitude",
+				"longitude");
+		BigDecimal latitude = query.optionalLatitude("latitude");
+		BigDecimal longitude = query.optionalLongitude("longitude");
+		if ((latitude == null) != (longitude == null)) {
+			throw InvalidMapRequestException.centerNeedsBoth();
+		}
+		return PlaceSearchResponse.from(searchPlacesUseCase.search(
+				new SearchPlacesQuery(query.text("q"), query.placeCategories("categories"), latitude, longitude)));
 	}
 
 	// 주소가 가려진 장소의 주소를 좌표로 찾는다(#239). 장소 id만 받고 서버가 좌표를 읽는다. 찾지 못하면 address가 null이다
