@@ -1,5 +1,5 @@
 "use client";
-import { currentQuestionText } from "../utils/currentQuestionText";
+import { loadCurrentQuestion } from "../utils/loadCurrentQuestion";
 import { useEffect, useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { messageOf } from "../../shell/utils/presentation";
@@ -21,24 +21,16 @@ export function useCurrentQuestion(petId: string, enabled = true) {
     if (!account || !enabled) return;
     dependencies.workspace.questions
       .current(account.id, petId)
-      .then(async (prompt) => {
-        if (!active) return;
-        let text = prompt.questionSnapshot;
-        if (!prompt.completedAt) {
-          try {
-            const pool = (await dependencies.life.load()).questions;
-            const template = pool.find(item => item.id === prompt.questionId && item.mode === mode)?.text;
-            text = currentQuestionText(name, text, template);
-          } catch { /* The assigned snapshot remains readable if optional display data is unavailable. */ }
-        }
-        if (active)
-          setResult({
-            key,
-            id: prompt.id,
-            text,
-            error: "",
-          });
-      })
+      .then((prompt) =>
+        loadCurrentQuestion({
+          prompt,
+          name,
+          mode,
+          loadTemplates: async () => (await dependencies.life.load()).questions,
+          isActive: () => active,
+          publish: ({ id, text }) => setResult({ key, id, text, error: "" }),
+        }),
+      )
       .catch((cause) => {
         if (active)
           setResult({ key, id: "", text: "", error: messageOf(cause) });
