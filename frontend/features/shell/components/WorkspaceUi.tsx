@@ -8,7 +8,7 @@ import { formatDate } from "@/lib/date";
 import type { JournalItem } from "../../diary/types/JournalItem";
 import type { Pet } from "../../pet/types/Pet";
 import styles from "./Workspace.module.css";
-import { speciesName } from "../utils/presentation";
+import { petSpeciesName } from "../utils/presentation";
 
 export function PetSummary({ pet, count }: { pet: Pet; count: number }) {
   return (
@@ -39,7 +39,7 @@ export function PetSummary({ pet, count }: { pet: Pet; count: number }) {
         </span>
       </h2>
       <p>
-        {speciesName[pet.species]}
+        {petSpeciesName(pet)}
         {pet.breed ? ` · ${pet.breed}` : ""}
       </p>
       <div className={styles.petStats}>

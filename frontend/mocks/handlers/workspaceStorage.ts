@@ -54,7 +54,8 @@ function pets(value: unknown): boolean {
         ]) &&
         object(p) &&
         ["DOG", "CAT", "OTHER"].includes(p.species as string) &&
-        ["ACTIVE", "GARDEN"].includes(p.mode as string),
+        ["ACTIVE", "GARDEN"].includes(p.mode as string) &&
+        (p.speciesDetail === undefined || typeof p.speciesDetail === "string"),
     )
   );
 }

@@ -39,37 +39,66 @@
   border-radius: 50%;
 }
 
-/* 지도 맨 위의 검색창. 누르면 장소 검색 화면이 열린다(#195-S9) */
+/* 지도 맨 위의 검색창. 누르면 장소 검색 화면이 열린다(#195-S9). 장소를 골랐으면 검색어가 남고 ✕로 지운다(#195-S11) */
 .searchBar {
   position: absolute;
   z-index: 5;
   top: 12px;
   left: 12px;
-  /* 버튼은 left·right로 늘어나지 않아 너비를 직접 준다 */
   width: calc(100% - 24px);
   display: flex;
   align-items: center;
-  gap: 10px;
   min-height: 46px;
-  padding: 0 16px;
   border: 1px solid var(--mode-border);
   border-radius: 999px;
   background: var(--mode-card);
   box-shadow: var(--shadow-card);
   color: var(--text-secondary);
+  backdrop-filter: blur(10px);
+}
+.searchOpen {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
   font: inherit;
   font-size: 14px;
   text-align: left;
   cursor: pointer;
-  backdrop-filter: blur(10px);
 }
-.searchBar span {
+.searchOpen span {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.searchBar:focus-visible {
+.searchOpen .searchValue {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+.searchClear {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.searchOpen:focus-visible,
+.searchClear:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
@@ -139,6 +168,13 @@
 
 /* 선택한 장소 카드: 종류·24시, 이름, 주소, 전화 걸기·주소 복사, 운영 정보, 출처를 한눈에 보인다 */
 .card {
+  /* 지도 아래를 덮는 시트. 추억 지도(#269)가 공통 .sheet를 지도 아래의 일반 카드로 바꾸면서 위치가 사라져, 카드가 지도 밖에 그려져 보이지 않았다 */
+  position: absolute;
+  z-index: 6;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  margin-top: 0;
   max-height: calc(100% - 24px);
   overflow-y: auto;
   padding-bottom: 18px;
@@ -271,13 +307,15 @@
 }
 
 /* 휴대폰에서는 지도가 머리글과 하단 메뉴 사이를 가득 채운다. 위쪽 제목은 접고, 카드는 하단 메뉴 위에 붙는 시트가 된다.
-   머리글·하단 메뉴 높이는 SpaceShell이 /places에서 --shell-top, --shell-bottom으로 알려 준다. */
+   머리글·하단 메뉴 높이는 SpaceShell이 --app-header-height, --app-nav-height로 알려 준다. */
 @container app (max-width: 767px) {
   .heading {
     display: none;
   }
   .page [data-places-stage] {
-    height: calc(100dvh - var(--shell-top, 76px) - var(--shell-bottom, 71px));
+    /* 머리글(--app-header-height)과 하단 메뉴(--app-nav-height), 본문 위아래 여백 24px씩을 뺀 높이. 예전 --shell-top·--shell-bottom은
+       이제 아무도 정하지 않아 기본값(76px·71px)이 쓰여 지도가 하단 메뉴 뒤로 밀려 내려가 페이지가 스크롤되고 카드의 아래쪽이 가려졌다 */
+    height: calc(100dvh - var(--app-header-height, 76px) - var(--app-nav-height, 82px) - 48px);
     /* 아주 낮은 화면에서 지도가 하단 메뉴 뒤로 밀려 페이지가 스크롤되지 않도록 하한을 작게 둔다 */
     min-height: 240px;
     border: 0;
