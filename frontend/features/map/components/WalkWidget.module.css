@@ -1,0 +1,26 @@
+.widget { padding: 14px; border: 1px solid var(--mode-border); border-radius: 24px; background: var(--surface-card); box-shadow: 0 5px 18px color-mix(in srgb, var(--brand-primary) 6%, transparent); }
+.summary { display:flex; align-items:center; gap:14px; }
+.scene { display:grid; place-items:center; flex:none; width:90px; height:88px; border-radius:20px; color:var(--brand-primary); background:linear-gradient(150deg,var(--mode-subtle),var(--surface-card)); overflow:hidden; }
+.sprite { display:block; width:100%; aspect-ratio:1; background-image:url("/images/walk/corgi-watercolor-sprites.webp"); background-size:200% 200%; background-position:100% 100%; background-repeat:no-repeat; }
+.metrics { flex:1; min-width:0; }
+.status { display:flex; align-items:center; gap:6px; margin:0 0 12px; color:var(--text-secondary); font-size:12px; }
+.status i { width:6px; height:6px; border-radius:50%; background:var(--text-muted); }
+.status i[data-active="true"] { background:var(--brand-primary); }
+.metrics dl { display:grid; grid-template-columns:1fr 1.15fr; gap:10px; margin:0; }
+.metrics dt { font-size:11px; color:var(--text-secondary); margin-bottom:5px; }
+.metrics dd { margin:0; color:var(--text-primary); font-size:19px; font-weight:650; font-variant-numeric:tabular-nums; letter-spacing:-.6px; overflow-wrap:anywhere; }
+.metrics small { font-size:12px; margin-left:3px; font-weight:500; }
+.action { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:44px; margin-top:12px; border:0; border-radius:14px; background:var(--mode-subtle); color:var(--mode-ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; }
+.action:disabled { opacity:.6; cursor:wait; }
+.action:focus-visible,.discard:focus-visible { outline:2px solid var(--focus-ring); outline-offset:3px; }
+.note,.warning { margin:10px 2px 0; font-size:12px; line-height:1.6; color:var(--text-secondary); overflow-wrap:anywhere; }
+.warning { color:var(--text-danger); }
+.discard { background:none; border:0; padding:10px 0; color:var(--text-secondary); font:inherit; font-size:12px; text-decoration:underline; cursor:pointer; }
+.scene[data-moving="true"] .sprite { animation:walkCycle .8s steps(1,end) infinite; }
+@keyframes walkCycle {
+  0%,100% { background-position:0 0; }
+  25%,75% { background-position:100% 0; }
+  50% { background-position:0 100%; }
+}
+@media(prefers-reduced-motion:reduce) { .scene[data-moving="true"] .sprite { animation:none; background-position:0 0; } }
+@container app (max-width:359px) { .scene { width:68px; height:76px; } .summary { gap:9px; } .metrics dd { font-size:16px; } }

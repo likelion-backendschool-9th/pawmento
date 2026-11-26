@@ -3,12 +3,13 @@ import { RecordActionLink } from "@/components/RecordAction";
 import { journalItems } from "@/features/diary/utils/journalItems";
 import { PolaroidDiaryList } from "./PolaroidDiaryList";
 
-import Link from "next/link";
 import { CollectionHeading } from "@/components/CollectionHeading";
 import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
+import calendarStyles from "./Calendar.module.css";
+import { calendarMonth, hasMonthPicker, isCalendarDate, isCalendarMonth, shiftCalendarMonth, swipeMonthDirection } from "../utils/calendarMonth";
 import { useEffect } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
@@ -21,63 +22,118 @@ import styles from "../../shell/components/Workspace.module.css";
 import { JournalCard, EmptyState } from "../../shell/components/WorkspaceUi";
 import { messageOf } from "../../shell/utils/presentation";
 
+// 데스크톱 Firefox·macOS Safari처럼 월 선택 화면이 없는 브라우저에서는 보이는 연월 입력란을 쓴다.
+const noSubscribe = () => () => {};
+function supportsMonthInput() {
+  const input = document.createElement("input");
+  input.type = "month";
+  return hasMonthPicker({ inputType: input.type, vendor: navigator.vendor ?? "", maxTouchPoints: navigator.maxTouchPoints ?? 0 });
+}
+
+// 월 선택기가 없을 때 쓰는 연월 입력. 입력 중인 값은 따로 두고, Enter나 포커스를 옮길 때 검사해 반영한다.
+function MonthTextInput({ value, onCommit }: { value: string; onCommit: (month: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const commit = () => {
+    if (isCalendarMonth(draft)) onCommit(draft);
+    else setDraft(value);
+  };
+  return (
+    <input className={calendarStyles.monthTextInput} type="text" inputMode="numeric" placeholder="YYYY-MM" maxLength={7}
+      aria-label="보고 있는 연월 입력 (예: 2025-02)" value={draft}
+      onChange={event => setDraft(event.target.value)}
+      onBlur={commit}
+      onKeyDown={event => {
+        if (event.key === "Enter") { event.preventDefault(); commit(); }
+        else if (event.key === "Escape") setDraft(value);
+      }} />
+  );
+}
+
 export function Calendar({
   pet,
-  compact = false,
   selected,
   onSelect,
 }: {
   pet: Pet;
-  compact?: boolean;
   selected?: string;
   onSelect?: (date: string) => void;
 }) {
   const app = useApp();
   const current = today();
+  // 서버 렌더링에서는 기본 선택기가 있다고 보고, 브라우저에서 다시 확인한다
+  const nativeMonth = useSyncExternalStore(noSubscribe, supportsMonthInput, () => true);
   const [month, setMonth] = useState((selected ?? current).slice(0, 7));
-  const [year, num] = month.split("-").map(Number);
-  const first = new Date(Date.UTC(year, num - 1, 1)).getUTCDay();
-  const days = new Date(Date.UTC(year, num, 0)).getUTCDate();
+  const { year, month: num, first, days } = calendarMonth(month);
+  const gesture = useRef<{ id: number; x: number; y: number } | null>(null);
+  const dragged = useRef(false);
   const records = journalItems(app.state).filter(
     (record) => record.petId === pet.id && record.type !== "QUESTION_ANSWER",
   );
   function shift(delta: number) {
-    const next = new Date(Date.UTC(year, num - 1 + delta, 1));
-    setMonth(next.toISOString().slice(0, 7));
+    setMonth(value => shiftCalendarMonth(value, delta));
   }
   return (
     <div
-      className={`${styles.calendar} ${compact ? styles.compactCalendar : ""}`}
+      className={`${styles.calendar} ${calendarStyles.calendar}`}
     >
-      <div className={styles.calendarHeader}>
-        <strong>
-          {year}년 {num}월
-        </strong>
-        <div>
-          <button
-            className="icon-button"
-            onClick={() => shift(-1)}
-            aria-label="이전 달"
-          >
-            ‹
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => setMonth(current.slice(0, 7))}
-            aria-label="이번 달로 이동"
-          >
-            오늘
-          </button>
-          <button
-            className="icon-button"
-            onClick={() => shift(1)}
-            aria-label="다음 달"
-          >
-            ›
-          </button>
-        </div>
+      <div className={`${styles.calendarHeader} ${calendarStyles.header}`}>
+        {nativeMonth ? (
+          <label className={calendarStyles.monthLabel}>
+            <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
+            <Icon name="calendar" size={16} />
+            <input className={calendarStyles.monthInput} type="month" value={month} min="0001-01" max="9999-12"
+              aria-label="보고 있는 연월 선택"
+              onClick={event => {
+                const input = event.currentTarget;
+                try { input.showPicker?.(); } catch { input.focus(); }
+              }}
+              onChange={event => { if (isCalendarMonth(event.target.value)) setMonth(event.target.value); }} />
+          </label>
+        ) : (
+          <div className={calendarStyles.monthLabel}>
+            <span className={calendarStyles.monthText} aria-live="polite">{year}년 {num}월</span>
+            {/* 다른 달로 옮기면 입력란도 그 달로 다시 채운다 */}
+            <MonthTextInput key={month} value={month} onCommit={setMonth} />
+          </div>
+        )}
+        <button type="button" className={calendarStyles.todayButton}
+          aria-pressed={selected === current && month === current.slice(0, 7)}
+          onClick={() => {
+            setMonth(current.slice(0, 7));
+            if (selected !== current) onSelect?.(current);
+          }} aria-label="오늘 날짜로 이동">오늘</button>
       </div>
-      <div className={styles.calendarGrid}>
+      <div className={`${styles.calendarGrid} ${calendarStyles.grid}`} tabIndex={0} role="group" aria-label="달력 날짜 · 좌우로 넘겨 월 이동"
+        onKeyDown={event => {
+          if (event.target !== event.currentTarget) return;
+          if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); shift(event.key === "ArrowRight" ? 1 : -1); }
+        }}
+        onPointerDown={event => {
+          if (!event.isPrimary || event.button !== 0) return;
+          gesture.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+          dragged.current = false;
+        }}
+        onPointerMove={event => {
+          const start = gesture.current;
+          if (!start || start.id !== event.pointerId) return;
+          const dx = event.clientX - start.x, dy = event.clientY - start.y;
+          if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.25) {
+            dragged.current = true;
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }
+        }}
+        onPointerUp={event => {
+          const start = gesture.current;
+          gesture.current = null;
+          if (!start || start.id !== event.pointerId) return;
+          const direction = swipeMonthDirection(event.clientX - start.x, event.clientY - start.y);
+          if (direction) { dragged.current = true; shift(direction); }
+        }}
+        onPointerCancel={() => { gesture.current = null; }}
+        onClickCapture={event => {
+          if (dragged.current && event.detail > 0) { event.preventDefault(); event.stopPropagation(); dragged.current = false; }
+        }}>
+
         {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
           <span className={styles.weekday} key={day}>
             {day}
@@ -92,39 +148,21 @@ export function Calendar({
           const count = records.filter(
             (record) => record.recordedDate === date,
           ).length;
-          const href = `/pets/${pet.id}/calendar?date=${date}`;
-          const contents = (
-            <>
-              <span>{i + 1}</span>
-              {count > 0 && <i />}
-            </>
-          );
-          const cls = `${styles.calendarDay} ${date === current ? styles.today : ""} ${date === selected ? styles.selectedDay : ""}`;
-          return compact ? (
-            <Link
-              className={cls}
-              key={date}
-              href={href}
-              aria-label={`${formatDate(date)} 기록 ${count}개`}
-            >
-              {contents}
-            </Link>
-          ) : (
+          return (
             <button
-              className={cls}
+              type="button"
+              className={`${styles.calendarDay} ${calendarStyles.day} ${date === selected ? styles.selectedDay : ""}`}
               key={date}
               onClick={() => onSelect?.(date)}
               aria-label={`${formatDate(date)} 기록 ${count}개`}
               aria-pressed={date === selected}
             >
-              {contents}
+              <span>{i + 1}</span>
+              {count > 0 && <span className={calendarStyles.mark} aria-hidden="true"><Icon name="paw" size={22} /></span>}
             </button>
           );
         })}
       </div>
-      <p className={styles.calendarLegend}>
-        <i /> 이야기를 남긴 날
-      </p>
     </div>
   );
 }
@@ -144,6 +182,8 @@ export function ArchiveScreen({
   let invalidDate = false;
   try {
     validateDate(date);
+    // 달력이 그릴 수 없는 연도(예: 0000년)도 잘못된 날짜와 같이 오늘로 연다
+    if (!isCalendarDate(date)) throw Error("올바른 날짜를 선택해 주세요.");
   } catch {
     date = today();
     invalidDate = true;
@@ -198,8 +238,8 @@ export function ArchiveScreen({
   return (
     <>
       <CollectionHeading
-        title={calendar ? "다이어리 달력" : "다이어리"}
-        body={calendar ? undefined : "우리의 일상을 기록해요."}
+        title={calendar ? "캘린더" : "다이어리"}
+        body={calendar ? "함께한 순간을 날짜마다 간직해요." : "우리의 일상을 기록해요."}
       >
         <RecordActionLink href={`/pets/${pet.id}/diary/new`}>기록 남기기</RecordActionLink>
       </CollectionHeading>

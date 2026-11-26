@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -137,15 +138,20 @@ class SocialLoginScenarioTest {
 	}
 
 	@Test
-	@DisplayName("#40-S5 이메일로 가입한 회원과 같은 이메일의 구글 계정은 409이고 쿠키를 받지 못한다")
+	@DisplayName("#40-S5 이메일로 가입한 회원과 같은 이메일(대소문자만 달라도)의 구글 계정은 409이고, 쿠키를 받지 못하며 소셜 계정도 연결되지 않는다")
 	void sameEmailAsLocalIsConflict() throws Exception {
 		String email = uniqueEmail();
 		signUp(email).andExpect(status().isCreated());
 
-		socialLogin("google", google(uniqueSub(), email, "다윗")).andExpect(status().isConflict())
+		String sub = uniqueSub();
+
+		// 구글이 대소문자를 다르게 준 같은 이메일도 같은 이메일로 본다
+		socialLogin("google", google(sub, email.toUpperCase(Locale.ROOT), "다윗")).andExpect(status().isConflict())
 			.andExpect(jsonPath("$.code").value("CONFLICT"))
 			.andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("처음 가입한 방법으로 로그인해 주세요")))
 			.andExpect(cookie().doesNotExist(AccessTokenCookie.NAME));
+		// 거절된 구글 계정은 기존 회원에 연결되지 않는다
+		assertThat(loadMemberPort.loadByProvider(AuthProvider.GOOGLE, sub)).isEmpty();
 	}
 
 	@Test

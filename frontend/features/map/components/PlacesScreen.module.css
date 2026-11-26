@@ -3,6 +3,12 @@
   display: block;
 }
 
+/* 추억 지도(MapScreen)의 .stage는 정사각형(aspect-ratio: 1)인데, 정보 지도는 높이를 직접 정해서 쓴다. 비율이 남아 있으면 너비가 높이와 같아져
+   (휴대폰에서 697px) 화면 밖으로 넘치므로 이 화면에서는 비율을 쓰지 않는다. */
+.page [data-places-stage] {
+  aspect-ratio: auto;
+}
+
 /* 예시 지도의 바탕과 마커를 함께 담아, 선택한 마커가 카드에 가려지면 같이 올린다 */
 .shifter {
   position: absolute;
@@ -33,11 +39,46 @@
   border-radius: 50%;
 }
 
-/* 지도 위쪽의 종류 칩 */
+/* 지도 맨 위의 검색창. 누르면 장소 검색 화면이 열린다(#195-S9) */
+.searchBar {
+  position: absolute;
+  z-index: 5;
+  top: 12px;
+  left: 12px;
+  /* 버튼은 left·right로 늘어나지 않아 너비를 직접 준다 */
+  width: calc(100% - 24px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1px solid var(--mode-border);
+  border-radius: 999px;
+  background: var(--mode-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+.searchBar span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.searchBar:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* 지도 위쪽의 종류 칩(검색창 아래) */
 .filters {
   position: absolute;
   z-index: 4;
-  top: 12px;
+  top: 66px;
   left: 12px;
   right: 12px;
   display: flex;
@@ -45,6 +86,10 @@
   overflow-x: auto;
   padding-bottom: 2px;
   scrollbar-width: none;
+}
+/* "일부만 보여요" 안내는 검색창과 종류 칩 아래로 내린다 */
+.page .noticeLow {
+  top: 112px;
 }
 .filters::-webkit-scrollbar {
   display: none;

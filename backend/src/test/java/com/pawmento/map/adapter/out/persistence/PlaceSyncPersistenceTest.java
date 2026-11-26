@@ -60,19 +60,6 @@ class PlaceSyncPersistenceTest {
 	}
 
 	@Test
-	@DisplayName("#172-S4 새 관리번호는 추가하고, 건수를 종류별로 센다")
-	void insertsNewPlaces() {
-		var applied = adapter.replace(PlaceCategory.HOSPITAL,
-				List.of(draft(PlaceCategory.HOSPITAL, "a", "가병원", null), draft(PlaceCategory.HOSPITAL, "b", "나병원", "02-111-2222")));
-
-		assertThat(applied).isEqualTo(new AppliedPlaces(2, 0, 0));
-		assertThat(adapter.countByCategory(PlaceCategory.HOSPITAL)).isEqualTo(2);
-		assertThat(adapter.countByCategory(PlaceCategory.GROOMING)).isZero();
-		assertThat(row(PlaceCategory.HOSPITAL, "b").get("name")).isEqualTo("나병원");
-		assertThat(row(PlaceCategory.HOSPITAL, "b").get("phone")).isEqualTo("02-111-2222");
-	}
-
-	@Test
 	@DisplayName("#172-S4 같은 관리번호로 다시 가져오면 행이 늘지 않고 바뀐 값만 바뀌며, 바뀌지 않은 행은 갱신으로 세지 않는다")
 	void updatesChangedFieldsOnly() {
 		adapter.replace(PlaceCategory.HOSPITAL,

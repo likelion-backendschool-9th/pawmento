@@ -1,5 +1,4 @@
 "use client";
-import { RecordActionLink } from "@/components/RecordAction";
 import { PetDescription } from "@/features/pet/components/PetDescription";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/Icon";
@@ -40,7 +39,7 @@ function summary(walk: WalkRecord): string {
     : base;
 }
 
-// "산책 길" 보기: 날짜를 고르면 그날의 산책 경로를 지도에 그리고 아래에 목록으로 보여 준다.
+// "산책기록" 보기: 날짜를 고르면 그날의 산책 경로를 지도에 그리고 아래에 목록으로 보여 준다.
 export function WalkHistory({ pet, initialDate }: Props) {
   const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID ?? "";
   const [naverFailed, setNaverFailed] = useState(false);
@@ -61,12 +60,6 @@ export function WalkHistory({ pet, initialDate }: Props) {
 
   return (
     <div className={styles.stage} data-mode={pet.mode} aria-busy={history.pending}>
-      {clientId && !naverFailed ? (
-        <NaverWalkRoutesCanvas {...canvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
-      ) : (
-        <StaticWalkRoutesCanvas {...canvasProps} />
-      )}
-
       <section className={styles.week} aria-label="날짜 선택">
         <div className={styles.weekHead}>
           <span>{formatYearMonth(last)}</span>
@@ -112,6 +105,14 @@ export function WalkHistory({ pet, initialDate }: Props) {
         </ol>
       </section>
 
+      <div className={styles.mapFrame}>
+        {clientId && !naverFailed ? (
+          <NaverWalkRoutesCanvas {...canvasProps} clientId={clientId} onUnavailable={() => setNaverFailed(true)} />
+        ) : (
+          <StaticWalkRoutesCanvas {...canvasProps} />
+        )}
+      </div>
+
       <aside className={styles.sheet} aria-label={`${formatMonthDay(selected)}의 산책`}>
         <h2>
           {formatMonthDay(selected)}의 산책
@@ -135,7 +136,6 @@ export function WalkHistory({ pet, initialDate }: Props) {
             <p className={styles.empty}>
               <PetDescription name={pet.name} suffix="와 함께한 산책,">이 날은 아직 기록이 없어요.</PetDescription>
             </p>
-            <RecordActionLink icon="route" href={`/pets/${pet.id}/map/walk`}>산책 시작</RecordActionLink>
           </>
         )}
         {walks.length > 0 && (

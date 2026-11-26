@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { loadNaverMaps, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "../utils/naverMaps";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
 import type { WalkCanvasProps } from "../utils/walkCanvas";
-import styles from "./WalkScreen.module.css";
+import styles from "./WalkCanvas.module.css";
 
 const HERE = `<span class="${styles.hereMarker}"></span>`;
 const START = `<span class="${styles.startMarker}"></span>`;

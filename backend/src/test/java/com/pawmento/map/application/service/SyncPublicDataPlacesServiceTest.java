@@ -9,6 +9,8 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import com.pawmento.map.application.exception.PublicDataSyncFailedException;
 import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
@@ -197,19 +199,6 @@ class SyncPublicDataPlacesServiceTest {
 					});
 	}
 
-	@Test
-	@DisplayName("#172-S9 저장될 센터가 기존(339곳)의 90%보다 적으면 지도를 비우지 않고 실패한다")
-	void shelterRejectsTooFewPlaces() {
-		var store = new FakeStore();
-		store.existing = 339;
-
-		assertThatThrownBy(() -> shelterService(List.of(shelter("a"), shelter("b")), store)
-			.sync(new SyncPublicDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
-		assertThat(store.calls).isEmpty();
-	}
-
 	private static List<ShelterRecord> shelters(int count) {
 		var rows = new ArrayList<ShelterRecord>();
 		for (int i = 0; i < count; i++) {
@@ -218,29 +207,27 @@ class SyncPublicDataPlacesServiceTest {
 		return rows;
 	}
 
-	@Test
-	@DisplayName("#172-S9 기존 336곳인데 200곳만 온 응답은 일부만 받은 것으로 보고 실패한다. 센터를 대량으로 지우지 않는다")
-	void shelterRejectsPartialResponse() {
+	@ParameterizedTest(name = "기존 {0}곳에 {1}곳")
+	@CsvSource({ "336, 302", "336, 200", "339, 2" })
+	@DisplayName("#172-S9 저장될 센터가 기존의 90%보다 적으면(경계 302곳, 일부만 온 200곳, 극단적으로 적은 2곳) 지도를 비우지 않고 실패한다")
+	void shelterRejectsTooFewPlaces(int existing, int received) {
 		var store = new FakeStore();
-		store.existing = 336;
+		store.existing = existing;
 
-		assertThatThrownBy(() -> shelterService(shelters(200), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
+		assertThatThrownBy(() -> shelterService(shelters(received), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
 			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
 					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).isEmpty();
 	}
 
 	@Test
-	@DisplayName("#172-S9 보호센터는 저장할 건수가 기존의 90% 이상일 때만 반영한다. 기존 336곳이면 303곳은 반영하고 302곳은 실패한다")
+	@DisplayName("#172-S9 보호센터는 저장할 건수가 기존의 90% 이상이면 반영한다. 기존 336곳이면 303곳은 반영한다")
 	void shelterKeepsAtLeastNinetyPercent() {
 		var store = new FakeStore();
 		store.existing = 336;
 
 		assertThat(shelterService(shelters(303), store).sync(new SyncPublicDataPlacesCommand("SHELTER")).saved())
 			.isEqualTo(303);
-		assertThatThrownBy(() -> shelterService(shelters(302), store).sync(new SyncPublicDataPlacesCommand("SHELTER")))
-			.isInstanceOfSatisfying(PublicDataSyncFailedException.class,
-					e -> assertThat(e.reason()).isEqualTo(PublicDataSyncFailedException.Reason.TOO_FEW_PLACES));
 		assertThat(store.calls).hasSize(1);
 	}
 

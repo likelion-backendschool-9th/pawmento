@@ -16,7 +16,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import com.pawmento.map.application.exception.PublicDataSyncFailedException;
-import com.pawmento.map.application.exception.PlaceSyncAdminDeniedException;
 import com.pawmento.map.application.exception.PlaceSyncAlreadyRunningException;
 import com.pawmento.map.application.exception.PlaceSyncLockLostException;
 import com.pawmento.map.application.port.in.GetPlaceSyncStatusQuery;
@@ -26,26 +25,19 @@ import com.pawmento.map.application.port.out.PlaceSyncStatus;
 import com.pawmento.map.application.port.out.PlaceSyncStatusPort;
 import com.pawmento.map.domain.PlaceCategory;
 
-// 시나리오는 docs/map/animal-places.md(#172-S22)에 있다. 수동 가져오기를 접수하고 백그라운드 결과를 상태로 남기는 규칙을 가짜 실행기로 확인한다
+// 시나리오는 docs/map/animal-places.md(#172-S22)에 있다. 접수·완료·관리자 확인·NONE은 PlaceSyncAdminScenarioTest가 확인한다.
+// 여기에는 요청으로 만들기 어려운 경우(다른 종류가 RUNNING인 동안의 접수, LOCK_LOST·UNEXPECTED 실패, 실행기가 작업을 받지 못함)만 남긴다
 class StartPlaceSyncServiceTest {
 
 	private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-11-24T00:00:00Z"), ZoneOffset.UTC);
 
 	private final List<Runnable> queued = new ArrayList<>();
 
-	private final List<Long> checked = new ArrayList<>();
-
-	private boolean admin = true;
-
 	private RuntimeException failure;
 
 	private final MemoryStatus statuses = new MemoryStatus();
 
 	private final StartPlaceSyncService service = new StartPlaceSyncService(memberId -> {
-		checked.add(memberId);
-		if (!admin) {
-			throw new PlaceSyncAdminDeniedException();
-		}
 	}, statuses, queued::add, command -> {
 		if (failure != null) {
 			throw failure;
@@ -77,33 +69,6 @@ class StartPlaceSyncServiceTest {
 			return Optional.ofNullable(map.get(category));
 		}
 
-	}
-
-	@Test
-	@DisplayName("#172-S22 시작하면 실행은 맡기고 바로 RUNNING을 돌려주며, 실행이 끝나면 건수가 있는 SUCCEEDED가 된다")
-	void startReturnsImmediatelyAndRecordsTheResult() {
-		var started = service.start(new StartPlaceSyncCommand(1L, "HOSPITAL"));
-
-		assertThat(started.state()).isEqualTo("RUNNING");
-		assertThat(queued).hasSize(1);
-
-		queued.get(0).run();
-		var status = service.get(new GetPlaceSyncStatusQuery(1L, "HOSPITAL"));
-		assertThat(status.state()).isEqualTo("SUCCEEDED");
-		assertThat(status.result().saved()).isEqualTo(8);
-		assertThat(status.finishedAt()).isNotNull();
-	}
-
-	@Test
-	@DisplayName("#172-S22 관리자가 아니면 시작도 조회도 거절하고 아무것도 맡기지 않는다")
-	void adminIsRequired() {
-		admin = false;
-
-		assertThatThrownBy(() -> service.start(new StartPlaceSyncCommand(2L, "HOSPITAL")))
-			.isInstanceOf(PlaceSyncAdminDeniedException.class);
-		assertThatThrownBy(() -> service.get(new GetPlaceSyncStatusQuery(2L, "HOSPITAL")))
-			.isInstanceOf(PlaceSyncAdminDeniedException.class);
-		assertThat(queued).isEmpty();
 	}
 
 	@Test
@@ -150,12 +115,6 @@ class StartPlaceSyncServiceTest {
 			.isInstanceOf(IllegalStateException.class);
 
 		assertThat(statuses.find(PlaceCategory.HOSPITAL).orElseThrow().state()).isEqualTo(PlaceSyncStatus.State.FAILED);
-	}
-
-	@Test
-	@DisplayName("#172-S22 돌린 적 없는 종류의 상태는 NONE이다")
-	void noneBeforeAnyRun() {
-		assertThat(service.get(new GetPlaceSyncStatusQuery(1L, "GROOMING")).state()).isEqualTo("NONE");
 	}
 
 }

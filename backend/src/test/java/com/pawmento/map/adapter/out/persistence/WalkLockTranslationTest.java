@@ -7,11 +7,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.sql.SQLException;
+import java.util.stream.Stream;
 
 import org.hibernate.exception.JDBCConnectionException;
 import org.hibernate.exception.LockTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.dao.DataAccessResourceFailureException;
 
 import com.pawmento.global.exception.StorageUnavailableException;
@@ -30,10 +33,15 @@ class WalkLockTranslationTest {
 	private final WalkPersistenceAdapter adapter = new WalkPersistenceAdapter(mock(WalkJpaRepository.class),
 			mock(WalkPointJpaRepository.class), entityManager);
 
-	@Test
-	@DisplayName("#73-S12 잠금 호출에서 DB 연결 장애(JPA 예외)가 나면 저장소 일시 장애 예외로 바꾼다")
-	void persistenceExceptionIsTranslated() {
-		PersistenceException cause = new JDBCConnectionException("db down", new SQLException("connection lost"));
+	static Stream<RuntimeException> connectionFailures() {
+		return Stream.of(new JDBCConnectionException("db down", new SQLException("connection lost")),
+				new DataAccessResourceFailureException("connection lost"));
+	}
+
+	@ParameterizedTest(name = "{0}")
+	@MethodSource("connectionFailures")
+	@DisplayName("#73-S12 잠금 호출에서 DB 연결 장애(JPA 예외나 스프링 데이터 접근 예외)가 나면 저장소 일시 장애 예외로 바꾸고 원인을 보존한다")
+	void connectionFailureIsTranslated(RuntimeException cause) {
 		when(entityManager.createNativeQuery(anyString(), any(Class.class))).thenThrow(cause);
 
 		assertThatThrownBy(() -> adapter.lock(10L)).isInstanceOf(WalkPersistenceUnavailableException.class)
@@ -64,15 +72,6 @@ class WalkLockTranslationTest {
 		when(entityManager.createNativeQuery(anyString(), any(Class.class))).thenThrow(cause);
 
 		assertThatThrownBy(() -> adapter.lock(10L)).isSameAs(cause);
-	}
-
-	@Test
-	@DisplayName("#73-S12 잠금 호출에서 스프링 데이터 접근 예외가 나도 같은 예외로 바꾼다")
-	void dataAccessExceptionIsTranslated() {
-		when(entityManager.createNativeQuery(anyString(), any(Class.class)))
-			.thenThrow(new DataAccessResourceFailureException("connection lost"));
-
-		assertThatThrownBy(() -> adapter.lock(10L)).isInstanceOf(WalkPersistenceUnavailableException.class);
 	}
 
 }
