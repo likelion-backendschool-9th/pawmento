@@ -1,6 +1,7 @@
 package com.pawmento.report.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,5 +18,14 @@ class PreviousReportTest {
 		assertThat(dismissedAt3.allowsNewReportOn(4L)).isTrue();
 		// 처리 대기와 처리 완료는 기각이 아니라 버전과 상관없이 거절한다
 		assertThat(new PreviousReport(1L, false, 2L).allowsNewReportOn(3L)).isFalse();
+	}
+
+	@Test
+	@DisplayName("#112-S4 대상 버전이 없으면 재신고를 판정하지 않고 예외를 던진다")
+	void rejectsMissingVersion() {
+		assertThatThrownBy(() -> new PreviousReport(1L, true, null))
+			.isInstanceOf(IllegalStateException.class);
+		assertThatThrownBy(() -> new PreviousReport(1L, true, 3L).allowsNewReportOn(null))
+			.isInstanceOf(IllegalArgumentException.class);
 	}
 }
