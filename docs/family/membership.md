@@ -230,7 +230,7 @@
    - 한 트랜잭션에서 반려동물 행 잠금 → 권한 확인 → 멤버십 삭제 → 그 회원이 발급한 P의 코드 삭제
    - API: 내보내기 `DELETE /api/v1/families/members/{memberId}?petId=P`, 나가기 `DELETE /api/v1/families/members/me?petId=P`(204). `petId`는 Request record와 `@Valid`로 받는다
    - 멤버십 삭제와 코드 삭제는 각각 한 문장이고 같은 트랜잭션이다. 지운 멤버십 줄이 0이면 가족이 아니었던 것이다
-   - 화면: 가족 화면(S24)에 내보내기·나가기 확인 팝업을 둔다. 요청은 공용 `ApiClient.delete`를 쓴다. 서버 회원 id가 안전한 정수 범위를 벗어나면 그 회원에게는 내보내기를 보이지 않는다
+   - 화면: 가족 화면(S24)에 내보내기·나가기 확인 팝업을 둔다. 요청은 공용 `ApiClient.delete`를 쓴다. 서버 회원 id가 안전한 정수 범위를 벗어나면 그 회원에게는 내보내기를 보이지 않는다. 반려동물 id도 같아서, 범위를 벗어난 반려동물은 "가족으로 함께하는 친구"에서 빼고 가입 성공 화면은 목록으로 안내한다
 4. 다른 도메인 접근 교체 — S7~S9, S12 (도메인별 PR, 담당과 순서 합의)
    - diary: `CheckDiaryPetAccessPort`가 역할(`OWNER`·`FAMILY`)을 돌려주게 하고 `OwnerDiaryPetAccessAdapter`를 가족 포트로 바꾼다. `DeleteDiaryEntryService`는 `requireAuthor` 대신 "작성자이거나 소유주"를 확인하고, 수정은 `requireAuthor`를 유지한다
      - media에 넘기는 `previous`는 권한 확인을 마친 뒤 `DiaryAttachmentsPort.find(entryId)`로 DB에서 읽은 그 일기의 실제 첨부만 쓴다. 요청 본문의 값은 `previous`로 넘기지 않는다

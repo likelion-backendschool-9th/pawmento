@@ -53,9 +53,15 @@ function JoinBody() {
           title={`${state.pet.name}의 가족이 됐어요`}
           body="이제 함께 기록을 보고 쓸 수 있어요."
         />
-        <Link className="button primary" href={`/pets/manage/${encodeURIComponent(state.pet.id)}/family`}>
-          가족 보기
-        </Link>
+        {state.pet.id ? (
+          <Link className="button primary" href={`/pets/manage/${encodeURIComponent(state.pet.id)}/family`}>
+            가족 보기
+          </Link>
+        ) : (
+          <Link className="button primary" href="/pets">
+            함께하는 친구 보기
+          </Link>
+        )}
       </>
     );
   }

@@ -10,7 +10,7 @@ import type {
 
 type PersonDto = { memberId: number | string; nickname: string | null; tag: string | null };
 type FamilyDto = { owner: PersonDto; members: (PersonDto & { joinedAt: string })[] };
-type PetDto = { petId: number; name: string; tag: string };
+type PetDto = { petId: number | string; name: string; tag: string };
 
 // 서버의 Long id를 화면용 문자열로 바꾼다.
 // 2^53 이상인 숫자는 JSON을 읽는 순간 다른 값으로 바뀌었을 수 있어 쓰지 않는다(null)
@@ -52,17 +52,16 @@ export function createFamilyApi(http: ApiClient) {
 
     async join(code: string): Promise<JoinedPet> {
       const pet = await http.post<PetDto>("/families/members", { code: code.trim() });
-      return { id: String(pet.petId), name: pet.name, tag: pet.tag };
+      return { id: toId(pet.petId), name: pet.name, tag: pet.tag };
     },
 
     async myPets(): Promise<FamilyPet[]> {
       const pets = await http.get<(PetDto & { joinedAt: string })[]>("/families/pets");
-      return pets.map((pet) => ({
-        id: String(pet.petId),
-        name: pet.name,
-        tag: pet.tag,
-        joinedAt: pet.joinedAt,
-      }));
+      // 반려동물 id를 정확히 모르면 링크와 나가기가 다른 반려동물로 갈 수 있어 목록에서 뺀다
+      return pets.flatMap((pet) => {
+        const id = toId(pet.petId);
+        return id ? [{ id, name: pet.name, tag: pet.tag, joinedAt: pet.joinedAt }] : [];
+      });
     },
 
     async removeMember(petId: string, memberId: string): Promise<void> {
