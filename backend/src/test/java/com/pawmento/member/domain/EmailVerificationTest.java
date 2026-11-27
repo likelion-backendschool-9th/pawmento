@@ -222,5 +222,10 @@ class EmailVerificationTest {
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
 				"code-hash", "send-1", 0, expires, NOW, null, null, tokenExpires))
 				.isInstanceOf(InvalidEmailVerificationException.class);
+		// 확인 전인데 공백 토큰 해시만 남은 줄도 깨진 값이다
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, null, " ", null))
+				.isInstanceOf(InvalidEmailVerificationException.class)
+				.hasMessage("확인 전인데 토큰이 있습니다.");
 	}
 }

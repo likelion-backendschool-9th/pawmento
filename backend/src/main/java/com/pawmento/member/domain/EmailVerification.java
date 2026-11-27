@@ -64,11 +64,17 @@ public class EmailVerification {
 		if (codeExpiresAt == null || sentAt == null) {
 			throw new InvalidEmailVerificationException("보낸 시각과 만료 시각이 필요합니다.");
 		}
-		// 확인 시각·토큰 해시·토큰 만료는 셋 다 있거나 셋 다 없다
-		boolean verified = verifiedAt != null;
-		if (verified != (tokenHash != null && !tokenHash.isBlank()) || verified != (tokenExpiresAt != null)) {
-			throw new InvalidEmailVerificationException("확인 시각과 토큰이 함께 있어야 합니다.");
-		}
+		// 확인 전에는 토큰 값이 아예 없어야 하고(공백도 안 됨), 확인 후에는 토큰과 만료가 꼭 있어야 한다
+        if (verifiedAt == null) {
+            if (tokenHash != null || tokenExpiresAt != null) {
+                throw new InvalidEmailVerificationException("확인 전인데 토큰이 있습니다.");
+            }
+        }
+        else {
+            if (tokenHash == null || tokenHash.isBlank() || tokenExpiresAt == null) {
+                throw new InvalidEmailVerificationException("확인했는데 토큰이 없습니다.");
+            }
+        }
 		this.email = email;
 		this.purpose = purpose;
 		this.codeHash = codeHash;

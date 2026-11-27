@@ -7,6 +7,7 @@ import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import com.pawmento.member.application.exception.EmailVerificationConflictException;
 import com.pawmento.member.application.exception.StoredEmailVerificationInvalidException;
@@ -61,8 +62,9 @@ class EmailVerificationPersistenceAdapter implements LoadEmailVerificationPort, 
         return repository.deleteSent(id, sendId) == 1;
     }
 
+    // 틀린 횟수는 400 응답과 함께 롤백되면 안 된다. 바깥에 트랜잭션이 있어도 따로 열어 바로 커밋한다 (#279-S6)
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean recordFailure(Long id, String sendId) {
         return repository.recordFailure(id, sendId, EmailVerification.MAX_FAILED_ATTEMPTS) == 1;
     }

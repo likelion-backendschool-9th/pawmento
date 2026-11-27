@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.member.application.exception.EmailVerificationConflictException;
@@ -43,6 +45,9 @@ class EmailVerificationPersistenceAdapterTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private TransactionTemplate transaction;
 
 	@AfterEach
 	void cleanUp() {
@@ -301,54 +306,75 @@ class EmailVerificationPersistenceAdapterTest {
 		assertThat(failedAttempts()).isEqualTo(EmailVerification.MAX_FAILED_ATTEMPTS);
 	}
 
+	// 확인 저장은 DB의 실제 현재 시각(clock_timestamp)으로 만료를 보므로, 확인 테스트는 지금을 기준으로 보낸다
+	private static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.MILLIS);
+	}
+
 	@Test
 	@DisplayName("#279-S5 확인할 수 있으면 확인 시각과 토큰을 저장하고, 그 뒤에는 틀린 횟수를 세지 않는다")
 	void confirmStoresToken() {
-		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
-		Instant now = SENT_AT.plusSeconds(60);
-		EmailVerification confirmed = saved.confirm("token-hash", now);
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		Instant verifiedAt = sentAt.plusSeconds(1);
+		EmailVerification confirmed = saved.confirm("token-hash", verifiedAt);
 
 		assertThat(adapter.confirm(confirmed)).isTrue();
 
 		EmailVerification loaded = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
-		assertThat(loaded.getVerifiedAt()).isEqualTo(now);
+		assertThat(loaded.getVerifiedAt()).isEqualTo(verifiedAt);
 		assertThat(loaded.getTokenHash()).isEqualTo("token-hash");
-		assertThat(loaded.getTokenExpiresAt()).isEqualTo(now.plus(EmailVerification.TOKEN_VALID_FOR));
+		assertThat(loaded.getTokenExpiresAt()).isEqualTo(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR));
 		assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isFalse();
 	}
 
 	@Test
 	@DisplayName("#279-S7 이미 확인한 인증은 다시 확인되지 않고 처음 토큰이 남는다")
 	void confirmOnlyOnce() {
-		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
-		Instant now = SENT_AT.plusSeconds(60);
-		assertThat(adapter.confirm(saved.confirm("token-1", now))).isTrue();
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		assertThat(adapter.confirm(saved.confirm("token-1", sentAt.plusSeconds(1)))).isTrue();
 
-		assertThat(adapter.confirm(saved.confirm("token-2", now.plusSeconds(1)))).isFalse();
+		assertThat(adapter.confirm(saved.confirm("token-2", sentAt.plusSeconds(2)))).isFalse();
 		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getTokenHash()).isEqualTo("token-1");
 	}
 
 	@Test
-	@DisplayName("#279-S5 저장하는 순간 번호가 만료됐으면 확인되지 않는다 (만료 1초 전은 된다)")
+	@DisplayName("#279-S5 만료 직전에 시작한 확인도 저장하는 순간 DB 시각으로 만료됐으면 저장되지 않는다")
 	void confirmRejectsExpiredAtStore() {
-		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
-		Instant expiry = SENT_AT.plus(EmailVerification.CODE_VALID_FOR);
-		// 도메인 검사를 지난 객체가 늦게 저장되는 경우를 만들려고, 만료 시각 이후로 확인한 값을 직접 만든다
-		EmailVerification late = EmailVerification.restore(saved.getId(), email, VerificationPurpose.SIGNUP, "hash-1",
-				saved.getSendId(), 0, saved.getCodeExpiresAt(), SENT_AT, expiry, "token-hash",
-				expiry.plus(EmailVerification.TOKEN_VALID_FOR));
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		// 서비스는 만료 전에 읽고 판단했다(도메인 검사 통과)
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		// 조회·줄 잠금 대기 사이에 만료 시각이 지났다
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() - interval '1 millisecond'"
+				+ " where email = ?", email);
 
-		assertThat(adapter.confirm(late)).isFalse();
+		assertThat(adapter.confirm(confirmed)).isFalse();
 		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getVerifiedAt()).isNull();
+	}
 
-		assertThat(adapter.confirm(saved.confirm("token-hash", expiry.minusSeconds(1)))).isTrue();
+	@Test
+	@DisplayName("#279-S5 서비스가 넘긴 확인 시각이 아니라 저장 순간의 DB 시각으로 만료를 본다")
+	void confirmIgnoresStaleVerifiedAt() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '1 minute'"
+				+ " where email = ?", email);
+		// 넘긴 확인 시각은 아주 옛날이어도 지금 DB 시각으로 만료 전이면 저장된다
+		EmailVerification stale = EmailVerification.restore(saved.getId(), email, VerificationPurpose.SIGNUP, "hash-1",
+				saved.getSendId(), 0, saved.getCodeExpiresAt(), sentAt, Instant.parse("2000-01-01T00:00:00Z"),
+				"token-hash", Instant.parse("2000-01-01T00:30:00Z"));
+
+		assertThat(adapter.confirm(stale)).isTrue();
 	}
 
 	@Test
 	@DisplayName("#279-S6 다섯 번 틀린 뒤에는 저장하는 순간에도 확인되지 않는다")
 	void confirmRejectsAfterFiveFailures() {
-		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
-		EmailVerification confirmed = saved.confirm("token-hash", SENT_AT.plusSeconds(60));
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
 		for (int i = 0; i < EmailVerification.MAX_FAILED_ATTEMPTS; i++) {
 			adapter.recordFailure(saved.getId(), saved.getSendId());
 		}
@@ -360,14 +386,28 @@ class EmailVerificationPersistenceAdapterTest {
 	@Test
 	@DisplayName("#279-S3 확인하는 사이 다시 받기로 발송이 바뀌었으면 예전 번호의 확인은 저장되지 않는다")
 	void confirmRejectsAfterResend() {
-		EmailVerification first = adapter.save(sent("hash-1", SENT_AT));
-		EmailVerification confirmed = first.confirm("token-hash", SENT_AT.plusSeconds(61));
-		assertThat(adapter.resend(sent("hash-2", SENT_AT.plusSeconds(60)), SENT_AT)).isTrue();
+		Instant sentAt = now();
+		EmailVerification first = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = first.confirm("token-hash", sentAt.plusSeconds(1));
+		assertThat(adapter.resend(sent("hash-2", sentAt.plusSeconds(60)), sentAt)).isTrue();
 
 		assertThat(adapter.confirm(confirmed)).isFalse();
 		EmailVerification loaded = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
 		assertThat(loaded.getCodeHash()).isEqualTo("hash-2");
 		assertThat(loaded.getVerifiedAt()).isNull();
 		assertThat(adapter.recordFailure(first.getId(), first.getSendId())).isFalse();
+	}
+
+	@Test
+	@DisplayName("#279-S6 바깥 트랜잭션이 롤백돼도 틀린 횟수는 따로 커밋되어 남는다")
+	void failureSurvivesOuterRollback() {
+		EmailVerification saved = adapter.save(sent("hash-1", now()));
+
+		transaction.executeWithoutResult(status -> {
+			assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isTrue();
+			status.setRollbackOnly();
+		});
+
+		assertThat(failedAttempts()).isEqualTo(1);
 	}
 }
