@@ -6,32 +6,32 @@
 양식: [계획 문서 양식](../plan-template.md). 도메인 요약: [README](README.md).
 
 ## 한눈에
-- 끝나면: 로그인한 보호자가 `/me`에서 닉네임·이메일을 보고, (월 1회 한도 안에서) 닉네임을 바꾸며, 반려동물 관리로 이동하고, 로그아웃할 수 있다. `GET /members/me`·닉네임 변경 API(member)·`GET /pets`·`POST /auth/logout`에 연결한다.
+- 끝나면: 로그인한 보호자가 `/account`에서 닉네임·이메일을 보고, (월 1회 한도 안에서) 닉네임을 바꾸며, 반려동물 관리로 이동하고, 로그아웃할 수 있다. `GET /members/me`·닉네임 변경 API(member)·`GET /pets`·`POST /auth/logout`에 연결한다.
 - 결정 필요: 없음
 - 규모: 5단계 (프론트 마이페이지 홈 + member 닉네임 변경 API 합의·연동)
 
 ## 1. 내 정보 보기 (#52-R1)
-로그인한 보호자가 `/me`에서 서버에 저장된 닉네임·이메일을 본다.
+로그인한 보호자가 `/account`에서 서버에 저장된 닉네임·이메일을 본다. 더보기·설정에서 이 화면으로 들어간다. (고침 #233: 계정 화면을 `/account`로 옮기고 `/me`는 마이 피드로 비움)
 
 #52-S1 정상 [테스트]
 - Given 회원 A가 닉네임 `"보리 보호자"`, 이메일 `"a@example.com"`으로 가입·로그인했다
-- When  A가 `/me`를 연다
+- When  A가 `/account`를 연다
 - Then  화면에 닉네임 `"보리 보호자"`와 이메일 `"a@example.com"`이 보인다
 - Then  브라우저는 `GET /api/v1/members/me`를 호출하고 200을 받는다
 
 #52-S2 비로그인 [테스트]
 - Given 로그인 쿠키가 없다
-- When  `/me`로 들어간다
+- When  `/account` 또는 `/me`로 들어간다
 - Then  마이페이지 본문(닉네임·이메일)이 보이지 않는다
 - Then  로그인 화면(또는 로그인으로 보내는 흐름)으로 넘어간다
 - Then  이 시나리오는 **화면 차단**을 프론트 자동 테스트로 확인한다. `AuthScenarioTest` #14-S2의 API 401만으로 대체하지 않는다
 
 ## 2. 닉네임 변경 (#52-R2)
-보호자는 `/me`에서 닉네임을 바꿀 수 있다. **달력월(Asia/Seoul) 기준 한 달에 한 번**만 성공한다. API는 member 도메인에 두고, mypage 화면이 호출한다.
+보호자는 `/account`에서 닉네임을 바꿀 수 있다. **달력월(Asia/Seoul) 기준 한 달에 한 번**만 성공한다. API는 member 도메인에 두고, mypage 화면이 호출한다.
 
 #52-S3 정상 [테스트]
 - Given 회원 A가 로그인했고, 이번 달(Asia/Seoul)에 아직 닉네임을 바꾼 적이 없다
-- When  A가 `/me`에서 닉네임을 `"콩이 보호자"`로 저장한다
+- When  A가 `/account`에서 닉네임을 `"콩이 보호자"`로 저장한다
 - Then  member 닉네임 변경 API가 200(또는 합의한 성공)을 주고, 화면 닉네임이 `"콩이 보호자"`다
 - Then  `GET /api/v1/members/me`의 `nickname`도 `"콩이 보호자"`다
 
@@ -52,7 +52,7 @@
 
 #52-S6 정상 [테스트]
 - Given 회원 A가 로그인했고 반려동물 `"콩이"`, `"보리"` 두 마리를 등록했다
-- When  A가 `/me`를 연다
+- When  A가 `/account`를 연다
 - Then  함께하는 친구 수에 `2`가 보인다
 - Then  `GET /api/v1/pets`가 200이고 목록 길이 2다
 - When  A가 「반려동물 관리」로 이동한다
@@ -60,7 +60,7 @@
 
 #52-S7 반려동물 없음 [테스트]
 - Given 회원 A가 로그인했고 반려동물이 없다
-- When  A가 `/me`를 연다
+- When  A가 `/account`를 연다
 - Then  함께하는 친구 수에 `0`이 보인다
 - Then  「반려동물 관리」로 이동할 수 있다
 
@@ -68,13 +68,13 @@
 마이페이지에서 로그아웃하면 쿠키가 지워지고 보호 화면을 쓰지 못한다.
 
 #52-S8 정상 [테스트]
-- Given 회원 A가 로그인한 채 `/me`에 있다
+- Given 회원 A가 로그인한 채 `/account`에 있다
 - When  A가 로그아웃을 누른다
 - Then  `POST /api/v1/auth/logout`이 204이고 `ACCESS_TOKEN` 쿠키가 지워진다
 - Then  A는 로그인 전 화면(예: `/`)으로 이동한다
-- When  A가 다시 `/me`로 가려 한다
+- When  A가 다시 `/account`나 `/me`로 가려 한다
 - Then  #52-S2와 같이 마이페이지 본문을 보지 못한다
-- Then  로그아웃 후 `/me` 재진입 차단은 **프론트 자동 테스트**로 확인한다. `AuthScenarioTest` #14-S6의 쿠키 삭제만으로 이 Then을 대체하지 않는다
+- Then  로그아웃 후 `/account`·`/me` 재진입 차단은 **프론트 자동 테스트**로 확인한다. `AuthScenarioTest` #14-S6의 쿠키 삭제만으로 이 Then을 대체하지 않는다
 
 ## 5. 패키지 경계 (#52-R5)
 마이페이지 전용 백엔드 패키지는 두지 않는다. 인증·닉네임 변경은 member, 반려동물은 pet, 화면 조합은 frontend mypage다.
@@ -93,7 +93,7 @@
 - **닉네임 확정 확인 UI(모달·팝업)** — 제품 의견으로 남겨 두었고, 프론트 닉네임 변경 UI 구현 때 다시 본다. ([정한 것](#정한-것)·[README](README.md))
 
 ## 작업 순서
-1. `/me`에 `GET /members/me`와 **비로그인 화면 차단**을 붙인다 — S1, S2
+1. `/account`에 `GET /members/me`와 **비로그인 화면 차단**을 붙인다 — S1, S2
    - 파일: `frontend` 마이페이지(Account) 화면·auth HTTP 어댑터, 로그인 가드/리다이렉트
    - 확인: 프론트 자동 테스트(`@DisplayName` 또는 팀이 정한 이름에 `#52-S1`, `#52-S2`). **S2는 수동·`[직접]`로 대체하지 않는다**
 2. member와 닉네임 변경 API(월 1회·달력월)를 합의·연동한다 — S3, S4, S5
@@ -111,7 +111,7 @@
 
 ## 정한 것
 - 이번 계획(#52)은 **마이페이지 홈**이다. 백엔드 `com.pawmento.mypage`는 만들지 않는다
-- 문서 폴더·제품 용어는 `mypage`, 화면 URL은 `/me`다. ([README](README.md))
+- 문서 폴더·제품 용어는 `mypage`다. 하단 마이페이지 URL은 `/me`(마이 피드 자리), 계정 화면 URL은 `/account`다. ([README](README.md)) (고침 #233: 계정 화면을 `/account`로 옮기고 `/me`는 마이 피드로 비움)
 - 인증·쿠키·로그아웃 계약은 [member](../member/README.md) / #14를 따른다
 - 반려동물 목록·관리는 [pet](../pet/README.md) / #46 API를 쓰고, 마이페이지는 요약·진입만 한다
 - **닉네임은 Asia/Seoul 달력월 기준 한 달에 한 번만 변경할 수 있다.** (Q1 답, #51/#52)
@@ -129,5 +129,5 @@
 - 양식·권한·보안은 `[테스트]`: [plan-template.md](../plan-template.md)
 - 인증·`GET /members/me`·로그아웃: [member/README.md](../member/README.md), [auth-base.md](../member/auth-base.md)
 - 반려동물 API: [pet/manage.md](../pet/manage.md)
-- 데모 화면: `frontend` AccountScreen(`/me`), `frontend/README.md` 마이·활동 행
+- 데모 화면: `frontend` AccountScreen(`/account`), `frontend/README.md` 마이·활동 행
 - 회의: [2026-11-16](../meetings/2026-11-16.md)
