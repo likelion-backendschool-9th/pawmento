@@ -160,17 +160,19 @@ function DeniedSheet({ onRetry, onDismiss }: { onRetry: () => void; onDismiss: (
               </button>
             ))}
           </div>
-          <ol
-            className={styles.steps}
+          <div
+            className={styles.panel}
             role="tabpanel"
             id={`${ids}-panel`}
             aria-labelledby={`${ids}-tab-${index}`}
             tabIndex={0}
           >
-            {current.steps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
+            <ol className={styles.steps}>
+              {current.steps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
       <button type="button" className={styles.cta} autoFocus onClick={onRetry}>

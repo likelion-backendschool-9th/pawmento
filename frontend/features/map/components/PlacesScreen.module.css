@@ -414,5 +414,51 @@
 
 /* 내 위치를 보이는 동안 "장소가 없어요" 안내는 가운데보다 아래에 두어 내 위치 점을 가리지 않는다(#226-S2) */
 .page .messageLow {
-  top: 72%;
+  top: 69%;
+}
+/* 화면이 낮으면(예: 가로로 든 휴대폰, 지도 높이 약 240px) 가운데 카드가 점을 가리고 아래가 잘린다.
+   그때는 안내를 아래쪽의 작은 한 줄 카드로 줄인다. 그림은 숨기고, 다시 불러오기 버튼은 오른쪽에 둔다.
+   오른쪽은 "내 위치" 버튼(48px) 자리를 비우고, 같은 높이의 왼쪽 안내(.pill)는 숨긴다(#226-S2) */
+@media (max-height: 680px) {
+  .page .messageLow {
+    top: auto;
+    bottom: 12px;
+    left: 12px;
+    right: 72px;
+    width: auto;
+    max-height: none;
+    transform: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 10px;
+    padding: 10px 12px;
+    border-radius: 18px;
+    text-align: left;
+  }
+  .page .messageLow > span[aria-hidden="true"] {
+    display: none;
+  }
+  .page .messageLow > strong {
+    grid-column: 1;
+    font-size: 14px;
+    word-break: keep-all;
+  }
+  .page .messageLow > p {
+    grid-column: 1;
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .page .messageLow > button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .page [data-places-stage]:has(.messageLow) .pill {
+    visibility: hidden;
+  }
 }

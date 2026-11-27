@@ -227,6 +227,9 @@ test("#226-S4 기기 선택 탭은 방향키로 옮기고, 처음과 끝이 이�
   assert.equal(nextTabIndex("ArrowLeft", 1, 2), 0);
   assert.equal(nextTabIndex("Home", 1, 3), 0);
   assert.equal(nextTabIndex("End", 0, 3), 2);
+  // 가로 탭의 위·아래 키는 화면의 세로 스크롤에 맡긴다
+  assert.equal(nextTabIndex("ArrowUp", 0, 2), null);
+  assert.equal(nextTabIndex("ArrowDown", 0, 2), null);
   // 탭이 아닌 키는 건드리지 않는다
   assert.equal(nextTabIndex("Enter", 0, 2), null);
   assert.equal(nextTabIndex("Tab", 0, 2), null);
@@ -242,7 +245,9 @@ test("#226-S3 이 기기가 위치를 지원하지 않으면 버튼 이름이 �
   assert.equal(locateLabel({ reading: true, supported: false }), unsupported);
 });
 
-test("#226-S10 권한 안내는 위치를 저장하지 않는다는 말과 함께, 내 위치 근처의 지도 범위가 서버로 전송된다는 것을 숨기지 않고 알린다", () => {
-  assert.ok(LOCATION_INTRO.body.includes("저장하지 않아요"));
-  assert.ok(LOCATION_INTRO.note.includes("서버") && LOCATION_INTRO.note.includes("지도 범위"));
+test("#226-S10 권한 안내는 앱이 위치를 저장하지 않는다는 말과 함께, 지도 범위가 서버로 가고 서버 접속 기록에 남을 수 있다는 것을 숨기지 않고 알린다", () => {
+  assert.ok(LOCATION_INTRO.body.includes("앱에 저장하지 않아요"));
+  assert.ok(LOCATION_INTRO.note.includes("서버로 전송"));
+  assert.ok(LOCATION_INTRO.note.includes("지도 범위"));
+  assert.ok(LOCATION_INTRO.note.includes("접속 기록"));
 });
