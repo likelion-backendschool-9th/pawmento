@@ -20,9 +20,9 @@ export type SheetBody =
   | { kind: "nothingChosen"; text: string }
   | { kind: "rows"; rows: NearbyRow[]; note: string | null }
   // 반경 안에 없다: 한 단계 넓혀 보기를 권한다
-  | { kind: "widen"; text: string; next: NearbyRadius; button: string }
+  | { kind: "widen"; text: string; next: NearbyRadius; button: string; note: string | null }
   // 가장 넓은 반경에도 없다, 또는 기준이 없는 지도 영역에 없다
-  | { kind: "none"; text: string };
+  | { kind: "none"; text: string; note: string | null };
 
 export type SheetView = { title: string; summary: string; body: SheetBody };
 
@@ -49,13 +49,15 @@ export function nearbySheetView(
     distance: distanceLabel(item.distanceMeters),
   }));
   if (rows.length === 0) {
+    // 서버가 조회 결과를 잘랐다면 반경 안이 비어 보여도 "없다"고 단정하지 않는다
+    const note = list.truncated ? "조회된 장소가 많아 일부만 확인했어요" : null;
     const next = widerRadius(radius);
     return {
       ...heading(0),
       body:
         next === null
-          ? { kind: "none", text: "내 주변에는 아직 없어요. 지도를 옮겨 찾아보세요" }
-          : { kind: "widen", text: `반경 ${radiusLabel(radius)} 안에는 없어요`, next, button: `${radiusLabel(next)}로 넓혀 보기` },
+          ? { kind: "none", text: "내 주변에는 아직 없어요. 지도를 옮겨 찾아보세요", note }
+          : { kind: "widen", text: `반경 ${radiusLabel(radius)} 안에는 없어요`, next, button: `${radiusLabel(next)}로 넓혀 보기`, note },
     };
   }
   const note = list.truncated
@@ -79,7 +81,7 @@ export function areaSheetView(input: {
   if (input.error) return { title: heading(0).title, summary: "불러오지 못했어요", body: { kind: "error", message: input.error } };
   if (input.places.length === 0) {
     if (input.loading) return { title: heading(0).title, summary: "찾는 중이에요", body: { kind: "loading" } };
-    return { ...heading(0), body: { kind: "none", text: "이 지역에는 장소가 없어요. 지도를 옮기거나 다른 종류를 켜 보세요" } };
+    return { ...heading(0), body: { kind: "none", text: "이 지역에는 장소가 없어요. 지도를 옮기거나 다른 종류를 켜 보세요", note: input.truncated ? "조회된 장소가 많아 일부만 확인했어요" : null } };
   }
   return {
     ...heading(input.places.length),

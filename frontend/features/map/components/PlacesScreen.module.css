@@ -415,3 +415,34 @@
     animation: none;
   }
 }
+
+/* 내 위치 기준일 때 지도 영역 조회 오류 알림(#172-S18). 검색창과 종류 칩 아래에 한 줄로 두고 다시 불러오기 버튼을 붙인다 */
+.areaError {
+  position: absolute;
+  z-index: 4;
+  top: 112px;
+  right: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 16px;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+.areaError button {
+  flex: none;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand-primary);
+  color: var(--surface-card);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

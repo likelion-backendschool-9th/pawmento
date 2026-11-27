@@ -33,6 +33,8 @@ export function NearbySheet({
   onRetry: () => void;
 }) {
   const body = view.body;
+  // 목록·넓혀 보기·없음 어느 쪽이든 서버의 잘림 안내를 잃지 않는다
+  const bodyNote = "note" in body ? body.note : null;
   return (
     <section
       className={styles.sheet}
@@ -57,6 +59,9 @@ export function NearbySheet({
           <Icon name="chevron" size={18} />
         </span>
       </button>
+
+      {/* 접혀 있어도 예시 장소 표시와 데이터 기준일은 첫 화면에서 보인다(#172-S19, S21) */}
+      {!open && note && <p className={styles.note}>{note}</p>}
 
       {open && (
         <div className={styles.body} aria-busy={body.kind === "loading"}>
@@ -134,6 +139,7 @@ export function NearbySheet({
                     <button
                       type="button"
                       className={styles.row}
+                      data-nearby-place={place.id}
                       onClick={() => onPick(place)}
                     >
                       <span
@@ -165,10 +171,10 @@ export function NearbySheet({
             </ul>
           )}
 
-          {(note || (body.kind === "rows" && body.note)) && (
+          {(note || bodyNote) && (
             <p className={styles.note}>
-              {body.kind === "rows" && body.note}
-              {body.kind === "rows" && body.note && note && <br />}
+              {bodyNote}
+              {bodyNote && note && <br />}
               {note}
             </p>
           )}

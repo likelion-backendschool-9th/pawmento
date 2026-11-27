@@ -3,7 +3,7 @@
   /* 아래 묶음(.dock) 안에서 위쪽 "내 위치" 버튼 아래에 놓이고, 내 위치 점(지도 한가운데)을 가리지 않도록 지도 높이의 절반에서 약 48px을 뺀 높이까지만 커진다 */
   flex: 0 1 auto;
   min-height: 0;
-  max-height: max(calc(50% - 56px), 176px);
+  max-height: calc(50% - 56px);
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -148,17 +148,13 @@
   text-align: left;
   cursor: pointer;
 }
-.nearby:focus-visible {
-  outline: 2px solid var(--brand);
-  outline-offset: -2px;
-}
 .nearby:active {
   background: var(--surface-subtle);
 }
 .nearbyIcon {
   display: inline-flex;
   flex: none;
-  color: var(--brand);
+  color: var(--brand-primary);
 }
 .recent header {
   display: flex;

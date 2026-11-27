@@ -161,11 +161,11 @@ test("#226-S7 조회 영역은 사각형이라 반경(원) 밖의 모서리 장�
 
 test("#226-S6 반경 안에 없으면 한 단계 넓혀 보기를 권하고, 가장 넓은 3km에도 없으면 지도를 옮겨 보라고 한다", () => {
   const a = nearbySheetView(done([]), REFERENCE, 500, false);
-  assert.deepEqual(a.body, { kind: "widen", text: "반경 500m 안에는 없어요", next: 1000, button: "1km로 넓혀 보기" });
+  assert.deepEqual(a.body, { kind: "widen", text: "반경 500m 안에는 없어요", next: 1000, button: "1km로 넓혀 보기", note: null });
   const b = nearbySheetView(done([]), REFERENCE, 1000, false);
-  assert.deepEqual(b.body, { kind: "widen", text: "반경 1km 안에는 없어요", next: 3000, button: "3km로 넓혀 보기" });
+  assert.deepEqual(b.body, { kind: "widen", text: "반경 1km 안에는 없어요", next: 3000, button: "3km로 넓혀 보기", note: null });
   const c = nearbySheetView(done([]), REFERENCE, 3000, false);
-  assert.deepEqual(c.body, { kind: "none", text: "내 주변에는 아직 없어요. 지도를 옮겨 찾아보세요" });
+  assert.deepEqual(c.body, { kind: "none", text: "내 주변에는 아직 없어요. 지도를 옮겨 찾아보세요", note: null });
 });
 
 test("#226-S7 서버가 잘렸다고 하면 목록 아래에 안내를 붙인다(반경을 줄일 수 있을 때만 줄이라고 한다)", () => {
@@ -202,4 +202,20 @@ test("#226-S9 기준이 아직 없으면 지도 영역의 조회 결과를 거�
   assert.equal(loading.body.kind, "loading");
   const truncated = areaSheetView({ places, loading: false, error: "", truncated: true, nothingChosen: false });
   assert.equal(truncated.body.kind === "rows" && truncated.body.note, "장소가 많아서 일부만 보여요. 지도를 확대해 보세요");
+});
+
+test("#226-S7 원 안이 비어 있어도 서버가 조회를 잘랐다면 그 안내를 잃지 않는다", () => {
+  // 사각형 안이지만 반경(원) 밖인 장소만 있고 서버는 잘렸다고 알린 경우
+  const corner = place("c", "모서리 병원", northOf(470), ME.longitude + 0.0067);
+  const widen = nearbySheetView(done([corner], { truncated: true }), REFERENCE, 500, false);
+  assert.equal(widen.body.kind, "widen");
+  assert.equal(widen.body.kind === "widen" && widen.body.note, "조회된 장소가 많아 일부만 확인했어요");
+  const none = nearbySheetView(done([], { truncated: true }), REFERENCE, 3000, false);
+  assert.equal(none.body.kind === "none" && none.body.note, "조회된 장소가 많아 일부만 확인했어요");
+  // 잘리지 않았으면 안내가 없다
+  const plain = nearbySheetView(done([corner]), REFERENCE, 500, false);
+  assert.equal(plain.body.kind === "widen" && plain.body.note, null);
+  // 기준이 없는 지도 영역도 같다
+  const area = areaSheetView({ places: [], loading: false, error: "", truncated: true, nothingChosen: false });
+  assert.equal(area.body.kind === "none" && area.body.note, "조회된 장소가 많아 일부만 확인했어요");
 });

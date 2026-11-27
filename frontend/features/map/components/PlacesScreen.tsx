@@ -103,6 +103,7 @@ export function PlacesScreen() {
   }
   // 목록의 장소를 누르면 지도가 그 장소로 옮겨 가고 마커가 선택되며 카드가 열린다. 목록과 기준은 그대로다(#226-S8)
   function chooseNearby(place: Place) {
+    listReturn.current = place.id;
     setPinned(place);
     setSearchText("");
     setSelectedId(place.id);
@@ -144,6 +145,8 @@ export function PlacesScreen() {
       setSearchText("");
       setFocus(null);
     }
+    // 지도에서 다른 장소를 고르면 목록에서 열었다는 기억은 버린다(닫을 때 목록으로 초점을 돌리지 않는다)
+    if (id !== null) listReturn.current = null;
     setSelectedId(id);
   }
   // 검색창의 ✕: 선택과 검색어를 함께 푼다. 종류 칩과 지도는 그대로다
@@ -233,6 +236,25 @@ export function PlacesScreen() {
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
   const cardRef = useRef<HTMLElement>(null);
+  // 키보드로 목록에서 카드를 열면 카드의 닫기 버튼으로, 카드를 닫으면 눌렀던 목록의 장소로 초점을 이어 준다(시트는 카드가 열리는 동안 사라진다)
+  const listReturn = useRef<string | null>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const hadCard = useRef(false);
+  const selectedKey = selected?.id ?? null;
+  useEffect(() => {
+    if (selectedKey !== null) {
+      hadCard.current = true;
+      if (listReturn.current !== null) closeButton.current?.focus();
+      return;
+    }
+    if (!hadCard.current) return;
+    hadCard.current = false;
+    const id = listReturn.current;
+    listReturn.current = null;
+    if (id === null) return;
+    const row = document.querySelector<HTMLElement>(`[data-nearby-place="${CSS.escape(id)}"]`);
+    (row ?? document.querySelector<HTMLElement>("[data-nearby-sheet] button[aria-expanded]"))?.focus();
+  }, [selectedKey]);
   // 모든 화면 크기에서 모바일 카드가 지도 아래를 덮는다.
   // 브라우저 너비 대신 실제 카드 높이를 전달해 PC에서도 마커가 가려지지 않게 한다.
   const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
@@ -378,7 +400,16 @@ export function PlacesScreen() {
           </p>
         )}
 
-        {/* 시트가 보일 때의 오류는 시트 안에 보인다. 카드가 열려 시트가 숨었을 때만 지도 위에 보인다 */}
+        {/* 지도 영역 조회 오류(#172-S18). 기준이 없으면 시트 안에 보이고, 카드가 열려 있으면 가운데 안내로 보인다.
+            내 위치 기준의 시트는 주변 목록만 읽으므로, 지도의 핀이 오래된 채로 남지 않게 위쪽에 따로 알리고 다시 불러오게 한다 */}
+        {error && !selected && reference && (
+          <div className={styles.areaError} role="alert">
+            <span>지도의 장소를 불러오지 못했어요</span>
+            <button type="button" onClick={() => setAttempt((count) => count + 1)}>
+              다시 불러오기
+            </button>
+          </div>
+        )}
         {error && selected && (
           <div className={mapStyles.message} role="alert">
             <strong>장소를 불러오지 못했어요</strong>
@@ -401,6 +432,7 @@ export function PlacesScreen() {
           >
             <div className={mapStyles.grab} aria-hidden="true" />
             <button
+              ref={closeButton}
               type="button"
               className={styles.close}
               aria-label="장소 카드 닫기"
