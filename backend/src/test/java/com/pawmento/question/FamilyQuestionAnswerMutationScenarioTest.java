@@ -101,7 +101,7 @@ class FamilyQuestionAnswerMutationScenarioTest {
   @ParameterizedTest
   @CsvSource({"ACTIVE,false", "ACTIVE,true", "GARDEN,false", "GARDEN,true"})
   @DisplayName(
-      "#31-S8/S12/S15/S31 가족의 답변 수정·삭제는 작성자와 실제 등록일을 보존하고 첨부 유무와 관계없이 타인 수정·가족의 타인 삭제를 거부한다")
+      "#31-S8/S12/S15/S31 가족의 답변 수정·삭제는 작성자와 실제 등록일을 보존하고 첨부 유무와 관계없이 타인 수정·가족의 타인 삭제를 거부한다 (고침 #133: Q2 삭제 권한)")
   void mutationsPreserveAuthorAndProgress(String mode, boolean attached) throws Exception {
     modes.changeMode(new ChangePetModeCommand(owner, pet, mode));
     long prompt =

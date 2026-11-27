@@ -1,6 +1,7 @@
 package com.pawmento.diary;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -22,6 +23,7 @@ import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -220,6 +222,12 @@ class OwnerRecordDeletionScenarioTest {
             jdbc.queryForObject(
                 "select count(*) from question_answer where id=?", Long.class, answer))
         .isEqualTo(1L);
+    assertThat(
+            jdbc.queryForList(
+                "select asset_id from question_answer_attachment where answer_id=?",
+                Long.class,
+                answer))
+        .containsExactly(asset.id());
     assertThat(loadAssets.findById(asset.id()).orElseThrow().getReferenceCount()).isEqualTo(1);
     assertThat(
             jdbc.queryForObject(
@@ -393,11 +401,9 @@ class OwnerRecordDeletionScenarioTest {
     var held = new CountDownLatch(1);
     var release = new CountDownLatch(1);
     var firstCall = new AtomicBoolean(true);
-    var queued = new CountDownLatch(1);
     Mockito.doAnswer(
             inv -> {
               boolean first = firstCall.compareAndSet(true, false);
-              if (!first) queued.countDown();
               Object result = inv.callRealMethod();
               if (first) {
                 held.countDown();
@@ -437,7 +443,18 @@ class OwnerRecordDeletionScenarioTest {
         var first = pool.submit(editFirst ? writerMutation : delete);
         assertThat(held.await(10, TimeUnit.SECONDS)).isTrue();
         var second = pool.submit(editFirst ? delete : writerMutation);
-        assertThat(queued.await(10, TimeUnit.SECONDS)).isTrue();
+        // 두 번째 요청이 실제로 pet 행 잠금(SELECT … FOR UPDATE)에서 기다리는 것을 본 뒤 첫 요청을 끝낸다.
+        await()
+            .atMost(Duration.ofSeconds(8))
+            .until(
+                () ->
+                    jdbc.queryForObject(
+                            "select count(*) from pg_stat_activity where pid <> pg_backend_pid()"
+                                + " and wait_event_type='Lock' and lower(query) like '%from"
+                                + " pets%for update%'",
+                            Long.class)
+                        > 0);
+        assertThat(second.isDone()).isFalse();
         release.countDown();
         assertThat(first.get(15, TimeUnit.SECONDS)).isEqualTo(edited ? 200 : 204);
         assertThat(second.get(15, TimeUnit.SECONDS)).isEqualTo(edited || diary ? 409 : 404);

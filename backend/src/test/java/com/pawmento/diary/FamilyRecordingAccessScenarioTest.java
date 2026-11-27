@@ -102,7 +102,7 @@ class FamilyRecordingAccessScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S30/S31 가족이 일기를 작성·공유하되 본인만 수정하고 타인 위치는 숨긴다")
+  @DisplayName("#32-S30/S31 가족이 일기를 작성·공유하되 본인만 수정하고 타인 위치는 숨긴다 (고침 #133: Q2 삭제 권한)")
   void diaryAccess() throws Exception {
     var written =
         diary(
