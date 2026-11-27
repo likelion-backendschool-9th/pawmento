@@ -13,6 +13,7 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
       # 메일 서버가 응답하지 않아도 요청이 오래 붙잡히지 않게 5초에서 끊는다
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 5000

@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
+import org.springframework.mail.MailSendException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
@@ -46,9 +47,15 @@ class SmtpVerificationMailAdapter implements SendVerificationMailPort {
 		try {
 			mailSender.send(message);
 		}
-		catch (MailException e) {
+        catch (MailSendException e) {
+            if (e.getFailedMessages().isEmpty()) {
+                return;
+            }
 			throw new VerificationMailUnavailableException(e);
 		}
+        catch (MailException e) {
+            throw new VerificationMailUnavailableException(e);
+        }
 	}
 
 	private static String title(VerificationPurpose purpose) {

@@ -7,8 +7,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import java.time.Instant;
+import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -57,9 +59,12 @@ class SmtpVerificationMailAdapterTest {
 	}
 
 	@Test
-	@DisplayName("#279-S4 메일 서버 연결·인증에 실패하면 503용 예외로 바꾸고 원인을 남긴다")
+	@DisplayName("#279-S4 메일 서버 연결·발송·인증에 실패하면 503용 예외로 바꾸고 원인을 남긴다")
 	void mailFailureBecomesUnavailable() {
-		MailSendException connection = new MailSendException("connection refused");
+		// JavaMailSenderImpl은 연결이나 발송에 실패하면 실패한 메일을 failedMessages에 담는다
+		IllegalStateException refused = new IllegalStateException("connection refused");
+		MailSendException connection = new MailSendException("Mail server connection failed", refused,
+				Map.of(new Object(), refused));
 		doThrow(connection).when(mailSender).send(any(SimpleMailMessage.class));
 
 		assertThatThrownBy(() -> adapter.send("a@test.com", VerificationPurpose.SIGNUP, "123456", EXPIRES_AT))
@@ -69,5 +74,17 @@ class SmtpVerificationMailAdapterTest {
 		doThrow(new MailAuthenticationException("bad password")).when(mailSender).send(any(SimpleMailMessage.class));
 		assertThatThrownBy(() -> adapter.send("a@test.com", VerificationPurpose.SIGNUP, "123456", EXPIRES_AT))
 				.isInstanceOf(VerificationMailUnavailableException.class);
+	}
+
+	@Test
+	@DisplayName("#279-S4 서버가 메일을 받은 뒤 연결 닫기만 실패하면 보낸 것으로 본다 (사용자는 번호를 받는다)")
+	void closeFailureAfterAcceptedIsSuccess() {
+		// JavaMailSenderImpl은 모든 메일을 보낸 뒤 transport.close()만 실패하면 failedMessages 없이 던진다
+		MailSendException closeFailed = new MailSendException("Failed to close server connection after message sending",
+				new IllegalStateException("socket closed"));
+		doThrow(closeFailed).when(mailSender).send(any(SimpleMailMessage.class));
+
+		assertThatCode(() -> adapter.send("a@test.com", VerificationPurpose.SIGNUP, "123456", EXPIRES_AT))
+				.doesNotThrowAnyException();
 	}
 }

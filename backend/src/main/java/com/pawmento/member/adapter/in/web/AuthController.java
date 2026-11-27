@@ -18,6 +18,8 @@ import com.pawmento.member.application.port.in.LoginMemberUseCase;
 import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 import com.pawmento.member.application.port.in.SocialLoginMemberUseCase;
+import com.pawmento.member.application.port.in.SendEmailVerificationCommand;
+import com.pawmento.member.application.port.in.SendEmailVerificationUseCase;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -35,6 +37,8 @@ class AuthController {
 	private final LoginMemberUseCase loginMemberUseCase;
 	
 	private final SocialLoginMemberUseCase socialLoginMemberUseCase;
+
+	private final SendEmailVerificationUseCase sendEmailVerificationUseCase;
 	
 	private final AccessTokenCookie accessTokenCookie;
 
@@ -45,6 +49,14 @@ class AuthController {
 				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname())));
 		return ResponseEntity.status(HttpStatus.CREATED).body(member);
 	}
+
+	@PostMapping("/email-verifications")
+	ResponseEntity<EmailVerificationResponse> sendEmailVerification(
+		@Valid @RequestBody SendEmailVerificationRequest request) {
+			EmailVerificationResponse response = EmailVerificationResponse.from(sendEmailVerificationUseCase
+					.send(new SendEmailVerificationCommand(request.email(), request.purpose())));
+			return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+		}
 
 	// 토큰은 응답 본문에 싣지 않고 HttpOnly 쿠키로만 내린다
 	@PostMapping("/login")
