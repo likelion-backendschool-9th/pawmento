@@ -48,24 +48,23 @@ const items = journalItems({
   ],
 });
 
-test("#233-S2 일기·달력·미디어와 질문 답변·회차는 서로 다른 하단 항목만 활성화한다", () => {
+test("#233-S2 (고침 #233: 오늘의 질문을 다이어리 탭으로) 일기·달력·지도·오늘의 질문·미디어는 다이어리 하단 항목을 활성화한다", () => {
   for (const suffix of [
     "diary",
     "diary/new",
     "diary/a/edit",
     "calendar",
+    "map",
+    "questions",
+    "questions/prompts/p1",
+    "questions/answers/a",
+    "questions/answers/new",
+    "questions/history",
     "media",
     "records/old",
     "timeline",
   ])
     assert.equal(activeNavigation(`/pets/bori/${suffix}`, "bori"), "diary");
-  for (const suffix of [
-    "questions",
-    "questions/prompts/p1",
-    "questions/answers/a",
-    "questions/answers/new",
-  ])
-    assert.equal(activeNavigation(`/pets/bori/${suffix}`, "bori"), "questions");
   assert.equal(activeNavigation("/pets/bori/diary-other", "bori"), null);
   assert.equal(activeNavigation("/pets/coco/diary", "bori"), null);
 });

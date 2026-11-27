@@ -1,6 +1,8 @@
 .tabs {
-  display: flex;
-  flex-wrap: wrap;
+  /* 탭 수와 관계없이 모든 탭을 같은 너비로 나눈다 */
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
   gap: 6px;
   margin: 0 0 24px;
   padding: 5px;
@@ -12,7 +14,9 @@
 .tabs a {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
+  white-space: nowrap;
   padding: 10px 14px;
   min-height: 42px;
   border-radius: 10px;
@@ -28,8 +32,11 @@
   .tabs {
     width: 100%;
   }
+  /* 좁은 폭에서 네 탭이 같은 너비를 유지하도록 아이콘을 글자 위에 둔다 */
   .tabs a {
-    padding: 9px 8px;
+    flex-direction: column;
+    gap: 3px;
+    padding: 7px 2px;
     font-size: 11px;
   }
 }

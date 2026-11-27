@@ -1,7 +1,7 @@
 import { mobileNavLinks } from "./mobileNavigation.ts";
 
 export type AppNavKey =
-  "home" | "diary" | "questions" | "community" | "places" | "mailbox" | "mypage";
+  "home" | "diary" | "community" | "places" | "mailbox" | "mypage";
 export function activeNavigation(
   route: string,
   petId?: string,
@@ -17,9 +17,8 @@ export function activeNavigation(
   if (route === `${base}/garden` || route === base) return "home";
   if (inRoute(`${base}/garden/mailbox`) || inRoute(`${base}/garden/postcards`))
     return "mailbox";
-  if (inRoute(`${base}/questions`)) return "questions";
   if (
-    ["diary", "calendar", "media", "records", "timeline"].some((p) =>
+    ["diary", "calendar", "map", "questions", "media", "records", "timeline"].some((p) =>
       inRoute(`${base}/${p}`),
     )
   )

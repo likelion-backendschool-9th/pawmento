@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
+import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { QuestionHeading } from "./QuestionHeading";
 import { MediaAttachments } from "@/components/MediaAttachments";
 import type { MediaAttachment } from "@/types/MediaAttachment";
@@ -60,6 +61,7 @@ export function TodayQuestion({ pet }: { pet: Pet }) {
           <Icon name="book" size={15} /> 이전 질문
         </Link>
       </QuestionHeading>
+      <ArchiveNavigation petId={pet.id} active="questions" />
       {prompt.error ? (
         <div className={s.status} role="alert">
           <p>{prompt.error}</p>
