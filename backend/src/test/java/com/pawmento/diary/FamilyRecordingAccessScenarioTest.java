@@ -19,6 +19,7 @@ import com.pawmento.media.domain.*;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import java.io.ByteArrayInputStream;
 import java.time.*;
 import java.util.*;
@@ -44,6 +45,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @AutoConfigureMockMvc
 class FamilyRecordingAccessScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase members;
   @Autowired CreatePetUseCase pets;
@@ -75,7 +77,7 @@ class FamilyRecordingAccessScenarioTest {
 
   long member(String name) {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", name))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", name))
         .id();
   }
 

@@ -15,6 +15,7 @@ import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.*;
@@ -39,6 +40,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 class DiaryAuthorScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired SignUpMemberUseCase members;
   @Autowired ChangeMemberNicknameUseCase nicknames;
   @Autowired CreatePetUseCase pets;
@@ -62,7 +64,7 @@ class DiaryAuthorScenarioTest {
 
   long member(String name) {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", name))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", name))
         .id();
   }
 

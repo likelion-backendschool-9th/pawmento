@@ -16,6 +16,7 @@ import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.exception.QuestionPersistenceUnavailableException;
 import com.pawmento.question.application.port.out.*;
+import com.pawmento.support.SignUpTokens;
 import java.io.ByteArrayInputStream;
 import java.time.*;
 import java.util.*;
@@ -41,6 +42,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 class QuestionAnswerAttachmentScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired CreatePetUseCase pets;
   @Autowired ChangePetModeUseCase modes;
@@ -71,7 +73,7 @@ class QuestionAnswerAttachmentScenarioTest {
     member =
         members
             .signUp(
-                new SignUpMemberCommand(
+                signUpTokens.command(
                     UUID.randomUUID() + "@test.example", "Password123!", "보리 가족"))
             .id();
     pet = pets.create(new CreatePetCommand(member, "보리", "DOG", null, null)).petId();

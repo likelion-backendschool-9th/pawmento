@@ -16,6 +16,7 @@ import com.pawmento.media.domain.*;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import java.time.*;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(TestcontainersConfiguration.class)
 class FamilyRecordingConcurrencyTest {
   @Autowired JdbcTemplate jdbc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired TransactionTemplate tx;
   @Autowired SignUpMemberUseCase members;
   @Autowired CreatePetUseCase pets;
@@ -75,7 +77,7 @@ class FamilyRecordingConcurrencyTest {
 
   long member() {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", "가족"))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", "가족"))
         .id();
   }
 

@@ -13,6 +13,7 @@ import com.pawmento.media.domain.*;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -38,6 +39,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 @AutoConfigureMockMvc
 class FamilyQuestionAnswerMutationScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase members;
   @Autowired ChangeMemberNicknameUseCase nicknames;
@@ -90,7 +92,7 @@ class FamilyQuestionAnswerMutationScenarioTest {
 
   long member(String name) {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", name))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", name))
         .id();
   }
 
