@@ -25,6 +25,7 @@ import { keepSelectedId, searchSelectionAfterTap, withPinned } from "../utils/pl
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { useMyLocation } from "../hooks/useMyLocation";
 import { DEFAULT_NEARBY_RADIUS } from "../utils/nearby";
+import { isCompactStage } from "../utils/placeLayout";
 import { LocationNotice } from "./LocationNotice";
 import { MyLocationButton } from "./MyLocationButton";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
@@ -200,6 +201,16 @@ export function PlacesScreen() {
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
   const cardRef = useRef<HTMLElement>(null);
+  // 지도의 실제 높이. 안내 카드의 모양을 정하는 데 쓴다
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageHeight, setStageHeight] = useState(0);
+  useEffect(() => {
+    const element = stageRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setStageHeight(entry.contentRect.height));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   // 모든 화면 크기에서 모바일 카드가 지도 아래를 덮는다.
   // 브라우저 너비 대신 실제 카드 높이를 전달해 PC에서도 마커가 가려지지 않게 한다.
   const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
@@ -214,8 +225,15 @@ export function PlacesScreen() {
     me: my.state.fix,
   };
   const nothingChosen = categories.length === 0;
-  // 내 위치를 보이는 동안 가운데의 안내(오류, 종류를 모두 끔, 장소 없음)는 아래로 내려 내 위치 점을 가리지 않는다(#226-S2)
-  const lowMessage = my.state.fix ? styles.messageLow : "";
+  // 내 위치를 보이는 동안 가운데의 안내(오류, 종류를 모두 끔, 장소 없음)는 아래로 내려 내 위치 점을 가리지 않는다(#226-S2).
+  // 지도에 남는 높이가 낮으면 아래쪽의 작은 한 줄 카드로 줄이고, 지도 아래의 기준일 안내(.pill)는 그 카드 안에 넣는다(#172-S21)
+  const compact = my.state.fix !== null && isCompactStage(stageHeight);
+  const lowMessage = my.state.fix
+    ? `${styles.messageLow} ${compact ? styles.messageCompact : ""}`
+    : "";
+  const stageNote = result?.sample
+    ? "개발용 예시 장소예요. 실제 장소가 아니에요."
+    : asOf;
 
   return (
     <div className={styles.page}>
@@ -227,6 +245,7 @@ export function PlacesScreen() {
         />
       </div>
       <div
+        ref={stageRef}
         className={mapStyles.stage}
         data-places-stage=""
         data-mode={mode}
@@ -331,6 +350,7 @@ export function PlacesScreen() {
           <div className={`${mapStyles.message} ${lowMessage}`}>
             <strong>보고 싶은 종류를 골라 주세요</strong>
             <p>위쪽 칩을 눌러 병원·미용·보호센터를 켤 수 있어요.</p>
+            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
           </div>
         )}
 
@@ -347,13 +367,12 @@ export function PlacesScreen() {
             </span>
             <strong>이 지역에는 장소가 없어요</strong>
             <p>지도를 옮기거나 다른 종류를 켜 보세요.</p>
+            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
           </div>
         )}
 
         {!selected && !error && (result?.sample || asOf) && (
-          <p className={styles.pill}>
-            {result?.sample ? "개발용 예시 장소예요. 실제 장소가 아니에요." : asOf}
-          </p>
+          <p className={styles.pill}>{stageNote}</p>
         )}
 
         {selected && (
