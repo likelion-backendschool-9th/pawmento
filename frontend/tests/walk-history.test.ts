@@ -21,6 +21,7 @@ import {
   walkEndedAt,
   walkHistoryPath,
   walkMinutes,
+  walkSeconds,
   weekdayLabel,
 } from "../features/map/utils/walkRecord.ts";
 import { fitPoints, fitRoutes, routeMarks } from "../features/map/utils/walkRoutes.ts";
@@ -349,10 +350,11 @@ test("#73-S15 걷는 중인 길은 출발점부터 지금 위치까지 한 화�
   assert.ok(longer.every((p) => p.y >= 0 && p.y <= 100));
 });
 
-test("#73-S16 산책을 끝낸 뒤 열 날짜는 산책이 시작한 한국 날짜다. 자정을 넘겨 끝나도 시작한 날을 연다", () => {
+test("#73-S16 결과창을 닫고 기록 탭을 처음 열 때 자정을 넘긴 산책도 시작한 한국 날짜를 연다", () => {
   // 11월 17일 23:50(한국)에 시작해 18일 00:10에 끝낸 산책
   const startedAt = "2026-11-17T14:50:00Z";
   assert.equal(seoulDate(startedAt), "2026-11-17");
+  assert.equal(initialNavigation("2026-11-18", seoulDate(startedAt)).selected, "2026-11-17");
   assert.equal(seoulDate("2026-11-17T15:10:00Z"), "2026-11-18", "끝난 시각은 18일이다");
   assert.equal(walkHistoryPath("10", seoulDate(startedAt)), "/pets/10/map/walks/2026-11-17");
   // 날짜가 없거나 올바르지 않으면 날짜 없는 주소(오늘)로 간다
@@ -368,4 +370,15 @@ test("#73-S16 산책 길 화면은 요청한 날짜가 올바르고 오늘을 �
   for (const bad of [null, undefined, "", "2026-11-19", "2026-02-30", "abc"]) {
     assert.deepEqual(initialNavigation(today, bad), { today, weekEnd: today, selected: today }, String(bad));
   }
+});
+
+
+test("#73-S16 중단된 산책 결과와 기록 목록은 마지막 위치 시각 기준의 같은 시간을 표시한다", () => {
+  const startedAt = "2026-11-26T14:50:00Z";
+  const lastPoint = "2026-11-26T14:52:00Z";
+  const interrupted = walkAt("midnight", startedAt, null, lastPoint);
+  assert.equal(walkSeconds(interrupted), 120);
+  assert.equal(walkMinutes(interrupted), 2);
+  assert.equal(walkSeconds({ ...interrupted, points: [] }), 0);
+  assert.equal(walkSeconds({ ...interrupted, status: "ENDED", endedAt: "2026-11-26T15:10:00Z" }), 1200);
 });

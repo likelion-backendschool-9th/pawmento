@@ -73,9 +73,14 @@ export function walkEndedAt(walk: WalkRecord): string {
   );
 }
 
-export function walkMinutes(walk: WalkRecord): number {
+// 결과창과 기록 목록이 같은 종료 시각을 쓴다. 중단/좌표 없음은 마지막 좌표/시작 시각으로 끝낸다.
+export function walkSeconds(walk: WalkRecord): number {
   const span = Date.parse(walkEndedAt(walk)) - Date.parse(walk.startedAt);
-  return Number.isFinite(span) && span > 0 ? Math.round(span / 60_000) : 0;
+  return Number.isFinite(span) && span > 0 ? Math.floor(span / 1000) : 0;
+}
+
+export function walkMinutes(walk: WalkRecord): number {
+  return Math.round(walkSeconds(walk) / 60);
 }
 
 export function formatMinutes(minutes: number): string {

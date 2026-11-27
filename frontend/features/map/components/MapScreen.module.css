@@ -203,12 +203,11 @@
   outline-offset: 2px;
 }
 
-/* 산책가기: 위젯 · (끝난 뒤) 산책기록 보기 · 지도 · 안내를 같은 간격으로 쌓는다 */
+/* 산책가기: 결과는 오버레이로 띄워 지도 배치를 유지한다. */
 .outing {
   display: grid;
   gap: 12px;
 }
-.outing > .textButton,
 .outing > .note {
   margin: 0 auto;
 }

@@ -1,11 +1,12 @@
 "use client";
+import type { Ref } from "react";
 import { formatDistance, formatDuration, pathDistance } from "../utils/walk";
 import type { useWalkSession } from "../hooks/useWalkSession";
 import styles from "./WalkWidget.module.css";
 
-type Props = { session: ReturnType<typeof useWalkSession> };
+type Props = { session: ReturnType<typeof useWalkSession>; actionRef?: Ref<HTMLButtonElement> };
 
-export function WalkWidget({ session }: Props) {
+export function WalkWidget({ session, actionRef }: Props) {
   const { phase, location, closed, points, seconds, error, unsent, outcome } = session;
   const active = phase === "walking" || phase === "ending";
   const moving = phase === "walking" && location === "ok" && !closed;
@@ -27,7 +28,7 @@ export function WalkWidget({ session }: Props) {
           </dl>
         </div>
       </div>
-      <button type="button" className={styles.action} disabled={phase === "checking" || phase === "starting" || phase === "ending"} onClick={() => void (active ? session.finish() : session.start())}>
+      <button ref={actionRef} type="button" className={styles.action} disabled={phase === "checking" || phase === "starting" || phase === "ending"} onClick={() => void (active ? session.finish() : session.start())}>
         <span aria-hidden="true">{active ? "□" : "↗"}</span>
         {phase === "checking" ? "산책 확인 중…" : phase === "starting" ? "시작하는 중…" : phase === "ending" ? "끝내는 중…" : active ? "산책 끝내기" : "산책 시작"}
       </button>

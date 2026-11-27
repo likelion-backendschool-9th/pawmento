@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { loadNaverMaps, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "../utils/naverMaps";
+import { loadNaverMaps, subscribeNaverAuthFailure, type NaverMap, type NaverMapsApi, type NaverPolyline, type NaverMarker } from "../utils/naverMaps";
 import { DEFAULT_MAP_CENTER } from "../utils/mapCanvas";
 import type { WalkCanvasProps } from "../utils/walkCanvas";
 import styles from "./WalkCanvas.module.css";
@@ -13,7 +13,8 @@ export function NaverWalkCanvas({
   onUnavailable,
   points,
   current,
-}: WalkCanvasProps & { clientId: string; onUnavailable: () => void }) {
+  fitRoute = false,
+}: WalkCanvasProps & { clientId: string; onUnavailable: () => void; fitRoute?: boolean }) {
   const element = useRef<HTMLDivElement>(null);
   const api = useRef<NaverMapsApi | null>(null);
   const map = useRef<NaverMap | null>(null);
@@ -29,7 +30,7 @@ export function NaverWalkCanvas({
 
   useEffect(() => {
     let cancelled = false;
-    window.navermap_authFailure = () => latestProps.current.onUnavailable();
+    const unsubscribe = subscribeNaverAuthFailure(window, () => latestProps.current.onUnavailable());
     loadNaverMaps(clientId)
       .then((maps) => {
         if (cancelled || !element.current) return;
@@ -64,9 +65,10 @@ export function NaverWalkCanvas({
         startMarker.current.setMap(null); // 첫 점을 받은 뒤에만 보인다
         setReady(true);
       })
-      .catch(() => latestProps.current.onUnavailable());
+      .catch(() => { if (!cancelled) latestProps.current.onUnavailable(); });
     return () => {
       cancelled = true;
+      unsubscribe();
       setReady(false);
       line.current?.setMap(null);
       marker.current?.setMap(null);
@@ -95,9 +97,14 @@ export function NaverWalkCanvas({
     if (here) {
       const position = new maps.LatLng(here.latitude, here.longitude);
       marker.current.setPosition(position);
-      map.current.setCenter(position);
+      if (fitRoute && points.length > 1) {
+        const first = new maps.LatLng(points[0].latitude, points[0].longitude);
+        const bounds = new maps.LatLngBounds(first, first);
+        points.forEach((point) => bounds.extend(new maps.LatLng(point.latitude, point.longitude)));
+        map.current.fitBounds(bounds, { top: 28, right: 28, bottom: 28, left: 28 });
+      } else map.current.setCenter(position);
     }
-  }, [ready, points, current]);
+  }, [ready, points, current, fitRoute]);
 
   return <div ref={element} className={styles.canvas} role="application" aria-label="걷는 길 지도" />;
 }
