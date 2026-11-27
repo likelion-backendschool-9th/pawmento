@@ -23,6 +23,11 @@ import { PlaceAddressResolver } from "../utils/placeAddress";
 import type { PlaceFocus } from "../utils/placeCanvas";
 import { keepSelectedId, searchSelectionAfterTap, withPinned } from "../utils/placeSearchSelection";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
+import { useMyLocation } from "../hooks/useMyLocation";
+import { DEFAULT_NEARBY_RADIUS } from "../utils/nearby";
+import { isCompactStage } from "../utils/placeLayout";
+import { LocationNotice } from "./LocationNotice";
+import { MyLocationButton } from "./MyLocationButton";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
 import { PlaceSearchPanel } from "./PlaceSearchPanel";
@@ -68,6 +73,13 @@ export function PlacesScreen() {
   const pinnedId = useRef<string | null>(null);
   useEffect(() => {
     pinnedId.current = pinned?.id ?? null;
+  });
+  // 내 위치를 읽으면 지도를 그 위치로 옮기고(500m 반경이 보이게) 이전 선택과 검색어를 푼다(#226-S2)
+  const my = useMyLocation((fix) => {
+    setPinned(null);
+    setSearchText("");
+    setSelectedId(null);
+    setFocus({ point: fix.point, token: Date.now(), fitRadiusMeters: DEFAULT_NEARBY_RADIUS });
   });
   function openSearch() {
     setSearchCenter(
@@ -189,6 +201,16 @@ export function PlacesScreen() {
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
   const cardRef = useRef<HTMLElement>(null);
+  // 지도의 실제 높이. 안내 카드의 모양을 정하는 데 쓴다
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [stageHeight, setStageHeight] = useState(0);
+  useEffect(() => {
+    const element = stageRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => setStageHeight(entry.contentRect.height));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   // 모든 화면 크기에서 모바일 카드가 지도 아래를 덮는다.
   // 브라우저 너비 대신 실제 카드 높이를 전달해 PC에서도 마커가 가려지지 않게 한다.
   const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
@@ -200,8 +222,18 @@ export function PlacesScreen() {
     onBoundsChange,
     coveredBottom,
     focus,
+    me: my.state.fix,
   };
   const nothingChosen = categories.length === 0;
+  // 내 위치를 보이는 동안 가운데의 안내(오류, 종류를 모두 끔, 장소 없음)는 아래로 내려 내 위치 점을 가리지 않는다(#226-S2).
+  // 지도에 남는 높이가 낮으면 아래쪽의 작은 한 줄 카드로 줄이고, 지도 아래의 기준일 안내(.pill)는 그 카드 안에 넣는다(#172-S21)
+  const compact = my.state.fix !== null && isCompactStage(stageHeight);
+  const lowMessage = my.state.fix
+    ? `${styles.messageLow} ${compact ? styles.messageCompact : ""}`
+    : "";
+  const stageNote = result?.sample
+    ? "개발용 예시 장소예요. 실제 장소가 아니에요."
+    : asOf;
 
   return (
     <div className={styles.page}>
@@ -213,6 +245,7 @@ export function PlacesScreen() {
         />
       </div>
       <div
+        ref={stageRef}
         className={mapStyles.stage}
         data-places-stage=""
         data-mode={mode}
@@ -277,6 +310,22 @@ export function PlacesScreen() {
           })}
         </div>
 
+        {/* 카드가 열려 있으면 카드가 지도 아래를 덮으므로 버튼은 숨긴다 */}
+        {!selected && (
+          <MyLocationButton
+            reading={my.state.status === "reading"}
+            located={my.state.fix !== null}
+            supported={my.supported}
+            onPress={() => void my.press()}
+          />
+        )}
+        <LocationNotice
+          status={my.state.status}
+          onContinue={() => void my.continueIntro()}
+          onDismiss={my.dismiss}
+          onRetry={() => void my.press()}
+        />
+
         {result?.truncated && !error && (
           <p className={`${mapStyles.notice} ${styles.noticeLow}`} role="status">
             장소가 많아서 일부만 보여요. 지도를 확대해 보세요.
@@ -284,7 +333,7 @@ export function PlacesScreen() {
         )}
 
         {error && (
-          <div className={mapStyles.message} role="alert">
+          <div className={`${mapStyles.message} ${lowMessage}`} role="alert">
             <strong>장소를 불러오지 못했어요</strong>
             <p>{error}</p>
             <button
@@ -298,15 +347,16 @@ export function PlacesScreen() {
         )}
 
         {nothingChosen && !error && !pinned && (
-          <div className={mapStyles.message}>
+          <div className={`${mapStyles.message} ${lowMessage}`}>
             <strong>보고 싶은 종류를 골라 주세요</strong>
             <p>위쪽 칩을 눌러 병원·미용·보호센터를 켤 수 있어요.</p>
+            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
           </div>
         )}
 
         {/* 검색으로 고른 장소가 지도에 그려져 있으면(조회 결과는 비어도) "장소가 없어요"를 보이지 않는다 */}
         {!nothingChosen && result && !error && canvasPlaces.length === 0 && !loading && (
-          <div className={mapStyles.message}>
+          <div className={`${mapStyles.message} ${lowMessage}`}>
             <span className={mapStyles.emptyArt} aria-hidden="true">
               <span className={mapStyles.emptyCircle}>
                 <Icon name="map" size={34} />
@@ -317,13 +367,12 @@ export function PlacesScreen() {
             </span>
             <strong>이 지역에는 장소가 없어요</strong>
             <p>지도를 옮기거나 다른 종류를 켜 보세요.</p>
+            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
           </div>
         )}
 
         {!selected && !error && (result?.sample || asOf) && (
-          <p className={styles.pill}>
-            {result?.sample ? "개발용 예시 장소예요. 실제 장소가 아니에요." : asOf}
-          </p>
+          <p className={styles.pill}>{stageNote}</p>
         )}
 
         {selected && (

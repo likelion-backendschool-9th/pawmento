@@ -296,6 +296,8 @@
   z-index: 3;
   left: 12px;
   bottom: 44px;
+  /* 오른쪽 아래의 "내 위치" 버튼(48px)과 겹치지 않게 한다 */
+  max-width: calc(100% - 84px);
   margin: 0;
   padding: 5px 11px;
   border: 1px solid var(--mode-border);
@@ -356,4 +358,113 @@
   .page [data-places-stage] {
     height: clamp(480px, calc(100dvh - 350px), 720px);
   }
+}
+
+/* 예시 지도의 내 위치(#226-S2): 진한 초록 점(흰 테두리)과 퍼지는 빛, 정확도 원. 장소 핀(파랑·주황·보라)과 구분되고 초록 지도 바탕 위에서도 보인다.
+   마커 아래에 깔리고 눌리지 않는다. 색은 --focus-ring(진한 숲색)과 같다. */
+.meDot,
+.meRing {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.meDot {
+  z-index: 0;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--focus-ring, #385e46);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.12),
+    0 2px 8px rgb(0 0 0 / 0.32);
+}
+.meDot::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: var(--focus-ring, #385e46);
+  opacity: 0;
+  animation: meHalo 2.2s ease-out infinite;
+}
+@keyframes meHalo {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.meRing {
+  z-index: 0;
+  aspect-ratio: 1;
+  border: 1px solid rgb(56 94 70 / 0.4);
+  border-radius: 50%;
+  background: rgb(56 94 70 / 0.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .meDot::after {
+    animation: none;
+  }
+}
+
+/* 내 위치를 보이는 동안 "장소가 없어요" 안내는 가운데보다 아래에 두어 내 위치 점을 가리지 않는다(#226-S2) */
+.page .messageLow {
+  top: 69%;
+}
+/* 지도에 남는 높이가 낮으면(PlacesScreen이 지도의 실제 높이로 정한다, utils/placeLayout.ts) 가운데 카드가 점을 가리고 아래가 잘린다.
+   그때는 안내를 아래쪽의 작은 한 줄 카드로 줄인다. 그림은 숨기고, 다시 불러오기 버튼은 오른쪽에 둔다.
+   오른쪽은 "내 위치" 버튼(48px) 자리를 비우고, 같은 높이의 왼쪽 기준일 안내(.pill)는 카드 안(.messageNote)으로 옮긴다(#226-S2, #172-S21) */
+.page .messageCompact {
+  top: auto;
+  bottom: 12px;
+  left: 12px;
+  right: 72px;
+  width: auto;
+  max-height: none;
+  transform: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  text-align: left;
+}
+.page .messageCompact > span[aria-hidden="true"] {
+  display: none;
+}
+.page .messageCompact > strong {
+  grid-column: 1;
+  font-size: 14px;
+  word-break: keep-all;
+}
+.page .messageCompact > p {
+  grid-column: 1;
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.page .messageCompact > .messageNote {
+  grid-column: 1;
+  margin-top: 4px;
+  color: var(--text-muted, var(--text-secondary));
+  font-size: 11.5px;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+.page .messageCompact > button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  min-height: 40px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+.page [data-places-stage]:has(.messageCompact) .pill {
+  visibility: hidden;
 }

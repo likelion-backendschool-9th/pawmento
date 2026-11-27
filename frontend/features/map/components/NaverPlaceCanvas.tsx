@@ -2,12 +2,15 @@
 import { useEffect, useRef } from "react";
 import {
   loadNaverMaps,
+  type NaverCircle,
   type NaverMap,
   type NaverMapsApi,
   type NaverMarker,
 } from "../utils/naverMaps";
+import { boundsAround } from "../utils/nearby";
 import { placeMarkup } from "../utils/placeMarkup";
 import {
+  fitMargin,
   markerShiftToVisible,
   type PlaceCanvasProps,
 } from "../utils/placeCanvas";
@@ -23,11 +26,16 @@ export function NaverPlaceCanvas({
   onBoundsChange,
   coveredBottom,
   focus,
+  me,
 }: PlaceCanvasProps & { clientId: string; onUnavailable: () => void }) {
   const element = useRef<HTMLDivElement>(null);
   const api = useRef<NaverMapsApi | null>(null);
   const map = useRef<NaverMap | null>(null);
   const markers = useRef<NaverMarker[]>([]);
+  // 내 위치의 점과 정확도 원(#226-S2)
+  const meLayers = useRef<{ marker: NaverMarker; circle: NaverCircle } | null>(
+    null,
+  );
   // 이미 처리한 이동 요청. 지도가 아직 준비되지 않았을 때 온 요청은 지도가 만들어진 뒤에 처리한다
   const handledFocus = useRef<number | null>(null);
   // 콜백은 최신 값을 쓰되 지도는 다시 만들지 않는다.
@@ -39,6 +47,7 @@ export function NaverPlaceCanvas({
     coveredBottom,
     selectedId,
     focus,
+    me,
   });
   useEffect(() => {
     latest.current = {
@@ -49,8 +58,55 @@ export function NaverPlaceCanvas({
       coveredBottom,
       selectedId,
       focus,
+      me,
     };
   });
+
+  // 내 위치의 점과 정확도 원을 그린다. 지도 SDK가 늦게 떠도 지도를 만든 직후 같은 함수로 그린다
+  const drawMe = () => {
+    const maps = api.current;
+    const current = map.current;
+    if (!maps || !current) return;
+    const mark = latest.current.me;
+    const layers = meLayers.current;
+    if (!mark) {
+      layers?.marker.setMap(null);
+      layers?.circle.setMap(null);
+      meLayers.current = null;
+      return;
+    }
+    const position = new maps.LatLng(mark.point.latitude, mark.point.longitude);
+    if (layers) {
+      layers.marker.setPosition(position);
+      layers.circle.setCenter(position);
+      layers.circle.setRadius(mark.accuracy);
+      return;
+    }
+    const circle = new maps.Circle({
+      map: current,
+      center: position,
+      radius: mark.accuracy,
+      fillColor: "#385e46",
+      fillOpacity: 0.12,
+      strokeColor: "#385e46",
+      strokeOpacity: 0.4,
+      strokeWeight: 1,
+      clickable: false,
+    });
+    const marker = new maps.Marker({
+      map: current,
+      position,
+      clickable: false,
+      zIndex: 0,
+      icon: {
+        content:
+          '<span style="display:block;width:20px;height:20px;box-sizing:border-box;border-radius:50%;background:#385e46;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.12),0 2px 8px rgba(0,0,0,.32)"></span>',
+        // 둥근 점의 가운데가 좌표 위치다
+        anchor: new maps.Point(10, 10),
+      },
+    });
+    meLayers.current = { marker, circle };
+  };
 
   // 검색 결과를 눌러 이동을 요청하면 그 지점으로 지도를 옮긴다(#195-S11). 줌은 바꾸지 않는다.
   // 이동 요청과 선택한 마커 위치를 지도에 맞춘다. 지도 SDK가 늦게 떠서 요청이 먼저 들어왔어도, 지도를 만든 직후 같은 함수로 적용한다
@@ -62,9 +118,21 @@ export function NaverPlaceCanvas({
     const { focus: wanted, selectedId: chosen } = latest.current;
     if (wanted && handledFocus.current !== wanted.token) {
       handledFocus.current = wanted.token;
-      current.setCenter(
-        new maps.LatLng(wanted.point.latitude, wanted.point.longitude),
-      );
+      if (wanted.fitRadiusMeters) {
+        // 내 위치로 옮길 때는 그 반경이 보이게 확대 수준도 맞춘다. 검색창과 종류 칩이 덮는 만큼 위·아래를 같게 비워 점이 지도 한가운데에 놓이게 한다(#226-S2)
+        const area = boundsAround(wanted.point, wanted.fitRadiusMeters);
+        current.fitBounds(
+          new maps.LatLngBounds(
+            new maps.LatLng(area.minLatitude, area.minLongitude),
+            new maps.LatLng(area.maxLatitude, area.maxLongitude),
+          ),
+          fitMargin(box.clientHeight),
+        );
+      } else {
+        current.setCenter(
+          new maps.LatLng(wanted.point.latitude, wanted.point.longitude),
+        );
+      }
     }
     if (!chosen) return;
     const place = latest.current.places.find((item) => item.id === chosen);
@@ -107,6 +175,7 @@ export function NaverPlaceCanvas({
         map.current = created;
         // 지도가 뜨기 전에 들어온 이동 요청이 있으면 지금 적용한다(이 효과는 한 번만 돈다)
         settleView();
+        drawMe();
         const emitBounds = () => {
           const bounds = created.getBounds();
           const southWest = bounds.getSW();
@@ -135,6 +204,9 @@ export function NaverPlaceCanvas({
       );
       markers.current.forEach((marker) => marker.setMap(null));
       markers.current = [];
+      meLayers.current?.marker.setMap(null);
+      meLayers.current?.circle.setMap(null);
+      meLayers.current = null;
       map.current?.destroy();
       map.current = null;
     };
@@ -172,6 +244,10 @@ export function NaverPlaceCanvas({
   useEffect(() => {
     settleView();
   }, [selectedId, focus]);
+
+  useEffect(() => {
+    drawMe();
+  }, [me]);
 
   return (
     <div
