@@ -40,7 +40,7 @@ public class CreateDiaryEntryTransaction {
     if (c.features().location().intent() != null)
       original.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var entry = save.save(original);
-    media.lock(c.memberId(), c.petId(), ids);
+    media.lock(c.memberId(), c.petId(), java.util.List.of(), ids);
     attachments.replace(entry.getId(), ids);
     media.change(c.memberId(), c.petId(), java.util.List.of(), ids);
     location.created(entry);

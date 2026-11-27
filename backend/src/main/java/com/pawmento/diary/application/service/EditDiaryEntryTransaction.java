@@ -47,9 +47,7 @@ public class EditDiaryEntryTransaction {
     if (explicit)
       entry.changeLocation(c.memberId(), c.features().location().intent(), clock.instant());
     var saved = save.save(entry);
-    var locks = new java.util.TreeSet<Long>(previous);
-    locks.addAll(next);
-    media.lock(c.memberId(), c.petId(), java.util.List.copyOf(locks));
+    media.lock(c.memberId(), c.petId(), previous, next);
     attachments.replace(entry.getId(), next);
     media.change(c.memberId(), c.petId(), previous, next);
     location.synchronize(saved, observed, explicit);

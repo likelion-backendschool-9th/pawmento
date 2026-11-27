@@ -14,6 +14,13 @@ class QuestionAnswerWriteAccess {
   private final CheckQuestionPetWriteAccessPort access;
   private final QuestionAnswerStorePort answers;
 
+  QuestionAnswer requireDeletable(Long memberId, Long petId, Long answerId, long version) {
+    var permission = access.accessForDeletion(memberId, petId);
+    var answer = answers.lock(petId, answerId).orElseThrow(QuestionAnswerNotFoundException::new);
+    answer.requireDeletable(memberId, permission.owner(), permission.mode(), version);
+    return answer;
+  }
+
   QuestionAnswer requireEditable(Long memberId, Long petId, Long answerId, long version) {
     var mode = access.currentModeForWrite(memberId, petId);
     var answer = answers.lock(petId, answerId).orElseThrow(QuestionAnswerNotFoundException::new);

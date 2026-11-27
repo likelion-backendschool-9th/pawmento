@@ -20,8 +20,10 @@ public class QuestionMediaAdapter implements QuestionMediaPort {
             member, pet, previous, requested, "QUESTION_ANSWER_ATTACHMENT"));
   }
 
-  public void lock(Long member, Long pet, List<Long> ids) {
-    locks.lock(new LockMediaReferencesCommand(member, pet, ids, "QUESTION_ANSWER_ATTACHMENT"));
+  public void lock(Long member, Long pet, List<Long> previous, List<Long> requested) {
+    locks.lock(
+        new LockMediaReferencesCommand(
+            member, pet, previous, requested, "QUESTION_ANSWER_ATTACHMENT"));
   }
 
   private final LoadMediaAttachmentsUseCase attachments;

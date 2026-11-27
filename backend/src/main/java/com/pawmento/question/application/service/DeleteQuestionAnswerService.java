@@ -15,7 +15,7 @@ public class DeleteQuestionAnswerService implements DeleteQuestionAnswerUseCase 
   private final QuestionAnswerAttachments attachments;
 
   public void delete(DeleteQuestionAnswerCommand c) {
-    var answer = access.requireEditable(c.memberId(), c.petId(), c.answerId(), c.version());
+    var answer = access.requireDeletable(c.memberId(), c.petId(), c.answerId(), c.version());
     attachments.replace(c.memberId(), answer, java.util.List.of());
     answers.delete(answer);
   }

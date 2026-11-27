@@ -145,17 +145,17 @@ class DiaryScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S2 접근 가능한 아이의 일기여도 다른 작성자의 수정·삭제는 403이다")
+  @DisplayName("#32-S2 소유주도 타인 일기 수정은 403이며 삭제만 허용한다 (고침 #133: Q2 삭제 권한)")
   void originalAuthor() throws Exception {
     long pet = pet(9001), id = create(pet);
     jdbc.update("update diary_entries set created_by=9002 where id=?", id);
     call(9001, json(patch(url(pet, id)), "{\"title\":\"테스트 일기\",\"content\":\"변경\",\"version\":0}"))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-    call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isForbidden());
     assertThat(
             jdbc.queryForObject("select content from diary_entries where id=?", String.class, id))
         .isEqualTo("산책");
+    call(9001, delete(url(pet, id) + "&version=0")).andExpect(status().isNoContent());
   }
 
   @Test

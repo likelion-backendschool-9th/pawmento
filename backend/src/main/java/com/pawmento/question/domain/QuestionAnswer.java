@@ -87,6 +87,13 @@ public final class QuestionAnswer {
       throw new QuestionAnswerConflictException();
   }
 
+  public void requireDeletable(
+      Long member, boolean owner, QuestionMode currentMode, long expectedVersion) {
+    if (!owner && !authorMemberId.equals(member)) throw new QuestionAnswerForbiddenException();
+    if (currentMode != prompt.getMode() || version != expectedVersion)
+      throw new QuestionAnswerConflictException();
+  }
+
   public void edit(String content, Instant now) {
     if (now == null) throw new InvalidQuestionAnswerException();
     this.content = validate(content);

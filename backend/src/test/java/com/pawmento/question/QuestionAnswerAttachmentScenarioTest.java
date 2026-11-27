@@ -470,7 +470,7 @@ class QuestionAnswerAttachmentScenarioTest {
     assertThat(result).isEqualTo(original);
     verify(answers, never()).save(any());
     verify(links, never()).replace(anyLong(), anyList());
-    verify(media, never()).lock(anyLong(), anyLong(), anyList());
+    verify(media, never()).lock(anyLong(), anyLong(), anyList(), anyList());
     verify(media, never()).change(anyLong(), anyLong(), anyList(), anyList());
     assertThat(refs(a)).isEqualTo(1);
     assertThat(refs(b)).isEqualTo(1);

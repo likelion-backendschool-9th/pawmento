@@ -27,7 +27,8 @@ public class ValidateMediaReferencesService implements ValidateMediaReferencesUs
         || identities.stream()
             .anyMatch(
                 a ->
-                    !Objects.equals(a.uploaderMemberId(), c.memberId())
+                    (!Objects.equals(a.uploaderMemberId(), c.memberId())
+                            && !c.previous().contains(a.assetId()))
                         || !Objects.equals(a.petId(), c.petId())
                         || a.purpose() != MediaPurpose.valueOf(c.purpose())))
       throw new MediaAssetNotFoundException();

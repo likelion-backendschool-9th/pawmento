@@ -425,7 +425,7 @@ class QuestionAnswerScenarioTest {
   }
 
   @Test
-  @DisplayName("#31-S12 아이 소유자라도 다른 작성자의 답변은 조회만 가능하고 수정·삭제는 403이다")
+  @DisplayName("#31-S12 아이 소유주는 다른 작성자의 답변 조회·삭제가 가능하나 수정은 403이다 (고침 #133: Q2)")
   void differentAuthor() throws Exception {
     long prompt = ensure();
     long id = id(json(create(prompt).andExpect(status().isCreated())));
@@ -447,7 +447,7 @@ class QuestionAnswerScenarioTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"version\":0,\"content\":\"덮어쓰기\"}"))
         .andExpect(status().isForbidden());
-    call(delete(answerPath(id) + "&version=0")).andExpect(status().isForbidden());
+    call(delete(answerPath(id) + "&version=0")).andExpect(status().isNoContent());
   }
 
   @Test

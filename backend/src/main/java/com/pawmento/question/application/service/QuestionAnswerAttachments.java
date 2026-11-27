@@ -24,9 +24,7 @@ public class QuestionAnswerAttachments {
     if (requested == null) return;
     var old = links.find(answer.getId());
     if (old.equals(requested)) return;
-    var all = new TreeSet<Long>(old);
-    all.addAll(requested);
-    media.lock(member, answer.getPrompt().getPetId(), List.copyOf(all));
+    media.lock(member, answer.getPrompt().getPetId(), old, requested);
     media.validate(member, answer.getPrompt().getPetId(), old, requested);
     long size =
         media.metadata(answer.getPrompt().getPetId(), requested).stream()
