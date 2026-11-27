@@ -43,11 +43,11 @@ export function MoreScreen() {
         title="더보기"
         body="우리의 기록과 함께하는 공간을 관리해요."
       />
-      <Link href="/me" className={s.account}>
+      <Link href="/account" className={s.account}>
         <span className={s.avatar}>{account.nickname.slice(0, 1)}</span>
         <span>
           <strong>{account.nickname}</strong>
-          <small>마이페이지 · 내 정보 관리</small>
+          <small>내 정보 관리</small>
         </span>
         <Icon name="chevron" size={18} />
       </Link>

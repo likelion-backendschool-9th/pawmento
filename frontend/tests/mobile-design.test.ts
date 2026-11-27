@@ -48,36 +48,37 @@ const items = journalItems({
   ],
 });
 
-test("#233-S2 일기·달력·미디어와 질문 답변·회차는 서로 다른 하단 항목만 활성화한다", () => {
+test("#233-S2 (고침 #233: 오늘의 질문을 다이어리 탭으로) 일기·달력·지도·오늘의 질문·미디어는 다이어리 하단 항목을 활성화한다", () => {
   for (const suffix of [
     "diary",
     "diary/new",
     "diary/a/edit",
     "calendar",
+    "map",
+    "questions",
+    "questions/prompts/p1",
+    "questions/answers/a",
+    "questions/answers/new",
+    "questions/history",
     "media",
     "records/old",
     "timeline",
   ])
     assert.equal(activeNavigation(`/pets/bori/${suffix}`, "bori"), "diary");
-  for (const suffix of [
-    "questions",
-    "questions/prompts/p1",
-    "questions/answers/a",
-    "questions/answers/new",
-  ])
-    assert.equal(activeNavigation(`/pets/bori/${suffix}`, "bori"), "questions");
   assert.equal(activeNavigation("/pets/bori/diary-other", "bori"), null);
   assert.equal(activeNavigation("/pets/coco/diary", "bori"), null);
 });
-test("#233-S2 (고침 #233: 모드별 마지막 메뉴) 일상 정보 지도·가든 우체통을 표시한다", () => {
+test("#233-S2 (고침 #233: 모드별 세 번째 메뉴와 마이페이지) 일상 지도·가든 우체통을 세 번째에 표시한다", () => {
   assert.deepEqual(
     appNavigation("bori").map((x) => x.label),
-    ["홈", "다이어리", "오늘의 질문", "커뮤니티", "정보 지도"],
+    ["홈", "다이어리", "지도", "커뮤니티", "마이페이지"],
   );
   const garden = appNavigation("bori", "GARDEN");
   assert.equal(garden.length, 5);
-  assert.equal(garden.at(-1)?.key, "mailbox");
-  assert.equal(garden.at(-1)?.href, "/pets/bori/garden/mailbox");
+  assert.deepEqual(garden.map((x) => x.label), ["홈", "다이어리", "우체통", "커뮤니티", "마이페이지"]);
+  assert.equal(garden.at(-1)?.key, "mypage");
+  assert.equal(garden[2].key, "mailbox");
+  assert.equal(garden[2].href, "/pets/bori/garden/mailbox");
   assert.equal(
     activeNavigation("/pets/bori/garden/mailbox/new", "bori"),
     "mailbox",
@@ -86,9 +87,15 @@ test("#233-S2 (고침 #233: 모드별 마지막 메뉴) 일상 정보 지도·�
     activeNavigation("/pets/bori/garden/postcards/new", "bori"),
     "mailbox",
   );
+  assert.equal(appNavigation("bori")[2].href, "/places");
+  assert.equal(appNavigation("bori")[3].icon, "comment");
+  assert.equal(appNavigation("bori")[4].href, "/me");
+  assert.equal(activeNavigation("/me/activity"), "mypage");
+  assert.equal(activeNavigation("/more"), null);
+  assert.equal(activeNavigation("/account"), null);
   assert.equal(appNavigation()[1].href, "/pets");
   assert.equal(activeNavigation("/places"), "places");
-  assert.equal(activeNavigation("/me"), null);
+  assert.equal(activeNavigation("/me"), "mypage");
   assert.equal(activeNavigation("/pets/bori/garden", "bori"), "home");
 });
 test("#233-S6 나비는 선택한 아이의 데모 일기/답변을 모으되 종류별 동일 ID를 구분한다", () => {

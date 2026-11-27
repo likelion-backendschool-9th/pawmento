@@ -1,4 +1,3 @@
-import { AccountScreen } from "@/features/mypage/components/AccountScreen";
 export default function Page() {
-  return <AccountScreen />;
+  return <section aria-label="마이페이지" />;
 }

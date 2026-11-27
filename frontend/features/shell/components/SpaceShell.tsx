@@ -24,23 +24,25 @@ export function SpaceShell({
       data-experience={garden ? "garden" : "daily"}
       data-immersive={immersive}
     >
-      <a className="skip-link" href="#main">
-        본문으로 바로가기
-      </a>
-      <header className={s.header}>
-        <Brand href="/home" />
-        <Link
-          href="/more"
-          className={s.moreButton}
-          aria-label="더보기"
-          aria-current={route === "/more" ? "page" : undefined}
-        >
-          <Icon name="menu" size={22} />
-        </Link>
-      </header>
-      <main id="main" className={s.main}>
-        {children}
-      </main>
+      <div className={s.contentFrame}>
+        <a className="skip-link" href="#main">
+          본문으로 바로가기
+        </a>
+        <header className={s.header}>
+          <Brand href="/home" />
+          <Link
+            href="/more"
+            className={s.moreButton}
+            aria-label="더보기"
+            aria-current={route === "/more" ? "page" : undefined}
+          >
+            <Icon name="menu" size={22} />
+          </Link>
+        </header>
+        <main id="main" className={s.main}>
+          {children}
+        </main>
+      </div>
       <nav className={s.bottomNav} aria-label="주요 메뉴">
         {appNavigation(pet?.id, pet?.mode).map((link) => (
           <Link

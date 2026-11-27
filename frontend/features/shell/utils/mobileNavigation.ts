@@ -1,4 +1,4 @@
-// Common four items plus one mode-specific destination: places in ACTIVE, mailbox in GARDEN.
+// Five destinations: home, diary, mode-specific map/mailbox, community, and my page.
 export const MOBILE_NAV_LIMIT = 4;
 
 export function mobileNavLinks<T>(links: readonly T[], lastLink: T): T[] {

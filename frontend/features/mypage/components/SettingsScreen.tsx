@@ -100,8 +100,8 @@ export function SettingsScreen() {
         </section>
         <section className={s.panel}>
           <h2>내 계정과 활동</h2>
-          <Link className={s.sourceLink} href="/me">
-            <strong>마이페이지</strong>
+          <Link className={s.sourceLink} href="/account">
+            <strong>내 정보 관리</strong>
             <Icon name="chevron" size={16} />
           </Link>
           <Link className={s.sourceLink} href="/me/activity">

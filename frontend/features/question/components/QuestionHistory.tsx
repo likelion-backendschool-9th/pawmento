@@ -8,6 +8,7 @@ import { RecordActionLink } from "@/components/RecordAction";
 import { useState } from "react";
 import { useApp } from "@/app/AppProvider";
 import { Icon } from "@/components/Icon";
+import { ArchiveNavigation } from "@/components/ArchiveNavigation";
 import { questionNumber } from "../utils/questionNumber";
 import { myAnswer } from "../utils/myAnswer";
 import q from "./QuestionHistory.module.css";
@@ -34,6 +35,7 @@ export function QuestionHistory({ pet }: { pet: Pet }) {
 <RecordActionLink href={`/pets/${pet.id}/questions`}>오늘의 질문</RecordActionLink>
         )}
       </QuestionHeading>
+      <ArchiveNavigation petId={pet.id} active="questions" />
       {app.account?.id === "demo" && pet.accessRole !== "VIEWER" && (
         <details className={q.demoTools}>
           <summary>데모 질문 기록 관리</summary>
