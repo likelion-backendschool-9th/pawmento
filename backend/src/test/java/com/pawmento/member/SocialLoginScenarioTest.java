@@ -41,6 +41,7 @@ import com.pawmento.member.application.port.out.SocialProfile;
 import com.pawmento.member.domain.AuthProvider;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.application.service.MemberTagGenerator;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -55,6 +56,9 @@ class SocialLoginScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private FakeSocialProfiles socialProfiles;
@@ -233,7 +237,8 @@ class SocialLoginScenarioTest {
 
 	private ResultActions signUp(String email) throws Exception {
 		return mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
-			.content("{\"email\":\"%s\",\"password\":\"correct-password\",\"nickname\":\"보호자\"}".formatted(email)));
+			.content("{\"email\":\"%s\",\"password\":\"correct-password\",\"nickname\":\"보호자\",\"verificationToken\":\"%s\"}"
+				.formatted(email, signUpTokens.issue(email))));
 	}
 
 	private ResultActions login(String email, String password) throws Exception {

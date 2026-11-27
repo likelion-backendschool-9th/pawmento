@@ -10,6 +10,7 @@ import com.pawmento.global.exception.StateConflictException;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.media.adapter.out.persistence.MediaValidationJobJpaRepository;
 import com.pawmento.media.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import jakarta.servlet.http.Cookie;
 import java.net.URI;
 import java.net.http.*;
@@ -48,6 +49,7 @@ class MediaUploadScenarioTest {
   }
 
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired MediaValidationJobJpaRepository jobs;
   @Autowired CreateMediaUploadUseCase createUseCase;
   @LocalServerPort int port;
@@ -940,7 +942,10 @@ class MediaUploadScenarioTest {
             post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    credentials.substring(0, credentials.length() - 1) + ",\"nickname\":\"보호자\"}"))
+                    credentials.substring(0, credentials.length() - 1)
+                        + ",\"nickname\":\"보호자\",\"verificationToken\":\""
+                        + signUpTokens.issue(email)
+                        + "\"}"))
         .andExpect(status().isCreated());
     var login =
         mvc.perform(

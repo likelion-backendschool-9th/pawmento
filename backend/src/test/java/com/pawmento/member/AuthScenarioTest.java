@@ -37,6 +37,7 @@ import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.application.service.MemberTagGenerator;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -51,6 +52,9 @@ class AuthScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private JwtEncoder jwtEncoder;
@@ -240,9 +244,11 @@ class AuthScenarioTest {
 		}
 	}
 
+	// 가입은 이메일 인증 토큰을 요구한다 (#279-S11). 항목 검사 순서는 토큰이 맨 뒤라 그대로다
 	private ResultActions signUp(String email, String password, String nickname) throws Exception {
-		return mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
-			.content(json(email, password, nickname)));
+		String body = json(email, password, nickname);
+		body = body.substring(0, body.length() - 1) + ",\"verificationToken\":\"" + signUpTokens.issue(email) + "\"}";
+		return mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body));
 	}
 
 	private ResultActions login(String email, String password) throws Exception {

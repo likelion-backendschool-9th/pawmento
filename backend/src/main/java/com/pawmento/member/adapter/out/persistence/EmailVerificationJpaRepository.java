@@ -61,4 +61,14 @@ interface EmailVerificationJpaRepository extends JpaRepository<EmailVerification
 	int confirm(@Param("id") Long id, @Param("sendId") String sendId, @Param("verifiedAt") Instant verifiedAt,
 			@Param("tokenHash") String tokenHash, @Param("tokenExpiresAt") Instant tokenExpiresAt,
 			@Param("max") int max);
+    // 가입에 쓴 토큰은 줄째 지운다. 같은 토큰으로 두 번 가입할 수 없고, 가입이 롤백되면 줄도 되살아난다 (#279-S8~S10)
+	@Modifying(clearAutomatically = true, flushAutomatically = true)
+	@Query("""
+			delete from EmailVerificationJpaEntity v
+			where v.email = :email and v.purpose = :purpose and v.tokenHash = :tokenHash
+				and v.verifiedAt is not null and v.tokenExpiresAt > :now
+			""")
+	int useToken(@Param("email") String email, @Param("purpose") VerificationPurpose purpose,
+			@Param("tokenHash") String tokenHash, @Param("now") Instant now);
+
 }

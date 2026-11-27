@@ -17,6 +17,7 @@ import com.pawmento.member.application.port.out.ResendEmailVerificationPort;
 import com.pawmento.member.application.port.out.SaveEmailVerificationPort;
 import com.pawmento.member.application.port.out.ConfirmEmailVerificationPort;
 import com.pawmento.member.application.port.out.RecordEmailVerificationFailurePort;
+import com.pawmento.member.application.port.out.UseEmailVerificationTokenPort;
 import com.pawmento.member.domain.EmailVerification;
 import com.pawmento.member.domain.VerificationPurpose;
 import com.pawmento.member.domain.exception.InvalidEmailVerificationException;
@@ -26,7 +27,8 @@ import lombok.RequiredArgsConstructor;
 @Repository
 @RequiredArgsConstructor
 class EmailVerificationPersistenceAdapter implements LoadEmailVerificationPort, SaveEmailVerificationPort,
-        ResendEmailVerificationPort, DeleteEmailVerificationPort, RecordEmailVerificationFailurePort, ConfirmEmailVerificationPort {
+        ResendEmailVerificationPort, DeleteEmailVerificationPort, RecordEmailVerificationFailurePort,
+        ConfirmEmailVerificationPort, UseEmailVerificationTokenPort {
 
     private final EmailVerificationJpaRepository repository;
 
@@ -80,6 +82,13 @@ class EmailVerificationPersistenceAdapter implements LoadEmailVerificationPort, 
         return repository.confirm(confirmed.getId(), confirmed.getSendId(), confirmed.getVerifiedAt(),
                 confirmed.getTokenHash(), confirmed.getTokenExpiresAt(), EmailVerification.MAX_FAILED_ATTEMPTS) == 1;
     }
+
+    // 가입 트랜잭션 안에서만 부른다. 가입이 롤백되면 지운 줄도 되살아난다 (#279-S10)
+	@Override
+	@Transactional(propagation = Propagation.MANDATORY)
+	public boolean use(String email, VerificationPurpose purpose, String tokenHash, Instant now) {
+		return repository.useToken(email, purpose, tokenHash, now) == 1;
+	}
 
     // 저장된 값이 규칙에 맞지 않으면 요청 오류(400)가 아니라 서버 데이터 문제(500)로 바꾼다
     private static EmailVerification toDomain(EmailVerificationJpaEntity entity) {

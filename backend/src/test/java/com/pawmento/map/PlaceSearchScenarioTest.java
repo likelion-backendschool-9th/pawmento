@@ -31,6 +31,7 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.map.domain.Place;
 import com.pawmento.map.domain.PlaceCategory;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -64,6 +65,9 @@ class PlaceSearchScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -283,7 +287,8 @@ class PlaceSearchScenarioTest {
 
 	private Cookie signUpAndLogin() throws Exception {
 		String email = "guardian-" + UUID.randomUUID() + "@example.com";
-		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\"}".formatted(email, PASSWORD);
+		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\",\"verificationToken\":\"%s\"}"
+			.formatted(email, PASSWORD, signUpTokens.issue(email));
 		mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isCreated());
 		Cookie cookie = mockMvc

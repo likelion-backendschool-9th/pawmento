@@ -30,6 +30,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.map.application.port.out.LoadRoadAddressPort;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -53,6 +54,9 @@ class PlaceAddressScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -158,7 +162,8 @@ class PlaceAddressScenarioTest {
 
 	private Cookie signUpAndLogin() throws Exception {
 		String email = "guardian-" + UUID.randomUUID() + "@example.com";
-		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\"}".formatted(email, PASSWORD);
+		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\",\"verificationToken\":\"%s\"}"
+			.formatted(email, PASSWORD, signUpTokens.issue(email));
 		mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isCreated());
 		Cookie cookie = mockMvc

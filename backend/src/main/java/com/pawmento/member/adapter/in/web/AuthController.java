@@ -50,7 +50,8 @@ class AuthController {
 	@PostMapping("/signup")
 	ResponseEntity<MemberResponse> signUp(@Valid @RequestBody SignUpMemberRequest request) {
 		MemberResponse member = MemberResponse.from(signUpMemberUseCase
-				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname())));
+				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname(),
+						request.verificationToken())));
 		return ResponseEntity.status(HttpStatus.CREATED).body(member);
 	}
 

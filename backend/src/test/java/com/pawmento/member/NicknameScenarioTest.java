@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -44,6 +45,9 @@ class NicknameScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private Clock clock;
@@ -143,8 +147,8 @@ class NicknameScenarioTest {
 		mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content("""
-						{"email":"%s","password":"%s","nickname":"보호자"}
-						""".formatted(email, PASSWORD)))
+						{"email":"%s","password":"%s","nickname":"보호자","verificationToken":"%s"}
+						""".formatted(email, PASSWORD, signUpTokens.issue(email))))
 			.andExpect(status().isCreated());
 		MvcResult login = mockMvc
 			.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)

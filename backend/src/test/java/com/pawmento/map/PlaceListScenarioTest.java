@@ -27,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -58,6 +59,9 @@ class PlaceListScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
@@ -440,7 +444,8 @@ class PlaceListScenarioTest {
 
 	private Guardian signUpAndLogin() throws Exception {
 		String email = "guardian-" + UUID.randomUUID() + "@example.com";
-		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\"}".formatted(email, PASSWORD);
+		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\",\"verificationToken\":\"%s\"}"
+			.formatted(email, PASSWORD, signUpTokens.issue(email));
 		MvcResult signUp = mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isCreated())
