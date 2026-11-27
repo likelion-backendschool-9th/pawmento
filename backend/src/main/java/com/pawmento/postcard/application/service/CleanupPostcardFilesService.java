@@ -2,7 +2,6 @@ package com.pawmento.postcard.application.service;
 
 import com.pawmento.postcard.application.port.in.CleanupPostcardFilesUseCase;
 import com.pawmento.postcard.application.port.out.*;
-import com.pawmento.postcard.domain.Postcard;
 import com.pawmento.postcard.domain.PostcardStatus;
 import java.time.Clock;
 import java.util.function.Function;
@@ -26,9 +25,9 @@ public class CleanupPostcardFilesService implements CleanupPostcardFilesUseCase 
     var candidates = files.settledFiles(clock.instant());
     var postcards =
         load
-            .findAllById(candidates.stream().map(PostcardFile::postcardId).collect(Collectors.toSet()))
+            .findFiles(candidates.stream().map(PostcardFile::postcardId).collect(Collectors.toSet()))
             .stream()
-            .collect(Collectors.toMap(Postcard::getId, Function.identity()));
+            .collect(Collectors.toMap(StoredPostcardFiles::postcardId, Function.identity()));
     int deleted = 0;
     for (var file : candidates) {
       if (keep(file, postcards.get(file.postcardId()))) continue;
@@ -38,15 +37,15 @@ public class CleanupPostcardFilesService implements CleanupPostcardFilesUseCase 
     return deleted;
   }
 
-  static boolean keep(PostcardFile file, Postcard postcard) {
+  static boolean keep(PostcardFile file, StoredPostcardFiles postcard) {
     if (file.partial() || postcard == null) return false;
     return switch (file.kind()) {
       case IMAGE ->
-          postcard.getStatus() == PostcardStatus.COMPLETED
-              && file.name().equals(postcard.getImageKey());
+          postcard.status() == PostcardStatus.COMPLETED
+              && file.name().equals(postcard.imageKey());
       case SOURCE ->
-          postcard.getStatus() == PostcardStatus.PROCESSING
-              && file.name().equals(postcard.getSourcePhotoKey());
+          postcard.status() == PostcardStatus.PROCESSING
+              && file.name().equals(postcard.sourcePhotoKey());
     };
   }
 }

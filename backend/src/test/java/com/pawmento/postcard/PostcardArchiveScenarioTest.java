@@ -72,6 +72,27 @@ class PostcardArchiveScenarioTest extends PostcardScenarioSupport {
   }
 
   @Test
+  @DisplayName("#165-S3 복원할 수 없는 엽서가 있어도 정리 작업은 멈추지 않고 그 엽서의 파일도 지운다")
+  void cleanupSkipsRestore() throws Exception {
+    long a = member(), pet = pet(a, "GARDEN"), diary = diary(a, pet, "공원");
+    long kept = postcard(a, pet, diarySource(diary));
+    worker.processNext();
+    long broken = postcard(a, pet, diarySource(diary));
+    // 실패했는데 실패 안내가 없으면 복원 때 실패한다.
+    jdbc.update("update postcards set status='FAILED', error_message=null where id=?", broken);
+    var old = Duration.ofHours(2);
+    Path keptImage = file("images/" + kept + ".png", old);
+    Path brokenImage = file("images/" + broken + ".png", old);
+    Path brokenSource = file("sources/" + broken + ".jpg", old);
+
+    cleanup.cleanup();
+
+    assertThat(keptImage).exists();
+    assertThat(brokenImage).doesNotExist();
+    assertThat(brokenSource).doesNotExist();
+  }
+
+  @Test
   @DisplayName("#103-S8 엽서를 최신순으로 나눠 보고, 완성 엽서만 이미지를 열고, 지우면 파일도 사라진다")
   void listOpenDelete() throws Exception {
     long a = member(), pet = pet(a, "GARDEN"), diary = diary(a, pet, "공원");

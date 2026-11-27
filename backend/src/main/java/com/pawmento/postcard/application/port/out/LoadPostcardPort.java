@@ -8,5 +8,5 @@ import java.util.Optional;
 public interface LoadPostcardPort {
   Optional<Postcard> findById(Long postcardId);
 
-  List<Postcard> findAllById(Collection<Long> postcardIds);
+  List<StoredPostcardFiles> findFiles(Collection<Long> postcardIds);
 }
