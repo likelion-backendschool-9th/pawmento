@@ -1,7 +1,7 @@
 import { mobileNavLinks } from "./mobileNavigation.ts";
 
 export type AppNavKey =
-  "home" | "diary" | "questions" | "community" | "places" | "mailbox";
+  "home" | "diary" | "questions" | "community" | "places" | "mailbox" | "mypage";
 export function activeNavigation(
   route: string,
   petId?: string,
@@ -11,6 +11,7 @@ export function activeNavigation(
   if (route === "/home") return "home";
   if (inRoute("/community")) return "community";
   if (inRoute("/places")) return "places";
+  if (inRoute("/me")) return "mypage";
   if (!petId) return null;
   const base = `/pets/${petId}`;
   if (route === `${base}/garden` || route === base) return "home";
@@ -38,21 +39,16 @@ export function appNavigation(
       label: "다이어리",
       icon: "book",
     },
-    {
-      key: "questions",
-      href: base ? `${base}/questions` : "/pets",
-      label: "오늘의 질문",
-      icon: "question",
-    },
-    { key: "community", href: "/community", label: "커뮤니티", icon: "users" },
-    mode === "GARDEN" && base
+    mode === "GARDEN"
       ? {
           key: "mailbox",
-          href: `${base}/garden/mailbox`,
+          href: base ? `${base}/garden/mailbox` : "/pets",
           label: "우체통",
           icon: "mail",
         }
-      : { key: "places", href: "/places", label: "정보 지도", icon: "map" },
+      : { key: "places", href: "/places", label: "지도", icon: "map" },
+    { key: "community", href: "/community", label: "커뮤니티", icon: "comment" },
+    { key: "mypage", href: "/me", label: "마이페이지", icon: "user" },
   ] as const;
   return mobileNavLinks<(typeof links)[number]>(links.slice(0, 4), links[4]);
 }

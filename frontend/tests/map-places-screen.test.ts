@@ -85,20 +85,20 @@ test("#172-S16 종류마다 마커의 색과 모양이 다르고 선택하면 �
   );
 });
 
-test("#172-S16 (고침 #233: 마지막 메뉴는 모드별 선택) 하단은 앞 네 개와 지정한 마지막 칸이며 더보기는 없다", () => {
+test("#172-S16 (고침 #233: 마이페이지 마지막 고정) 하단은 네 항목과 마이페이지 다섯 칸이며 더보기는 없다", () => {
   const links = [
     { label: "홈" },
-    { label: "오늘의 질문" },
     { label: "다이어리" },
+    { label: "지도" },
     { label: "커뮤니티" },
   ];
-  const map = { label: "지도" };
+  const profile = { label: "마이페이지" };
 
-  const nav = mobileNavLinks(links, map);
+  const nav = mobileNavLinks(links, profile);
 
   assert.deepEqual(
     nav.map((link) => link.label),
-    ["홈", "오늘의 질문", "다이어리", "커뮤니티", "지도"],
+    ["홈", "다이어리", "지도", "커뮤니티", "마이페이지"],
   );
   assert.equal(nav.length, MOBILE_NAV_LIMIT + 1);
 
@@ -108,9 +108,9 @@ test("#172-S16 (고침 #233: 마지막 메뉴는 모드별 선택) 하단은 앞
     { label: "우체통" },
     { label: "커뮤니티" },
   ];
-  const crowdedNav = mobileNavLinks(candidates, map);
+  const crowdedNav = mobileNavLinks(candidates, profile);
   assert.equal(crowdedNav.length, 5);
-  assert.equal(crowdedNav[crowdedNav.length - 1].label, "지도");
+  assert.equal(crowdedNav[crowdedNav.length - 1].label, "마이페이지");
   assert.ok(!crowdedNav.some((link) => link.label === "더보기"));
 });
 
