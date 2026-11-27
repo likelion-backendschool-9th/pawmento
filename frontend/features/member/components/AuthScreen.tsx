@@ -167,6 +167,15 @@ export function AuthScreen({
           </button>)}
         </div>
         <p className={styles.socialNote}>소셜 로그인은 현재 데모로 동작해요.</p>
+        {/* 옛 소개 화면에 있던 고정 보리네 데모 진입점. 소개를 마친 기기도 다시 열 수 있게 로그인 화면에 둔다.
+            옛 화면처럼 로그인한 계정이 없을 때만 보여 준다. 실제 계정 위에 데모 세션을 덮으면 로그아웃 뒤 서버 쿠키로 계정이 되살아난다. */}
+        {!signUp && app.sessionReady && !app.account && <button className={styles.demoEntry} type="button" disabled={busy} onClick={async () => {
+          if (app.account) { router.push("/home"); return; }
+          setBusy(true); setError("");
+          try { await app.startDemo(); router.push("/home"); }
+          catch (cause) { setError(cause instanceof Error ? cause.message : "다시 시도해 주세요."); }
+          finally { setBusy(false); }
+        }}>보리네 기록 둘러보기<Icon name="chevron" size={15} /></button>}
       </section>
     </main>
   );

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SiteEntrySplash } from "@/features/onboarding/components/SiteEntrySplash";
 import { AppProvider } from "./AppProvider";
 import { UnsavedChangesProvider } from "@/components/UnsavedChangesProvider";
 import "./globals.css";
@@ -20,7 +21,7 @@ export default function RootLayout({
     <html lang="ko" data-scroll-behavior="smooth">
       <body>
         <AppProvider>
-          <UnsavedChangesProvider>{children}</UnsavedChangesProvider>
+          <SiteEntrySplash><UnsavedChangesProvider>{children}</UnsavedChangesProvider></SiteEntrySplash>
         </AppProvider>
       </body>
     </html>
