@@ -27,11 +27,13 @@ export function createMemberApi(http: ApiClient) {
         throw cause;
       }
     },
-    async signUp(input: Credentials & { nickname: string }) {
+    async signUp(input: Credentials & { nickname: string; verificationToken?: string }) {
       await http.post<MemberDto>("/auth/signup", {
         email: input.email,
         password: input.password,
         nickname: input.nickname,
+        // 가입 인증 토큰. 서버가 확인하기 전(#279 PR 5)에도 함께 보내 두면 머지 순서와 상관없이 가입이 끊기지 않는다
+        verificationToken: input.verificationToken,
       });
       return signIn(input);
     },

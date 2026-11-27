@@ -21,7 +21,7 @@ export function AuthScreen({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [email, setEmail] = useState("");
-  const [verification] = useState(() => app.dependencies.emailVerificationPreview.createSession());
+  const [verification] = useState(() => (search.get("preview") === "1" ? app.dependencies.emailVerificationPreview : app.dependencies.emailVerification).createSession())
   const [challenge, setChallenge] = useState<Awaited<ReturnType<typeof verification.send>> | null>(null);
   const [code, setCode] = useState("");
   const [verified, setVerified] = useState(false);
@@ -39,16 +39,16 @@ export function AuthScreen({
     const timer = setInterval(() => {
       const timestamp = Date.now();
       setNow(timestamp);
-      if (timestamp >= challenge.expiresAt) setVerified(false);
+      if (timestamp >= challenge.expiresAt && !verification.isVerified(email)) setVerified(false);
     }, 1000);
     return () => clearInterval(timer);
-  }, [challenge]);
+  }, [challenge, email, verification]);
   useEffect(() => () => { revision.current += 1; }, []);
   const remaining = challenge ? Math.max(0, Math.ceil((challenge.expiresAt - now) / 1000)) : 0;
   const resendRemaining = challenge ? Math.max(0, Math.ceil((challenge.resendAt - now) / 1000)) : 0;
 
   const preview = search.get("preview") === "1";
-  const verifiedForPreview = preview && verified;
+  const emailVerified = verified;
   const previewQuery = preview ? "&preview=1" : "";
   const target = search.get("returnTo") ?? returnTo;
   const destination =
@@ -56,7 +56,7 @@ export function AuthScreen({
       ? target
       : "/home";
   async function sendCode() {
-    if (!preview || pendingVerification.current || !emailRef.current?.reportValidity()) return;
+    if (pendingVerification.current || !emailRef.current?.reportValidity()) return;
     const current = revision.current;
     pendingVerification.current = true; setVerificationBusy(true); setVerificationError("");
     try {
@@ -67,7 +67,7 @@ export function AuthScreen({
     finally { pendingVerification.current = false; setVerificationBusy(false); }
   }
   async function verifyCode() {
-    if (!preview || pendingVerification.current) return;
+    if (pendingVerification.current) return;
     const current = revision.current;
     pendingVerification.current = true; setVerificationBusy(true); setVerificationError("");
     try {
@@ -79,8 +79,8 @@ export function AuthScreen({
   }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    // 이메일 인증은 체험(preview=1) 화면에만 있다. 서버에는 아직 인증 API가 없어 일반 가입은 기존 가입 API로 바로 보낸다.
-    if (signUp && preview && !verification.isVerified(email)) {
+    // 실제 가입과 체험 모두 이메일 인증을 마쳐야 가입한다 (#279)
+    if (signUp && !verification.isVerified(email)) {
       setError("이메일 인증을 먼저 완료해 주세요.");
       return;
     }
@@ -107,6 +107,7 @@ export function AuthScreen({
             ...input,
             nickname: String(data.get("nickname")),
             confirmation: String(data.get("confirmation")),
+            verificationToken: verification.token(email) ?? undefined,
           })
         : await app.dependencies.auth.signIn(input);
       await app.authenticate(account);
@@ -135,23 +136,23 @@ export function AuthScreen({
                 <input id={emailId} ref={emailRef} name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="이메일 주소를 입력해 주세요" required value={email} onChange={(event) => {
                   revision.current += 1; verification.reset(); setEmail(event.target.value); setChallenge(null); setCode(""); setVerified(false); setVerificationError(""); setError("");
                 }} />
-                {signUp && preview && <button type="button" className={styles.codeButton} disabled={!email.trim() || verificationBusy || verifiedForPreview || resendRemaining > 0} onClick={() => void sendCode()}>{verifiedForPreview ? "인증 완료" : verificationBusy ? "확인 중…" : preview && challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
+                {signUp && <button type="button" className={styles.codeButton} disabled={!email.trim() || verificationBusy || emailVerified || resendRemaining > 0} onClick={() => void sendCode()}>{emailVerified ? "인증 완료" : verificationBusy ? "확인 중…" : challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
               </div>
-              {signUp && preview && challenge && !verified && <div className={styles.verificationField}>
+              {signUp && challenge && !verified && <div className={styles.verificationField}>
                 <label htmlFor={codeId}>인증 코드<span className={styles.codeTime} role="timer" aria-label="인증 코드 남은 시간">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span></label>
                 <div className={styles.emailRow}><input id={codeId} aria-label="인증 코드" aria-describedby={hintId} value={code} onChange={(event) => { setCode(event.target.value.replace(/\D/g, "").slice(0, 6)); setVerificationError(""); }} placeholder="6자리 숫자를 입력해 주세요" inputMode="numeric" autoComplete="one-time-code" maxLength={6} /><button type="button" className={styles.codeButton} disabled={code.length !== 6 || verificationBusy || remaining === 0} onClick={() => void verifyCode()}>확인</button></div>
-                <p id={hintId} className={styles.emailHelp}>체험용 코드 <strong>{challenge.demoCode}</strong> · 실제 메일은 발송되지 않아요.</p>
+                <p id={hintId} className={styles.emailHelp}>{"demoCode" in challenge ? <>체험용 코드 <strong>{challenge.demoCode}</strong> · 실제 메일은 발송되지 않아요.</> : "메일로 받은 6자리 숫자를 입력해 주세요. 메일이 보이지 않으면 스팸함도 확인해 주세요."}</p>
                 {remaining === 0 && <p className={styles.emailError} role="status">인증 코드가 만료됐어요. 다시 받아 주세요.</p>}
               </div>}
-              {signUp && verifiedForPreview && <p className={styles.emailSuccess} role="status"><Icon name="check" size={15} />이메일 인증을 완료했어요.</p>}
-              {signUp && preview && verificationError && <p className={styles.emailError} role="alert">{verificationError}</p>}
+              {signUp && emailVerified && <p className={styles.emailSuccess} role="status"><Icon name="check" size={15} />이메일 인증을 완료했어요.</p>}
+              {signUp && verificationError && <p className={styles.emailError} role="alert">{verificationError}</p>}
             </div>
             <PasswordField name="password" label="비밀번호" signUp={signUp} />
             {signUp && <PasswordField name="confirmation" label="비밀번호 확인" signUp />}
             {/* 비밀번호 변경은 이 탭의 데모 계정만 지원해 체험 화면에서만 보여 준다. 실제 계정 복구는 아직 없다. */}
             {!signUp && preview && <Link className={styles.forgot} href="/reset-password">데모 비밀번호 변경</Link>}
             {error && <p className={styles.error} role="alert">{error}</p>}
-            <button className={styles.primary} type="submit" disabled={busy || verificationBusy || (signUp && preview && !verifiedForPreview)}>{busy ? "잠시만 기다려 주세요…" : signUp ? "가입하고 계속하기" : "로그인"}<Icon name="arrow" size={18} /></button>
+            <button className={styles.primary} type="submit" disabled={busy || verificationBusy || (signUp && !emailVerified)}>{busy ? "잠시만 기다려 주세요…" : signUp ? "가입하고 계속하기" : "로그인"}<Icon name="arrow" size={18} /></button>
           </fieldset>
         </form>
         <p className={styles.switch}>{signUp ? "이미 함께하고 있나요?" : "아직 계정이 없나요?"}<Link href={signUp ? `/sign-in?returnTo=${encodeURIComponent(destination)}${previewQuery}` : `/sign-up?returnTo=${encodeURIComponent(destination)}${previewQuery}`}>{signUp ? "로그인" : "회원가입"}</Link></p>
