@@ -22,15 +22,13 @@ public class ValidateMediaReferencesService implements ValidateMediaReferencesUs
     var ids = new TreeSet<Long>(c.previous());
     ids.addAll(c.requested());
     if (ids.isEmpty()) return;
-    var identities = owners.loadOwnership(List.copyOf(ids));
-    if (identities.size() != ids.size()
-        || identities.stream()
-            .anyMatch(
-                a ->
-                    !Objects.equals(a.uploaderMemberId(), c.memberId())
-                        || !Objects.equals(a.petId(), c.petId())
-                        || a.purpose() != MediaPurpose.valueOf(c.purpose())))
-      throw new MediaAssetNotFoundException();
+    MediaReferenceOwnership.require(
+        owners.loadOwnership(List.copyOf(ids)),
+        ids,
+        c.memberId(),
+        c.petId(),
+        MediaPurpose.valueOf(c.purpose()),
+        c.previous());
     for (var id : c.requested())
       if (!c.previous().contains(id)) {
         var asset = assets.findById(id).orElseThrow(MediaAssetNotFoundException::new);

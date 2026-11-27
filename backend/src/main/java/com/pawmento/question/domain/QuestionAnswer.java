@@ -83,6 +83,17 @@ public final class QuestionAnswer {
 
   public void requireEditable(Long member, QuestionMode currentMode, long expectedVersion) {
     if (!authorMemberId.equals(member)) throw new QuestionAnswerForbiddenException();
+    requireCurrent(currentMode, expectedVersion);
+  }
+
+  public void requireDeletable(
+      Long member, boolean owner, QuestionMode currentMode, long expectedVersion) {
+    if (!owner && !authorMemberId.equals(member)) throw new QuestionAnswerForbiddenException();
+    requireCurrent(currentMode, expectedVersion);
+  }
+
+  // 수정·삭제가 같은 충돌 계약(409)을 쓰도록 모드와 버전 판정을 한곳에 둔다.
+  private void requireCurrent(QuestionMode currentMode, long expectedVersion) {
     if (currentMode != prompt.getMode() || version != expectedVersion)
       throw new QuestionAnswerConflictException();
   }

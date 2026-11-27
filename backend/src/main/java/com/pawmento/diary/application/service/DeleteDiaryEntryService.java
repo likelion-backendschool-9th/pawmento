@@ -21,15 +21,14 @@ public class DeleteDiaryEntryService implements DeleteDiaryEntryUseCase {
   public void delete(DeleteDiaryEntryCommand c) {
     access.requireAccess(c.memberId(), c.petId());
     var entry = DiaryEntryAccess.load(load, c.petId(), c.diaryId());
-    entry.requireAuthor(c.memberId());
-    DiaryEntryAccess.version(entry, c.version());
-    access.requireLockedWriteAccess(c.memberId(), c.petId());
+    boolean owner = access.isOwnerForLockedDeletion(c.memberId(), c.petId());
     entry = DiaryEntryAccess.locked(load, c.petId(), c.diaryId());
+    if (!owner) entry.requireAuthor(c.memberId());
     DiaryEntryAccess.version(entry, c.version());
     DiaryLocationManager.next(entry.getVersion());
     var observed = location.observe(entry);
     var previous = attachments.find(entry.getId());
-    media.lock(c.memberId(), c.petId(), previous);
+    media.lock(c.memberId(), c.petId(), previous, java.util.List.of());
     deletion.delete(entry.getId(), c.version());
     media.change(c.memberId(), c.petId(), previous, java.util.List.of());
     location.deleted(entry, observed);

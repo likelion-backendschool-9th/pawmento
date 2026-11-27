@@ -28,7 +28,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.*;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-// 실제 가족 API 대신 멤버십 저장 포트로 구성한다. 소유주의 타인 삭제(Q2)는 계속 거부한다.
+// 실제 가족 API 대신 멤버십 저장 포트로 구성한다. 소유주의 타인 삭제(Q2)는 별도 HTTP 시나리오에서 검증한다.
 @SpringBootTest(
     properties = {
       "pawmento.auth.jwt-secret=test-only-jwt-secret-0123456789-abcdefghij",
@@ -100,7 +100,8 @@ class FamilyQuestionAnswerMutationScenarioTest {
 
   @ParameterizedTest
   @CsvSource({"ACTIVE,false", "ACTIVE,true", "GARDEN,false", "GARDEN,true"})
-  @DisplayName("#31-S8/S12/S15/S31 가족의 답변 수정·삭제는 작성자와 실제 등록일을 보존하고 첨부 유무와 관계없이 타인 변경을 거부한다")
+  @DisplayName(
+      "#31-S8/S12/S15/S31 가족의 답변 수정·삭제는 작성자와 실제 등록일을 보존하고 첨부 유무와 관계없이 타인 수정·가족의 타인 삭제를 거부한다 (고침 #133: Q2 삭제 권한)")
   void mutationsPreserveAuthorAndProgress(String mode, boolean attached) throws Exception {
     modes.changeMode(new ChangePetModeCommand(owner, pet, mode));
     long prompt =
@@ -134,7 +135,7 @@ class FamilyQuestionAnswerMutationScenarioTest {
                   .contentType(MediaType.APPLICATION_JSON)
                   .content("{\"content\":\"타인 수정\",\"attachmentIds\":[],\"version\":0}"))
           .andExpect(status().isForbidden());
-      as(actor, delete(path + "&version=0")).andExpect(status().isForbidden());
+      if (actor == other) as(actor, delete(path + "&version=0")).andExpect(status().isForbidden());
     }
     assertThat(get.get(new GetQuestionAnswerQuery(owner, pet, answer.answerId())))
         .isEqualTo(baseline);

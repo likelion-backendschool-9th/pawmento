@@ -28,6 +28,13 @@ class FamilyQuestionPetAccessAdapter
     return modeAfterAccess(memberId, petId, owner);
   }
 
+  public DeletionAccess accessForDeletion(Long memberId, Long petId) {
+    var owner =
+        locks.lock(new LockPetOwnerQuery(petId)).orElseThrow(QuestionPetNotFoundException::new);
+    var mode = modeAfterAccess(memberId, petId, owner);
+    return new DeletionAccess(owner.ownerMemberId().equals(memberId), mode);
+  }
+
   private QuestionMode modeAfterAccess(Long memberId, Long petId, GetPetOwnerResult owner) {
     if (!family.check(new CheckPetAccessQuery(petId, memberId)).canRecord())
       throw new QuestionPetAccessDeniedException();

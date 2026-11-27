@@ -26,6 +26,14 @@ class FamilyDiaryPetAccessAdapter implements CheckDiaryPetAccessPort {
     requireFamily(memberId, petId);
   }
 
+  @Override
+  public boolean isOwnerForLockedDeletion(Long memberId, Long petId) {
+    var owner =
+        locks.lock(new LockPetOwnerQuery(petId)).orElseThrow(DiaryPetNotFoundException::new);
+    requireFamily(memberId, petId);
+    return owner.ownerMemberId().equals(memberId);
+  }
+
   private void requireFamily(Long memberId, Long petId) {
     if (!family.check(new CheckPetAccessQuery(petId, memberId)).canRecord())
       throw new DiaryPetAccessDeniedException();

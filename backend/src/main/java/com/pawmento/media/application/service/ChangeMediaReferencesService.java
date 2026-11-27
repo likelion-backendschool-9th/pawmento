@@ -28,16 +28,8 @@ public class ChangeMediaReferencesService
     ids.addAll(c.requested());
     var purpose = MediaPurpose.valueOf(c.purpose());
     // 상태 엔티티를 영속성 컨텍스트에 남기지 않는 일괄 identity 조회로 먼저 검사한다.
-    var owners = ownership.loadOwnership(List.copyOf(ids));
-    if (owners.size() != ids.size()
-        || owners.stream()
-            .anyMatch(
-                a ->
-                    !Objects.equals(a.petId(), c.petId())
-                        || a.purpose() != purpose
-                        || (!Objects.equals(a.uploaderMemberId(), c.memberId())
-                            && !(purpose == MediaPurpose.PET_PROFILE && previous.contains(a.assetId())))))
-      throw new MediaAssetNotFoundException();
+    MediaReferenceOwnership.require(
+        ownership.loadOwnership(List.copyOf(ids)), ids, c.memberId(), c.petId(), purpose, previous);
     for (Long id : ids) load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
   }
 
@@ -49,7 +41,9 @@ public class ChangeMediaReferencesService
       throw new IllegalArgumentException("Duplicate reference IDs");
     var ids = new TreeSet<Long>(old);
     ids.addAll(next);
-    lock(new LockMediaReferencesCommand(c.memberId(), c.petId(), c.previous(), c.requested(), c.purpose()));
+    lock(
+        new LockMediaReferencesCommand(
+            c.memberId(), c.petId(), c.previous(), c.requested(), c.purpose()));
     for (Long id : ids) {
       var a = load.findForUpdate(id).orElseThrow(MediaAssetNotFoundException::new);
       if (old.contains(id) && next.contains(id)) continue; // 불일치 첨부도 유지·순서 변경은 참조 수를 건드리지 않는다.

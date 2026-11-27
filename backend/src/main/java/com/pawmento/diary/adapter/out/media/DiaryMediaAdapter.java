@@ -18,8 +18,9 @@ public class DiaryMediaAdapter implements DiaryMediaPort {
     validation.validate(new ValidateMediaReferencesCommand(member, pet, previous, requested));
   }
 
-  public void lock(Long member, Long pet, List<Long> ids) {
-    locks.lock(new LockMediaReferencesCommand(member, pet, ids));
+  public void lock(Long member, Long pet, List<Long> previous, List<Long> requested) {
+    locks.lock(
+        new LockMediaReferencesCommand(member, pet, previous, requested, "DIARY_ATTACHMENT"));
   }
 
   private final LoadMediaAttachmentsUseCase attachments;

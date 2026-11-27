@@ -102,7 +102,7 @@ class FamilyRecordingAccessScenarioTest {
   }
 
   @Test
-  @DisplayName("#32-S30/S31 가족이 일기를 작성·공유하되 본인만 변경하고 타인 위치는 숨긴다")
+  @DisplayName("#32-S30/S31 가족이 일기를 작성·공유하되 본인만 수정하고 타인 위치는 숨긴다 (고침 #133: Q2 삭제 권한)")
   void diaryAccess() throws Exception {
     var written =
         diary(
@@ -128,7 +128,7 @@ class FamilyRecordingAccessScenarioTest {
         .isInstanceOf(PermissionDeniedException.class);
     assertThatThrownBy(
             () ->
-                deleteDiary.delete(new DeleteDiaryEntryCommand(owner, pet, written.diaryId(), 0L)))
+                deleteDiary.delete(new DeleteDiaryEntryCommand(other, pet, written.diaryId(), 0L)))
         .isInstanceOf(PermissionDeniedException.class);
     var edited =
         editDiary.edit(new EditDiaryEntryCommand(writer, pet, written.diaryId(), "내 수정", null, 0L));
