@@ -14,9 +14,9 @@ export function ArchiveNavigation({
       {(
         [
           ["diary", "일기", "book"],
+          ["questions", "오늘의 질문", "question"],
           ["calendar", "달력", "calendar"],
           ["map", "지도", "pin"],
-          ["questions", "오늘의 질문", "question"],
         ] as const
       ).map(([page, label, icon]) => (
         <Link
