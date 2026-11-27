@@ -60,7 +60,7 @@ class SendEmailVerificationServiceTest {
 
 	private EmailVerification stored(String code, Instant sentAt) {
 		return EmailVerification.restore(7L, EMAIL, VerificationPurpose.SIGNUP, codes.hash(code), "send-old", 2,
-				sentAt.plus(EmailVerification.CODE_VALID_FOR), sentAt);
+				sentAt.plus(EmailVerification.CODE_VALID_FOR), sentAt, null, null, null);
 	}
 
 	private static SendEmailVerificationCommand signup(String email) {
@@ -75,7 +75,7 @@ class SendEmailVerificationServiceTest {
 		when(savePort.save(any())).thenAnswer(call -> {
 			EmailVerification v = call.getArgument(0);
 			return EmailVerification.restore(1L, v.getEmail(), v.getPurpose(), v.getCodeHash(), v.getSendId(),
-					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt());
+					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt(), null, null, null);
 		});
 
 		SendEmailVerificationResult result = service.send(signup(" A@Test.com "));
@@ -181,7 +181,7 @@ class SendEmailVerificationServiceTest {
 		when(savePort.save(any())).thenAnswer(call -> {
 			EmailVerification v = call.getArgument(0);
 			return EmailVerification.restore(1L, v.getEmail(), v.getPurpose(), v.getCodeHash(), v.getSendId(),
-					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt());
+					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt(), null, null, null);
 		});
 		VerificationMailUnavailableException failure = new VerificationMailUnavailableException(new RuntimeException("smtp"));
 		doThrow(failure).when(mailPort).send(anyString(), any(), anyString(), any());

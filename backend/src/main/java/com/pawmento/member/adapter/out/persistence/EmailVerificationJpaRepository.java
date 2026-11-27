@@ -17,7 +17,8 @@ interface EmailVerificationJpaRepository extends JpaRepository<EmailVerification
 	@Query("""
 			update EmailVerificationJpaEntity v
 			set v.codeHash = :codeHash, v.sendId = :sendId, v.failedAttempts = 0,
-				v.codeExpiresAt = :codeExpiresAt, v.sentAt = :sentAt
+				v.codeExpiresAt = :codeExpiresAt, v.sentAt = :sentAt,
+                v.verifiedAt = null, v.tokenHash = null, v.tokenExpiresAt = null
             where v.email = :email and v.purpose = :purpose and v.sentAt <= :lastSentAtOrBefore
 				and v.codeHash <> :codeHash
 			""")

@@ -197,4 +197,56 @@ class EmailVerificationPersistenceAdapterTest {
 		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
 				.isInstanceOf(StoredEmailVerificationInvalidException.class);
 	}
+
+	@Test
+	@DisplayName("#279-S5 확인 시각과 토큰은 저장한 그대로 읽히고, 확인 전에는 셋 다 비어 있다")
+	void tokenFieldsRoundTrip() {
+		adapter.save(sent("hash-1", SENT_AT));
+		EmailVerification before = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(before.getVerifiedAt()).isNull();
+		assertThat(before.getTokenHash()).isNull();
+		assertThat(before.getTokenExpiresAt()).isNull();
+
+		Instant verifiedAt = SENT_AT.plusSeconds(30);
+		jdbcTemplate.update("""
+				update email_verification set verified_at = ?, token_hash = 'token-hash', token_expires_at = ?
+				where email = ?
+				""", java.sql.Timestamp.from(verifiedAt),
+				java.sql.Timestamp.from(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR)), email);
+
+		EmailVerification after = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(after.getVerifiedAt()).isEqualTo(verifiedAt);
+		assertThat(after.getTokenHash()).isEqualTo("token-hash");
+		assertThat(after.getTokenExpiresAt()).isEqualTo(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR));
+	}
+
+	@Test
+	@DisplayName("#279-S3 확인한 뒤 다시 받으면 DB에서도 확인 시각과 토큰이 지워진다")
+	void resendClearsStoredConfirmation() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("""
+				update email_verification set verified_at = ?, token_hash = 'token-hash', token_expires_at = ?
+				where email = ?
+				""", java.sql.Timestamp.from(SENT_AT.plusSeconds(10)),
+				java.sql.Timestamp.from(SENT_AT.plus(EmailVerification.TOKEN_VALID_FOR)), email);
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+
+		assertThat(adapter.resend(sent("hash-2", now), SENT_AT)).isTrue();
+
+		EmailVerification resent = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(resent.getCodeHash()).isEqualTo("hash-2");
+		assertThat(resent.getVerifiedAt()).isNull();
+		assertThat(resent.getTokenHash()).isNull();
+		assertThat(resent.getTokenExpiresAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인 시각은 있는데 토큰이 없는 깨진 줄은 저장 데이터 오류로 알린다")
+	void brokenTokenRowIsStoredDataError() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("update email_verification set verified_at = now() where email = ?", email);
+
+		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
+				.isInstanceOf(StoredEmailVerificationInvalidException.class);
+	}
 }
