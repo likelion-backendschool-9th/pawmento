@@ -10,6 +10,7 @@ import {
 import { boundsAround } from "../utils/nearby";
 import { placeMarkup } from "../utils/placeMarkup";
 import {
+  fitMargin,
   markerShiftToVisible,
   type PlaceCanvasProps,
 } from "../utils/placeCanvas";
@@ -118,14 +119,14 @@ export function NaverPlaceCanvas({
     if (wanted && handledFocus.current !== wanted.token) {
       handledFocus.current = wanted.token;
       if (wanted.fitRadiusMeters) {
-        // 내 위치로 옮길 때는 그 반경이 보이게 확대 수준도 맞춘다. 위쪽은 검색창과 종류 칩이 덮는 만큼 비운다(#226-S2)
+        // 내 위치로 옮길 때는 그 반경이 보이게 확대 수준도 맞춘다. 검색창과 종류 칩이 덮는 만큼 위·아래를 같게 비워 점이 지도 한가운데에 놓이게 한다(#226-S2)
         const area = boundsAround(wanted.point, wanted.fitRadiusMeters);
         current.fitBounds(
           new maps.LatLngBounds(
             new maps.LatLng(area.minLatitude, area.minLongitude),
             new maps.LatLng(area.maxLatitude, area.maxLongitude),
           ),
-          { top: 120, right: 20, bottom: 40, left: 20 },
+          fitMargin(box.clientHeight),
         );
       } else {
         current.setCenter(

@@ -18,7 +18,7 @@ import {
 } from "../features/map/utils/myLocationText.ts";
 import { nextTabIndex } from "../features/map/utils/tabKeys.ts";
 import { COMPACT_STAGE_HEIGHT, isCompactStage } from "../features/map/utils/placeLayout.ts";
-import { STATIC_SPAN, staticSpanScale } from "../features/map/utils/placeCanvas.ts";
+import { fitMargin, STATIC_SPAN, staticSpanScale } from "../features/map/utils/placeCanvas.ts";
 import { EARTH_RADIUS_METERS, toDegrees, toRadians } from "../features/map/utils/geo.ts";
 
 const FIX: LocationFix = { point: { latitude: 37.4979, longitude: 127.0276 }, accuracy: 35 };
@@ -267,4 +267,21 @@ test("#226-S2 지도 안내의 모양은 창의 높이가 아니라 지도의 �
   const cardTop = 0.69 * H - 200 / 2;
   const dotBottom = 0.5 * H + 10;
   assert.ok(cardTop - dotBottom > 7, `${cardTop - dotBottom}`);
+});
+
+test("#226-S2 네이버 지도로 내 위치에 맞출 때 위·아래 여백이 같아서 점이 지도의 한가운데에 놓이고, 낮은 지도에서는 여백이 줄어든다", () => {
+  for (const height of [0, 100, 240, 320, 475, 620, 638, 794, 1200]) {
+    const margin = fitMargin(height);
+    // 위·아래가 같으면 여백을 뺀 영역의 가운데가 지도의 가운데다(점이 한가운데)
+    assert.equal(margin.top, margin.bottom, `높이 ${height}`);
+    const dotY = (margin.top + (height - margin.bottom)) / 2;
+    if (height > 0) assert.equal(dotY, height / 2, `높이 ${height}`);
+  }
+  // 위쪽의 검색창·종류 칩 자리는 높은 지도에서 120px, 낮은 지도에서는 줄어 점이 들어갈 영역이 남는다
+  assert.equal(fitMargin(638).top, 120);
+  assert.equal(fitMargin(240).top, 20);
+  assert.ok(240 - fitMargin(240).top - fitMargin(240).bottom > 150);
+  // 옛 여백(위 120, 아래 40)은 점을 가운데보다 40px 아래에 두었다
+  const old = { top: 120, bottom: 40 };
+  assert.equal((old.top + (638 - old.bottom)) / 2 - 638 / 2, 40);
 });

@@ -33,6 +33,14 @@ export function staticSpanScale(radiusMeters: number): number {
   return Math.max(1, (diameterDegrees * 1.35) / STATIC_SPAN.latitude);
 }
 
+// 내 위치로 옮길 때 네이버 지도의 fitBounds에 넘기는 여백(px). 위·아래를 같게 해서 내 위치 점이 지도의 한가운데에 놓이게 한다.
+// 가운데 안내 카드의 배치(utils/placeLayout.ts)가 점이 한가운데에 있다는 것을 전제로 하기 때문이다(예시 지도도 점이 한가운데다).
+// 위쪽의 검색창·종류 칩이 덮는 만큼은 위·아래 모두 비워 두고(최대 120px), 지도가 낮으면 그만큼 줄인다.
+export function fitMargin(stageHeight: number): { top: number; right: number; bottom: number; left: number } {
+  const vertical = Math.max(20, Math.min(120, (stageHeight - 200) / 2));
+  return { top: vertical, right: 20, bottom: vertical, left: 20 };
+}
+
 // 카드가 지도 아래쪽을 덮을 때 선택한 마커(위에서 y픽셀)가 보이는 영역 안에 오도록 마커를 위로 옮길 픽셀을 구한다.
 // 위로 옮기면 양수, 아래로 옮기면 음수이고, 이미 보이면 0이다. 위쪽 topInset은 종류 칩이 차지하는 자리다.
 export function markerShiftToVisible({
