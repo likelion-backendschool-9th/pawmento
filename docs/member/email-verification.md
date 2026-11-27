@@ -4,12 +4,12 @@
 
 ## 한눈에
 - 끝나면: 로컬 가입은 이메일로 받은 6자리 인증번호를 확인한 사람만 끝낼 수 있다. 같은 구조로 #280에서 비밀번호 재설정·설정을 한다
-- 결정 필요: 다시 받기 간격 응답 코드(Q1), 메일 발송 실패 응답 코드(Q2)
+- 결정 필요: 없음 (Q1·Q2 정함)
 - 규모: 5단계 (#279 PR 5개, #280은 이어서 백엔드·화면 2개)
 
 ## 질문
-- Q1: 다시 받기 간격(60초) 안에 또 요청하면 몇 번으로 답할지. 지금 `ErrorCode`에는 429가 없다. 제안: 409 `CONFLICT`와 "잠시 후 다시 요청해 주세요."로 두고, 응답에 다시 받을 수 있는 시각(`retryAfter`)을 싣는다. 429를 새로 두면 global 담당과 합의한다
-- Q2: 메일 서버가 응답하지 않으면 몇 번으로 답할지. 제안: 503과 새 코드 `MAIL_UNAVAILABLE`. global의 `ErrorCode`에 한 줄을 더하므로 global 담당과 합의한다
+- Q1(정함): 다시 받기 간격(60초) 안의 요청은 409 `CONFLICT`와 "잠시 후 다시 요청해 주세요."다. 응답은 공통 오류 형식(`code`·`message`)만 쓰고 시각을 싣지 않는다. 화면은 직전 202 응답의 `retryAfter`로 버튼을 막는다. 공통 오류 형식에 필드를 더하거나 429를 새로 두려면 global 담당과 합의해야 해서 이번에는 하지 않는다 (고침 #279: 공통 오류 형식 유지)
+- Q2(정함): 메일 서버가 응답하지 않으면 503 `STORAGE_UNAVAILABLE`. 엽서 생성 실패(`PostcardGenerationFailedException`)처럼 `StorageUnavailableException`을 상속해 `ErrorCode`를 바꾸지 않는다
 
 ## 1. 인증번호 보내기 (#279-R1)
 이메일과 용도를 받아 6자리 인증번호를 메일로 보낸다. 용도는 `SIGNUP`·`PASSWORD_RESET`·`SET_PASSWORD`이고 #279는 `SIGNUP`만 받는다.
@@ -33,6 +33,8 @@
 #279-S4 메일 발송 실패 [테스트]
 - Given 메일 발송 포트가 실패하도록 둔다
 - Then  Q2의 응답이고, 저장한 인증 줄은 지워져 바로 다시 요청할 수 있다
+- Given 메일 서버가 메일을 받은 뒤 연결 닫기만 실패한다(`JavaMailSenderImpl`이 실패 메일 목록 없이 `MailSendException`을 던진다)
+- Then  보낸 것으로 보고 202다. 사용자는 이미 번호를 받았으므로 줄을 지우지 않는다
 
 ## 2. 인증번호 확인 (#279-R2)
 맞는 번호를 넣으면 가입에 한 번 쓸 인증 토큰을 받는다.
@@ -40,7 +42,7 @@
 #279-S5 확인 [테스트]
 - When  `POST /api/v1/auth/email-verifications/confirm`에 `{"email": "a@test.com", "purpose": "SIGNUP", "code": "123456"}`
 - Then  200과 `{"verificationToken": "…", "expiresAt": "…"}`를 받는다 (토큰 유효 30분)
-- Then  틀린 번호, 만료된 번호(10분), 보낸 적 없는 이메일은 모두 400 `VALIDATION` "인증번호가 맞지 않거나 만료됐어요."로 같다
+- Then  틀린 번호, 만료된 번호(5분, 고침 #279: 6자리를 맞혀 볼 수 있는 시간을 줄이려고 10분에서 줄임), 보낸 적 없는 이메일은 모두 400 `VALIDATION` "인증번호가 맞지 않거나 만료됐어요."로 같다
 
 #279-S6 시도 횟수 [테스트]
 - Given 틀린 번호를 5번 넣었다
@@ -98,24 +100,26 @@
 
 ## 메일 발송
 - 출력 포트 `SendVerificationMailPort`. 서비스는 메일 형식을 모른다
-- 어댑터: `spring-boot-starter-mail`의 `JavaMailSender`. 접속 값은 환경 변수(`SPRING_MAIL_HOST`·`PORT`·`USERNAME`·`PASSWORD`)로만 받는다. 저장소와 이미지에는 두지 않는다
-- 테스트: 보낸 메일을 기억하는 가짜 포트(`@Primary` 테스트 빈)
-- 로컬: Mailpit 컨테이너(`backend/compose.yaml`, 루트 `compose.override.yaml`)에 보낸다. 실제로 나가지 않고 `http://localhost:8025`에서 받은 메일을 본다
-- 개발 서버: 서버 담당과 정한 SMTP 계정(Gmail 앱 비밀번호 등)을 서버 `.env`와 `compose.prod.yaml`, `.env.prod.example`에 더한다
+- 어댑터: `spring-boot-starter-mail`의 `JavaMailSender`로 Gmail SMTP(`smtp.gmail.com:587`, STARTTLS)에 보낸다. 계정 주소와 앱 비밀번호는 환경 변수(`SPRING_MAIL_USERNAME`·`SPRING_MAIL_PASSWORD`)로만 받는다. 저장소와 이미지에는 두지 않는다
+- 값이 비어 있어도 서버는 뜨고, 보내기만 Q2의 503이다. 연결·응답 대기는 5초에서 끊는다
+- STARTTLS를 필수로 둔다(`mail.smtp.starttls.required`). 서버가 STARTTLS를 주지 않으면 평문으로 계속하지 않고 실패해 계정과 번호를 보호한다
+- 보내는 사람은 `PAWMENTO_MAIL_FROM`, 비우면 로그인 계정 주소다
+- 테스트: 보낸 메일을 기억하는 가짜 포트(`@Primary` 테스트 빈). 자동 테스트는 실제 메일을 보내지 않는다
+- 로컬·개발 서버 모두 실제 메일로 보낸다. 로컬은 루트 `.env`(커밋하지 않음)에 SMTP 계정을 넣고, 개발 서버는 서버 담당과 정한 계정을 서버 `.env`에 넣는다. `compose.yaml`이 값을 백엔드로 넘긴다 (고침 #279: 처음 계획은 로컬 Mailpit이었다. 스팸함 분류·도착 지연·발신자 표시처럼 실제 메일함에서만 보이는 문제를 서버와 같은 경로로 먼저 확인하려고 member 담당이 실제 발송으로 정했다. 계정이 없는 로컬은 서버가 정상으로 뜨고 보내기만 503이며, 다른 기능 개발에는 영향이 없다. 자동 테스트는 가짜 포트를 써 메일을 보내지 않는다)
 
 ## 작업 순서
 머지할 때마다 서버가 그대로 떠야 하므로, 서비스가 쓰는 저장·메일 구현은 그 서비스와 같은 PR이나 앞 PR에 둔다.
 
 1. 이 문서, 도메인 `EmailVerification`·`VerificationPurpose`, 인증번호 생성·HMAC `VerificationCodes`, 저장(출력 포트, `email_verification` 엔티티·리포지토리·어댑터) (PR 1)
    - 직접 확인: 단위 테스트. 로컬에서 백엔드를 띄운 뒤 psql에서 `\d email_verification`으로 테이블과 unique 제약을 본다
-2. 보내기 서비스·API, 메일 발송(`SendVerificationMailPort`, SMTP 어댑터, 로컬 Mailpit) — S1~S4 (PR 2)
-   - 직접 확인: 로컬 도커에서 브라우저 콘솔 `fetch`로 보내기를 부르고 `http://localhost:8025`에서 번호를 본다
+2. 보내기 서비스·API, 메일 발송(`SendVerificationMailPort`, Gmail SMTP 어댑터) — S1~S4 (PR 2)
+   - 직접 확인: 루트 `.env`에 Gmail 앱 비밀번호를 넣고 로컬 도커에서 브라우저 콘솔 `fetch`로 보내기를 부른 뒤, 내 메일함에서 번호를 본다
 3. 확인 서비스·API — S5~S7 (PR 3)
    - 직접 확인: 2에서 받은 번호로 확인을 불러 토큰을 받는다. 틀린 번호 5번 뒤에는 맞는 번호도 400인지 본다
 4. 가입에 인증 요구, 다른 도메인 테스트의 가입 도우미 교체 — S8~S11 (PR 4, 팀 테스트가 끝난 뒤)
    - 직접 확인: 토큰 없이 가입하면 400, 토큰을 넣으면 201. psql로 `used_at`을 본다
 5. 가입 화면 — S12 (PR 5)
-   - 직접 확인: 로컬 도커에서 가입 → Mailpit에서 번호 확인 → 입력 → 가입. 개발 서버에서는 실제 메일함으로 한 번 더 한다
+   - 직접 확인: 로컬 도커에서 가입 → 메일함에서 번호 확인 → 입력 → 가입. 개발 서버에서 한 번 더 한다
 
 ## 범위 밖
 - 비밀번호 재설정·설정(#280, 같은 테이블과 포트를 쓴다), 소셜 가입 인증, 이메일 변경, 기존 회원 일괄 인증
@@ -123,5 +127,5 @@
 - 만료된 줄 정리 작업. 줄은 이메일·용도마다 하나라 쌓이지 않는다
 
 ## 가정
-- 숫자(번호 10분, 토큰 30분, 5회, 60초)는 초안이다. 코드에서는 설정값으로 두지 않고 상수로 둔다
+- 숫자(번호 5분, 토큰 30분, 5회, 60초)는 초안이다. 코드에서는 설정값으로 두지 않고 상수로 둔다
 - 인증번호의 HMAC 키는 JWT_SECRET에서 다른 용도 문자열(`"pawmento-email-verification"`)로 파생한다

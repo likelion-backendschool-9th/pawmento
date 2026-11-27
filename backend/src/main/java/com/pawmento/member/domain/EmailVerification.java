@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 public class EmailVerification {
 
-    public static final Duration CODE_VALID_FOR = Duration.ofMinutes(10);
+    public static final Duration CODE_VALID_FOR = Duration.ofMinutes(5);
     public static final Duration RESEND_AFTER = Duration.ofSeconds(60);
 
     private Long id;
