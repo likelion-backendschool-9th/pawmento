@@ -1,7 +1,9 @@
 package com.pawmento.postcard.adapter.out.persistence;
 
+import com.pawmento.postcard.application.port.out.StoredPostcardFiles;
 import com.pawmento.postcard.domain.PostcardStatus;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.domain.Limit;
@@ -37,15 +39,10 @@ interface PostcardJpaRepository extends JpaRepository<PostcardJpaEntity, Long> {
       @Param("completed") PostcardStatus completed,
       @Param("processing") PostcardStatus processing);
 
-  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query(
-      "update PostcardJpaEntity p set p.status = :failed, p.errorMessage = :message"
-          + " where p.id = :id and p.status = :processing")
-  int fail(
-      @Param("id") Long id,
-      @Param("message") String message,
-      @Param("failed") PostcardStatus failed,
-      @Param("processing") PostcardStatus processing);
+      "select new com.pawmento.postcard.application.port.out.StoredPostcardFiles("
+          + "p.id, p.status, p.imageKey, p.sourcePhotoKey) from PostcardJpaEntity p where p.id in :ids")
+  List<StoredPostcardFiles> findFiles(@Param("ids") Collection<Long> ids);
 
   @Query(
       "select p.id from PostcardJpaEntity p where p.status = :processing"

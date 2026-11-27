@@ -6,6 +6,7 @@ import com.pawmento.postcard.domain.Postcard;
 import com.pawmento.postcard.domain.PostcardStatus;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -59,8 +60,8 @@ public class PostcardPersistenceAdapter
   }
 
   @Override
-  public List<Postcard> findAllById(Collection<Long> postcardIds) {
-    return postcards.findAllById(postcardIds).stream().map(PostcardJpaEntity::toDomain).toList();
+  public List<StoredPostcardFiles> findFiles(Collection<Long> postcardIds) {
+    return postcards.findFiles(postcardIds);
   }
 
   @Override
@@ -79,7 +80,7 @@ public class PostcardPersistenceAdapter
 
   // SKIP LOCKED로 서버가 늘어도 같은 엽서를 두 번 선점하지 않는다.
   @Override
-  public Optional<Postcard> claimNext(Instant now) {
+  public Optional<Long> claimNext(Instant now) {
     var ids =
         jdbc.queryForList(
             "UPDATE postcards SET processing_started_at = ? WHERE id = ("
@@ -88,7 +89,7 @@ public class PostcardPersistenceAdapter
                 + " AND processing_started_at IS NULL RETURNING id",
             Long.class,
             Timestamp.from(now));
-    return ids.stream().findFirst().flatMap(this::findById);
+    return ids.stream().findFirst();
   }
 
   @Override
@@ -103,10 +104,21 @@ public class PostcardPersistenceAdapter
         == 1;
   }
 
+  // 환불에 쓸 값을 같은 갱신에서 받아, 저장된 값이 깨진 행도 복원하지 않고 실패로 돌린다.
   @Override
-  public boolean fail(Long postcardId, String message) {
-    return postcards.fail(postcardId, message, PostcardStatus.FAILED, PostcardStatus.PROCESSING)
-        == 1;
+  public Optional<PostcardCharge> fail(Long postcardId, String message) {
+    return jdbc
+        .query(
+            "UPDATE postcards SET status = 'FAILED', error_message = ?"
+                + " WHERE id = ? AND status = 'PROCESSING'"
+                + " RETURNING owner_member_id, requested_on",
+            (rs, i) ->
+                new PostcardCharge(
+                    rs.getLong("owner_member_id"), rs.getObject("requested_on", LocalDate.class)),
+            message,
+            postcardId)
+        .stream()
+        .findFirst();
   }
 
   @Override

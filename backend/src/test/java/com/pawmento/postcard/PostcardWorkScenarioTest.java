@@ -173,7 +173,7 @@ class PostcardWorkScenarioTest extends PostcardScenarioSupport {
     doAnswer(
             i -> {
               // 호출이 길어지는 사이 다른 작업이 만료 처리를 끝냈다.
-              transactions.fail(postcards.findById(id).orElseThrow());
+              transactions.fail(id);
               return new GeneratedPostcardImage(PNG, "image/png");
             })
         .when(generator)
@@ -236,5 +236,60 @@ class PostcardWorkScenarioTest extends PostcardScenarioSupport {
     assertThat(sent.get(1).note()).isEqualTo(note);
     assertThat(sent).extracting(PostcardImageRequest::breed).containsOnly("말티즈");
     assertThat(sent).extracting(PostcardImageRequest::species).containsOnly("DOG");
+  }
+
+  // 저장된 값이 도메인 규칙에 맞지 않게 만든다. 만드는 중인데 완성 이미지 값이 있으면 복원 때 실패한다.
+  void breakRow(long postcard) {
+    jdbc.update(
+        "update postcards set image_key=?, image_content_type='image/png', completed_at=now()"
+            + " where id=?",
+        postcard + ".png",
+        postcard);
+    assertThatThrownBy(() -> postcards.findById(postcard))
+        .isInstanceOf(com.pawmento.postcard.domain.exception.InvalidPostcardException.class);
+  }
+
+  @Test
+  @DisplayName("#165-S1 복원할 수 없는 엽서는 FAILED로 돌려 횟수를 돌려주고, 그 뒤의 엽서를 계속 만든다")
+  void unreadableClaimDoesNotBlock(CapturedOutput output) throws Exception {
+    long a = member(), pet = pet(a, "GARDEN");
+    long broken = postcard(a, pet, diarySource(diary(a, pet, "깨진 엽서")));
+    long next = postcard(a, pet, diarySource(diary(a, pet, "다음 엽서")));
+    breakRow(broken);
+    long totalBefore = total();
+    returnsPng();
+
+    drain();
+
+    assertThat(stateOf(broken)).isEqualTo("FAILED");
+    assertThat(stateOf(next)).isEqualTo("COMPLETED");
+    assertThat(generated()).extracting(PostcardImageRequest::content).containsExactly("다음 엽서");
+    assertThat(used(a)).isEqualTo(1);
+    assertThat(total()).isEqualTo(totalBefore);
+    assertThat(output.getAll()).contains("Postcard " + broken + " could not be restored");
+  }
+
+  @Test
+  @DisplayName("#165-S2 만료 대상에 복원할 수 없는 엽서가 있어도 모두 FAILED로 돌리고 한 번씩만 환불한다")
+  void unreadableExpiryDoesNotBlock() throws Exception {
+    long a = member(), pet = pet(a, "GARDEN");
+    long broken = postcard(a, pet, diarySource(diary(a, pet, "깨진 엽서")));
+    long stale = postcard(a, pet, diarySource(diary(a, pet, "오래된 엽서")));
+    // 두 엽서 모두 외부 호출 중 서버가 꺼져 시작 시각만 남았다.
+    jdbc.update(
+        "update postcards set processing_started_at=? where id in (?,?)",
+        java.sql.Timestamp.from(NOW),
+        broken,
+        stale);
+    breakRow(broken);
+    clock.set(NOW.plus(java.time.Duration.ofMinutes(11)));
+
+    assertThat(worker.processNext()).isFalse();
+    assertThat(worker.processNext()).isFalse();
+
+    assertThat(stateOf(broken)).isEqualTo("FAILED");
+    assertThat(stateOf(stale)).isEqualTo("FAILED");
+    assertThat(used(a)).isZero();
+    assertThat(generated()).isEmpty();
   }
 }

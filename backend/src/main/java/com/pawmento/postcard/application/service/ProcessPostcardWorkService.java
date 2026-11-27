@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 public class ProcessPostcardWorkService implements ProcessPostcardWorkUseCase {
   private final PostcardWorkTransactions tx;
   private final PostcardWorkPort work;
-  private final LoadPostcardPort load;
   private final GeneratePostcardImagePort generator;
   private final StorePostcardFilePort files;
   private final Clock clock;
@@ -26,16 +25,16 @@ public class ProcessPostcardWorkService implements ProcessPostcardWorkUseCase {
     expire();
     var claimed = tx.claim(clock.instant());
     if (claimed.isEmpty()) return false;
-    process(claimed.get());
+    // 복원하지 못해 실패로 돌린 엽서는 건너뛰고, 다음 실행이 그 뒤의 엽서를 고른다.
+    if (claimed.get().postcard() != null) process(claimed.get().postcard());
     return true;
   }
 
+  // 복원하지 않고 ID로 실패 처리해, 저장된 값이 깨진 엽서가 있어도 다른 만료를 막지 않는다.
   private void expire() {
     var cutoff = clock.instant().minus(Postcard.PROCESSING_EXPIRY);
     for (Long id : work.startedBefore(cutoff))
-      load.findById(id).ifPresent(p -> {
-        if (tx.fail(p)) log.warn("Postcard {} expired while processing", id);
-      });
+      if (tx.fail(id)) log.warn("Postcard {} expired while processing", id);
   }
 
   private void process(Postcard postcard) {
@@ -76,7 +75,7 @@ public class ProcessPostcardWorkService implements ProcessPostcardWorkUseCase {
   }
 
   private void finishFailed(Postcard postcard) {
-    tx.fail(postcard);
+    tx.fail(postcard.getId());
     deleteSource(postcard);
   }
 
