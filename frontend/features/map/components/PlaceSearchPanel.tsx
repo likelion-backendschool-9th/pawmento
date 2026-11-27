@@ -5,6 +5,7 @@ import { Icon } from "@/components/Icon";
 import type { MapPoint } from "@/features/map/types/MapBounds";
 import type { Place } from "@/features/map/types/Place";
 import { usePlaceSearch } from "../hooks/usePlaceSearch";
+import { LocateGlyph } from "./MyLocationArt";
 import { useRecentSearches } from "../hooks/useRecentSearches";
 import { distanceLabel } from "../utils/placeDistance";
 import { open24hLabel } from "../utils/placeCard";
@@ -30,11 +31,14 @@ export function PlaceSearchPanel({
   center,
   initialText = "",
   onSelect,
+  onNearby,
   onClose,
 }: {
   center: MapPoint | null;
   initialText?: string;
   onSelect: (place: Place, text: string) => void;
+  // 검색어 없이 "내 위치 주변 보기"를 고른다(#226-S9). 검색 화면을 닫고 내 위치 동작을 시작하는 일은 부모가 한다
+  onNearby: () => void;
   onClose: () => void;
 }) {
   const { state, setInput, retry } = usePlaceSearch();
@@ -176,6 +180,15 @@ export function PlaceSearchPanel({
         <p className="visually-hidden" role="status">
           {announcement}
         </p>
+
+        {(view === "recent" || view === "guide") && (
+          <button type="button" className={styles.nearby} onClick={onNearby}>
+            <span className={styles.nearbyIcon} aria-hidden="true">
+              <LocateGlyph located={false} />
+            </span>
+            <span>내 위치 주변 보기</span>
+          </button>
+        )}
 
         {view === "recent" && (
           <section className={styles.recent} aria-label="최근 검색어">

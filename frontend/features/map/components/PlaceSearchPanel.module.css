@@ -131,6 +131,31 @@
   padding: 6px 0 calc(16px + env(safe-area-inset-bottom));
 }
 
+.nearby {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: none;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.nearby:active {
+  background: var(--surface-subtle);
+}
+.nearbyIcon {
+  display: inline-flex;
+  flex: none;
+  color: var(--brand-primary);
+}
 .recent header {
   display: flex;
   align-items: center;

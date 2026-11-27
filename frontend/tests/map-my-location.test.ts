@@ -17,7 +17,6 @@ import {
   locateLabel,
 } from "../features/map/utils/myLocationText.ts";
 import { nextTabIndex } from "../features/map/utils/tabKeys.ts";
-import { COMPACT_STAGE_HEIGHT, isCompactStage } from "../features/map/utils/placeLayout.ts";
 import { fitMargin, STATIC_SPAN, staticSpanScale } from "../features/map/utils/placeCanvas.ts";
 import { EARTH_RADIUS_METERS, toDegrees, toRadians } from "../features/map/utils/geo.ts";
 
@@ -251,22 +250,6 @@ test("#226-S10 권한 안내는 앱이 위치를 저장하지 않는다는 말�
   assert.ok(LOCATION_INTRO.note.includes("서버로 전송"));
   assert.ok(LOCATION_INTRO.note.includes("지도 범위"));
   assert.ok(LOCATION_INTRO.note.includes("접속 기록"));
-});
-
-test("#226-S2 지도 안내의 모양은 창의 높이가 아니라 지도의 실제 높이로 정하고, 경계의 양쪽에서 내 위치 점이 가려지지 않는 기준이다", () => {
-  // 지도 높이를 모르면(0) 큰 카드로 둔다
-  assert.equal(isCompactStage(0), false);
-  // 경계: 620px 이하는 한 줄 카드, 넘으면 큰 카드
-  assert.equal(isCompactStage(COMPACT_STAGE_HEIGHT), true);
-  assert.equal(isCompactStage(COMPACT_STAGE_HEIGHT + 1), false);
-  assert.equal(isCompactStage(240), true);
-  assert.equal(isCompactStage(475), true);
-  assert.equal(isCompactStage(638), false);
-  // 큰 카드(높이 200px, 지도 높이의 69% 지점이 가운데)는 경계 바로 위의 지도에서도 점(한가운데, 반지름 10px) 아래 약 8px에 있어 가리지 않는다
-  const H = COMPACT_STAGE_HEIGHT + 1;
-  const cardTop = 0.69 * H - 200 / 2;
-  const dotBottom = 0.5 * H + 10;
-  assert.ok(cardTop - dotBottom > 7, `${cardTop - dotBottom}`);
 });
 
 test("#226-S2 네이버 지도로 내 위치에 맞출 때 위·아래 여백이 같아서 점이 지도의 한가운데에 놓이고, 낮은 지도에서는 여백이 줄어든다", () => {
