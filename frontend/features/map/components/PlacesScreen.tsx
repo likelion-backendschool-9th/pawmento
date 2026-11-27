@@ -24,10 +24,17 @@ import type { PlaceFocus } from "../utils/placeCanvas";
 import { keepSelectedId, searchSelectionAfterTap, withPinned } from "../utils/placeSearchSelection";
 import { PLACE_STYLE, placeMarkup } from "../utils/placeMarkup";
 import { useMyLocation } from "../hooks/useMyLocation";
-import { DEFAULT_NEARBY_RADIUS } from "../utils/nearby";
-import { isCompactStage } from "../utils/placeLayout";
+import { useNearbyList } from "../hooks/useNearbyList";
+import {
+  DEFAULT_NEARBY_RADIUS,
+  myLocationReference,
+  type NearbyRadius,
+  type NearbyReference,
+} from "../utils/nearby";
+import { areaSheetView, nearbySheetView } from "../utils/nearbyView";
 import { LocationNotice } from "./LocationNotice";
 import { MyLocationButton } from "./MyLocationButton";
+import { NearbySheet } from "./NearbySheet";
 import { NaverPlaceCanvas } from "./NaverPlaceCanvas";
 import { StaticPlaceCanvas } from "./StaticPlaceCanvas";
 import { PlaceSearchPanel } from "./PlaceSearchPanel";
@@ -74,13 +81,38 @@ export function PlacesScreen() {
   useEffect(() => {
     pinnedId.current = pinned?.id ?? null;
   });
-  // 내 위치를 읽으면 지도를 그 위치로 옮기고(500m 반경이 보이게) 이전 선택과 검색어를 푼다(#226-S2)
+  // 가까운 순 목록(#226-S5~S9). 기준은 가장 최근에 정한 지점이다(지금은 내 위치). 기준이 없으면 시트는 접힌 채 지도 영역의 장소를 거리 없이 보인다.
+  // 시트를 접었는지 폈는지는 사용자가 정하기 전(null)에는 기준이 있으면 펼친 것으로 본다
+  const [reference, setReference] = useState<NearbyReference | null>(null);
+  const [radius, setRadius] = useState<NearbyRadius>(DEFAULT_NEARBY_RADIUS);
+  const [sheetOpen, setSheetOpen] = useState<boolean | null>(null);
+  // 내 위치를 읽으면 지도를 그 위치로 옮기고(500m 반경이 보이게) 이전 선택과 검색어를 풀고, 그 위치를 기준으로 목록을 펼친다(#226-S2, S9)
   const my = useMyLocation((fix) => {
     setPinned(null);
     setSearchText("");
     setSelectedId(null);
+    setReference(myLocationReference(fix.point));
+    setRadius(DEFAULT_NEARBY_RADIUS);
+    setSheetOpen(true);
     setFocus({ point: fix.point, token: Date.now(), fitRadiusMeters: DEFAULT_NEARBY_RADIUS });
   });
+  // 반경을 바꾸면 목록을 다시 조회하고 지도 확대 수준도 그 반경에 맞춘다. 지도의 마커는 반경으로 거르지 않는다(#226-S6)
+  function changeRadius(next: NearbyRadius) {
+    setRadius(next);
+    if (reference) setFocus({ point: reference.point, token: Date.now(), fitRadiusMeters: next });
+  }
+  // 목록의 장소를 누르면 지도가 그 장소로 옮겨 가고 마커가 선택되며 카드가 열린다. 목록과 기준은 그대로다(#226-S8)
+  function chooseNearby(place: Place) {
+    setPinned(place);
+    setSearchText("");
+    setSelectedId(place.id);
+    setFocus({ point: { latitude: place.latitude, longitude: place.longitude }, token: Date.now() });
+  }
+  // 검색 화면의 "내 위치 주변 보기": 검색 화면을 닫고 "내 위치" 동작(#226-S1)을 시작한다
+  function startNearby() {
+    setSearchOpen(false);
+    void my.press();
+  }
   function openSearch() {
     setSearchCenter(
       bounds
@@ -201,16 +233,6 @@ export function PlacesScreen() {
   const asOf = dataAsOfLabel(result?.dataAsOf ?? null);
   const counts = countByCategory(places);
   const cardRef = useRef<HTMLElement>(null);
-  // 지도의 실제 높이. 안내 카드의 모양을 정하는 데 쓴다
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [stageHeight, setStageHeight] = useState(0);
-  useEffect(() => {
-    const element = stageRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => setStageHeight(entry.contentRect.height));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
   // 모든 화면 크기에서 모바일 카드가 지도 아래를 덮는다.
   // 브라우저 너비 대신 실제 카드 높이를 전달해 PC에서도 마커가 가려지지 않게 한다.
   const coveredBottom = useCallback(() => cardRef.current?.offsetHeight ?? 0, []);
@@ -225,15 +247,25 @@ export function PlacesScreen() {
     me: my.state.fix,
   };
   const nothingChosen = categories.length === 0;
-  // 내 위치를 보이는 동안 가운데의 안내(오류, 종류를 모두 끔, 장소 없음)는 아래로 내려 내 위치 점을 가리지 않는다(#226-S2).
-  // 지도에 남는 높이가 낮으면 아래쪽의 작은 한 줄 카드로 줄이고, 지도 아래의 기준일 안내(.pill)는 그 카드 안에 넣는다(#172-S21)
-  const compact = my.state.fix !== null && isCompactStage(stageHeight);
-  const lowMessage = my.state.fix
-    ? `${styles.messageLow} ${compact ? styles.messageCompact : ""}`
-    : "";
-  const stageNote = result?.sample
-    ? "개발용 예시 장소예요. 실제 장소가 아니에요."
-    : asOf;
+  const nearby = useNearbyList(reference?.point ?? null, radius, categories);
+  // 시트에 보일 내용. 기준이 있으면 기준점을 가운데로 한 따로의 조회 결과를, 없으면 지도 영역의 조회 결과를 보인다(#226-S9).
+  // 지도 가운데에 따로 띄우던 안내(장소 없음, 종류를 모두 끔)는 시트 안으로 옮겼다
+  const sheetView = reference
+    ? nearbySheetView(nearby.state, reference, radius, nothingChosen)
+    : areaSheetView({
+        places,
+        loading: loading || (result === null && !error),
+        error,
+        truncated: Boolean(result?.truncated),
+        nothingChosen,
+      });
+  const sheetNote = reference
+    ? nearby.state.sample
+      ? "개발용 예시 장소예요. 실제 장소가 아니에요."
+      : dataAsOfLabel(nearby.state.dataAsOf)
+    : result?.sample
+      ? "개발용 예시 장소예요. 실제 장소가 아니에요."
+      : asOf;
 
   return (
     <div className={styles.page}>
@@ -245,7 +277,6 @@ export function PlacesScreen() {
         />
       </div>
       <div
-        ref={stageRef}
         className={mapStyles.stage}
         data-places-stage=""
         data-mode={mode}
@@ -310,14 +341,29 @@ export function PlacesScreen() {
           })}
         </div>
 
-        {/* 카드가 열려 있으면 카드가 지도 아래를 덮으므로 버튼은 숨긴다 */}
+        {/* 지도 아래쪽 묶음: 위쪽에 "내 위치" 버튼, 아래에 가까운 순 목록 시트. 카드가 열려 있으면 카드가 지도 아래를 덮으므로 함께 숨긴다 */}
         {!selected && (
-          <MyLocationButton
-            reading={my.state.status === "reading"}
-            located={my.state.fix !== null}
-            supported={my.supported}
-            onPress={() => void my.press()}
-          />
+          <div className={styles.dock}>
+            <div className={styles.dockRow}>
+              <MyLocationButton
+                reading={my.state.status === "reading"}
+                located={my.state.fix !== null}
+                supported={my.supported}
+                onPress={() => void my.press()}
+              />
+            </div>
+            <NearbySheet
+              view={sheetView}
+              radius={radius}
+              showRadius={reference !== null}
+              open={sheetOpen ?? reference !== null}
+              note={sheetNote}
+              onToggle={() => setSheetOpen(!(sheetOpen ?? reference !== null))}
+              onRadius={changeRadius}
+              onPick={chooseNearby}
+              onRetry={reference ? nearby.retry : () => setAttempt((count) => count + 1)}
+            />
+          </div>
         )}
         <LocationNotice
           status={my.state.status}
@@ -326,14 +372,15 @@ export function PlacesScreen() {
           onRetry={() => void my.press()}
         />
 
-        {result?.truncated && !error && (
+        {reference && result?.truncated && !error && (
           <p className={`${mapStyles.notice} ${styles.noticeLow}`} role="status">
             장소가 많아서 일부만 보여요. 지도를 확대해 보세요.
           </p>
         )}
 
-        {error && (
-          <div className={`${mapStyles.message} ${lowMessage}`} role="alert">
+        {/* 시트가 보일 때의 오류는 시트 안에 보인다. 카드가 열려 시트가 숨었을 때만 지도 위에 보인다 */}
+        {error && selected && (
+          <div className={mapStyles.message} role="alert">
             <strong>장소를 불러오지 못했어요</strong>
             <p>{error}</p>
             <button
@@ -344,35 +391,6 @@ export function PlacesScreen() {
               다시 불러오기
             </button>
           </div>
-        )}
-
-        {nothingChosen && !error && !pinned && (
-          <div className={`${mapStyles.message} ${lowMessage}`}>
-            <strong>보고 싶은 종류를 골라 주세요</strong>
-            <p>위쪽 칩을 눌러 병원·미용·보호센터를 켤 수 있어요.</p>
-            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
-          </div>
-        )}
-
-        {/* 검색으로 고른 장소가 지도에 그려져 있으면(조회 결과는 비어도) "장소가 없어요"를 보이지 않는다 */}
-        {!nothingChosen && result && !error && canvasPlaces.length === 0 && !loading && (
-          <div className={`${mapStyles.message} ${lowMessage}`}>
-            <span className={mapStyles.emptyArt} aria-hidden="true">
-              <span className={mapStyles.emptyCircle}>
-                <Icon name="map" size={34} />
-              </span>
-              <span className={mapStyles.emptyBadge}>
-                <Icon name="search" size={16} />
-              </span>
-            </span>
-            <strong>이 지역에는 장소가 없어요</strong>
-            <p>지도를 옮기거나 다른 종류를 켜 보세요.</p>
-            {compact && stageNote && <small className={styles.messageNote}>{stageNote}</small>}
-          </div>
-        )}
-
-        {!selected && !error && (result?.sample || asOf) && (
-          <p className={styles.pill}>{stageNote}</p>
         )}
 
         {selected && (
@@ -466,6 +484,7 @@ export function PlacesScreen() {
           center={searchCenter}
           initialText={searchText}
           onSelect={chooseResult}
+          onNearby={startNearby}
           onClose={closeSearch}
         />
       )}
