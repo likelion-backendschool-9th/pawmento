@@ -1,6 +1,9 @@
 package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -114,7 +117,7 @@ class EmailVerificationConfirmScenarioTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.verificationToken").isString())
 			.andExpect(jsonPath("$.expiresAt").exists())
-			.andExpect(jsonPath("$.expiresInSeconds").value(1800))
+			.andExpect(jsonPath("$.expiresInSeconds").value(allOf(greaterThanOrEqualTo(1790), lessThanOrEqualTo(1800))))
 			.andReturn().getResponse().getContentAsString();
 
 		String token = JsonPath.read(body, "$.verificationToken");

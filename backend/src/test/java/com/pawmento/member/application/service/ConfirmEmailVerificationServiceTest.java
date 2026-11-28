@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -164,5 +165,24 @@ class ConfirmEmailVerificationServiceTest {
 					.isInstanceOf(UnsupportedVerificationPurposeException.class);
 		}
 		verifyNoInteractions(loadPort, failurePort, confirmPort);
+	}
+
+	@Test
+	@DisplayName("#279-S12 확인 저장에 5초가 걸리면 토큰의 남은 초는 저장이 끝난 시각 기준으로 1795초다")
+	void tokenSecondsLeftCountFromAfterStore() {
+		MovingClock clock = new MovingClock(NOW);
+		ConfirmEmailVerificationService service = new ConfirmEmailVerificationService(loadPort, failurePort,
+				confirmPort, codes, clock);
+		when(loadPort.load(EMAIL, VerificationPurpose.SIGNUP)).thenReturn(Optional.of(stored("123456", 0)));
+		when(confirmPort.confirm(any())).thenAnswer(call -> {
+			// 줄 잠금을 기다리는 동안 5초가 흐른다
+			clock.advance(Duration.ofSeconds(5));
+			return true;
+		});
+
+		ConfirmEmailVerificationResult result = service.confirm(confirm(EMAIL, "123456"));
+
+		assertThat(result.expiresAt()).isEqualTo(NOW.plus(EmailVerification.TOKEN_VALID_FOR));
+		assertThat(result.expiresInSeconds()).isEqualTo(1795);
 	}
 }
