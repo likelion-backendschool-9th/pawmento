@@ -55,6 +55,10 @@ export function AuthScreen({
     target.startsWith("/") && !target.startsWith("//") && !target.includes("\\")
       ? target
       : "/home";
+  // 이메일을 바꾸거나 [다시 인증]을 누르면 인증을 처음부터 한다. 진행 중이던 요청의 응답은 버린다
+  function resetVerification() {
+    revision.current += 1; verification.reset(); setChallenge(null); setCode(""); setVerified(false); setVerificationError(""); setError("");
+  }
   async function sendCode() {
     if (pendingVerification.current || !emailRef.current?.reportValidity()) return;
     const current = revision.current;
@@ -133,10 +137,12 @@ export function AuthScreen({
             <div className={styles.emailField}>
               <label htmlFor={emailId}>이메일</label>
               <div className={styles.emailRow}>
-                <input id={emailId} ref={emailRef} name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="이메일 주소를 입력해 주세요" required value={email} onChange={(event) => {
-                  revision.current += 1; verification.reset(); setEmail(event.target.value); setChallenge(null); setCode(""); setVerified(false); setVerificationError(""); setError("");
+                <input id={emailId} ref={emailRef} name="email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} placeholder="이메일 주소를 입력해 주세요" required readOnly={signUp && emailVerified} value={email} onChange={(event) => {
+                  setEmail(event.target.value); resetVerification();
                 }} />
-                {signUp && <button type="button" className={styles.codeButton} disabled={!email.trim() || verificationBusy || emailVerified || resendRemaining > 0} onClick={() => void sendCode()}>{emailVerified ? "인증 완료" : verificationBusy ? "확인 중…" : challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>}
+                {signUp && (emailVerified
+                  ? <button type="button" className={styles.codeButton} disabled={busy} onClick={() => { resetVerification(); emailRef.current?.focus(); }}>다시 인증</button>
+                  : <button type="button" className={styles.codeButton} disabled={!email.trim() || verificationBusy || resendRemaining > 0} onClick={() => void sendCode()}>{verificationBusy ? "확인 중…" : challenge ? resendRemaining > 0 ? `${resendRemaining}초 후 재전송` : "다시 받기" : "인증 코드 받기"}</button>)}
               </div>
               {signUp && challenge && !verified && <div className={styles.verificationField}>
                 <label htmlFor={codeId}>인증 코드<span className={styles.codeTime} role="timer" aria-label="인증 코드 남은 시간">{Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, "0")}</span></label>

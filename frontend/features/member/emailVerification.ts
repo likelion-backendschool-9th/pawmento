@@ -9,6 +9,8 @@ export class ServerEmailVerification {
   private verified: { email: string; token: string; expiresAt: number } | null = null;
   private readonly api: Api;
   private readonly now: () => number;
+    // reset()마다 1씩 늘린다. 요청을 보낸 뒤 reset()됐으면 늦게 온 응답을 버린다
+  private generation = 0;
 
   constructor(api: Api, now: () => number = Date.now) {
     this.api = api;
@@ -18,7 +20,9 @@ export class ServerEmailVerification {
   // 실패하면(409 다시 받기 간격, 이미 가입된 이메일 등) 서버 문구를 그대로 던지고 앞의 상태는 그대로 둔다
   async send(email: string) {
     const normalized = normalizeEmail(email);
+    const started = this.generation;
     const sent = await this.api.send(normalized);
+    if (started !== this.generation) throw Error("인증이 초기화됐어요. 다시 요청해 주세요.");
     this.challenge = { email: normalized };
     this.verified = null;
     return sent;
@@ -27,7 +31,10 @@ export class ServerEmailVerification {
   async verify(email: string, code: string) {
     const normalized = normalizeEmail(email);
     if (this.challenge?.email !== normalized) throw Error("먼저 인증 코드를 요청해 주세요.");
+    const started = this.generation;
     const confirmed = await this.api.confirm(normalized, code.trim());
+    // 확인 응답을 기다리는 사이 이메일을 바꿔 reset()됐으면, 옛 이메일의 토큰을 다시 넣지 않는다
+    if (started !== this.generation) throw Error("인증이 초기화됐어요. 다시 요청해 주세요.");
     this.verified = { email: normalized, token: confirmed.token, expiresAt: confirmed.expiresAt };
   }
 
@@ -44,6 +51,7 @@ export class ServerEmailVerification {
 
   reset() {
     this.challenge = null;
+    this.verified = null;
     this.verified = null;
   }
 }
