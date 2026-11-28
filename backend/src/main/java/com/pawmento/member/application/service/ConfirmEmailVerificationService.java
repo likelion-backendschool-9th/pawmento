@@ -54,8 +54,10 @@ public class ConfirmEmailVerificationService implements ConfirmEmailVerification
         if (!confirmPort.confirm(confirmed)) {
             throw new InvalidVerificationCodeException();
         }
-            return new ConfirmEmailVerificationResult(token, confirmed.getTokenExpiresAt(),
-                Duration.between(now, confirmed.getTokenExpiresAt()).toSeconds());
+        // 조회·잠금 대기에 걸린 시간을 빼려고 저장이 끝난 뒤 시계를 다시 읽는다
+        Instant answered = Instant.now(clock);
+        return new ConfirmEmailVerificationResult(token, confirmed.getTokenExpiresAt(),
+                Math.max(0, Duration.between(answered, confirmed.getTokenExpiresAt()).toSeconds()));
     }
 
     private static boolean matches(String a, String b) {

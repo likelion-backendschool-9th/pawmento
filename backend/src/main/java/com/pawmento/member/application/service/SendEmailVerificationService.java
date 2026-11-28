@@ -77,8 +77,14 @@ public class SendEmailVerificationService implements SendEmailVerificationUseCas
                 deletePort.delete(sent.getId(), sent.getSendId());
                 throw e;
             }
-                return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt(),
-                    Duration.between(now, sent.getCodeExpiresAt()).toSeconds(),
-                    Duration.between(now, sent.resendableAt()).toSeconds());
-        }
+                 // 메일 서버를 기다린 시간을 빼려고 응답 직전에 시계를 다시 읽는다
+        Instant answered = Instant.now(clock);
+        return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt(),
+                secondsLeft(answered, sent.getCodeExpiresAt()),
+                secondsLeft(answered, sent.resendableAt()));
     }
+
+    private static long secondsLeft(Instant from, Instant until) {
+        return Math.max(0, Duration.between(from, until).toSeconds());
+    }
+}
