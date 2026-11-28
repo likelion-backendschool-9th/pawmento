@@ -50,8 +50,8 @@ export class ServerEmailVerification {
   }
 
   reset() {
+    this.generation += 1;
     this.challenge = null;
-    this.verified = null;
     this.verified = null;
   }
 }
