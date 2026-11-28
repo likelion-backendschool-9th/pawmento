@@ -66,6 +66,7 @@ class ConfirmEmailVerificationServiceTest {
 		assertThat(confirmed.getValue().getVerifiedAt()).isEqualTo(NOW);
 		assertThat(confirmed.getValue().getSendId()).isEqualTo("send-1");
 		assertThat(result.expiresAt()).isEqualTo(NOW.plus(EmailVerification.TOKEN_VALID_FOR));
+		assertThat(result.expiresInSeconds()).isEqualTo(EmailVerification.TOKEN_VALID_FOR.toSeconds());
 		verifyNoInteractions(failurePort);
 	}
 

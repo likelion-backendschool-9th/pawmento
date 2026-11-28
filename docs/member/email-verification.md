@@ -17,7 +17,7 @@
 #279-S1 보내기 [테스트]
 - Given 가입되지 않은 이메일 `a@test.com`
 - When  `POST /api/v1/auth/email-verifications`에 `{"email": "A@test.com", "purpose": "SIGNUP"}`
-- Then  202와 `{"email": "a@test.com", "expiresAt": "…", "retryAfter": "…"}`를 받는다
+- Then  202와 `{"email": "a@test.com", "expiresAt": "…", "retryAfter": "…", "expiresInSeconds": 300, "retryAfterSeconds": 60}`를 받는다. 남은 초는 화면이 기기 시계와 상관없이 카운트다운하도록 준다 (고침 #279: 기기 시계 차이)
 - Then  `a@test.com`으로 6자리 숫자가 담긴 메일이 한 통 간다. 응답·로그에는 인증번호가 없다
 
 #279-S2 이미 가입된 이메일 [테스트]
@@ -41,7 +41,7 @@
 
 #279-S5 확인 [테스트]
 - When  `POST /api/v1/auth/email-verifications/confirm`에 `{"email": "a@test.com", "purpose": "SIGNUP", "code": "123456"}`
-- Then  200과 `{"verificationToken": "…", "expiresAt": "…"}`를 받는다 (토큰 유효 30분)
+- Then  200과 `{"verificationToken": "…", "expiresAt": "…", "expiresInSeconds": 1800}`를 받는다 (토큰 유효 30분)
 - Then  틀린 번호, 만료된 번호(5분, 고침 #279: 6자리를 맞혀 볼 수 있는 시간을 줄이려고 10분에서 줄임), 보낸 적 없는 이메일은 모두 400 `VALIDATION` "인증번호가 맞지 않거나 만료됐어요."로 같다
 
 #279-S6 시도 횟수 [테스트]
@@ -95,7 +95,7 @@
 | `verified_at`, `used_at` | 확인한 시각, 가입에 쓴 시각 |
 
 - 확인·사용은 모두 한 문장의 조건부 UPDATE이고 바뀐 줄 수로 성공을 판단한다(가족 초대 코드의 `deleteUsable`과 같은 방식)
-- 확인 저장의 만료 조건은 서비스가 읽은 시각이 아니라 그 문장이 줄을 바꾸는 순간의 DB 시각(`clock_timestamp()`)으로 본다. `now()`는 트랜잭션 시작 시각이라 줄 잠금 대기가 빠지므로 쓰지 않는다. 이 한 문장만 native SQL이다
+- 확인 저장은 한 트랜잭션에서 먼저 줄을 잠그고(`SELECT … FOR UPDATE`), 잠금을 얻은 뒤 저장 문장이 그 순간의 DB 시각(`clock_timestamp()`)으로 만료를 본다. `now()`는 트랜잭션 시작 시각이라 대기가 빠지고, UPDATE 하나로만 하면 조건을 먼저 본 뒤 잠금을 기다리다 상대가 줄을 바꾸지 않고 놓을 때 조건을 다시 보지 않는다 (고침 #279: 잠금 대기 중 만료). 저장 문장만 native SQL이다
 - 틀린 횟수 올리기는 `REQUIRES_NEW`로 늘 따로 커밋한다. 바깥에 트랜잭션이 있어 400 예외로 롤백돼도 횟수는 남는다
 - 토큰 사용은 가입의 한 번 시도(`signUpOnce`) 트랜잭션 안에서 한다. 시도가 롤백되면 사용도 롤백된다
 - 메일은 줄을 커밋한 뒤 트랜잭션 밖에서 보낸다. 메일 서버를 기다리는 동안 DB 연결을 잡지 않는다

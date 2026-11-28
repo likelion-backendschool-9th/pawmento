@@ -14,6 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -409,5 +411,93 @@ class EmailVerificationPersistenceAdapterTest {
 		});
 
 		assertThat(failedAttempts()).isEqualTo(1);
+	}
+
+	private int waitingForLock() {
+		return jdbcTemplate.queryForObject("""
+				select count(*) from pg_stat_activity
+				where datname = current_database() and wait_event_type = 'Lock' and query ilike '%email_verification%'
+				""", Integer.class);
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인이 줄 잠금을 기다리는 사이 만료되면, 상대가 줄을 바꾸지 않고 놓아도 저장되지 않는다")
+	void confirmChecksExpiryAfterWaitingForLock() throws Exception {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		// 서비스는 만료 전에 읽고 판단했다
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '2 seconds'"
+				+ " where email = ?", email);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			// 다른 트랜잭션이 줄을 잠그기만 하고, 나중에 바꾸지 않은 채 롤백한다
+			Future<?> holder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+				jdbcTemplate.queryForList("select id from email_verification where email = ? for update", email);
+				locked.countDown();
+				try {
+					release.await(30, TimeUnit.SECONDS);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+				status.setRollbackOnly();
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<Boolean> confirming = pool.submit(() -> adapter.confirm(confirmed));
+			// 확인이 잠금 대기에 들어간 것을 본 뒤, 만료 시각(2초)이 지날 때까지 잠금을 들고 있는다
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> waitingForLock() > 0);
+			Thread.sleep(2_500);
+			release.countDown();
+			holder.get(10, TimeUnit.SECONDS);
+
+			assertThat(confirming.get(10, TimeUnit.SECONDS)).isFalse();
+		}
+		finally {
+			release.countDown();
+			pool.shutdownNow();
+		}
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getVerifiedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 잠금을 기다린 뒤에도 만료 전이면 확인이 저장된다")
+	void confirmSucceedsAfterWaitingForLockBeforeExpiry() throws Exception {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '1 minute'"
+				+ " where email = ?", email);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			Future<?> holder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+				jdbcTemplate.queryForList("select id from email_verification where email = ? for update", email);
+				locked.countDown();
+				try {
+					release.await(30, TimeUnit.SECONDS);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+				status.setRollbackOnly();
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<Boolean> confirming = pool.submit(() -> adapter.confirm(confirmed));
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> waitingForLock() > 0);
+			release.countDown();
+			holder.get(10, TimeUnit.SECONDS);
+
+			assertThat(confirming.get(10, TimeUnit.SECONDS)).isTrue();
+		}
+		finally {
+			release.countDown();
+			pool.shutdownNow();
+		}
 	}
 }

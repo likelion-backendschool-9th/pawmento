@@ -3,6 +3,7 @@ package com.pawmento.member.application.service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 
 import org.springframework.stereotype.Service;
@@ -53,7 +54,8 @@ public class ConfirmEmailVerificationService implements ConfirmEmailVerification
         if (!confirmPort.confirm(confirmed)) {
             throw new InvalidVerificationCodeException();
         }
-        return new ConfirmEmailVerificationResult(token, confirmed.getTokenExpiresAt());
+            return new ConfirmEmailVerificationResult(token, confirmed.getTokenExpiresAt(),
+                Duration.between(now, confirmed.getTokenExpiresAt()).toSeconds());
     }
 
     private static boolean matches(String a, String b) {

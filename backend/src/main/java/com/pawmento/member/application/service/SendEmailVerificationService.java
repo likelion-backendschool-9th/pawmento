@@ -1,6 +1,7 @@
 package com.pawmento.member.application.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -76,6 +77,8 @@ public class SendEmailVerificationService implements SendEmailVerificationUseCas
                 deletePort.delete(sent.getId(), sent.getSendId());
                 throw e;
             }
-            return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt());
+                return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt(),
+                    Duration.between(now, sent.getCodeExpiresAt()).toSeconds(),
+                    Duration.between(now, sent.resendableAt()).toSeconds());
         }
     }

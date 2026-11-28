@@ -115,6 +115,8 @@ class EmailVerificationSendScenarioTest {
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.expiresAt").exists())
 			.andExpect(jsonPath("$.retryAfter").exists())
+			.andExpect(jsonPath("$.expiresInSeconds").value(300))
+			.andExpect(jsonPath("$.retryAfterSeconds").value(60))
 			.andExpect(jsonPath("$.code").doesNotExist());
 
 		List<SentMail> mails = mailbox.to(email);

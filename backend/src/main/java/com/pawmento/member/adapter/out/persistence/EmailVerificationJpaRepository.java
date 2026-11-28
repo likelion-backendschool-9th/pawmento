@@ -7,11 +7,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 import com.pawmento.member.domain.VerificationPurpose;
 
 interface EmailVerificationJpaRepository extends JpaRepository<EmailVerificationJpaEntity, Long> {
 	Optional<EmailVerificationJpaEntity> findByEmailAndPurpose(String email, VerificationPurpose purpose);
+
+    // 확인 저장 전에 이 줄을 잠근다. 다른 요청이 잡고 있으면 여기서 기다리고,
+	// 잠금을 얻은 뒤에 확인 문장이 만료를 봐야 기다린 시간이 반영된다 (#279-S5)
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select v from EmailVerificationJpaEntity v where v.id = :id")
+	Optional<EmailVerificationJpaEntity> findForConfirm(@Param("id") Long id);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""

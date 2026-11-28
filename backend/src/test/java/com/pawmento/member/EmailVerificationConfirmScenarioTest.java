@@ -114,6 +114,7 @@ class EmailVerificationConfirmScenarioTest {
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.verificationToken").isString())
 			.andExpect(jsonPath("$.expiresAt").exists())
+			.andExpect(jsonPath("$.expiresInSeconds").value(1800))
 			.andReturn().getResponse().getContentAsString();
 
 		String token = JsonPath.read(body, "$.verificationToken");

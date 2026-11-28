@@ -69,9 +69,14 @@ class EmailVerificationPersistenceAdapter implements LoadEmailVerificationPort, 
         return repository.recordFailure(id, sendId, EmailVerification.MAX_FAILED_ATTEMPTS) == 1;
     }
 
+    // 먼저 줄을 잠그고, 잠금을 얻은 뒤에 확인 문장이 DB 시각으로 만료를 본다.
+    // UPDATE 하나로만 하면 조건을 먼저 본 뒤 잠금을 기다리고, 상대가 줄을 바꾸지 않고 놓으면 조건을 다시 보지 않는다 (#279-S5)
     @Override
     @Transactional
     public boolean confirm(EmailVerification confirmed) {
+        if (repository.findForConfirm(confirmed.getId()).isEmpty()) {
+            return false;
+        }
         return repository.confirm(confirmed.getId(), confirmed.getSendId(), confirmed.getVerifiedAt(),
                 confirmed.getTokenHash(), confirmed.getTokenExpiresAt(), EmailVerification.MAX_FAILED_ATTEMPTS) == 1;
     }

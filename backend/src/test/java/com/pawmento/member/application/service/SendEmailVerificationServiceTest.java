@@ -90,6 +90,9 @@ class SendEmailVerificationServiceTest {
 		assertThat(result.email()).isEqualTo(EMAIL);
 		assertThat(result.expiresAt()).isEqualTo(NOW.plus(EmailVerification.CODE_VALID_FOR));
 		assertThat(result.retryAfter()).isEqualTo(NOW.plus(EmailVerification.RESEND_AFTER));
+		// 화면이 기기 시계와 상관없이 카운트다운하도록 남은 초도 준다 (#279-S12)
+		assertThat(result.expiresInSeconds()).isEqualTo(EmailVerification.CODE_VALID_FOR.toSeconds());
+		assertThat(result.retryAfterSeconds()).isEqualTo(EmailVerification.RESEND_AFTER.toSeconds());
 	}
 
 	@Test
@@ -147,6 +150,8 @@ class SendEmailVerificationServiceTest {
 		verify(mailPort).send(EMAIL, VerificationPurpose.SIGNUP, "654321", NOW.plus(EmailVerification.CODE_VALID_FOR));
 		verify(savePort, never()).save(any());
 		assertThat(result.retryAfter()).isEqualTo(NOW.plus(EmailVerification.RESEND_AFTER));
+		assertThat(result.expiresInSeconds()).isEqualTo(300);
+		assertThat(result.retryAfterSeconds()).isEqualTo(60);
 	}
 
 	@Test
