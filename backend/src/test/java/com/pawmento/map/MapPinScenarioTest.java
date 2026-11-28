@@ -26,6 +26,7 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.map.application.port.out.DiaryLocationStorePort;
 import com.pawmento.map.domain.DiaryLocationValue;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 import tools.jackson.databind.JsonNode;
@@ -52,6 +53,9 @@ class MapPinScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private DiaryLocationStorePort diaryLocationStore;
@@ -386,7 +390,8 @@ class MapPinScenarioTest {
 
 	private Guardian signUpAndLogin() throws Exception {
 		String email = "guardian-" + UUID.randomUUID() + "@example.com";
-		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\"}".formatted(email, PASSWORD);
+		String body = "{\"email\":\"%s\",\"password\":\"%s\",\"nickname\":\"보호자\",\"verificationToken\":\"%s\"}"
+			.formatted(email, PASSWORD, signUpTokens.issue(email));
 		MvcResult signUp = mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON).content(body))
 			.andExpect(status().isCreated())

@@ -46,8 +46,8 @@ import com.pawmento.map.application.port.out.PlaceSyncLockPort;
 import com.pawmento.map.domain.LocalDataRecord;
 import com.pawmento.map.domain.PlaceCategory;
 import com.pawmento.map.domain.ShelterRecord;
-import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
+import com.pawmento.support.SignUpTokens;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -68,6 +68,9 @@ class PlaceSyncAdminScenarioTest {
 
 	@Autowired
 	private MockMvc mvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private JdbcTemplate jdbc;
@@ -99,8 +102,8 @@ class PlaceSyncAdminScenarioTest {
 		reset(loader, shelterLoader);
 		jdbc.update("delete from places");
 		String prefix = "sync-" + UUID.randomUUID();
-		admin = signUp.signUp(new SignUpMemberCommand(prefix + "-a@example.com", "password123", "관리자")).id();
-		user = signUp.signUp(new SignUpMemberCommand(prefix + "-u@example.com", "password123", "회원")).id();
+		admin = signUp.signUp(signUpTokens.command(prefix + "-a@example.com", "password123", "관리자")).id();
+		user = signUp.signUp(signUpTokens.command(prefix + "-u@example.com", "password123", "회원")).id();
 		jdbc.update("update member set role='ADMIN' where id=?", admin);
 		// 영업/정상 1곳, 폐업 1곳, 좌표 없음 1곳
 		when(loader.load(any())).thenReturn(new LocalDataSnapshot(3, 3,

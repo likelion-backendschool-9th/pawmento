@@ -14,6 +14,7 @@ import com.pawmento.question.application.exception.QuestionAdminDeniedException;
 import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.application.port.out.SaveQuestionPort;
 import com.pawmento.question.domain.exception.InvalidQuestionException;
+import com.pawmento.support.SignUpTokens;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -41,6 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class QuestionAdminCreateScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase signup;
   @Autowired LoginMemberUseCase login;
@@ -63,8 +65,8 @@ class QuestionAdminCreateScenarioTest {
   @BeforeEach
   void setup() {
     prefix = "create-test-" + UUID.randomUUID();
-    admin = signup.signUp(new SignUpMemberCommand(prefix + "@example.com", "password123", "관리자")).id();
-    user = signup.signUp(new SignUpMemberCommand(prefix + "-user@example.com", "password123", "회원")).id();
+    admin = signup.signUp(signUpTokens.command(prefix + "@example.com", "password123", "관리자")).id();
+    user = signup.signUp(signUpTokens.command(prefix + "-user@example.com", "password123", "회원")).id();
     jdbc.update("update member set role='ADMIN' where id=?", admin);
   }
 

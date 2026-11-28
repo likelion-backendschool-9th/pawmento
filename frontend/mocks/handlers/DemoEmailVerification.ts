@@ -29,5 +29,8 @@ export class DemoEmailVerification {
     return Boolean(this.challenge?.verified && this.challenge.email === normalizeEmail(email) && this.now() < this.challenge.expiresAt);
   }
 
+  // 체험은 서버 가입을 하지 않아 가입 토큰이 없다
+  token(): string | null { return null; }
+
   reset() { this.challenge = null; }
 }

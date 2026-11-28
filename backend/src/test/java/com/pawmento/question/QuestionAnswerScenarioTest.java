@@ -15,6 +15,7 @@ import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.exception.QuestionPersistenceUnavailableException;
 import com.pawmento.question.application.port.out.*;
 import com.pawmento.question.domain.QuestionMode;
+import com.pawmento.support.SignUpTokens;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -40,6 +41,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 class QuestionAnswerScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired CreatePetUseCase pets;
   @Autowired ChangePetModeUseCase modes;
@@ -64,7 +66,7 @@ class QuestionAnswerScenarioTest {
     member =
         members
             .signUp(
-                new SignUpMemberCommand(
+                signUpTokens.command(
                     UUID.randomUUID() + "@test.example", "Password123!", "보리 가족"))
             .id();
     pet = pets.create(new CreatePetCommand(member, "보리", "DOG", null, null)).petId();
@@ -432,7 +434,7 @@ class QuestionAnswerScenarioTest {
     long other =
         members
             .signUp(
-                new SignUpMemberCommand(
+                signUpTokens.command(
                     UUID.randomUUID() + "@test.example", "Password123!", "다른 작성자"))
             .id();
     // Persisted history fixture; this does not grant the other member family access.

@@ -13,6 +13,7 @@ import com.pawmento.question.application.exception.*;
 import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.application.port.out.UpdateQuestionPort;
 import com.pawmento.question.domain.exception.InvalidQuestionException;
+import com.pawmento.support.SignUpTokens;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
@@ -39,6 +40,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class QuestionAdminUpdateScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase signup;
   @Autowired GetMemberUseCase members;
@@ -55,8 +57,8 @@ class QuestionAdminUpdateScenarioTest {
   @BeforeEach
   void setup() {
     prefix = "update-test-" + UUID.randomUUID();
-    admin = signup.signUp(new SignUpMemberCommand(prefix + "@example.com", "password123", "관리자")).id();
-    user = signup.signUp(new SignUpMemberCommand(prefix + "-user@example.com", "password123", "회원")).id();
+    admin = signup.signUp(signUpTokens.command(prefix + "@example.com", "password123", "관리자")).id();
+    user = signup.signUp(signUpTokens.command(prefix + "-user@example.com", "password123", "회원")).id();
     jdbc.update("update member set role='ADMIN' where id=?", admin);
     id = create.create(new CreateAdminQuestionCommand(admin, "ACTIVE", prefix)).questionId();
   }

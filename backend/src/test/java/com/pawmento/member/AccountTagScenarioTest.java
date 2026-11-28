@@ -49,6 +49,7 @@ import com.pawmento.member.application.port.out.SaveMemberPort;
 import com.pawmento.member.application.service.MemberTagGenerator;
 import com.pawmento.member.domain.Member;
 import com.pawmento.member.domain.exception.MemberNicknameLimitException;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -65,6 +66,9 @@ class AccountTagScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private ScriptedTags tags;
@@ -213,8 +217,8 @@ class AccountTagScenarioTest {
 		MvcResult result = mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content("""
-						{"email":"%s","password":"%s","nickname":"%s"}
-						""".formatted(email, PASSWORD, nickname)))
+						{"email":"%s","password":"%s","nickname":"%s","verificationToken":"%s"}
+						""".formatted(email, PASSWORD, nickname, signUpTokens.issue(email))))
 			.andExpect(status().isCreated())
 			.andExpect(jsonPath("$.tag").value(matchesPattern(FOUR_DIGITS)))
 			.andReturn();

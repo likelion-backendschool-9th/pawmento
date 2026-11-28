@@ -20,7 +20,8 @@ final class PublicEndpoints {
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/login"),
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/oauth/{provider}"),
 			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/logout"),
-			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/email-verifications"));
+			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/email-verifications"),
+			PATH.matcher(HttpMethod.POST, ApiPaths.V1 + "/auth/email-verifications/confirm"));
 
 	// 누구나 보는 읽기 경로. 이 경로에서도 쿠키의 토큰을 읽지 않는다 (CookieBearerTokenResolver).
 	// 만료된 쿠키가 남은 사람도 공개 목록을 볼 수 있어야 하기 때문이다.

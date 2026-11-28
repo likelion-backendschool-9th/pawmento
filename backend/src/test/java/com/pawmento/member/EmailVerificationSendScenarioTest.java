@@ -1,6 +1,9 @@
 package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,6 +34,7 @@ import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.member.application.exception.VerificationMailUnavailableException;
 import com.pawmento.member.application.port.out.SendVerificationMailPort;
 import com.pawmento.member.domain.VerificationPurpose;
+import com.pawmento.support.SignUpTokens;
 
 // 시나리오는 docs/member/email-verification.md #279-S1~S4. 실제 메일 대신 보낸 메일을 기억하는 가짜 포트를 쓴다.
 // 서비스는 트랜잭션 없이 문장마다 저장하므로 테스트에도 트랜잭션을 두지 않고, 끝나면 테스트 이메일을 지운다
@@ -43,6 +47,9 @@ class EmailVerificationSendScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private FakeMailbox mailbox;
@@ -115,6 +122,8 @@ class EmailVerificationSendScenarioTest {
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.expiresAt").exists())
 			.andExpect(jsonPath("$.retryAfter").exists())
+			.andExpect(jsonPath("$.expiresInSeconds").value(allOf(greaterThanOrEqualTo(290), lessThanOrEqualTo(300))))
+			.andExpect(jsonPath("$.retryAfterSeconds").value(allOf(greaterThanOrEqualTo(50), lessThanOrEqualTo(60))))
 			.andExpect(jsonPath("$.code").doesNotExist());
 
 		List<SentMail> mails = mailbox.to(email);
@@ -128,7 +137,8 @@ class EmailVerificationSendScenarioTest {
 	@DisplayName("#279-S2 이미 가입된 이메일이면 409이고 메일이 가지 않는다")
 	void registeredEmailIsRejected() throws Exception {
 		mockMvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
-				.content("{\"email\":\"" + email + "\",\"password\":\"password123\",\"nickname\":\"보호자\"}"))
+				.content("{\"email\":\"" + email + "\",\"password\":\"password123\",\"nickname\":\"보호자\",\"verificationToken\":\""
+					+ signUpTokens.issue(email) + "\"}"))
 			.andExpect(status().isCreated());
 
 		send(email, "SIGNUP")

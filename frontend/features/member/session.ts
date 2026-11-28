@@ -37,7 +37,7 @@ export function createMemberSession(http: ApiClient, demo: DemoMember) {
         return null;
       });
     },
-    signUp(input: Credentials & { nickname: string; confirmation: string }) {
+    signUp(input: Credentials & { nickname: string; confirmation: string; verificationToken?: string }) {
       validateCredentials(input);
       validateNickname(input.nickname);
       if (input.password !== input.confirmation)
@@ -47,6 +47,7 @@ export function createMemberSession(http: ApiClient, demo: DemoMember) {
           email: normalizeEmail(input.email),
           password: input.password,
           nickname: input.nickname.trim(),
+          verificationToken: input.verificationToken,
         })
         .then((account) => {
           source = "http";

@@ -68,6 +68,7 @@ import com.pawmento.pet.application.port.in.ChangePetOwnerCommand;
 import com.pawmento.pet.application.port.in.ChangePetOwnerUseCase;
 import com.pawmento.pet.application.port.out.LockPetPort;
 import com.pawmento.pet.application.port.out.PetProfilePhotoMediaPort;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -90,6 +91,7 @@ class PetProfilePhotoScenarioTest {
 	}
 
 	@Autowired MockMvc mvc;
+	@Autowired SignUpTokens signUpTokens;
 	@Autowired JdbcTemplate jdbc;
 	@Autowired ProcessMediaWorkUseCase worker;
 	@Autowired MediaCleanupTransactions cleanup;
@@ -636,7 +638,7 @@ class PetProfilePhotoScenarioTest {
 				"email":"%s","password":"correct-password"
 				""".formatted(email);
 		mvc.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
-				.content("{" + credentials + ",\"nickname\":\"보호자\"}"))
+				.content("{" + credentials + ",\"nickname\":\"보호자\",\"verificationToken\":\"" + signUpTokens.issue(email) + "\"}"))
 			.andExpect(status().isCreated());
 		Cookie cookie = mvc.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
 				.content("{" + credentials + "}"))

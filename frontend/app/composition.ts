@@ -28,6 +28,8 @@ import { createMapSource } from "../features/map/source.ts";
 import { createWalkSession } from "../features/map/walkSession.ts";
 import { DemoMapPinRepository } from "../mocks/handlers/DemoMapPinRepository.ts";
 import { DemoPlaceRepository } from "../mocks/handlers/DemoPlaceRepository.ts";
+import { createEmailVerificationApi } from "../features/member/api/emailVerificationApi.ts";
+import { ServerEmailVerification } from "../features/member/emailVerification.ts";
 import { DemoEmailVerification } from "../mocks/handlers/DemoEmailVerification.ts";
 import { createDemoOnboarding } from "../mocks/handlers/demoOnboarding.ts";
 import { searchDemoLocations } from "../mocks/fixtures/demoLocationSearch.ts";
@@ -65,6 +67,7 @@ export function createDependencies() {
     workspace,
     onboardingPreview: createDemoOnboarding(workspace, life),
     emailVerificationPreview: { createSession: () => new DemoEmailVerification() },
+    emailVerification: { createSession: () => new ServerEmailVerification(createEmailVerificationApi(http)) },
     auth: createMemberSession(http, new DemoAuthRepository()),
     pets: createPetApi(http),
     petManagement: createPetManagementApi(http),

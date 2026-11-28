@@ -1,6 +1,7 @@
 package com.pawmento.member.application.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -8,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import com.pawmento.member.application.exception.DuplicateEmailException;
 import com.pawmento.member.application.exception.EmailVerificationConflictException;
-import com.pawmento.member.application.exception.UnsupportedVerificationPurposeException;
 import com.pawmento.member.application.exception.VerificationMailUnavailableException;
 import com.pawmento.member.application.port.in.SendEmailVerificationCommand;
 import com.pawmento.member.application.port.in.SendEmailVerificationResult;
@@ -40,7 +40,7 @@ public class SendEmailVerificationService implements SendEmailVerificationUseCas
     
     @Override
     public SendEmailVerificationResult send(SendEmailVerificationCommand command) {
-        VerificationPurpose purpose = purpose(command.purpose());
+        VerificationPurpose purpose = VerificationPurposes.open(command.purpose());
         String email = Member.normalizeEmail(command.email());
         if (existsMemberPort.existsByEmail(email)) {
             throw new DuplicateEmailException();
@@ -77,14 +77,14 @@ public class SendEmailVerificationService implements SendEmailVerificationUseCas
                 deletePort.delete(sent.getId(), sent.getSendId());
                 throw e;
             }
-            return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt());
-        }
-
-        // #279는 가입 인증만 연다. 비밀번호 재설정·설정은 #280에서 연다
-        private static VerificationPurpose purpose(String value) {
-            if (!VerificationPurpose.SIGNUP.name().equals(value)) {
-                throw new UnsupportedVerificationPurposeException();
-            }
-            return VerificationPurpose.SIGNUP;
-        }
+                 // 메일 서버를 기다린 시간을 빼려고 응답 직전에 시계를 다시 읽는다
+        Instant answered = Instant.now(clock);
+        return new SendEmailVerificationResult(email, sent.getCodeExpiresAt(), sent.resendableAt(),
+                secondsLeft(answered, sent.getCodeExpiresAt()),
+                secondsLeft(answered, sent.resendableAt()));
     }
+
+    private static long secondsLeft(Instant from, Instant until) {
+        return Math.max(0, Duration.between(from, until).toSeconds());
+    }
+}

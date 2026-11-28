@@ -20,6 +20,8 @@ import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 import com.pawmento.member.application.port.in.SocialLoginMemberUseCase;
 import com.pawmento.member.application.port.in.SendEmailVerificationCommand;
 import com.pawmento.member.application.port.in.SendEmailVerificationUseCase;
+import com.pawmento.member.application.port.in.ConfirmEmailVerificationCommand;
+import com.pawmento.member.application.port.in.ConfirmEmailVerificationUseCase;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -33,20 +35,23 @@ import lombok.RequiredArgsConstructor;
 class AuthController {
 
 	private final SignUpMemberUseCase signUpMemberUseCase;
-	
+
 	private final LoginMemberUseCase loginMemberUseCase;
-	
+
 	private final SocialLoginMemberUseCase socialLoginMemberUseCase;
 
 	private final SendEmailVerificationUseCase sendEmailVerificationUseCase;
-	
+
+	private final ConfirmEmailVerificationUseCase confirmEmailVerificationUseCase;
+
 	private final AccessTokenCookie accessTokenCookie;
 
 	// 가입만 하고 로그인 상태로 만들지는 않는다. 이어서 로그인을 부른다
 	@PostMapping("/signup")
 	ResponseEntity<MemberResponse> signUp(@Valid @RequestBody SignUpMemberRequest request) {
 		MemberResponse member = MemberResponse.from(signUpMemberUseCase
-				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname())));
+				.signUp(new SignUpMemberCommand(request.email(), request.password(), request.nickname(),
+						request.verificationToken())));
 		return ResponseEntity.status(HttpStatus.CREATED).body(member);
 	}
 
@@ -57,6 +62,15 @@ class AuthController {
 					.send(new SendEmailVerificationCommand(request.email(), request.purpose())));
 			return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
 		}
+
+	// 맞는 번호면 가입에 한 번 쓸 토큰을 준다. 틀리거나 만료됐으면 이유를 구별하지 않고 같은 400이다
+	@PostMapping("/email-verifications/confirm")
+	ResponseEntity<VerificationTokenResponse> confirmEmailVerification(
+			@Valid @RequestBody ConfirmEmailVerificationRequest request) {
+		VerificationTokenResponse response = VerificationTokenResponse.from(confirmEmailVerificationUseCase
+				.confirm(new ConfirmEmailVerificationCommand(request.email(), request.purpose(), request.code())));
+		return ResponseEntity.ok(response);
+	}
 
 	// 토큰은 응답 본문에 싣지 않고 HttpOnly 쿠키로만 내린다
 	@PostMapping("/login")

@@ -3,6 +3,7 @@ package com.pawmento.member.application.service;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.random.RandomGenerator;
@@ -42,6 +43,13 @@ public class VerificationCodes {
 		}
 		return code;
 	}
+
+    // 확인 뒤 가입에 한 번 쓸 토큰. 32바이트 무작위라 맞혀 볼 수 없다. 저장은 hash()로 한다
+    public String newToken() {
+        byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
 
     public String hash(String code) {
         return HexFormat.of().formatHex(hmac(key, code.strip().getBytes(StandardCharsets.UTF_8)));

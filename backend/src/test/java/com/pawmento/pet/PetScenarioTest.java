@@ -39,6 +39,7 @@ import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.global.security.AccessTokenCookie;
 import com.pawmento.pet.application.port.out.HasPetRecordsPort;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -56,6 +57,9 @@ class PetScenarioTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private StubHasPetRecordsPort hasPetRecordsPort;
@@ -424,8 +428,8 @@ class PetScenarioTest {
 		mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content("""
-						{"email":"%s","password":"%s","nickname":"보호자"}
-						""".formatted(email, PASSWORD)))
+						{"email":"%s","password":"%s","nickname":"보호자","verificationToken":"%s"}
+						""".formatted(email, PASSWORD, signUpTokens.issue(email))))
 			.andExpect(status().isCreated());
 		MvcResult login = mockMvc
 			.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)

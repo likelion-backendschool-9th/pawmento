@@ -14,6 +14,7 @@ import com.pawmento.question.application.exception.*;
 import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.application.port.out.LoadQuestionsPort;
 import com.pawmento.question.domain.QuestionFilter;
+import com.pawmento.support.SignUpTokens;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
@@ -39,6 +40,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 class QuestionAdminReadScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase signup;
   @Autowired LoginMemberUseCase login;
@@ -55,8 +57,8 @@ class QuestionAdminReadScenarioTest {
   @BeforeEach
   void setup() {
     prefix = "admin-test-" + UUID.randomUUID();
-    admin = signup.signUp(new SignUpMemberCommand(prefix + "@example.com", "password123", "관리자")).id();
-    user = signup.signUp(new SignUpMemberCommand(prefix + "-user@example.com", "password123", "회원")).id();
+    admin = signup.signUp(signUpTokens.command(prefix + "@example.com", "password123", "관리자")).id();
+    user = signup.signUp(signUpTokens.command(prefix + "-user@example.com", "password123", "회원")).id();
     jdbc.update("update member set role='ADMIN' where id=?", admin);
   }
 

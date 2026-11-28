@@ -43,6 +43,7 @@ import com.pawmento.community.application.port.out.LoadPostPort;
 import com.pawmento.community.application.port.out.UpdatePostPort;
 import com.pawmento.community.domain.Post;
 import com.pawmento.global.security.AccessTokenCookie;
+import com.pawmento.support.SignUpTokens;
 
 import jakarta.servlet.http.Cookie;
 
@@ -57,6 +58,9 @@ class PostConcurrentUpdateTest {
 
 	@Autowired
 	private MockMvc mockMvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private HookedLoadPostPort hookedLoadPostPort;
@@ -198,8 +202,8 @@ class PostConcurrentUpdateTest {
 		mockMvc
 			.perform(post("/api/v1/auth/signup").contentType(MediaType.APPLICATION_JSON)
 				.content("""
-						{"email":"%s","password":"%s","nickname":"보호자"}
-						""".formatted(email, PASSWORD)))
+						{"email":"%s","password":"%s","nickname":"보호자","verificationToken":"%s"}
+						""".formatted(email, PASSWORD, signUpTokens.issue(email))))
 			.andExpect(status().isCreated());
 		MvcResult login = mockMvc
 			.perform(post("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)

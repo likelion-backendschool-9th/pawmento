@@ -16,6 +16,7 @@ import com.pawmento.media.domain.*;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.domain.QuestionMode;
+import com.pawmento.support.SignUpTokens;
 import java.io.ByteArrayInputStream;
 import java.time.*;
 import java.util.*;
@@ -47,6 +48,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class QuestionAdminRegressionScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase signup;
   @Autowired SaveMediaAssetPort mediaRows;
@@ -69,8 +71,8 @@ class QuestionAdminRegressionScenarioTest {
   @BeforeEach
   void setup() {
     prefix = "admin-regression-" + UUID.randomUUID();
-    admin = signup.signUp(new SignUpMemberCommand(prefix + "@example.com", "Password123!", "관리자")).id();
-    owner = signup.signUp(new SignUpMemberCommand(prefix + "-owner@example.com", "Password123!", "보호자")).id();
+    admin = signup.signUp(signUpTokens.command(prefix + "@example.com", "Password123!", "관리자")).id();
+    owner = signup.signUp(signUpTokens.command(prefix + "-owner@example.com", "Password123!", "보호자")).id();
     jdbc.update("update member set role='ADMIN' where id=?", admin);
     originalPool = jdbc.queryForList("select * from question order by id");
     // 배정 후보만 고립시킨다. 검사할 원본 생성·수정은 아래 HTTP 헬퍼를 사용한다.

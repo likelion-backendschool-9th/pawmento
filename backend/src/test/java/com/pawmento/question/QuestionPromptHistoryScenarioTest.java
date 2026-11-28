@@ -18,6 +18,7 @@ import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.application.port.out.*;
 import com.pawmento.question.domain.QuestionMode;
 import com.pawmento.question.domain.exception.InvalidQuestionAnswerException;
+import com.pawmento.support.SignUpTokens;
 import jakarta.persistence.EntityManagerFactory;
 import java.time.*;
 import java.util.*;
@@ -49,6 +50,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @AutoConfigureMockMvc
 class QuestionPromptHistoryScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase members;
   @Autowired CreatePetUseCase pets;
@@ -106,7 +108,7 @@ class QuestionPromptHistoryScenarioTest {
 
   long member(String name) {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", name))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", name))
         .id();
   }
 

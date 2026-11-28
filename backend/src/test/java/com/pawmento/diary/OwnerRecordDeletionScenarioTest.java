@@ -19,6 +19,7 @@ import com.pawmento.media.domain.StoredUpload;
 import com.pawmento.media.domain.VerifiedMedia;
 import com.pawmento.pet.application.port.in.LockPetOwnerUseCase;
 import com.pawmento.question.application.port.out.QuestionAnswerStorePort;
+import com.pawmento.support.SignUpTokens;
 import jakarta.servlet.http.Cookie;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -75,6 +76,7 @@ class OwnerRecordDeletionScenarioTest {
   private static final byte[] CONTENT = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   @Autowired MockMvc mvc;
   @Autowired JdbcTemplate jdbc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired SaveMediaAssetPort saveAssets;
   @Autowired LoadMediaAssetPort loadAssets;
   @Autowired ProcessMediaWorkUseCase worker;
@@ -552,7 +554,11 @@ class OwnerRecordDeletionScenarioTest {
     postJson(
         "/api/v1/auth/signup",
         null,
-        Map.of("email", email, "password", "Password123!", "nickname", nickname),
+        Map.of(
+            "email", email,
+            "password", "Password123!",
+            "nickname", nickname,
+            "verificationToken", signUpTokens.issue(email)),
         201);
     var login = postJson("/api/v1/auth/login", null, credentials, 200);
     var cookie = login.getResponse().getCookie(AccessTokenCookie.NAME);

@@ -28,10 +28,10 @@ import com.pawmento.family.application.port.in.JoinFamilyUseCase;
 import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.member.application.port.in.MemberResult;
-import com.pawmento.member.application.port.in.SignUpMemberCommand;
 import com.pawmento.member.application.port.in.SignUpMemberUseCase;
 import com.pawmento.pet.application.port.in.CreatePetCommand;
 import com.pawmento.pet.application.port.in.CreatePetUseCase;
+import com.pawmento.support.SignUpTokens;
 
 // 시나리오는 docs/family/membership.md의 #133-S6이다. 실제 회원·반려동물·가족 테이블로 목록 응답을 확인한다
 @Import(TestcontainersConfiguration.class)
@@ -41,6 +41,9 @@ class FamilyListScenarioTest {
 
 	@Autowired
 	private MockMvc mvc;
+
+	@Autowired
+	private SignUpTokens signUpTokens;
 
 	@Autowired
 	private SignUpMemberUseCase signUp;
@@ -170,7 +173,7 @@ class FamilyListScenarioTest {
 
 	private MemberResult member(String nickname) {
 		String email = "family-" + UUID.randomUUID() + "@pawmento.test";
-		return signUp.signUp(new SignUpMemberCommand(email, "correct-password", nickname));
+		return signUp.signUp(signUpTokens.command(email, "correct-password", nickname));
 	}
 
 	private void joinWithCode(long issuer, long pet, long joiner) {

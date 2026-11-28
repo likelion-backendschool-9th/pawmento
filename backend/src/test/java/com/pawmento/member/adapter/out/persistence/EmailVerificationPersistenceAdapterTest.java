@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.awaitility.Awaitility;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.pawmento.TestcontainersConfiguration;
 import com.pawmento.member.application.exception.EmailVerificationConflictException;
@@ -43,6 +47,9 @@ class EmailVerificationPersistenceAdapterTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private TransactionTemplate transaction;
 
 	@AfterEach
 	void cleanUp() {
@@ -196,5 +203,301 @@ class EmailVerificationPersistenceAdapterTest {
 
 		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
 				.isInstanceOf(StoredEmailVerificationInvalidException.class);
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인 시각과 토큰은 저장한 그대로 읽히고, 확인 전에는 셋 다 비어 있다")
+	void tokenFieldsRoundTrip() {
+		adapter.save(sent("hash-1", SENT_AT));
+		EmailVerification before = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(before.getVerifiedAt()).isNull();
+		assertThat(before.getTokenHash()).isNull();
+		assertThat(before.getTokenExpiresAt()).isNull();
+
+		Instant verifiedAt = SENT_AT.plusSeconds(30);
+		jdbcTemplate.update("""
+				update email_verification set verified_at = ?, token_hash = 'token-hash', token_expires_at = ?
+				where email = ?
+				""", java.sql.Timestamp.from(verifiedAt),
+				java.sql.Timestamp.from(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR)), email);
+
+		EmailVerification after = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(after.getVerifiedAt()).isEqualTo(verifiedAt);
+		assertThat(after.getTokenHash()).isEqualTo("token-hash");
+		assertThat(after.getTokenExpiresAt()).isEqualTo(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR));
+	}
+
+	@Test
+	@DisplayName("#279-S3 확인한 뒤 다시 받으면 DB에서도 확인 시각과 토큰이 지워진다")
+	void resendClearsStoredConfirmation() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("""
+				update email_verification set verified_at = ?, token_hash = 'token-hash', token_expires_at = ?
+				where email = ?
+				""", java.sql.Timestamp.from(SENT_AT.plusSeconds(10)),
+				java.sql.Timestamp.from(SENT_AT.plus(EmailVerification.TOKEN_VALID_FOR)), email);
+		Instant now = SENT_AT.plus(EmailVerification.RESEND_AFTER);
+
+		assertThat(adapter.resend(sent("hash-2", now), SENT_AT)).isTrue();
+
+		EmailVerification resent = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(resent.getCodeHash()).isEqualTo("hash-2");
+		assertThat(resent.getVerifiedAt()).isNull();
+		assertThat(resent.getTokenHash()).isNull();
+		assertThat(resent.getTokenExpiresAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인 시각은 있는데 토큰이 없는 깨진 줄은 저장 데이터 오류로 알린다")
+	void brokenTokenRowIsStoredDataError() {
+		adapter.save(sent("hash-1", SENT_AT));
+		jdbcTemplate.update("update email_verification set verified_at = now() where email = ?", email);
+
+		assertThatThrownBy(() -> adapter.load(email, VerificationPurpose.SIGNUP))
+				.isInstanceOf(StoredEmailVerificationInvalidException.class);
+	}
+
+	private int failedAttempts() {
+		return jdbcTemplate.queryForObject("select failed_attempts from email_verification where email = ?",
+				Integer.class, email);
+	}
+
+	@Test
+	@DisplayName("#279-S6 틀린 번호는 같은 발송일 때만 한 번씩 세고, 다섯 번에서 멈춘다")
+	void recordFailureCountsUpToFive() {
+		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
+
+		assertThat(adapter.recordFailure(saved.getId(), "other-send")).isFalse();
+		assertThat(failedAttempts()).isZero();
+
+		for (int i = 0; i < EmailVerification.MAX_FAILED_ATTEMPTS; i++) {
+			assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isTrue();
+		}
+		assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isFalse();
+		assertThat(failedAttempts()).isEqualTo(EmailVerification.MAX_FAILED_ATTEMPTS);
+	}
+
+	@Test
+	@DisplayName("#279-S6 틀린 번호 확인이 동시에 10번 와도 실패는 다섯 번까지만 센다")
+	void concurrentFailuresStopAtFive() throws Exception {
+		EmailVerification saved = adapter.save(sent("hash-1", SENT_AT));
+		int requests = 10;
+		ExecutorService pool = Executors.newFixedThreadPool(requests);
+		CountDownLatch start = new CountDownLatch(1);
+		try {
+			List<Future<Boolean>> results = new ArrayList<>();
+			for (int i = 0; i < requests; i++) {
+				results.add(pool.submit(() -> {
+					start.await();
+					return adapter.recordFailure(saved.getId(), saved.getSendId());
+				}));
+			}
+			start.countDown();
+
+			int counted = 0;
+			for (Future<Boolean> result : results) {
+				if (result.get(30, TimeUnit.SECONDS)) {
+					counted++;
+				}
+			}
+			assertThat(counted).isEqualTo(EmailVerification.MAX_FAILED_ATTEMPTS);
+		}
+		finally {
+			pool.shutdownNow();
+		}
+		assertThat(failedAttempts()).isEqualTo(EmailVerification.MAX_FAILED_ATTEMPTS);
+	}
+
+	// 확인 저장은 DB의 실제 현재 시각(clock_timestamp)으로 만료를 보므로, 확인 테스트는 지금을 기준으로 보낸다
+	private static Instant now() {
+		return Instant.now().truncatedTo(ChronoUnit.MILLIS);
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인할 수 있으면 확인 시각과 토큰을 저장하고, 그 뒤에는 틀린 횟수를 세지 않는다")
+	void confirmStoresToken() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		Instant verifiedAt = sentAt.plusSeconds(1);
+		EmailVerification confirmed = saved.confirm("token-hash", verifiedAt);
+
+		assertThat(adapter.confirm(confirmed)).isTrue();
+
+		EmailVerification loaded = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(loaded.getVerifiedAt()).isEqualTo(verifiedAt);
+		assertThat(loaded.getTokenHash()).isEqualTo("token-hash");
+		assertThat(loaded.getTokenExpiresAt()).isEqualTo(verifiedAt.plus(EmailVerification.TOKEN_VALID_FOR));
+		assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isFalse();
+	}
+
+	@Test
+	@DisplayName("#279-S7 이미 확인한 인증은 다시 확인되지 않고 처음 토큰이 남는다")
+	void confirmOnlyOnce() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		assertThat(adapter.confirm(saved.confirm("token-1", sentAt.plusSeconds(1)))).isTrue();
+
+		assertThat(adapter.confirm(saved.confirm("token-2", sentAt.plusSeconds(2)))).isFalse();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getTokenHash()).isEqualTo("token-1");
+	}
+
+	@Test
+	@DisplayName("#279-S5 만료 직전에 시작한 확인도 저장하는 순간 DB 시각으로 만료됐으면 저장되지 않는다")
+	void confirmRejectsExpiredAtStore() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		// 서비스는 만료 전에 읽고 판단했다(도메인 검사 통과)
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		// 조회·줄 잠금 대기 사이에 만료 시각이 지났다
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() - interval '1 millisecond'"
+				+ " where email = ?", email);
+
+		assertThat(adapter.confirm(confirmed)).isFalse();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getVerifiedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 서비스가 넘긴 확인 시각이 아니라 저장 순간의 DB 시각으로 만료를 본다")
+	void confirmIgnoresStaleVerifiedAt() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '1 minute'"
+				+ " where email = ?", email);
+		// 넘긴 확인 시각은 아주 옛날이어도 지금 DB 시각으로 만료 전이면 저장된다
+		EmailVerification stale = EmailVerification.restore(saved.getId(), email, VerificationPurpose.SIGNUP, "hash-1",
+				saved.getSendId(), 0, saved.getCodeExpiresAt(), sentAt, Instant.parse("2000-01-01T00:00:00Z"),
+				"token-hash", Instant.parse("2000-01-01T00:30:00Z"));
+
+		assertThat(adapter.confirm(stale)).isTrue();
+	}
+
+	@Test
+	@DisplayName("#279-S6 다섯 번 틀린 뒤에는 저장하는 순간에도 확인되지 않는다")
+	void confirmRejectsAfterFiveFailures() {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		for (int i = 0; i < EmailVerification.MAX_FAILED_ATTEMPTS; i++) {
+			adapter.recordFailure(saved.getId(), saved.getSendId());
+		}
+
+		assertThat(adapter.confirm(confirmed)).isFalse();
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getVerifiedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S3 확인하는 사이 다시 받기로 발송이 바뀌었으면 예전 번호의 확인은 저장되지 않는다")
+	void confirmRejectsAfterResend() {
+		Instant sentAt = now();
+		EmailVerification first = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = first.confirm("token-hash", sentAt.plusSeconds(1));
+		assertThat(adapter.resend(sent("hash-2", sentAt.plusSeconds(60)), sentAt)).isTrue();
+
+		assertThat(adapter.confirm(confirmed)).isFalse();
+		EmailVerification loaded = adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow();
+		assertThat(loaded.getCodeHash()).isEqualTo("hash-2");
+		assertThat(loaded.getVerifiedAt()).isNull();
+		assertThat(adapter.recordFailure(first.getId(), first.getSendId())).isFalse();
+	}
+
+	@Test
+	@DisplayName("#279-S6 바깥 트랜잭션이 롤백돼도 틀린 횟수는 따로 커밋되어 남는다")
+	void failureSurvivesOuterRollback() {
+		EmailVerification saved = adapter.save(sent("hash-1", now()));
+
+		transaction.executeWithoutResult(status -> {
+			assertThat(adapter.recordFailure(saved.getId(), saved.getSendId())).isTrue();
+			status.setRollbackOnly();
+		});
+
+		assertThat(failedAttempts()).isEqualTo(1);
+	}
+
+	private int waitingForLock() {
+		return jdbcTemplate.queryForObject("""
+				select count(*) from pg_stat_activity
+				where datname = current_database() and wait_event_type = 'Lock' and query ilike '%email_verification%'
+				""", Integer.class);
+	}
+
+	@Test
+	@DisplayName("#279-S5 확인이 줄 잠금을 기다리는 사이 만료되면, 상대가 줄을 바꾸지 않고 놓아도 저장되지 않는다")
+	void confirmChecksExpiryAfterWaitingForLock() throws Exception {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		// 서비스는 만료 전에 읽고 판단했다
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '2 seconds'"
+				+ " where email = ?", email);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			// 다른 트랜잭션이 줄을 잠그기만 하고, 나중에 바꾸지 않은 채 롤백한다
+			Future<?> holder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+				jdbcTemplate.queryForList("select id from email_verification where email = ? for update", email);
+				locked.countDown();
+				try {
+					release.await(30, TimeUnit.SECONDS);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+				status.setRollbackOnly();
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<Boolean> confirming = pool.submit(() -> adapter.confirm(confirmed));
+			// 확인이 잠금 대기에 들어간 것을 본 뒤, 만료 시각(2초)이 지날 때까지 잠금을 들고 있는다
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> waitingForLock() > 0);
+			Thread.sleep(2_500);
+			release.countDown();
+			holder.get(10, TimeUnit.SECONDS);
+
+			assertThat(confirming.get(10, TimeUnit.SECONDS)).isFalse();
+		}
+		finally {
+			release.countDown();
+			pool.shutdownNow();
+		}
+		assertThat(adapter.load(email, VerificationPurpose.SIGNUP).orElseThrow().getVerifiedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 잠금을 기다린 뒤에도 만료 전이면 확인이 저장된다")
+	void confirmSucceedsAfterWaitingForLockBeforeExpiry() throws Exception {
+		Instant sentAt = now();
+		EmailVerification saved = adapter.save(sent("hash-1", sentAt));
+		EmailVerification confirmed = saved.confirm("token-hash", sentAt.plusSeconds(1));
+		jdbcTemplate.update("update email_verification set code_expires_at = clock_timestamp() + interval '1 minute'"
+				+ " where email = ?", email);
+		CountDownLatch locked = new CountDownLatch(1);
+		CountDownLatch release = new CountDownLatch(1);
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		try {
+			Future<?> holder = pool.submit(() -> transaction.executeWithoutResult(status -> {
+				jdbcTemplate.queryForList("select id from email_verification where email = ? for update", email);
+				locked.countDown();
+				try {
+					release.await(30, TimeUnit.SECONDS);
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+				}
+				status.setRollbackOnly();
+			}));
+			assertThat(locked.await(10, TimeUnit.SECONDS)).isTrue();
+
+			Future<Boolean> confirming = pool.submit(() -> adapter.confirm(confirmed));
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> waitingForLock() > 0);
+			release.countDown();
+			holder.get(10, TimeUnit.SECONDS);
+
+			assertThat(confirming.get(10, TimeUnit.SECONDS)).isTrue();
+		}
+		finally {
+			release.countDown();
+			pool.shutdownNow();
+		}
 	}
 }

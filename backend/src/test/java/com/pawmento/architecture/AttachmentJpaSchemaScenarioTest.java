@@ -11,6 +11,7 @@ import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
 import com.pawmento.question.application.port.in.*;
 import com.pawmento.question.application.port.out.QuestionAttachmentsPort;
+import com.pawmento.support.SignUpTokens;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
@@ -31,6 +32,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Import(TestcontainersConfiguration.class)
 class AttachmentJpaSchemaScenarioTest {
   @Autowired JdbcTemplate jdbc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired TransactionTemplate tx;
   @Autowired CreatePetUseCase pets;
   @Autowired SignUpMemberUseCase members;
@@ -97,7 +99,7 @@ class AttachmentJpaSchemaScenarioTest {
     long member =
         members
             .signUp(
-                new SignUpMemberCommand(
+                signUpTokens.command(
                     UUID.randomUUID() + "@test.example", "Password123!", "보리 가족"))
             .id();
     long pet = pets.create(new CreatePetCommand(member, "보리", "DOG", null, null)).petId();

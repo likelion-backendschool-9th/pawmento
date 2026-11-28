@@ -16,6 +16,7 @@ import com.pawmento.family.application.port.out.SavePetFamilyMemberPort;
 import com.pawmento.family.domain.PetFamilyMember;
 import com.pawmento.member.application.port.in.*;
 import com.pawmento.pet.application.port.in.*;
+import com.pawmento.support.SignUpTokens;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
@@ -41,6 +42,7 @@ import tools.jackson.databind.json.JsonMapper;
 @AutoConfigureMockMvc
 class DiaryTitleScenarioTest {
   @Autowired MockMvc mvc;
+  @Autowired SignUpTokens signUpTokens;
   @Autowired JdbcTemplate jdbc;
   @Autowired SignUpMemberUseCase members;
   @Autowired CreatePetUseCase pets;
@@ -91,7 +93,7 @@ class DiaryTitleScenarioTest {
 
   long member(String name) {
     return members
-        .signUp(new SignUpMemberCommand(UUID.randomUUID() + "@test.example", "Password123!", name))
+        .signUp(signUpTokens.command(UUID.randomUUID() + "@test.example", "Password123!", name))
         .id();
   }
 

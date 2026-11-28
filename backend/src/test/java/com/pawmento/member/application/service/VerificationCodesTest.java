@@ -3,6 +3,7 @@ package com.pawmento.member.application.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashSet;
+import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -97,6 +98,22 @@ class VerificationCodesTest {
 		VerificationCodes codes = new VerificationCodes("test-secret", scripted(123_456));
 
 		assertThat(codes.newCodeOtherThan(null)).isEqualTo("123456");
+	}
+
+	@Test
+	@DisplayName("#279-S5 가입 토큰은 32바이트 무작위를 URL에 안전한 Base64(43자)로 만들고, 매번 다르다")
+	void newTokenIsRandomUrlSafe() {
+		VerificationCodes codes = new VerificationCodes("test-secret");
+		Set<String> seen = new HashSet<>();
+
+		for (int i = 0; i < 100; i++) {
+			String token = codes.newToken();
+			assertThat(token).hasSize(43).matches("[A-Za-z0-9_-]{43}");
+			assertThat(Base64.getUrlDecoder().decode(token)).hasSize(32);
+			seen.add(token);
+		}
+		assertThat(seen).hasSize(100);
+		assertThat(codes.hash(codes.newToken())).hasSize(64);
 	}
 
 	// 정해 둔 순서대로 번호를 뽑는 가짜 난수
