@@ -53,7 +53,7 @@ class EmailVerificationTest {
 	@DisplayName("#279-S3 다시 보내면 같은 줄(id)에 새 번호·새 발송 식별자·새 만료를 두고 틀린 횟수를 0으로 되돌린다")
 	void resendReplacesCode() {
 		EmailVerification stored = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "old-hash",
-				"send-1", 3, NOW.plusSeconds(600), NOW);
+				"send-1", 3, NOW.plusSeconds(600), NOW, null, null, null);
 		Instant later = NOW.plusSeconds(60);
 
 		EmailVerification next = stored.resend("new-hash", later);
@@ -72,7 +72,7 @@ class EmailVerificationTest {
 	@DisplayName("#279-S3 직전 번호와 같은 번호로는 다시 보낼 수 없다 (이전 번호 무효)")
 	void resendRejectsSameCode() {
 		EmailVerification stored = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
-				"send-1", 0, NOW.plusSeconds(600), NOW);
+				"send-1", 0, NOW.plusSeconds(600), NOW, null, null, null);
 
 		assertThatThrownBy(() -> stored.resend("hash", NOW.plusSeconds(60)))
 				.isInstanceOf(InvalidEmailVerificationException.class);
@@ -100,7 +100,7 @@ class EmailVerificationTest {
 	void restoreKeepsStoredValues() {
 		Instant sentAt = NOW.minusSeconds(30);
 		EmailVerification verification = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.PASSWORD_RESET,
-				"hash", "send-1", 3, sentAt.plusSeconds(600), sentAt);
+				"hash", "send-1", 3, sentAt.plusSeconds(600), sentAt, null, null, null);
 
 		assertThat(verification.getId()).isEqualTo(7L);
 		assertThat(verification.getPurpose()).isEqualTo(VerificationPurpose.PASSWORD_RESET);
@@ -116,14 +116,116 @@ class EmailVerificationTest {
 	void restoreRejectsBrokenValues() {
 		Instant expires = NOW.plusSeconds(600);
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
-				"send-1", -1, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+				"send-1", -1, expires, NOW, null, null, null)).isInstanceOf(InvalidEmailVerificationException.class);
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
-				" ", 0, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+				" ", 0, expires, NOW, null, null, null)).isInstanceOf(InvalidEmailVerificationException.class);
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
-				"send-1", 0, expires, null)).isInstanceOf(InvalidEmailVerificationException.class);
+				"send-1", 0, expires, null, null, null, null)).isInstanceOf(InvalidEmailVerificationException.class);
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "hash",
-				"send-1", 0, null, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+				"send-1", 0, null, NOW, null, null, null)).isInstanceOf(InvalidEmailVerificationException.class);
 		assertThatThrownBy(() -> EmailVerification.restore(7L, "", VerificationPurpose.SIGNUP, "hash",
-				"send-1", 0, expires, NOW)).isInstanceOf(InvalidEmailVerificationException.class);
+				"send-1", 0, expires, NOW, null, null, null)).isInstanceOf(InvalidEmailVerificationException.class);
+	}
+
+	private static EmailVerification sentAt(Instant sentAt) {
+		return EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP, "code-hash", "send-1", 0,
+				sentAt.plus(EmailVerification.CODE_VALID_FOR), sentAt, null, null, null);
+	}
+
+	@Test
+	@DisplayName("#279-S5 맞는 번호를 넣으면 같은 줄에 확인 시각과 30분짜리 토큰 해시를 두고, 번호·발송은 그대로다")
+	void confirmSetsToken() {
+		EmailVerification stored = sentAt(NOW);
+		Instant later = NOW.plusSeconds(120);
+
+		EmailVerification confirmed = stored.confirm("token-hash", later);
+
+		assertThat(confirmed.getId()).isEqualTo(7L);
+		assertThat(confirmed.getCodeHash()).isEqualTo("code-hash");
+		assertThat(confirmed.getSendId()).isEqualTo("send-1");
+		assertThat(confirmed.getVerifiedAt()).isEqualTo(later);
+		assertThat(confirmed.getTokenHash()).isEqualTo("token-hash");
+		assertThat(confirmed.getTokenExpiresAt()).isEqualTo(later.plus(EmailVerification.TOKEN_VALID_FOR));
+		assertThat(stored.getVerifiedAt()).isNull();
+	}
+
+	@Test
+	@DisplayName("#279-S5 번호가 만료된 뒤(5분)에는 확인할 수 없다. 만료 직전까지는 된다")
+	void cannotConfirmAfterExpiry() {
+		EmailVerification stored = sentAt(NOW);
+		Instant expiry = NOW.plus(EmailVerification.CODE_VALID_FOR);
+
+		assertThat(stored.isConfirmableAt(expiry.minusSeconds(1))).isTrue();
+		assertThat(stored.isConfirmableAt(expiry)).isFalse();
+		assertThatThrownBy(() -> stored.confirm("token-hash", expiry))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+	}
+
+	@Test
+	@DisplayName("#279-S6 다섯 번 틀린 뒤에는 확인할 수 없다. 네 번까지는 된다")
+	void cannotConfirmAfterFiveFailures() {
+		Instant expires = NOW.plus(EmailVerification.CODE_VALID_FOR);
+		EmailVerification fourFailures = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 4, expires, NOW, null, null, null);
+		EmailVerification fiveFailures = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 5, expires, NOW, null, null, null);
+
+		assertThat(fourFailures.isConfirmableAt(NOW)).isTrue();
+		assertThat(fiveFailures.isConfirmableAt(NOW)).isFalse();
+	}
+
+	@Test
+	@DisplayName("#279-S7 한 번 확인한 인증은 다시 확인할 수 없다")
+	void cannotConfirmTwice() {
+		EmailVerification confirmed = sentAt(NOW).confirm("token-hash", NOW);
+
+		assertThat(confirmed.isConfirmableAt(NOW)).isFalse();
+		assertThatThrownBy(() -> confirmed.confirm("other-token", NOW))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+	}
+
+	@Test
+	@DisplayName("#279-S3 확인한 뒤 다시 받으면 확인과 토큰이 지워져 예전 토큰은 무효가 된다")
+	void resendClearsConfirmation() {
+		EmailVerification confirmed = sentAt(NOW).confirm("token-hash", NOW);
+
+		EmailVerification next = confirmed.resend("new-code-hash", NOW.plus(EmailVerification.RESEND_AFTER));
+
+		assertThat(next.getVerifiedAt()).isNull();
+		assertThat(next.getTokenHash()).isNull();
+		assertThat(next.getTokenExpiresAt()).isNull();
+		assertThat(next.isConfirmableAt(NOW.plus(EmailVerification.RESEND_AFTER))).isTrue();
+	}
+
+	@Test
+	@DisplayName("#279-S5 되살릴 때 확인 시각·토큰 해시·토큰 만료는 셋 다 있거나 셋 다 없어야 한다")
+	void restoreRequiresTokenFieldsTogether() {
+		Instant expires = NOW.plus(EmailVerification.CODE_VALID_FOR);
+		Instant tokenExpires = NOW.plus(EmailVerification.TOKEN_VALID_FOR);
+
+		EmailVerification verified = EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, NOW, "token-hash", tokenExpires);
+		assertThat(verified.getTokenHash()).isEqualTo("token-hash");
+
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, NOW, null, tokenExpires))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, NOW, " ", tokenExpires))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, NOW, "token-hash", null))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, null, "token-hash", tokenExpires))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, null, null, tokenExpires))
+				.isInstanceOf(InvalidEmailVerificationException.class);
+		// 확인 전인데 공백 토큰 해시만 남은 줄도 깨진 값이다
+		assertThatThrownBy(() -> EmailVerification.restore(7L, "a@test.com", VerificationPurpose.SIGNUP,
+				"code-hash", "send-1", 0, expires, NOW, null, " ", null))
+				.isInstanceOf(InvalidEmailVerificationException.class)
+				.hasMessage("확인 전인데 토큰이 있습니다.");
 	}
 }

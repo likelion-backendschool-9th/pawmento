@@ -52,6 +52,15 @@ class EmailVerificationJpaEntity {
     @Column(nullable = false)
     private Instant sentAt;
 
+	@Column
+	private Instant verifiedAt;
+
+	@Column(length = 64)
+	private String tokenHash;
+
+	@Column
+	private Instant tokenExpiresAt;
+
     static EmailVerificationJpaEntity from(EmailVerification verification) {
         EmailVerificationJpaEntity entity = new EmailVerificationJpaEntity();
         entity.id = verification.getId();
@@ -62,10 +71,13 @@ class EmailVerificationJpaEntity {
         entity.failedAttempts = verification.getFailedAttempts();
         entity.codeExpiresAt = verification.getCodeExpiresAt();
         entity.sentAt = verification.getSentAt();
+        entity.verifiedAt = verification.getVerifiedAt();
+        entity.tokenHash = verification.getTokenHash();
+        entity.tokenExpiresAt = verification.getTokenExpiresAt();
         return entity;
     }
 
     EmailVerification toDomain() {
-        return EmailVerification.restore(id, email, purpose, codeHash, sendId, failedAttempts, codeExpiresAt, sentAt);
+        return EmailVerification.restore(id, email, purpose, codeHash, sendId, failedAttempts, codeExpiresAt, sentAt, verifiedAt, tokenHash, tokenExpiresAt);
     }
 }

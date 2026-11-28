@@ -1,6 +1,9 @@
 package com.pawmento.member;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -115,6 +118,8 @@ class EmailVerificationSendScenarioTest {
 			.andExpect(jsonPath("$.email").value(email))
 			.andExpect(jsonPath("$.expiresAt").exists())
 			.andExpect(jsonPath("$.retryAfter").exists())
+			.andExpect(jsonPath("$.expiresInSeconds").value(allOf(greaterThanOrEqualTo(290), lessThanOrEqualTo(300))))
+			.andExpect(jsonPath("$.retryAfterSeconds").value(allOf(greaterThanOrEqualTo(50), lessThanOrEqualTo(60))))
 			.andExpect(jsonPath("$.code").doesNotExist());
 
 		List<SentMail> mails = mailbox.to(email);

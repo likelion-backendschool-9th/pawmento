@@ -47,6 +47,7 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | 경로 | 용도 |
 | --- | --- |
 | `POST /api/v1/auth/signup`, `POST /api/v1/auth/login`, `POST /api/v1/auth/oauth/{provider}`, `POST /api/v1/auth/logout` | 가입, 로그인, 소셜 로그인, 로그아웃 |
+| `POST /api/v1/auth/email-verifications`, `POST /api/v1/auth/email-verifications/confirm` | 가입 인증번호 보내기·확인. 가입 전에 부르므로 쿠키의 토큰을 읽지 않는다 (#279) |
 | `GET /api/v1/posts`, `GET /api/v1/posts/categories`, `GET /api/v1/posts/{숫자 id}` | 커뮤니티 글 목록, 카테고리 목록, 글 상세. 쿠키의 토큰을 읽지 않는다. 와일드카드로 열지 않아 `/posts/me` 같은 다른 경로는 로그인이 필요하다 (#21) |
 | `GET /v3/api-docs/**`, `GET /swagger-ui/**`, `GET /swagger-ui.html` | API 문서 (Springdoc 기본 경로. 도구는 백엔드 구조 작업에서 더한다) |
 
@@ -58,6 +59,8 @@ List<PetResponse> myPets(@LoginMember Long memberId) {
 | `POST /api/v1/auth/login` | `email`, `password` | 200, 회원 정보. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
 | `POST /api/v1/auth/oauth/{provider}` | `code`, `redirectUri`, `state`(선택). `provider`는 `google`·`kakao` | 200, 회원 정보. 처음이면 가입도 함께 된다. 토큰은 `ACCESS_TOKEN` 쿠키로 내린다 |
 | `POST /api/v1/auth/logout` | 없음. `Content-Type: application/json` 헤더는 필요하다 | 204, 쿠키 삭제 |
+| `POST /api/v1/auth/email-verifications` | `email`, `purpose`(`SIGNUP`) | 202, `email`·`expiresAt`·`retryAfter`·`expiresInSeconds`·`retryAfterSeconds`. 번호는 메일로만 간다 (#279) |
+| `POST /api/v1/auth/email-verifications/confirm` | `email`, `purpose`(`SIGNUP`), `code` | 200, `verificationToken`·`expiresAt`·`expiresInSeconds`. 실패는 이유를 구별하지 않고 400 (#279) |
 | `GET /api/v1/members/me` | 없음 | 200, 회원 정보 |
 
 회원 정보는 `{ "id": 1, "email": "…", "nickname": "…", "role": "USER" }`이다. 가입은 로그인 상태를 만들지 않는다. 가입한 뒤 로그인을 부른다.

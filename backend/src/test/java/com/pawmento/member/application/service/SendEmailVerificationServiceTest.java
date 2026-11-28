@@ -11,8 +11,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doAnswer;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Iterator;
@@ -60,7 +62,7 @@ class SendEmailVerificationServiceTest {
 
 	private EmailVerification stored(String code, Instant sentAt) {
 		return EmailVerification.restore(7L, EMAIL, VerificationPurpose.SIGNUP, codes.hash(code), "send-old", 2,
-				sentAt.plus(EmailVerification.CODE_VALID_FOR), sentAt);
+				sentAt.plus(EmailVerification.CODE_VALID_FOR), sentAt, null, null, null);
 	}
 
 	private static SendEmailVerificationCommand signup(String email) {
@@ -75,7 +77,7 @@ class SendEmailVerificationServiceTest {
 		when(savePort.save(any())).thenAnswer(call -> {
 			EmailVerification v = call.getArgument(0);
 			return EmailVerification.restore(1L, v.getEmail(), v.getPurpose(), v.getCodeHash(), v.getSendId(),
-					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt());
+					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt(), null, null, null);
 		});
 
 		SendEmailVerificationResult result = service.send(signup(" A@Test.com "));
@@ -90,6 +92,9 @@ class SendEmailVerificationServiceTest {
 		assertThat(result.email()).isEqualTo(EMAIL);
 		assertThat(result.expiresAt()).isEqualTo(NOW.plus(EmailVerification.CODE_VALID_FOR));
 		assertThat(result.retryAfter()).isEqualTo(NOW.plus(EmailVerification.RESEND_AFTER));
+		// 화면이 기기 시계와 상관없이 카운트다운하도록 남은 초도 준다 (#279-S12)
+		assertThat(result.expiresInSeconds()).isEqualTo(EmailVerification.CODE_VALID_FOR.toSeconds());
+		assertThat(result.retryAfterSeconds()).isEqualTo(EmailVerification.RESEND_AFTER.toSeconds());
 	}
 
 	@Test
@@ -147,6 +152,8 @@ class SendEmailVerificationServiceTest {
 		verify(mailPort).send(EMAIL, VerificationPurpose.SIGNUP, "654321", NOW.plus(EmailVerification.CODE_VALID_FOR));
 		verify(savePort, never()).save(any());
 		assertThat(result.retryAfter()).isEqualTo(NOW.plus(EmailVerification.RESEND_AFTER));
+		assertThat(result.expiresInSeconds()).isEqualTo(300);
+		assertThat(result.retryAfterSeconds()).isEqualTo(60);
 	}
 
 	@Test
@@ -181,7 +188,7 @@ class SendEmailVerificationServiceTest {
 		when(savePort.save(any())).thenAnswer(call -> {
 			EmailVerification v = call.getArgument(0);
 			return EmailVerification.restore(1L, v.getEmail(), v.getPurpose(), v.getCodeHash(), v.getSendId(),
-					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt());
+					v.getFailedAttempts(), v.getCodeExpiresAt(), v.getSentAt(), null, null, null);
 		});
 		VerificationMailUnavailableException failure = new VerificationMailUnavailableException(new RuntimeException("smtp"));
 		doThrow(failure).when(mailPort).send(anyString(), any(), anyString(), any());
@@ -208,6 +215,49 @@ class SendEmailVerificationServiceTest {
 		verify(resendPort).resend(fresh.capture(), any());
 		verify(deletePort).delete(7L, fresh.getValue().getSendId());
 		verify(deletePort, never()).delete(7L, "send-old");
+	}
+
+	@Test
+	@DisplayName("#279-S12 메일 발송에 5초가 걸리면 남은 초는 발송이 끝난 시각 기준으로 295초·55초다")
+	void secondsLeftCountFromAfterMailIsSent() {
+		MovingClock clock = new MovingClock(NOW);
+		codes = new VerificationCodes("test-secret", scripted(123_456));
+		SendEmailVerificationService service = new SendEmailVerificationService(members, loadPort, savePort, resendPort,
+				deletePort, mailPort, codes, clock);
+		when(loadPort.load(EMAIL, VerificationPurpose.SIGNUP)).thenReturn(Optional.empty());
+		when(savePort.save(any())).thenAnswer(call -> call.getArgument(0));
+		doAnswer(call -> {
+			clock.advance(Duration.ofSeconds(5));
+			return null;
+		}).when(mailPort).send(anyString(), any(), anyString(), any());
+
+		SendEmailVerificationResult result = service.send(signup(EMAIL));
+
+		// 만료 시각은 요청 시각 기준 그대로이고, 남은 초만 응답 시각 기준이다
+		assertThat(result.expiresAt()).isEqualTo(NOW.plus(EmailVerification.CODE_VALID_FOR));
+		assertThat(result.retryAfter()).isEqualTo(NOW.plus(EmailVerification.RESEND_AFTER));
+		assertThat(result.expiresInSeconds()).isEqualTo(295);
+		assertThat(result.retryAfterSeconds()).isEqualTo(55);
+	}
+
+	@Test
+	@DisplayName("#279-S12 메일 발송이 다시 받기 간격보다 오래 걸리면 남은 초는 음수가 아니라 0이다")
+	void secondsLeftNeverGoBelowZero() {
+		MovingClock clock = new MovingClock(NOW);
+		codes = new VerificationCodes("test-secret", scripted(123_456));
+		SendEmailVerificationService service = new SendEmailVerificationService(members, loadPort, savePort, resendPort,
+				deletePort, mailPort, codes, clock);
+		when(loadPort.load(EMAIL, VerificationPurpose.SIGNUP)).thenReturn(Optional.empty());
+		when(savePort.save(any())).thenAnswer(call -> call.getArgument(0));
+		doAnswer(call -> {
+			clock.advance(Duration.ofSeconds(70));
+			return null;
+		}).when(mailPort).send(anyString(), any(), anyString(), any());
+
+		SendEmailVerificationResult result = service.send(signup(EMAIL));
+
+		assertThat(result.expiresInSeconds()).isEqualTo(230);
+		assertThat(result.retryAfterSeconds()).isZero();
 	}
 
 	// 정해 둔 순서대로 번호를 뽑는 가짜 난수
